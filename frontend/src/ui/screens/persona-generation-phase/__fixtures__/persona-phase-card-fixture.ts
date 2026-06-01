@@ -34,10 +34,17 @@ export const personaGenerationPhasePanelFixture: PersonaGenerationPhaseScreenVie
     commonPersonaMissCountLabel: "72",
     skippedReasonsLabel: "翻訳対象外 8 件",
     targetSnapshotLabel: "-",
+    isExecutionConfigured: true,
     providerLabel: "OpenAI",
     modelLabel: "gpt-4.1-mini",
     executionModeLabel: "通常実行",
     credentialRefLabel: "認証済み",
+    providerOptions: [{ value: "OpenAI", label: "OpenAI" }],
+    modelOptions: [{ value: "gpt-4.1-mini", label: "gpt-4.1-mini" }],
+    executionOptions: [
+      { value: "batch", label: "バッチ処理" },
+      { value: "sync", label: "逐次処理" }
+    ],
     inputCountLabel: "96",
     outputCountLabel: "一括処理なし",
     evidenceRefsLabel: "-",

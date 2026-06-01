@@ -67,24 +67,22 @@ type GetPersonaGenerationBodyReadinessRequestDTO struct {
 }
 
 // SavePersonaGenerationPhaseAISettingsRequestDTO carries public AI settings.
+// job_id は含めない。保存操作は JOB_PHASE_AI_SETTINGS テーブルに phase_type を主キーとして upsert する。
 type SavePersonaGenerationPhaseAISettingsRequestDTO struct {
-	JobID         int64  `json:"jobId"`
 	Provider      string `json:"provider"`
 	Model         string `json:"model"`
 	ExecutionMode string `json:"executionMode"`
 	BatchMode     string `json:"batchMode"`
 }
 
-// PersonaGenerationPhaseAISettingsResponseDTO returns public AI settings state.
+// PersonaGenerationPhaseAISettingsResponseDTO returns saved AI settings state.
+// credential_status、model_list_status は含まない。
 type PersonaGenerationPhaseAISettingsResponseDTO struct {
-	JobID            int64  `json:"jobId"`
-	PhaseID          string `json:"phaseId"`
-	Provider         string `json:"provider"`
-	Model            string `json:"model"`
-	CredentialStatus string `json:"credentialStatus"`
-	ExecutionMode    string `json:"executionMode"`
-	BatchMode        string `json:"batchMode"`
-	ModelListStatus  string `json:"modelListStatus"`
+	PhaseType     string `json:"phaseType"`
+	Provider      string `json:"provider"`
+	Model         string `json:"model"`
+	ExecutionMode string `json:"executionMode"`
+	BatchMode     string `json:"batchMode"`
 }
 
 // PersonaGenerationPhaseProgressSummaryDTO summarizes one phase run progress snapshot.
@@ -117,6 +115,15 @@ type PersonaGenerationExecutionSummaryDTO struct {
 	InputCount    int      `json:"inputCount"`
 	OutputCount   int      `json:"outputCount"`
 	EvidenceRefs  []string `json:"evidenceRefs"`
+}
+
+// PersonaGenerationPhaseAISettingsDTO holds the Ready 期 AI 選択値。
+// JOB_PHASE_AI_SETTINGS レコードが存在しない場合は省略する。
+type PersonaGenerationPhaseAISettingsDTO struct {
+	Provider      string `json:"provider"`
+	Model         string `json:"model"`
+	ExecutionMode string `json:"executionMode"`
+	BatchMode     string `json:"batchMode"`
 }
 
 // PersonaGenerationPhaseResultSummaryDTO summarizes the stored persona snapshot.
@@ -155,15 +162,18 @@ type PersonaGenerationPhaseActionEnablementDTO struct {
 
 // PersonaGenerationPhaseSummaryResponseDTO returns the frozen summary response shape.
 type PersonaGenerationPhaseSummaryResponseDTO struct {
-	JobID            int64                                     `json:"jobId"`
-	CurrentPhase     string                                    `json:"currentPhase"`
-	PhaseState       string                                    `json:"phaseState"`
-	PhaseRunID       *int64                                    `json:"phaseRunId,omitempty"`
-	StartedAt        *string                                   `json:"startedAt,omitempty"`
-	FinishedAt       *string                                   `json:"finishedAt,omitempty"`
-	Progress         PersonaGenerationPhaseProgressSummaryDTO  `json:"progress"`
-	TargetSummary    PersonaGenerationTargetSummaryDTO         `json:"targetSummary"`
-	Execution        PersonaGenerationExecutionSummaryDTO      `json:"execution"`
+	JobID         int64                                    `json:"jobId"`
+	CurrentPhase  string                                   `json:"currentPhase"`
+	PhaseState    string                                   `json:"phaseState"`
+	PhaseRunID    *int64                                   `json:"phaseRunId,omitempty"`
+	StartedAt     *string                                  `json:"startedAt,omitempty"`
+	FinishedAt    *string                                  `json:"finishedAt,omitempty"`
+	Progress      PersonaGenerationPhaseProgressSummaryDTO `json:"progress"`
+	TargetSummary PersonaGenerationTargetSummaryDTO        `json:"targetSummary"`
+	// AISettings は JOB_PHASE_AI_SETTINGS record が存在する場合だけ含める。nil は omit される。
+	AISettings *PersonaGenerationPhaseAISettingsDTO `json:"aiSettings,omitempty"`
+	// Execution は JOB_PHASE_RUN が存在する場合だけ含める。nil は omit される。
+	Execution        *PersonaGenerationExecutionSummaryDTO     `json:"execution,omitempty"`
 	ResultSummary    *PersonaGenerationPhaseResultSummaryDTO   `json:"resultSummary,omitempty"`
 	ErrorSummary     *PersonaGenerationPhaseErrorSummaryDTO    `json:"errorSummary,omitempty"`
 	ActionEnablement PersonaGenerationPhaseActionEnablementDTO `json:"actionEnablement"`
@@ -179,10 +189,11 @@ type PersonaGenerationPhaseCommandResponseDTO struct {
 	FinishedAt    *string                                  `json:"finishedAt,omitempty"`
 	Progress      PersonaGenerationPhaseProgressSummaryDTO `json:"progress"`
 	TargetSummary PersonaGenerationTargetSummaryDTO        `json:"targetSummary"`
-	Execution     PersonaGenerationExecutionSummaryDTO     `json:"execution"`
-	ResultSummary *PersonaGenerationPhaseResultSummaryDTO  `json:"resultSummary,omitempty"`
-	Retryable     bool                                     `json:"retryable"`
-	ErrorSummary  *PersonaGenerationPhaseErrorSummaryDTO   `json:"errorSummary,omitempty"`
+	// Execution は JOB_PHASE_RUN が存在する場合だけ含める。nil は omit される。
+	Execution     *PersonaGenerationExecutionSummaryDTO   `json:"execution,omitempty"`
+	ResultSummary *PersonaGenerationPhaseResultSummaryDTO `json:"resultSummary,omitempty"`
+	Retryable     bool                                    `json:"retryable"`
+	ErrorSummary  *PersonaGenerationPhaseErrorSummaryDTO  `json:"errorSummary,omitempty"`
 }
 
 // PersonaGenerationBodyReadinessInputSummaryDTO summarizes the body phase inputs.
@@ -317,7 +328,6 @@ func (controller *PersonaGenerationPhaseController) SavePersonaGenerationPhaseAI
 	result, err := settingsUsecase.SavePersonaGenerationPhaseAISettings(
 		context.Background(),
 		usecase.SavePersonaGenerationPhaseAISettingsRequest{
-			JobID:         request.JobID,
 			Provider:      request.Provider,
 			Model:         request.Model,
 			ExecutionMode: request.ExecutionMode,
@@ -327,7 +337,13 @@ func (controller *PersonaGenerationPhaseController) SavePersonaGenerationPhaseAI
 	if err != nil {
 		return PersonaGenerationPhaseAISettingsResponseDTO{}, fmt.Errorf("save persona generation phase ai settings: %w", err)
 	}
-	return PersonaGenerationPhaseAISettingsResponseDTO(result), nil
+	return PersonaGenerationPhaseAISettingsResponseDTO{
+		PhaseType:     result.PhaseType,
+		Provider:      result.Provider,
+		Model:         result.Model,
+		ExecutionMode: result.ExecutionMode,
+		BatchMode:     result.BatchMode,
+	}, nil
 }
 
 func toPersonaGenerationPhaseSummaryResponseDTO(
@@ -342,7 +358,8 @@ func toPersonaGenerationPhaseSummaryResponseDTO(
 		FinishedAt:       formatOptionalTime(result.FinishedAt),
 		Progress:         toPersonaGenerationPhaseProgressSummaryDTO(result.Progress),
 		TargetSummary:    toPersonaGenerationTargetSummaryDTO(result.TargetSummary),
-		Execution:        toPersonaGenerationExecutionSummaryDTO(result.Execution),
+		AISettings:       toPersonaGenerationPhaseAISettingsDTO(result.AISettings),
+		Execution:        toOptionalPersonaGenerationExecutionSummaryDTO(result.Execution),
 		ResultSummary:    toOptionalPersonaGenerationPhaseResultSummaryDTO(result.ResultSummary),
 		ErrorSummary:     toOptionalPersonaGenerationPhaseErrorSummaryDTO(result.ErrorSummary),
 		ActionEnablement: toPersonaGenerationPhaseActionEnablementDTO(result.ActionEnablement),
@@ -361,7 +378,7 @@ func toPersonaGenerationPhaseCommandResponseDTO(
 		FinishedAt:    formatOptionalTime(result.FinishedAt),
 		Progress:      toPersonaGenerationPhaseProgressSummaryDTO(result.Progress),
 		TargetSummary: toPersonaGenerationTargetSummaryDTO(result.TargetSummary),
-		Execution:     toPersonaGenerationExecutionSummaryDTO(result.Execution),
+		Execution:     toOptionalPersonaGenerationExecutionSummaryDTO(result.Execution),
 		ResultSummary: toOptionalPersonaGenerationPhaseResultSummaryDTO(result.ResultSummary),
 		Retryable:     result.Retryable,
 		ErrorSummary:  toOptionalPersonaGenerationPhaseErrorSummaryDTO(result.ErrorSummary),
@@ -424,6 +441,30 @@ func toPersonaGenerationExecutionSummaryDTO(
 		InputCount:    summary.InputCount,
 		OutputCount:   summary.OutputCount,
 		EvidenceRefs:  toPersonaGenerationStringArrayDTO(summary.EvidenceRefs),
+	}
+}
+
+func toOptionalPersonaGenerationExecutionSummaryDTO(
+	summary *usecase.PersonaGenerationExecutionSummary,
+) *PersonaGenerationExecutionSummaryDTO {
+	if summary == nil {
+		return nil
+	}
+	v := toPersonaGenerationExecutionSummaryDTO(*summary)
+	return &v
+}
+
+func toPersonaGenerationPhaseAISettingsDTO(
+	settings *usecase.PersonaGenerationPhaseAISettings,
+) *PersonaGenerationPhaseAISettingsDTO {
+	if settings == nil {
+		return nil
+	}
+	return &PersonaGenerationPhaseAISettingsDTO{
+		Provider:      settings.Provider,
+		Model:         settings.Model,
+		ExecutionMode: settings.ExecutionMode,
+		BatchMode:     settings.BatchMode,
 	}
 }
 

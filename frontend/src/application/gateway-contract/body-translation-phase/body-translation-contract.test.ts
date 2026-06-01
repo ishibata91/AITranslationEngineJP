@@ -95,7 +95,7 @@ describe("body-translation-contract", () => {
       }
     }
 
-    expect(response.execution.credentialRef).toBe("credential:body:test")
+    expect(response.execution?.credentialRef).toBe("credential:body:test")
     // ready はフロント導出値であり、事実状態（completedFieldCount/statusConsistent/outputCount）から application 層で導出する
     expect(response.outputReadiness.completedFieldCount).toBe(3)
     expect(response.outputReadiness.statusConsistent).toBe(true)
@@ -255,7 +255,7 @@ describe("body-translation-contract", () => {
       statusConsistent: true,
       outputCount: 2
     })
-    expect(summary.execution.outputCount).toBe(
+    expect(summary.execution?.outputCount).toBe(
       summary.resultSummary?.outputReadyCount
     )
     expect(JSON.stringify(summary)).not.toContain("JOB_TRANSLATION_FIELD")

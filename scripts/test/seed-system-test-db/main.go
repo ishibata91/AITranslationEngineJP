@@ -303,42 +303,5 @@ func createScenarioJob(
 			return repository.TranslationJob{}, fmt.Errorf("update phase run %s: %w", draft.Suffix, err)
 		}
 	}
-	if strings.TrimSpace(draft.RuntimePhaseID) != "" {
-		if _, err := saveRuntimeSnapshot(ctx, jobRepo, job.ID, draft); err != nil {
-			return repository.TranslationJob{}, err
-		}
-	}
 	return job, nil
-}
-
-func saveRuntimeSnapshot(
-	ctx context.Context,
-	jobRepo repository.JobLifecycleRepository,
-	jobID int64,
-	draft scenarioJobDraft,
-) (repository.TranslationJobPhaseRuntimeSnapshot, error) {
-	type runtimeSnapshotStore interface {
-		SaveTranslationJobPhaseRuntimeSnapshot(
-			context.Context,
-			repository.TranslationJobPhaseRuntimeSnapshotDraft,
-		) (repository.TranslationJobPhaseRuntimeSnapshot, error)
-	}
-
-	snapshotStore, ok := jobRepo.(runtimeSnapshotStore)
-	if !ok {
-		return repository.TranslationJobPhaseRuntimeSnapshot{}, fmt.Errorf("job repository cannot save runtime snapshot")
-	}
-	snapshot, err := snapshotStore.SaveTranslationJobPhaseRuntimeSnapshot(ctx, repository.TranslationJobPhaseRuntimeSnapshotDraft{
-		TranslationJobID: jobID,
-		PhaseID:          draft.RuntimePhaseID,
-		Provider:         draft.RuntimeProvider,
-		ModelName:        draft.RuntimeModel,
-		CredentialStatus: "configured",
-		ExecutionMode:    "batch",
-		BatchMode:        "batch",
-	})
-	if err != nil {
-		return repository.TranslationJobPhaseRuntimeSnapshot{}, fmt.Errorf("save runtime snapshot %s: %w", draft.Suffix, err)
-	}
-	return snapshot, nil
 }

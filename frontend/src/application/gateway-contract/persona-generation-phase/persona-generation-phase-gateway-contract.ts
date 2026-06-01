@@ -25,23 +25,25 @@ export interface StartPersonaGenerationPhaseRequest {
 }
 
 export interface PersonaGenerationPhaseAISettingsRequest {
-  jobId: number
   provider: string
   model: string
   executionMode: string
   batchMode: string
 }
 
-export interface PersonaGenerationPhaseAISettingsResponse extends PersonaGenerationPhaseAISettingsRequest {
-  phaseId: string
-  credentialStatus: "configured" | "missing" | "not_required"
-  modelListStatus:
-    | "not_updated"
-    | "loading"
-    | "success"
-    | "failed"
-    | "credential_missing"
-    | "credential_not_required"
+export interface PersonaGenerationPhaseAISettingsResponse {
+  phaseType: string
+  provider: string
+  model: string
+  executionMode: string
+  batchMode: string
+}
+
+export interface PersonaGenerationPhaseAISettings {
+  provider: string
+  model: string
+  executionMode: string
+  batchMode: string
 }
 
 export interface PausePersonaGenerationPhaseRequest {
@@ -137,7 +139,8 @@ export interface PersonaGenerationPhaseSummaryResponse {
   finishedAt?: string
   progress: PersonaGenerationPhaseProgressSummary
   targetSummary: PersonaGenerationTargetSummary
-  execution: PersonaGenerationExecutionSummary
+  aiSettings?: PersonaGenerationPhaseAISettings
+  execution?: PersonaGenerationExecutionSummary
   resultSummary?: PersonaGenerationPhaseResultSummary
   errorSummary?: PersonaGenerationPhaseErrorSummary
   actionEnablement: PersonaGenerationPhaseActionEnablement
@@ -152,7 +155,7 @@ export interface PersonaGenerationPhaseCommandResponse {
   finishedAt?: string
   progress: PersonaGenerationPhaseProgressSummary
   targetSummary: PersonaGenerationTargetSummary
-  execution: PersonaGenerationExecutionSummary
+  execution?: PersonaGenerationExecutionSummary
   resultSummary?: PersonaGenerationPhaseResultSummary
   retryable: boolean
   canStartBodyPhase: boolean
@@ -174,7 +177,28 @@ export interface PersonaGenerationBodyReadinessResponse {
   inputSummary: PersonaGenerationBodyReadinessInputSummary
 }
 
+export interface PhaseProviderModelsRequest {
+  provider: string
+  credentialStatus: string
+  requestToken: string
+}
+
+export interface PhaseProviderModelOption {
+  modelId: string
+  label: string
+}
+
+export interface PhaseProviderModelsResponse {
+  provider: string
+  status: string
+  models: PhaseProviderModelOption[]
+  failureKind?: string
+}
+
 export interface PersonaGenerationPhaseGatewayContract {
+  listProviderModels?(
+    request: PhaseProviderModelsRequest
+  ): Promise<PhaseProviderModelsResponse>
   getProcessingTargetList?(
     request: ProcessingTargetListRequest
   ): Promise<ProcessingTargetListResponse>

@@ -311,7 +311,7 @@ export class BodyTranslationPhaseUseCase {
   }
 
   async saveAISettings(
-    request: Omit<BodyTranslationPhaseAISettingsRequest, "jobId">
+    request: BodyTranslationPhaseAISettingsRequest
   ): Promise<void> {
     const state = this.store.snapshot()
     if (state.jobId === null) {
@@ -327,10 +327,7 @@ export class BodyTranslationPhaseUseCase {
       return
     }
     try {
-      await this.gateway.saveBodyTranslationPhaseAISettings({
-        jobId: state.jobId,
-        ...request
-      })
+      await this.gateway.saveBodyTranslationPhaseAISettings(request)
       await this.fetchSummaryAndReadiness(state.jobId)
     } catch (error) {
       this.store.update((draft) => {

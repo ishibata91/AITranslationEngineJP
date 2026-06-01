@@ -59,7 +59,7 @@ function cloneSummary(
     requestSummary: summary.requestSummary
       ? { ...summary.requestSummary }
       : undefined,
-    execution: { ...summary.execution },
+    execution: summary.execution ? { ...summary.execution } : undefined,
     fieldResults: summary.fieldResults?.map(cloneFieldResult),
     resultSummary: summary.resultSummary
       ? {

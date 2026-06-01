@@ -74,7 +74,6 @@ func (usecase *PersonaGenerationPhaseUsecase) SavePersonaGenerationPhaseAISettin
 		return PersonaGenerationPhaseAISettingsResult{}, fmt.Errorf("save persona generation phase ai settings: service is not configured")
 	}
 	readModel, err := saver.SaveAISettings(ctx, service.PhaseAISettingsSelection{
-		JobID:         request.JobID,
 		Provider:      request.Provider,
 		Model:         request.Model,
 		ExecutionMode: request.ExecutionMode,
@@ -83,7 +82,13 @@ func (usecase *PersonaGenerationPhaseUsecase) SavePersonaGenerationPhaseAISettin
 	if err != nil {
 		return PersonaGenerationPhaseAISettingsResult{}, fmt.Errorf("save persona generation phase ai settings: %w", err)
 	}
-	return PersonaGenerationPhaseAISettingsResult(readModel), nil
+	return PersonaGenerationPhaseAISettingsResult{
+		PhaseType:     readModel.PhaseType,
+		Provider:      readModel.Provider,
+		Model:         readModel.Model,
+		ExecutionMode: readModel.ExecutionMode,
+		BatchMode:     readModel.BatchMode,
+	}, nil
 }
 
 // PausePersonaGenerationPhase pauses one active persona phase run.
@@ -278,7 +283,7 @@ func personaCommandResultFromSummary(summary service.PersonaGenerationPhaseSumma
 		FinishedAt:    clonePersonaGenerationTimePointer(summary.FinishedAt),
 		Progress:      toPersonaGenerationPhaseProgressSummary(summary.Progress),
 		TargetSummary: toPersonaGenerationTargetSummary(summary.TargetSummary),
-		Execution:     toPersonaGenerationExecutionSummary(summary.Execution),
+		Execution:     toPersonaGenerationExecutionSummaryFromPointer(summary.Execution),
 		ResultSummary: toPersonaGenerationPhaseResultSummary(summary.ResultSummary),
 		Retryable:     false,
 		ErrorSummary:  toPersonaGenerationPhaseErrorSummary(summary.ErrorSummary),
@@ -311,19 +316,43 @@ func toPersonaGenerationPhaseSummaryResult(
 			TargetSnapshotID:       clonePersonaGenerationStringPointer(readModel.TargetSummary.TargetSnapshotID),
 			TargetSnapshotDigest:   readModel.TargetSummary.TargetSnapshotDigest,
 		},
-		Execution: PersonaGenerationExecutionSummary{
-			CredentialRef: readModel.Execution.CredentialRef,
-			Provider:      readModel.Execution.Provider,
-			Model:         readModel.Execution.Model,
-			ExecutionMode: readModel.Execution.ExecutionMode,
-			PromptDigest:  readModel.Execution.PromptDigest,
-			InputCount:    readModel.Execution.InputCount,
-			OutputCount:   readModel.Execution.OutputCount,
-			EvidenceRefs:  append([]string(nil), readModel.Execution.EvidenceRefs...),
-		},
+		AISettings:       toPersonaGenerationPhaseAISettings(readModel.AISettings),
+		Execution:        toPersonaGenerationExecutionSummaryFromPointer(readModel.Execution),
 		ResultSummary:    toPersonaGenerationPhaseResultSummary(readModel.ResultSummary),
 		ErrorSummary:     toPersonaGenerationPhaseErrorSummary(readModel.ErrorSummary),
 		ActionEnablement: toPersonaGenerationPhaseActionEnablement(readModel.ActionEnablement),
+	}
+}
+
+func toPersonaGenerationPhaseAISettings(
+	readModel *service.PersonaGenerationPhaseAISettingsReadModel,
+) *PersonaGenerationPhaseAISettings {
+	if readModel == nil {
+		return nil
+	}
+	return &PersonaGenerationPhaseAISettings{
+		Provider:      readModel.Provider,
+		Model:         readModel.Model,
+		ExecutionMode: readModel.ExecutionMode,
+		BatchMode:     readModel.BatchMode,
+	}
+}
+
+func toPersonaGenerationExecutionSummaryFromPointer(
+	readModel *service.PersonaGenerationExecutionSummaryReadModel,
+) *PersonaGenerationExecutionSummary {
+	if readModel == nil {
+		return nil
+	}
+	return &PersonaGenerationExecutionSummary{
+		CredentialRef: readModel.CredentialRef,
+		Provider:      readModel.Provider,
+		Model:         readModel.Model,
+		ExecutionMode: readModel.ExecutionMode,
+		PromptDigest:  readModel.PromptDigest,
+		InputCount:    readModel.InputCount,
+		OutputCount:   readModel.OutputCount,
+		EvidenceRefs:  append([]string(nil), readModel.EvidenceRefs...),
 	}
 }
 
@@ -353,7 +382,7 @@ func toPersonaGenerationPhaseCommandResult(
 			TargetSnapshotID:       clonePersonaGenerationStringPointer(readModel.TargetSummary.TargetSnapshotID),
 			TargetSnapshotDigest:   readModel.TargetSummary.TargetSnapshotDigest,
 		},
-		Execution: PersonaGenerationExecutionSummary{
+		Execution: &PersonaGenerationExecutionSummary{
 			CredentialRef: readModel.Execution.CredentialRef,
 			Provider:      readModel.Execution.Provider,
 			Model:         readModel.Execution.Model,
@@ -392,21 +421,6 @@ func toPersonaGenerationTargetSummary(
 		SkippedReasons:         append([]string(nil), readModel.SkippedReasons...),
 		TargetSnapshotID:       clonePersonaGenerationStringPointer(readModel.TargetSnapshotID),
 		TargetSnapshotDigest:   readModel.TargetSnapshotDigest,
-	}
-}
-
-func toPersonaGenerationExecutionSummary(
-	readModel service.PersonaGenerationExecutionSummaryReadModel,
-) PersonaGenerationExecutionSummary {
-	return PersonaGenerationExecutionSummary{
-		CredentialRef: readModel.CredentialRef,
-		Provider:      readModel.Provider,
-		Model:         readModel.Model,
-		ExecutionMode: readModel.ExecutionMode,
-		PromptDigest:  readModel.PromptDigest,
-		InputCount:    readModel.InputCount,
-		OutputCount:   readModel.OutputCount,
-		EvidenceRefs:  append([]string(nil), readModel.EvidenceRefs...),
 	}
 }
 

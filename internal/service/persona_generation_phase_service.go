@@ -90,24 +90,17 @@ type personaGenerationPhaseTranslationSourceRepository interface {
 	ListTranslationFieldRecordReferencesByFieldID(ctx context.Context, fieldID int64) ([]repository.TranslationFieldRecordReference, error)
 }
 
-type personaGenerationPhaseRuntimeSnapshotReader interface {
-	GetTranslationJobPhaseRuntimeSnapshot(
-		ctx context.Context,
-		translationJobID int64,
-		phaseID string,
-	) (repository.TranslationJobPhaseRuntimeSnapshot, error)
-}
-
 // PersonaGenerationPhaseService orchestrates persona phase state and target snapshots.
 type PersonaGenerationPhaseService struct {
-	now                      func() time.Time
-	jobLifecycleRepository   personaGenerationPhaseJobLifecycleRepository
-	foundationDataRepository personaGenerationPhaseFoundationDataRepository
-	translationSourceReader  personaGenerationPhaseTranslationSourceRepository
-	transactor               repository.Transactor
-	provider                 PersonaGenerationProvider
-	providerSettings         ProviderSettingsConsumer
-	executionSnapshots       map[int64]providerExecutionSnapshot
+	now                       func() time.Time
+	jobLifecycleRepository    personaGenerationPhaseJobLifecycleRepository
+	foundationDataRepository  personaGenerationPhaseFoundationDataRepository
+	translationSourceReader   personaGenerationPhaseTranslationSourceRepository
+	transactor                repository.Transactor
+	provider                  PersonaGenerationProvider
+	providerSettings          ProviderSettingsConsumer
+	phaseAISettingsRepository repository.JobPhaseAISettingsRepository
+	executionSnapshots        map[int64]providerExecutionSnapshot
 }
 
 // PersonaGenerationPhaseProgressReadModel stores progress for one persona phase run.
@@ -178,18 +171,30 @@ type PersonaGenerationPhaseActionEnablementReadModel struct {
 	CancelBlockedReason *string
 }
 
+// PersonaGenerationPhaseAISettingsReadModel holds the Ready 期 AI 選択値（JOB_PHASE_AI_SETTINGS から読む）。
+// record 不在の場合は nil で返す。認証参照、認証状態、利用可能モデル一覧は含めない。
+type PersonaGenerationPhaseAISettingsReadModel struct {
+	Provider      string
+	Model         string
+	ExecutionMode string
+	BatchMode     string
+}
+
 // PersonaGenerationPhaseSummaryReadModel stores the Job Run summary payload.
 type PersonaGenerationPhaseSummaryReadModel struct {
-	JobID            int64
-	JobState         string
-	CurrentPhase     string
-	PhaseState       string
-	PhaseRunID       *int64
-	StartedAt        *time.Time
-	FinishedAt       *time.Time
-	Progress         PersonaGenerationPhaseProgressReadModel
-	TargetSummary    PersonaGenerationTargetSummaryReadModel
-	Execution        PersonaGenerationExecutionSummaryReadModel
+	JobID         int64
+	JobState      string
+	CurrentPhase  string
+	PhaseState    string
+	PhaseRunID    *int64
+	StartedAt     *time.Time
+	FinishedAt    *time.Time
+	Progress      PersonaGenerationPhaseProgressReadModel
+	TargetSummary PersonaGenerationTargetSummaryReadModel
+	// AISettings は JOB_PHASE_AI_SETTINGS record が存在する場合だけ設定する。nil は未設定を意味する。
+	AISettings *PersonaGenerationPhaseAISettingsReadModel
+	// Execution は JOB_PHASE_RUN が存在する場合だけ設定する。nil は未開始を意味する。
+	Execution        *PersonaGenerationExecutionSummaryReadModel
 	ResultSummary    *PersonaGenerationPhaseResultSummaryReadModel
 	ErrorSummary     *PersonaGenerationPhaseErrorSummaryReadModel
 	ActionEnablement PersonaGenerationPhaseActionEnablementReadModel
@@ -302,6 +307,16 @@ func (service *PersonaGenerationPhaseService) WithPersonaGenerationProviderSetti
 	return service
 }
 
+// WithPersonaGenerationPhaseAISettingsRepository injects the JOB_PHASE_AI_SETTINGS repository.
+func (service *PersonaGenerationPhaseService) WithPersonaGenerationPhaseAISettingsRepository(
+	repo repository.JobPhaseAISettingsRepository,
+) *PersonaGenerationPhaseService {
+	if service != nil {
+		service.phaseAISettingsRepository = repo
+	}
+	return service
+}
+
 // ReadSummary loads the current persona phase summary for one job.
 func (service *PersonaGenerationPhaseService) ReadSummary(
 	ctx context.Context,
@@ -325,7 +340,14 @@ func (service *PersonaGenerationPhaseService) ReadSummary(
 	resultSummary, errorSummary := service.buildResultState(ctx, run, snapshot)
 	rejection := service.startRejection(job, run, termRun)
 	actionEnablement := service.buildActionEnablement(job.State, run, state, rejection)
-	execution := service.buildExecutionSummary(run, &termRun, snapshot, resultSummary)
+	// JOB_PHASE_RUN が存在する場合だけ execution field を設定する。Ready 期は nil にする。
+	var executionField *PersonaGenerationExecutionSummaryReadModel
+	if run != nil {
+		execSummary := service.buildExecutionSummary(run, &termRun, snapshot, resultSummary)
+		executionField = &execSummary
+	}
+	// JOB_PHASE_AI_SETTINGS record が存在する場合だけ aiSettings field を設定する。
+	aiSettings := service.loadPersonaGenerationPhaseAISettings(ctx)
 	return PersonaGenerationPhaseSummaryReadModel{
 		JobID:        job.ID,
 		JobState:     job.State,
@@ -343,7 +365,8 @@ func (service *PersonaGenerationPhaseService) ReadSummary(
 			SkippedReasons:         append([]string(nil), snapshot.skippedReasons...),
 			TargetSnapshotDigest:   snapshot.digest,
 		},
-		Execution:        execution,
+		AISettings:       aiSettings,
+		Execution:        executionField,
 		ResultSummary:    resultSummary,
 		ErrorSummary:     errorSummary,
 		ActionEnablement: actionEnablement,
@@ -640,7 +663,7 @@ func (service *PersonaGenerationPhaseService) mutatePhaseState(
 	phaseRunID int64,
 	requiredState string,
 	nextState string,
-	startExecutionSnapshot *providerExecutionSnapshot,
+	_ *providerExecutionSnapshot,
 ) (PersonaGenerationPhaseCommandReadModel, error) {
 	if service.transactor == nil {
 		return PersonaGenerationPhaseCommandReadModel{}, fmt.Errorf("mutate persona generation phase: transactor is not configured")
@@ -664,9 +687,6 @@ func (service *PersonaGenerationPhaseService) mutatePhaseState(
 		)
 		if updateErr != nil {
 			return updateErr
-		}
-		if snapshotErr := service.persistPersonaGenerationRuntimeSnapshotForTransition(txCtx, job.ID, nextState, startExecutionSnapshot); snapshotErr != nil {
-			return snapshotErr
 		}
 		updatedRun = nextRun
 		return nil
@@ -773,18 +793,6 @@ func (service *PersonaGenerationPhaseService) rejectInvalidPhaseMutation(
 	return PersonaGenerationPhaseCommandReadModel{}, false, nil
 }
 
-func (service *PersonaGenerationPhaseService) persistPersonaGenerationRuntimeSnapshotForTransition(
-	ctx context.Context,
-	jobID int64,
-	nextState string,
-	startExecutionSnapshot *providerExecutionSnapshot,
-) error {
-	if nextState != personaGenerationPhaseStateRunning || startExecutionSnapshot == nil {
-		return nil
-	}
-	return service.persistRuntimeSnapshot(ctx, jobID, "npc_persona_generation", *startExecutionSnapshot)
-}
-
 func (service *PersonaGenerationPhaseService) phaseMutationRejected(
 	ctx context.Context,
 	jobID int64,
@@ -883,29 +891,46 @@ func (service *PersonaGenerationPhaseService) loadContext(
 	return job, run, termRun, snapshot, nil
 }
 
+// loadPersonaGenerationPhaseAISettings は JOB_PHASE_AI_SETTINGS からペルソナ生成フェーズの AI 設定を読む。
+// record 不在または repository 未設定の場合は nil を返す（未設定状態）。
+func (service *PersonaGenerationPhaseService) loadPersonaGenerationPhaseAISettings(
+	ctx context.Context,
+) *PersonaGenerationPhaseAISettingsReadModel {
+	if service.phaseAISettingsRepository == nil {
+		return nil
+	}
+	settings, err := service.phaseAISettingsRepository.LoadByPhaseType(ctx, "npc_persona_generation")
+	if err != nil {
+		// ErrJobPhaseAISettingsNotFound を含む全エラーを「未設定（record 不在）」として扱う。
+		return nil
+	}
+	return &PersonaGenerationPhaseAISettingsReadModel{
+		Provider:      strings.TrimSpace(settings.AIProvider),
+		Model:         strings.TrimSpace(settings.ModelName),
+		ExecutionMode: strings.TrimSpace(settings.ExecutionMode),
+		BatchMode:     strings.TrimSpace(settings.BatchMode),
+	}
+}
+
 func (service *PersonaGenerationPhaseService) applyPersonaGenerationRuntimeSnapshot(
 	ctx context.Context,
-	jobID int64,
+	_ int64,
 	termRun repository.JobPhaseRun,
 ) (repository.JobPhaseRun, error) {
-	snapshotReader, ok := service.jobLifecycleRepository.(personaGenerationPhaseRuntimeSnapshotReader)
-	if !ok {
+	if service.phaseAISettingsRepository == nil {
 		return termRun, nil
 	}
-	snapshot, err := snapshotReader.GetTranslationJobPhaseRuntimeSnapshot(ctx, jobID, "npc_persona_generation")
-	if errors.Is(err, repository.ErrNotFound) {
-		termRun.AIProvider = ""
-		termRun.ModelName = ""
-		termRun.ExecutionMode = ""
-		termRun.CredentialRef = ""
+	aiSettings, err := service.phaseAISettingsRepository.LoadByPhaseType(ctx, "npc_persona_generation")
+	if errors.Is(err, repository.ErrJobPhaseAISettingsNotFound) {
+		// record 不在は AI 設定 field 不在として表現する。空文字上書きはしない。
 		return termRun, nil
 	}
 	if err != nil {
-		return repository.JobPhaseRun{}, fmt.Errorf("load persona generation phase runtime snapshot: %w", err)
+		return repository.JobPhaseRun{}, fmt.Errorf("load persona generation phase ai settings: %w", err)
 	}
-	termRun.AIProvider = snapshot.Provider
-	termRun.ModelName = snapshot.ModelName
-	termRun.ExecutionMode = snapshot.ExecutionMode
+	termRun.AIProvider = aiSettings.AIProvider
+	termRun.ModelName = aiSettings.ModelName
+	termRun.ExecutionMode = aiSettings.ExecutionMode
 	termRun.CredentialRef = ""
 	return termRun, nil
 }
@@ -928,25 +953,10 @@ func (service *PersonaGenerationPhaseService) loadPersonaGenerationRun(
 }
 
 func (service *PersonaGenerationPhaseService) cachePersonaGenerationExecutionSnapshot(
-	ctx context.Context,
-	jobID int64,
-	runID int64,
+	_ context.Context,
+	_ int64,
+	_ int64,
 ) error {
-	if _, ok := service.executionSnapshots[runID]; ok {
-		return nil
-	}
-	snapshotReader, ok := service.jobLifecycleRepository.(personaGenerationPhaseRuntimeSnapshotReader)
-	if !ok {
-		return nil
-	}
-	snapshot, err := snapshotReader.GetTranslationJobPhaseRuntimeSnapshot(ctx, jobID, "npc_persona_generation")
-	if errors.Is(err, repository.ErrNotFound) {
-		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("load persona generation phase runtime snapshot: %w", err)
-	}
-	service.executionSnapshots[runID] = providerExecutionSnapshotFromRuntimeSnapshot(snapshot)
 	return nil
 }
 
@@ -1385,7 +1395,7 @@ func (service *PersonaGenerationPhaseService) startPhaseRunTransaction(
 	run *repository.JobPhaseRun,
 	termRun repository.JobPhaseRun,
 	snapshot personaGenerationTargetSnapshot,
-	startExecutionSnapshot *providerExecutionSnapshot,
+	_ *providerExecutionSnapshot,
 ) (repository.TranslationJob, repository.JobPhaseRun, error) {
 	var updatedJob repository.TranslationJob
 	var updatedRun repository.JobPhaseRun
@@ -1434,11 +1444,6 @@ func (service *PersonaGenerationPhaseService) startPhaseRunTransaction(
 		}
 		if updateErr != nil {
 			return fmt.Errorf("update persona generation phase run: %w", updateErr)
-		}
-		if startExecutionSnapshot != nil {
-			if err := service.persistRuntimeSnapshot(txCtx, job.ID, "npc_persona_generation", *startExecutionSnapshot); err != nil {
-				return err
-			}
 		}
 		updatedRun = nextRun
 		return nil
@@ -1491,49 +1496,17 @@ func personaGenerationStartedAt(existing *time.Time, now time.Time) *time.Time {
 	return &now
 }
 
-func (service *PersonaGenerationPhaseService) persistRuntimeSnapshot(
-	ctx context.Context,
-	jobID int64,
-	phaseID string,
-	snapshot providerExecutionSnapshot,
-) error {
-	store, ok := service.jobLifecycleRepository.(translationJobPhaseRuntimeSnapshotStore)
-	if !ok {
-		return nil
-	}
-	current, err := store.GetTranslationJobPhaseRuntimeSnapshot(ctx, jobID, phaseID)
-	switch {
-	case err == nil:
-	case errors.Is(err, repository.ErrNotFound):
-		current = repository.TranslationJobPhaseRuntimeSnapshot{}
-	default:
-		return fmt.Errorf("persist persona generation runtime snapshot: %w", err)
-	}
-	if _, err := store.SaveTranslationJobPhaseRuntimeSnapshot(ctx, repository.TranslationJobPhaseRuntimeSnapshotDraft{
-		TranslationJobID: jobID,
-		PhaseID:          phaseID,
-		Provider:         snapshot.Provider,
-		ModelName:        snapshot.Model,
-		CredentialStatus: snapshot.CredentialState,
-		ExecutionMode:    snapshot.ExecutionMode,
-		BatchMode:        providerExecutionBatchMode(current),
-	}); err != nil {
-		return fmt.Errorf("persist persona generation runtime snapshot: %w", err)
-	}
-	return nil
-}
-
 // SaveAISettings saves public AI settings for the persona generation phase.
+// 入力の job_id は使用しない。保存操作は JOB_PHASE_AI_SETTINGS テーブルに phase_type を主キーとして upsert する。
 func (service *PersonaGenerationPhaseService) SaveAISettings(
 	ctx context.Context,
 	selection PhaseAISettingsSelection,
 ) (PhaseAISettingsReadModel, error) {
-	store, ok := service.jobLifecycleRepository.(translationJobPhaseRuntimeSnapshotStore)
-	if !ok {
-		return PhaseAISettingsReadModel{}, fmt.Errorf("save persona generation ai settings: snapshot store is not configured")
+	if service.phaseAISettingsRepository == nil {
+		return PhaseAISettingsReadModel{}, fmt.Errorf("save persona generation ai settings: phase ai settings repository is not configured")
 	}
-	selection.PhaseID = "npc_persona_generation"
-	readModel, err := savePhaseAISettings(ctx, store, service.providerSettings, "persona_generation_phase", selection)
+	selection.PhaseType = "npc_persona_generation"
+	readModel, err := savePhaseAISettings(ctx, service.phaseAISettingsRepository, "persona_generation_phase", selection)
 	if err != nil {
 		return PhaseAISettingsReadModel{}, fmt.Errorf("save persona generation ai settings: %w", err)
 	}

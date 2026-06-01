@@ -208,7 +208,7 @@ export class TermTranslationPhaseUseCase {
   }
 
   async saveAISettings(
-    request: Omit<TermTranslationPhaseAISettingsRequest, "jobId">
+    request: TermTranslationPhaseAISettingsRequest
   ): Promise<void> {
     const state = this.store.snapshot()
     if (state.jobId === null) {
@@ -225,10 +225,7 @@ export class TermTranslationPhaseUseCase {
       return
     }
     try {
-      await gateway.saveTermTranslationPhaseAISettings({
-        jobId: state.jobId,
-        ...request
-      })
+      await gateway.saveTermTranslationPhaseAISettings(request)
       await this.fetchSummaryAndReadiness(state.jobId)
     } catch (error) {
       this.store.update((draft) => {

@@ -49,6 +49,11 @@ export interface TermTranslationPhaseActionCard {
   tone: "default" | "primary" | "warning"
 }
 
+export interface TermTranslationPhaseSelectOption {
+  value: string
+  label: string
+}
+
 export interface TermTranslationPhaseScreenViewModel extends TermTranslationPhaseScreenState {
   gatewayStatus: string
   viewState: TermTranslationPhaseViewState
@@ -72,6 +77,7 @@ export interface TermTranslationPhaseScreenViewModel extends TermTranslationPhas
   jobDictionaryAppliedCountLabel: string
   replacementTargetCountLabel: string
   unmatchedCountLabel: string
+  isExecutionConfigured: boolean
   providerLabel: string
   modelLabel: string
   executionModeLabel: string
@@ -83,6 +89,9 @@ export interface TermTranslationPhaseScreenViewModel extends TermTranslationPhas
   nextPhaseStatusLabel: string
   nextPhaseBlockedReason: string
   providerSkippedLabel: string
+  providerOptions: TermTranslationPhaseSelectOption[]
+  modelOptions: TermTranslationPhaseSelectOption[]
+  executionOptions: TermTranslationPhaseSelectOption[]
   actionCards: TermTranslationPhaseActionCard[]
   lastErrorSummary: TermTranslationPhaseErrorSummary | null
   actionEnablement: TermTranslationPhaseActionEnablement | null

@@ -132,9 +132,6 @@ func TestNewAppControllerMasterPersonaProductionWiringDoesNotUseInMemoryConcrete
 	if strings.Contains(source, "NewInMemoryMasterPersonaRepository") {
 		t.Fatalf("production wiring must not use in-memory master persona repository")
 	}
-	if strings.Contains(source, "NewInMemorySecretStore") {
-		t.Fatalf("production wiring must not use in-memory master persona secret store")
-	}
 }
 
 func TestNewAppControllerReturnsSeededPageItems(t *testing.T) {
@@ -1104,24 +1101,6 @@ func TestNewProviderSettingsSecretStoreFromEnvUsesKeyringPathWhenEnvIsUnset(t *t
 	}
 }
 
-func TestNewProviderSettingsSecretStoreFromEnvInMemoryBypassesKeyringOpen(t *testing.T) {
-	t.Setenv(providerSettingsSecretBackendEnv, providerSettingsSecretBackendInMemory)
-	t.Setenv("AITRANSLATIONENGINEJP_PROVIDER_SETTINGS_SECRET_FILE_DIR", "")
-	t.Setenv("AITRANSLATIONENGINEJP_PROVIDER_SETTINGS_SECRET_FILE_PASSWORD", "")
-
-	store, err := newProviderSettingsSecretStoreFromEnv()
-	if err != nil {
-		t.Fatalf("expected in-memory provider settings store to be selectable without keyring open: %v", err)
-	}
-	if store == nil {
-		t.Fatalf("expected in-memory provider settings store instance")
-	}
-
-	if saveErr := store.Save(context.Background(), "provider-settings:test", "value"); saveErr != nil {
-		t.Fatalf("expected in-memory provider settings store to save: %v", saveErr)
-	}
-}
-
 func TestNewProviderSettingsSecretStoreFromEnvRejectsUnsupportedBackend(t *testing.T) {
 	t.Setenv(providerSettingsSecretBackendEnv, "unsupported-backend")
 
@@ -1161,7 +1140,7 @@ func newBootstrapInMemoryRunStatusControllerWithRepo(t *testing.T) (*controllerw
 	t.Helper()
 
 	inMemoryRepo := repository.NewInMemoryMasterPersonaRepository(nil)
-	inMemorySecretStore := repository.NewInMemorySecretStore()
+	inMemorySecretStore := repository.NewFakeSecretStore()
 
 	queryService := service.NewMasterPersonaQueryService(inMemoryRepo)
 	generationService := service.NewMasterPersonaGenerationService(

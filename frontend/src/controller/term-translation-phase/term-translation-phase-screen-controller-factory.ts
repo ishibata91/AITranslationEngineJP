@@ -1,4 +1,5 @@
 import type { CreateTermTranslationPhaseScreenController } from "@application/contract/term-translation-phase"
+import type { ProviderSettingsGatewayContract } from "@application/gateway-contract/provider-settings"
 import type { TermTranslationPhaseGatewayContract } from "@application/gateway-contract/term-translation-phase"
 import { TermTranslationPhasePresenter } from "@application/presenter/term-translation-phase"
 import { TermTranslationPhaseStore } from "@application/store/term-translation-phase"
@@ -7,7 +8,8 @@ import { TermTranslationPhaseUseCase } from "@application/usecase/term-translati
 import { TermTranslationPhaseScreenController } from "./term-translation-phase-screen-controller"
 
 export function createTermTranslationPhaseScreenControllerFactory(
-  gateway: TermTranslationPhaseGatewayContract | null
+  gateway: TermTranslationPhaseGatewayContract | null,
+  providerSettingsGateway?: ProviderSettingsGatewayContract | null
 ): CreateTermTranslationPhaseScreenController {
   let controller: TermTranslationPhaseScreenController | null = null
 
@@ -24,8 +26,21 @@ export function createTermTranslationPhaseScreenControllerFactory(
       isGatewayConnected: gateway !== null,
       store,
       presenter,
-      useCase
+      useCase,
+      gateway: gateway ?? null
     })
+
+    if (providerSettingsGateway) {
+      providerSettingsGateway.ListProviderSettings({}).then((response) => {
+        const providers = response.providers.map((p) => ({
+          value: p.providerId,
+          label: p.label
+        }))
+        controller?.setAvailableProviders(providers)
+      }).catch(() => {
+        // provider 一覧の取得失敗時はフォールバック（空配列）のまま継続する
+      })
+    }
 
     return controller
   }

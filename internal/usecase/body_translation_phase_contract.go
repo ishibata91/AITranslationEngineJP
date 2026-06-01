@@ -118,23 +118,20 @@ type CancelBodyTranslationPhaseRequest struct {
 
 // SaveBodyTranslationPhaseAISettingsRequest carries public AI settings for the body phase.
 type SaveBodyTranslationPhaseAISettingsRequest struct {
-	JobID         int64
 	Provider      string
 	Model         string
 	ExecutionMode string
 	BatchMode     string
 }
 
-// BodyTranslationPhaseAISettingsResult returns public AI settings state.
+// BodyTranslationPhaseAISettingsResult returns saved AI settings state.
+// credential_status、model_list_status は含まない。
 type BodyTranslationPhaseAISettingsResult struct {
-	JobID            int64
-	PhaseID          string
-	Provider         string
-	Model            string
-	CredentialStatus string
-	ExecutionMode    string
-	BatchMode        string
-	ModelListStatus  string
+	PhaseType     string
+	Provider      string
+	Model         string
+	ExecutionMode string
+	BatchMode     string
 }
 
 // BodyTranslationPhaseProgressSummary summarizes current progress for one phase run.
@@ -163,6 +160,7 @@ type BodyTranslationPhaseInputSummary struct {
 type BodyTranslationInputSummary = BodyTranslationPhaseInputSummary
 
 // BodyTranslationPhaseExecutionSummary summarizes execution inputs without exposing secrets.
+// JOB_PHASE_RUN が存在する場合だけ設定する。Ready 期は nil とする。
 type BodyTranslationPhaseExecutionSummary struct {
 	CredentialRef    string
 	Provider         string
@@ -174,6 +172,15 @@ type BodyTranslationPhaseExecutionSummary struct {
 
 // BodyTranslationExecutionSummary is a compatibility alias for the frozen public execution summary.
 type BodyTranslationExecutionSummary = BodyTranslationPhaseExecutionSummary
+
+// BodyTranslationPhaseAISettings holds the Ready 期 AI 選択値（JOB_PHASE_AI_SETTINGS から読む）。
+// record 不在（AI 設定未保存）の場合は nil とする。
+type BodyTranslationPhaseAISettings struct {
+	Provider      string
+	Model         string
+	ExecutionMode string
+	BatchMode     string
+}
 
 // BodyTranslationPhaseRequestSummary summarizes provider request units after input filtering.
 type BodyTranslationPhaseRequestSummary struct {
@@ -250,16 +257,19 @@ type BodyTranslationOutputReadinessSummary struct {
 
 // BodyTranslationPhaseSummaryResult is the frozen Job Run summary contract.
 type BodyTranslationPhaseSummaryResult struct {
-	JobID              int64
-	CurrentPhase       string
-	PhaseState         string
-	PhaseRunID         *int64
-	StartedAt          *time.Time
-	FinishedAt         *time.Time
-	Progress           BodyTranslationPhaseProgressSummary
-	InputSummary       BodyTranslationPhaseInputSummary
-	RequestSummary     BodyTranslationPhaseRequestSummary
-	Execution          BodyTranslationPhaseExecutionSummary
+	JobID          int64
+	CurrentPhase   string
+	PhaseState     string
+	PhaseRunID     *int64
+	StartedAt      *time.Time
+	FinishedAt     *time.Time
+	Progress       BodyTranslationPhaseProgressSummary
+	InputSummary   BodyTranslationPhaseInputSummary
+	RequestSummary BodyTranslationPhaseRequestSummary
+	// AISettings は JOB_PHASE_AI_SETTINGS record が存在する場合だけ設定する。nil は未設定を意味する。
+	AISettings *BodyTranslationPhaseAISettings
+	// Execution は JOB_PHASE_RUN が存在する場合だけ設定する。nil は未開始を意味する。
+	Execution          *BodyTranslationPhaseExecutionSummary
 	FieldResultSummary *BodyTranslationFieldResultSummary
 	ResultSummary      *BodyTranslationPhaseFieldResultSummary
 	FieldResults       []BodyTranslationPhaseFieldResultItem
@@ -283,13 +293,14 @@ type BodyTranslationPhaseCommandResult struct {
 	InputSnapshotDigest string
 	InputSummary        BodyTranslationPhaseInputSummary
 	RequestSummary      BodyTranslationPhaseRequestSummary
-	Execution           BodyTranslationPhaseExecutionSummary
-	FieldResultSummary  *BodyTranslationFieldResultSummary
-	ResultSummary       *BodyTranslationPhaseFieldResultSummary
-	FieldResults        []BodyTranslationPhaseFieldResultItem
-	Retryable           bool
-	OutputReadiness     BodyTranslationOutputReadinessSummary
-	ErrorSummary        *BodyTranslationPhaseErrorSummary
+	// Execution は JOB_PHASE_RUN が存在する場合だけ設定する。nil は未開始を意味する。
+	Execution          *BodyTranslationPhaseExecutionSummary
+	FieldResultSummary *BodyTranslationFieldResultSummary
+	ResultSummary      *BodyTranslationPhaseFieldResultSummary
+	FieldResults       []BodyTranslationPhaseFieldResultItem
+	Retryable          bool
+	OutputReadiness    BodyTranslationOutputReadinessSummary
+	ErrorSummary       *BodyTranslationPhaseErrorSummary
 }
 
 // NewBodyTranslationPhaseContractStub returns a temporary usecase stub for the frozen Wails seam.

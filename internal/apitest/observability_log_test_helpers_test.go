@@ -215,24 +215,6 @@ func (fixture observabilityLogSQLiteFixture) createJob(
 			t.Fatalf("create phase run: %v", err)
 		}
 	}
-	snapshotStore, ok := fixture.jobRepo.(interface {
-		SaveTranslationJobPhaseRuntimeSnapshot(context.Context, repository.TranslationJobPhaseRuntimeSnapshotDraft) (repository.TranslationJobPhaseRuntimeSnapshot, error)
-	})
-	if !ok {
-		t.Fatal("expected job repository to save runtime snapshots")
-	}
-	_, err = snapshotStore.SaveTranslationJobPhaseRuntimeSnapshot(fixture.ctx, repository.TranslationJobPhaseRuntimeSnapshotDraft{
-		TranslationJobID: job.ID,
-		PhaseID:          "term_translation",
-		Provider:         "fake-provider",
-		ModelName:        "fake-model",
-		CredentialStatus: "configured",
-		ExecutionMode:    "sync",
-		BatchMode:        "disabled",
-	})
-	if err != nil {
-		t.Fatalf("save runtime snapshot: %v", err)
-	}
 	return job
 }
 
@@ -254,7 +236,7 @@ func newObservabilityProviderSettingsController(t *testing.T) *controllerwails.P
 
 	providerService := service.NewProviderSettingsService(
 		repository.NewSQLiteProviderSettingsRepository(db),
-		repository.NewInMemorySecretStore(),
+		repository.NewFakeSecretStore(),
 		repository.NewSQLiteTransactor(db),
 		observabilityLogProviderModelLoader{},
 		observabilityLogProviderValidator{},

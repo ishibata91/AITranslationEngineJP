@@ -415,7 +415,6 @@ const (
 	masterPersonaXAIBaseURLEnv      = "AITRANSLATIONENGINEJP_MASTER_PERSONA_XAI_BASE_URL"
 
 	providerSettingsSecretBackendEnv      = "AITRANSLATIONENGINEJP_PROVIDER_SETTINGS_SECRET_BACKEND"
-	providerSettingsSecretBackendInMemory = "in-memory"
 	providerSettingsSecretBackendDefault  = "default"
 	providerSettingsSecretBackendFile     = "file"
 	providerSettingsSecretBackendKeychain = "keychain"
@@ -425,8 +424,8 @@ const (
 func newProviderSettingsSecretStoreFromEnv() (repository.ProviderSettingsSecretStore, error) {
 	requestedBackend := strings.ToLower(strings.TrimSpace(os.Getenv(providerSettingsSecretBackendEnv)))
 	switch requestedBackend {
-	case providerSettingsSecretBackendInMemory:
-		return repository.NewProviderSettingsInMemorySecretStore(), nil
+	case "fake":
+		return repository.NewFakeSecretStore(), nil
 	case "":
 		store, err := repository.NewProviderSettingsKeyringSecretStore()
 		if err != nil {

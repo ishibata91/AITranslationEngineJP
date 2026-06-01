@@ -37,49 +37,6 @@ func TestProviderSettingsKeyringSecretStoreSaveLoadDelete(t *testing.T) {
 	}
 }
 
-func TestProviderSettingsInMemorySecretStoreSaveLoadDelete(t *testing.T) {
-	store := NewProviderSettingsInMemorySecretStore()
-	if err := store.Save(context.Background(), "provider-settings:gemini", "masked-secret-value"); err != nil {
-		t.Fatalf("expected provider settings in-memory save to succeed: %v", err)
-	}
-
-	loaded, err := store.Load(context.Background(), "provider-settings:gemini")
-	if err != nil {
-		t.Fatalf("expected provider settings in-memory load to succeed: %v", err)
-	}
-	if loaded == "" {
-		t.Fatalf("expected provider settings value to be present")
-	}
-
-	deleteErr := store.Delete(context.Background(), "provider-settings:gemini")
-	if deleteErr != nil {
-		t.Fatalf("expected provider settings in-memory delete to succeed: %v", deleteErr)
-	}
-	loaded, err = store.Load(context.Background(), "provider-settings:gemini")
-	if err != nil {
-		t.Fatalf("expected provider settings in-memory load after delete to succeed: %v", err)
-	}
-	if loaded != "" {
-		t.Fatalf("expected provider settings value to be cleared after delete")
-	}
-}
-
-func TestProviderSettingsInMemorySecretStoreIsProcessLocalAcrossNewInstance(t *testing.T) {
-	firstStore := NewProviderSettingsInMemorySecretStore()
-	if err := firstStore.Save(context.Background(), "provider-settings:gemini", "masked-secret-value"); err != nil {
-		t.Fatalf("expected first provider settings in-memory save to succeed: %v", err)
-	}
-
-	secondStore := NewProviderSettingsInMemorySecretStore()
-	loaded, err := secondStore.Load(context.Background(), "provider-settings:gemini")
-	if err != nil {
-		t.Fatalf("expected second provider settings in-memory load to succeed: %v", err)
-	}
-	if loaded != "" {
-		t.Fatalf("expected second in-memory store to start empty")
-	}
-}
-
 func TestProviderSettingsKeyringConfigRejectsUnsupportedBackendOverride(t *testing.T) {
 	_, err := newProviderSettingsKeyringConfig("darwin", func(string) string {
 		return "unsupported-backend"

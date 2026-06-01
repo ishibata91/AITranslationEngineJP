@@ -1,8 +1,13 @@
-import type { TermTranslationPhaseGatewayContract } from "@application/gateway-contract/term-translation-phase"
+import type {
+  PhaseProviderModelsRequest,
+  PhaseProviderModelsResponse,
+  TermTranslationPhaseGatewayContract
+} from "@application/gateway-contract/term-translation-phase"
 import {
   GetProcessingTargetList,
   GetTermTranslationNextPhaseReadiness,
   GetTermTranslationPhaseSummary,
+  ListTranslationJobSetupProviderModels,
   PauseTermTranslationPhase,
   ResumeTermTranslationPhase,
   RetryTermTranslationPhase,
@@ -161,9 +166,29 @@ function isProgress(value: unknown, path: string): boolean {
   )
 }
 
-function isExecution(value: unknown, path: string): boolean {
+function isAISettings(value: unknown, path: string): boolean {
+  if (value === undefined) {
+    return true
+  }
   if (!isRecord(value)) {
-    return invalid(path, "object")
+    return invalid(path, "object or undefined")
+  }
+
+  return (
+    (isString(value["provider"]) || invalid(`${path}.provider`, "string")) &&
+    (isString(value["model"]) || invalid(`${path}.model`, "string")) &&
+    (isString(value["executionMode"]) ||
+      invalid(`${path}.executionMode`, "string")) &&
+    (isString(value["batchMode"]) || invalid(`${path}.batchMode`, "string"))
+  )
+}
+
+function isExecution(value: unknown, path: string): boolean {
+  if (value === undefined) {
+    return true
+  }
+  if (!isRecord(value)) {
+    return invalid(path, "object or undefined")
   }
 
   return (
@@ -266,6 +291,7 @@ function isTermTranslationPhaseSummaryResponseDto(
       invalid("$.dictionaryHitCount", "number")) &&
     (isNumber(value["aiTargetCount"]) ||
       invalid("$.aiTargetCount", "number")) &&
+    isAISettings(value["aiSettings"], "$.aiSettings") &&
     isExecution(value["execution"], "$.execution") &&
     isResultSummary(value["resultSummary"], "$.resultSummary") &&
     isErrorSummary(value["errorSummary"], "$.errorSummary") &&
@@ -308,24 +334,42 @@ function isTermTranslationAISettingsResponseDto(
   }
 
   return (
-    (isNumber(value["jobId"]) || invalid("$.jobId", "number")) &&
-    (isString(value["phaseId"]) || invalid("$.phaseId", "string")) &&
+    (isString(value["phaseType"]) || invalid("$.phaseType", "string")) &&
     (isString(value["provider"]) || invalid("$.provider", "string")) &&
     (isString(value["model"]) || invalid("$.model", "string")) &&
     (isString(value["executionMode"]) ||
       invalid("$.executionMode", "string")) &&
-    (isString(value["batchMode"]) || invalid("$.batchMode", "string")) &&
-    (value["credentialStatus"] === "configured" ||
-      value["credentialStatus"] === "missing" ||
-      value["credentialStatus"] === "not_required" ||
-      invalid("$.credentialStatus", "known credential status")) &&
-    (value["modelListStatus"] === "not_updated" ||
-      value["modelListStatus"] === "loading" ||
-      value["modelListStatus"] === "success" ||
-      value["modelListStatus"] === "failed" ||
-      value["modelListStatus"] === "credential_missing" ||
-      value["modelListStatus"] === "credential_not_required" ||
-      invalid("$.modelListStatus", "known model list status"))
+    (isString(value["batchMode"]) || invalid("$.batchMode", "string"))
+  )
+}
+
+function isProviderModelOption(value: unknown, path: string): boolean {
+  if (!isRecord(value)) {
+    return invalid(path, "object")
+  }
+  return (
+    (isString(value["modelId"]) || invalid(`${path}.modelId`, "string")) &&
+    (isString(value["label"]) || invalid(`${path}.label`, "string"))
+  )
+}
+
+function isListProviderModelsResponseDto(
+  value: unknown
+): value is { provider: string; requestToken: string; sourceToken: string; credentialStatus: string; status: string; models: { modelId: string; label: string }[]; failureKind?: string } {
+  resetIssues()
+  if (!isRecord(value)) {
+    return invalid("$", "object")
+  }
+  return (
+    (isString(value["provider"]) || invalid("$.provider", "string")) &&
+    (isString(value["status"]) || invalid("$.status", "string")) &&
+    (isArrayOf(value["models"], (item) =>
+      isProviderModelOption(item, "$.models[]")
+    ) ||
+      invalid("$.models", "model option array")) &&
+    (value["failureKind"] === undefined ||
+      isString(value["failureKind"]) ||
+      invalid("$.failureKind", "string or undefined"))
   )
 }
 
@@ -352,6 +396,27 @@ function isTermTranslationNextPhaseReadinessResponseDto(
 
 class TermTranslationPhaseGateway implements TermTranslationPhaseGatewayContract {
   constructor(private readonly invokeBinding: BindingInvoker) {}
+
+  listProviderModels(
+    request: PhaseProviderModelsRequest
+  ): Promise<PhaseProviderModelsResponse> {
+    return this.invokeBinding(
+      ListTranslationJobSetupProviderModels,
+      "ListTranslationJobSetupProviderModels",
+      {
+        phaseId: "word_translation",
+        provider: request.provider,
+        credentialStatus: request.credentialStatus,
+        requestToken: request.requestToken
+      },
+      isListProviderModelsResponseDto
+    ).then((dto) => ({
+      provider: dto.provider,
+      status: dto.status,
+      models: dto.models.map((m) => ({ modelId: m.modelId, label: m.label })),
+      failureKind: dto.failureKind
+    }))
+  }
 
   getProcessingTargetList(
     request: GetProcessingTargetListRequestDto

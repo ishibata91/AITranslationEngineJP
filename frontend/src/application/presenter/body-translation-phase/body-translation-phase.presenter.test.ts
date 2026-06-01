@@ -448,3 +448,109 @@ describe("BodyTranslationPhasePresenter - 成果物出力確認可否・操作�
     expect(viewModel.screenActionEnablement.canCancel).toBe(false)
   })
 })
+
+// U-PRES-002/003/004: execution field 不在時の presenter 判定（本文翻訳）
+// 根拠: body-translation-phase-REQ-002「execution field 不在で isExecutionConfigured=false」
+describe("BodyTranslationPhasePresenter - execution field 不在判定（U-PRES-002/003/004）", () => {
+  const presenter = new BodyTranslationPhasePresenter()
+
+  function buildSummaryWithoutExecution(): BodyTranslationPhaseSummaryResponse {
+    return {
+      jobId: 9,
+      currentPhase: "body_translation",
+      phaseState: "ready",
+      progress: {
+        percent: 0,
+        processedCount: 0,
+        totalCount: 10,
+        targetCount: 10,
+        translatedCount: 0,
+        skippedCount: 0,
+        currentStep: "ready"
+      },
+      inputSummary: {
+        targetCount: 10,
+        dictionaryDigest: "sha256:dict",
+        personaDigest: "sha256:persona",
+        metadataDigest: "sha256:meta",
+        promptDigest: "sha256:prompt"
+      },
+      // execution field を意図的に含めない（不在で「未設定」を表す仕様）
+      actionEnablement: {
+        canStart: false,
+        canPause: false,
+        canResume: false,
+        canRetry: false,
+        canCancel: false
+      },
+      outputReadiness: {
+        completedFieldCount: 0,
+        statusConsistent: false,
+        outputCount: 0
+      }
+    }
+  }
+
+  function buildStateWithoutExecution() {
+    return {
+      jobId: 9,
+      phase: "ready" as const,
+      summary: buildSummaryWithoutExecution(),
+      outputReadiness: null,
+      errorMessage: "",
+      pendingAction: null,
+      hasLoaded: true,
+      initialFetchDone: true
+    }
+  }
+
+  // U-PRES-002: execution field が不在の場合、isExecutionConfigured が false を返す
+  test("execution field が不在のとき isExecutionConfigured が false を返す", () => {
+    // 空文字ではなく field 不在で未設定を判定できることを証明する。
+    const viewModel = presenter.toViewModel(buildStateWithoutExecution(), true)
+
+    expect(viewModel.isExecutionConfigured).toBe(false)
+  })
+
+  // U-PRES-003: execution field が不在の場合、modelLabel が「設定未完了」を返す（空文字 "" を返さない）
+  test("execution field が不在のとき modelLabel が設定未完了を返す", () => {
+    // 空文字フォールバックを防止し「設定未完了」相当の表示語を返すことを証明する。
+    const viewModel = presenter.toViewModel(buildStateWithoutExecution(), true)
+
+    expect(viewModel.modelLabel).not.toBe("")
+    expect(viewModel.modelLabel).toBe("設定未完了")
+  })
+
+  // U-PRES-002（派生）: execution field が存在する場合と不在の場合を presenter が独立して判定できる
+  test("execution field が存在しモデル値が入力済みのとき isExecutionConfigured が true を返す", () => {
+    // 2 つの不在状態の混同を防ぐ。設定済み状態と未設定状態を独立して判定できることを証明する。
+    const summaryWithExecution: BodyTranslationPhaseSummaryResponse = {
+      ...buildSummaryWithoutExecution(),
+      execution: {
+        credentialRef: "cred",
+        provider: "lm_studio",
+        model: "local-model",
+        executionMode: "sync",
+        requestUnitCount: 5,
+        outputCount: 0
+      }
+    }
+    const viewModel = presenter.toViewModel(
+      {
+        jobId: 9,
+        phase: "ready" as const,
+        summary: summaryWithExecution,
+        outputReadiness: null,
+        errorMessage: "",
+        pendingAction: null,
+        hasLoaded: true,
+        initialFetchDone: true
+      },
+      true
+    )
+
+    // execution field が存在し値が入力済み → isExecutionConfigured=true
+    expect(viewModel.isExecutionConfigured).toBe(true)
+    expect(viewModel.modelLabel).toBe("local-model")
+  })
+})

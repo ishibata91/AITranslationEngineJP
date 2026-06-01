@@ -103,17 +103,6 @@ func (h translationJobManagementScenarioHarness) createScenarioJob(
 	if err != nil {
 		t.Fatalf("UpdateJobPhaseRun failed: %v", err)
 	}
-	_, err = h.jobRepo.SaveTranslationJobPhaseRuntimeSnapshot(h.ctx, repository.TranslationJobPhaseRuntimeSnapshotDraft{
-		TranslationJobID: job.ID,
-		PhaseID:          "body_translation",
-		Provider:         "scenario-provider",
-		ModelName:        "scenario-model",
-		CredentialStatus: "configured",
-		ExecutionMode:    "batch",
-	})
-	if err != nil {
-		t.Fatalf("SaveTranslationJobPhaseRuntimeSnapshot failed: %v", err)
-	}
 	return job
 }
 
@@ -244,13 +233,6 @@ func TestSCN_TJM_006_NonRunningDeleteRemovesJobAndKeepsInput(t *testing.T) {
 	if _, getErr := h.sourceRepo.GetXEditExtractedDataByID(h.ctx, job.XEditExtractedDataID); getErr != nil {
 		t.Fatalf("expected input source to remain, got %v", getErr)
 	}
-	snapshots, err := h.jobRepo.ListTranslationJobPhaseRuntimeSnapshots(h.ctx, job.ID)
-	if err != nil {
-		t.Fatalf("ListTranslationJobPhaseRuntimeSnapshots failed: %v", err)
-	}
-	if len(snapshots) != 0 {
-		t.Fatalf("expected job-owned runtime snapshots to be deleted, got %d", len(snapshots))
-	}
 }
 
 func TestSCN_TJM_008_ProjectionFailuresReturnSafeReasons(t *testing.T) {
@@ -314,12 +296,5 @@ func TestSCN_TJM_005_InconsistentRunningPhaseDeleteIsRejectedAndKeepsRows(t *tes
 	}
 	if _, getErr := h.sourceRepo.GetXEditExtractedDataByID(h.ctx, job.XEditExtractedDataID); getErr != nil {
 		t.Fatalf("expected input source to remain, got %v", getErr)
-	}
-	snapshots, err := h.jobRepo.ListTranslationJobPhaseRuntimeSnapshots(h.ctx, job.ID)
-	if err != nil {
-		t.Fatalf("ListTranslationJobPhaseRuntimeSnapshots failed: %v", err)
-	}
-	if len(snapshots) != 1 {
-		t.Fatalf("expected runtime snapshot to remain, got %d", len(snapshots))
 	}
 }

@@ -35,6 +35,7 @@
       executionMode: string
       batchMode: string
     }) => void | Promise<void>
+    onRefreshModelList?: (provider: string) => void | Promise<void>
   }
 
   let {
@@ -47,9 +48,32 @@
     onProcessingTargetPreviousPage = undefined,
     onProcessingTargetNextPage = undefined,
     onProcessingTargetPageChange = undefined,
-    onAISettingsChange = undefined
+    onAISettingsChange = undefined,
+    onRefreshModelList = undefined
   }: Props = $props()
   let processingTargetSearchValue = $state("")
+  let selectedProviderId = $state("")
+  let selectedModelId = $state("")
+  let selectedExecutionMode = $state("")
+  const resolvedProviderValue = $derived(
+    (viewModel.providerOptions ?? []).some((o) => o.value === selectedProviderId)
+      ? selectedProviderId
+      : ((viewModel.providerOptions ?? []).some((o) => o.value === viewModel.providerLabel)
+          ? viewModel.providerLabel
+          : ((viewModel.providerOptions ?? [])[0]?.value ?? ""))
+  )
+  const resolvedModelValue = $derived(
+    selectedModelId ||
+    ((viewModel.modelOptions ?? []).some((o) => o.value === viewModel.modelLabel)
+      ? viewModel.modelLabel
+      : "")
+  )
+  const resolvedExecutionMode = $derived(
+    selectedExecutionMode ||
+    ((viewModel.executionOptions ?? []).some((o) => o.value === viewModel.executionModeLabel)
+      ? viewModel.executionModeLabel
+      : ((viewModel.executionOptions ?? [])[0]?.value ?? ""))
+  )
 
   function resolveStateToken(
     viewState: BodyTranslationPhaseViewState
@@ -69,11 +93,9 @@
   ])
   const canEditAiSettings = $derived(viewModel.viewState !== "running")
   const aiSettingsBlockedReason = $derived(
-    viewModel.credentialRefLabel === "-"
-      ? "認証状態を確認してください。"
-      : viewModel.modelLabel === "-"
-        ? "モデルを選択してください。"
-        : ""
+    !viewModel.isExecutionConfigured
+      ? "AI 設定が未完了です。"
+      : ""
   )
   const aiSettingsStatusLabel = $derived(
     aiSettingsBlockedReason ? "設定未完了" : "固定済み"
@@ -81,9 +103,9 @@
   const aiSettingsStatusTone = $derived(
     aiSettingsBlockedReason ? "warning" : "success"
   )
-  const aiModelOptions = $derived([
-    { modelId: viewModel.modelLabel, label: viewModel.modelLabel }
-  ])
+  const aiModelOptions = $derived(
+    viewModel.modelOptions.map((o) => ({ modelId: o.value, label: o.label }))
+  )
 
   const progressDetails = $derived<PhaseDetailItem[]>([
     { label: "AI 送信対象件数", value: viewModel.providerTargetCountLabel }
@@ -145,28 +167,35 @@
       batchMode: string
     }>
   ): void {
-    void onAISettingsChange?.({
-      provider: viewModel.providerLabel === "-" ? "" : viewModel.providerLabel,
-      model: viewModel.modelLabel === "-" ? "" : viewModel.modelLabel,
-      executionMode:
-        viewModel.executionModeLabel === "-"
-          ? ""
-          : viewModel.executionModeLabel,
+    const request = {
+      provider: resolvedProviderValue,
+      model: resolvedModelValue,
+      executionMode: resolvedExecutionMode,
       batchMode: "disabled",
       ...overrides
-    })
+    }
+    if (!request.provider || !request.model || !request.executionMode) {
+      return
+    }
+    void onAISettingsChange?.(request)
   }
 
   function handleProviderChange(event: Event): void {
-    saveAISettings({ provider: selectedValue(event) })
+    const provider = selectedValue(event)
+    selectedProviderId = provider
+    selectedModelId = ""
   }
 
   function handleExecutionChange(event: Event): void {
-    saveAISettings({ executionMode: selectedValue(event) })
+    const executionMode = selectedValue(event)
+    selectedExecutionMode = executionMode
+    saveAISettings({ executionMode })
   }
 
   function handleModelChange(event: Event): void {
-    saveAISettings({ model: selectedValue(event) })
+    const model = selectedValue(event)
+    selectedModelId = model
+    saveAISettings({ model })
   }
 
   function handleProcessingTargetSearchInput(event: Event): void {
@@ -224,6 +253,7 @@
       actionAriaLabel="翻訳段階の操作"
       actions={phaseActionCards}
       startButtonTestId="body-translation-phase-start-button"
+      actionHintsTestId="body-translation-phase-start-blocked-reason"
       onAction={(actionId) =>
         onAction(actionId as BodyTranslationPhaseActionKind)}
     />
@@ -236,13 +266,12 @@
       titleId="bodyPhaseAiModelHeading"
       helperText="本文翻訳を開始する前に使う AI サービス、モデル、処理方式を確認します。"
       statusLabel={aiSettingsStatusLabel}
-      statusTestId="body-translation-phase-ai-model-lock-state"
+      statusTestId="body-translation-phase-ai-settings-status-pill"
       statusTone={aiSettingsStatusTone}
       providerSelectId="bodyPhaseProviderSelect"
-      providerValue={viewModel.providerLabel}
-      providerOptions={[
-        { value: viewModel.providerLabel, label: viewModel.providerLabel }
-      ]}
+      providerSelectTestId="body-translation-phase-ai-provider-select"
+      providerValue={resolvedProviderValue}
+      providerOptions={viewModel.providerOptions}
       providerDisabled={!canEditAiSettings}
       onProviderChange={handleProviderChange}
       credentialStatusLabel={viewModel.credentialRefLabel}
@@ -251,23 +280,22 @@
       credentialWarningText={aiSettingsBlockedReason}
       secondaryControlMode="execution-select"
       executionSelectId="bodyPhaseExecutionModeSelect"
-      executionValue={viewModel.executionModeLabel}
-      executionOptions={[
-        {
-          value: viewModel.executionModeLabel,
-          label: viewModel.executionModeLabel
-        }
-      ]}
+      executionSelectTestId="body-translation-phase-ai-execution-mode-select"
+      executionValue={resolvedExecutionMode}
+      executionOptions={viewModel.executionOptions}
       executionDisabled={!canEditAiSettings}
       onExecutionChange={handleExecutionChange}
       modelSelectId="bodyPhaseModelSelect"
-      modelValue={viewModel.modelLabel}
+      modelSelectTestId="body-translation-phase-ai-model-select"
+      modelValue={resolvedModelValue}
       modelOptions={aiModelOptions}
       modelDisabled={!canEditAiSettings}
       onModelChange={handleModelChange}
       modelStatusText="モデル一覧は本文翻訳の開始前に更新します。"
       refreshDisabled={!canEditAiSettings}
-      onRefresh={() => saveAISettings({})}
+      onRefresh={onRefreshModelList ? () => {
+        void onRefreshModelList(resolvedProviderValue)
+      } : undefined}
       footerMessage={canEditAiSettings
         ? `一括処理: ${viewModel.providerStateLabel}。設定は本文翻訳の開始時に固定します。`
         : "実行中は AI 設定を編集できません。"}

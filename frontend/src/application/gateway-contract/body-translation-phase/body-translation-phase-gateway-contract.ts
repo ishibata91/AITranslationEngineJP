@@ -25,23 +25,25 @@ export interface StartBodyTranslationPhaseRequest {
 }
 
 export interface BodyTranslationPhaseAISettingsRequest {
-  jobId: number
   provider: string
   model: string
   executionMode: string
   batchMode: string
 }
 
-export interface BodyTranslationPhaseAISettingsResponse extends BodyTranslationPhaseAISettingsRequest {
-  phaseId: string
-  credentialStatus: "configured" | "missing" | "not_required"
-  modelListStatus:
-    | "not_updated"
-    | "loading"
-    | "success"
-    | "failed"
-    | "credential_missing"
-    | "credential_not_required"
+export interface BodyTranslationPhaseAISettingsResponse {
+  phaseType: string
+  provider: string
+  model: string
+  executionMode: string
+  batchMode: string
+}
+
+export interface BodyTranslationPhaseAISettings {
+  provider: string
+  model: string
+  executionMode: string
+  batchMode: string
 }
 
 export interface PauseBodyTranslationPhaseRequest {
@@ -168,7 +170,8 @@ export interface BodyTranslationPhaseSummaryResponse {
   progress: BodyTranslationPhaseProgressSummary
   inputSummary: BodyTranslationPhaseInputSummary
   requestSummary?: BodyTranslationPhaseRequestSummary
-  execution: BodyTranslationPhaseExecutionSummary
+  aiSettings?: BodyTranslationPhaseAISettings
+  execution?: BodyTranslationPhaseExecutionSummary
   fieldResults?: BodyTranslationPhaseFieldResultItem[]
   resultSummary?: BodyTranslationPhaseFieldResultSummary
   errorSummary?: BodyTranslationPhaseErrorSummary
@@ -187,7 +190,7 @@ export interface BodyTranslationPhaseCommandResponse {
   inputSnapshotDigest?: string
   inputSummary: BodyTranslationPhaseInputSummary
   requestSummary?: BodyTranslationPhaseRequestSummary
-  execution: BodyTranslationPhaseExecutionSummary
+  execution?: BodyTranslationPhaseExecutionSummary
   fieldResults?: BodyTranslationPhaseFieldResultItem[]
   resultSummary?: BodyTranslationPhaseFieldResultSummary
   retryable: boolean
@@ -212,7 +215,28 @@ export interface BodyTranslationOutputReadinessResponse {
   outputCount: number
 }
 
+export interface PhaseProviderModelsRequest {
+  provider: string
+  credentialStatus: string
+  requestToken: string
+}
+
+export interface PhaseProviderModelOption {
+  modelId: string
+  label: string
+}
+
+export interface PhaseProviderModelsResponse {
+  provider: string
+  status: string
+  models: PhaseProviderModelOption[]
+  failureKind?: string
+}
+
 export interface BodyTranslationPhaseGatewayContract {
+  listProviderModels?(
+    request: PhaseProviderModelsRequest
+  ): Promise<PhaseProviderModelsResponse>
   getProcessingTargetList?(
     request: ProcessingTargetListRequest
   ): Promise<ProcessingTargetListResponse>

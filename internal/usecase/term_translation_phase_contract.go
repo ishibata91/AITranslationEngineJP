@@ -74,27 +74,26 @@ type GetTermTranslationNextPhaseReadinessRequest struct {
 }
 
 // SaveTermTranslationPhaseAISettingsRequest carries public AI settings for the term phase.
+// 入力に job_id を含めない。保存操作はジョブと無関連で phase_type を主キーとして upsert する。
 type SaveTermTranslationPhaseAISettingsRequest struct {
-	JobID         int64
 	Provider      string
 	Model         string
 	ExecutionMode string
 	BatchMode     string
 }
 
-// TermTranslationPhaseAISettingsResult returns public AI settings state.
+// TermTranslationPhaseAISettingsResult returns the saved AI settings state.
+// credential_ref、credential_status、model_list_status は含まない。
 type TermTranslationPhaseAISettingsResult struct {
-	JobID            int64
-	PhaseID          string
-	Provider         string
-	Model            string
-	CredentialStatus string
-	ExecutionMode    string
-	BatchMode        string
-	ModelListStatus  string
+	PhaseType     string
+	Provider      string
+	Model         string
+	ExecutionMode string
+	BatchMode     string
 }
 
 // TermTranslationExecutionConfigSummary summarizes the execution inputs without exposing secrets.
+// JOB_PHASE_RUN が存在する場合だけ設定する。Ready 期は nil とする。
 type TermTranslationExecutionConfigSummary struct {
 	CredentialRef   string
 	Provider        string
@@ -102,6 +101,15 @@ type TermTranslationExecutionConfigSummary struct {
 	ExecutionMode   string
 	SnapshotDigest  *string
 	SnapshotVersion *string
+}
+
+// TermTranslationPhaseAISettings holds the Ready 期 AI 選択値（JOB_PHASE_AI_SETTINGS から読む）。
+// record 不在（AI 設定未保存）の場合は nil とする。
+type TermTranslationPhaseAISettings struct {
+	Provider      string
+	Model         string
+	ExecutionMode string
+	BatchMode     string
 }
 
 // TermTranslationPhaseProgressSummary summarizes current progress for one phase run.
@@ -154,10 +162,13 @@ type TermTranslationPhaseSummaryResult struct {
 	TotalTermCount     int
 	DictionaryHitCount int
 	AITargetCount      int
-	Execution          TermTranslationExecutionConfigSummary
-	ResultSummary      *TermTranslationPhaseResultSummary
-	ErrorSummary       *TermTranslationPhaseErrorSummary
-	ActionEnablement   TermTranslationPhaseActionEnablement
+	// AISettings は JOB_PHASE_AI_SETTINGS record が存在する場合だけ設定する。nil は未設定を意味する。
+	AISettings *TermTranslationPhaseAISettings
+	// Execution は JOB_PHASE_RUN が存在し AI 設定転写済みの場合だけ設定する。nil は未開始を意味する。
+	Execution        *TermTranslationExecutionConfigSummary
+	ResultSummary    *TermTranslationPhaseResultSummary
+	ErrorSummary     *TermTranslationPhaseErrorSummary
+	ActionEnablement TermTranslationPhaseActionEnablement
 }
 
 // TermTranslationPhaseCommandResult is the frozen write-seam response contract.

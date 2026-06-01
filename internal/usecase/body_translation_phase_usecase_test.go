@@ -44,19 +44,15 @@ func (fake *fakeBodyTranslationPhaseServicePort) SaveAISettings(context.Context,
 
 func TestBodyTranslationPhaseUsecaseSaveAISettingsMapsReadModel(t *testing.T) {
 	port := &fakeBodyTranslationPhaseServicePort{saveAI: service.PhaseAISettingsReadModel{
-		JobID:            12,
-		PhaseID:          "text_translation",
-		Provider:         "openai",
-		Model:            "gpt-5.4-mini",
-		CredentialStatus: "configured",
-		ExecutionMode:    "sync",
-		BatchMode:        "unsupported",
-		ModelListStatus:  "success",
+		PhaseType:     "text_translation",
+		Provider:      "openai",
+		Model:         "gpt-5.4-mini",
+		ExecutionMode: "sync",
+		BatchMode:     "unsupported",
 	}}
 	uc := NewBodyTranslationPhaseUsecase(port)
 
 	result, err := uc.SaveBodyTranslationPhaseAISettings(context.Background(), SaveBodyTranslationPhaseAISettingsRequest{
-		JobID:         12,
 		Provider:      "openai",
 		Model:         "gpt-5.4-mini",
 		ExecutionMode: "sync",
@@ -68,9 +64,6 @@ func TestBodyTranslationPhaseUsecaseSaveAISettingsMapsReadModel(t *testing.T) {
 	if result.Provider != "openai" || result.Model != "gpt-5.4-mini" {
 		t.Fatalf("expected mapped public ai settings response, got %#v", result)
 	}
-	if result.CredentialStatus != "configured" || result.ModelListStatus != "success" {
-		t.Fatalf("expected status fields from service read model, got %#v", result)
-	}
 }
 
 func TestBodyTranslationPhaseUsecaseSaveAISettingsWrapsServiceError(t *testing.T) {
@@ -78,7 +71,6 @@ func TestBodyTranslationPhaseUsecaseSaveAISettingsWrapsServiceError(t *testing.T
 	uc := NewBodyTranslationPhaseUsecase(port)
 
 	_, err := uc.SaveBodyTranslationPhaseAISettings(context.Background(), SaveBodyTranslationPhaseAISettingsRequest{
-		JobID:         12,
 		Provider:      "openai",
 		Model:         "gpt-5.4-mini",
 		ExecutionMode: "sync",

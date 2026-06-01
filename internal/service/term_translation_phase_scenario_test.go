@@ -307,7 +307,7 @@ func newScenarioTermTranslationPhaseService(t *testing.T, db *sqlx.DB) *TermTran
 		entries:           map[string]repository.DictionaryEntry{},
 		createErrBySource: map[string]error{},
 	}
-	secretStore := repository.NewInMemorySecretStore()
+	secretStore := repository.NewFakeSecretStore()
 	transactor := fakeTermPhaseTransactor{jobRepo: jobRepo, foundation: foundation}
 
 	svc := &TermTranslationPhaseService{

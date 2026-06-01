@@ -35,7 +35,7 @@ function cloneSummary(
   return {
     ...summary,
     progress: { ...summary.progress },
-    execution: { ...summary.execution },
+    execution: summary.execution ? { ...summary.execution } : undefined,
     resultSummary: summary.resultSummary
       ? { ...summary.resultSummary }
       : undefined,

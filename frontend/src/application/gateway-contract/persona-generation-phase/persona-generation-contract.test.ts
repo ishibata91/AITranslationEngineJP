@@ -43,9 +43,9 @@ describe("persona-generation-contract", () => {
       }
     }
 
-    expect(response.execution.credentialRef).toBe("credential:persona:test")
-    expect("apiKey" in response.execution).toBe(false)
-    expect("token" in response.execution).toBe(false)
-    expect("rawPrompt" in response.execution).toBe(false)
+    expect(response.execution?.credentialRef).toBe("credential:persona:test")
+    expect(response.execution !== undefined && "apiKey" in response.execution).toBe(false)
+    expect(response.execution !== undefined && "token" in response.execution).toBe(false)
+    expect(response.execution !== undefined && "rawPrompt" in response.execution).toBe(false)
   })
 })

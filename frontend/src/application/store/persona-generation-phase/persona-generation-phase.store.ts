@@ -42,10 +42,14 @@ function cloneSummary(
       ...summary.targetSummary,
       skippedReasons: [...summary.targetSummary.skippedReasons]
     },
-    execution: {
-      ...summary.execution,
-      evidenceRefs: [...summary.execution.evidenceRefs]
-    },
+    execution: summary.execution
+      ? {
+          ...summary.execution,
+          evidenceRefs: summary.execution.evidenceRefs
+            ? [...summary.execution.evidenceRefs]
+            : []
+        }
+      : undefined,
     resultSummary: summary.resultSummary
       ? { ...summary.resultSummary }
       : undefined,

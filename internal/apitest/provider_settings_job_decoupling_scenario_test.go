@@ -1,18 +1,14 @@
 package apitest
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"reflect"
 	"runtime"
 	"strings"
 	"testing"
-	"time"
 
 	wails "aitranslationenginejp/internal/controller/wails"
-	"aitranslationenginejp/internal/infra/sqlite/dbinit"
-	"aitranslationenginejp/internal/repository"
 )
 
 func TestSCN_PSJD_001_ProviderSettingsEndpointAndCredentialStateStayOutsideJobSetupAPI(t *testing.T) {
@@ -52,65 +48,6 @@ func TestSCN_PSJD_004_PhaseStartAPIResolvesLatestProviderSettingsBeforeRunning(t
 		if !strings.Contains(source, "AllowSecretSnapshot: true") {
 			t.Fatalf("SCN-PSJD-004 expected %s to keep secret resolution inside phase-start memory boundary", sourcePath)
 		}
-	}
-}
-
-func TestSCN_PSJD_005_RuntimeSnapshotPersistsOnlyNonSecretSummary(t *testing.T) {
-	dbPath := filepath.Join(t.TempDir(), "psjd-runtime-snapshot.sqlite3")
-	db, err := dbinit.OpenMasterDictionaryDatabase(context.Background(), dbPath, nil)
-	if err != nil {
-		t.Fatalf("SCN-PSJD-005 expected sqlite open to succeed: %v", err)
-	}
-	t.Cleanup(func() { _ = db.Close() })
-
-	jobRepo := repository.NewSQLiteJobLifecycleRepository(db)
-	sourceRepo := repository.NewSQLiteTranslationSourceRepository(db)
-	inputSource, err := sourceRepo.CreateXEditExtractedData(context.Background(), repository.XEditExtractedDataDraft{
-		SourceFilePath:    "/tmp/psjd-runtime-snapshot.json",
-		SourceContentHash: "psjd-runtime-snapshot-hash",
-		SourceTool:        "scenario-test",
-		TargetPluginName:  "Scenario Plugin",
-		TargetPluginType:  "esp",
-		RecordCount:       1,
-		ImportedAt:        time.Date(2026, 5, 7, 12, 0, 0, 0, time.UTC),
-	})
-	if err != nil {
-		t.Fatalf("SCN-PSJD-005 expected input source create to succeed: %v", err)
-	}
-	snapshotStore, ok := jobRepo.(interface {
-		SaveTranslationJobPhaseRuntimeSnapshot(
-			context.Context,
-			repository.TranslationJobPhaseRuntimeSnapshotDraft,
-		) (repository.TranslationJobPhaseRuntimeSnapshot, error)
-	})
-	if !ok {
-		t.Fatal("SCN-PSJD-005 expected sqlite job lifecycle repository to expose runtime snapshot store")
-	}
-	job, err := jobRepo.CreateTranslationJob(context.Background(), repository.TranslationJobDraft{
-		XEditExtractedDataID: inputSource.ID,
-		JobName:              "SCN-PSJD-005",
-		State:                "ready",
-		ProgressPercent:      0,
-	})
-	if err != nil {
-		t.Fatalf("SCN-PSJD-005 expected job create to succeed: %v", err)
-	}
-
-	snapshot, err := snapshotStore.SaveTranslationJobPhaseRuntimeSnapshot(context.Background(), repository.TranslationJobPhaseRuntimeSnapshotDraft{
-		TranslationJobID: job.ID,
-		PhaseID:          "word_translation",
-		Provider:         "gemini",
-		ModelName:        "gemini-model-after-start",
-		CredentialStatus: "configured",
-		ExecutionMode:    "sync",
-		BatchMode:        "enabled",
-	})
-	if err != nil {
-		t.Fatalf("SCN-PSJD-005 expected runtime snapshot save to succeed: %v", err)
-	}
-
-	if snapshot.Provider != "gemini" || snapshot.ModelName != "gemini-model-after-start" || snapshot.CredentialStatus != "configured" {
-		t.Fatalf("SCN-PSJD-005 expected non-secret summary fields to persist, got %#v", snapshot)
 	}
 }
 

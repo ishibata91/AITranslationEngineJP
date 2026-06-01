@@ -89,10 +89,14 @@ interface PersonaGenerationPhaseScreenViewModel extends PersonaGenerationPhaseSc
   commonPersonaMissCountLabel: string
   skippedReasonsLabel: string
   targetSnapshotLabel: string
+  isExecutionConfigured: boolean
   providerLabel: string
   modelLabel: string
   executionModeLabel: string
   credentialRefLabel: string
+  providerOptions: PersonaSelectOption[]
+  modelOptions: PersonaSelectOption[]
+  executionOptions: PersonaSelectOption[]
   inputCountLabel: string
   outputCountLabel: string
   evidenceRefsLabel: string
@@ -414,6 +418,65 @@ function buildBodyReadinessInputSummaryLabel(
   return `${inputSummary.personaCount.toLocaleString("ja-JP")} 件 / missing ${inputSummary.missingCount.toLocaleString("ja-JP")} 件 / ${inputSummary.snapshotId || inputSummary.snapshotDigest || "-"}`
 }
 
+function isPersonaExecutionConfigured(
+  summary: PersonaGenerationPhaseSummaryResponse
+): boolean {
+  if (summary.aiSettings) {
+    return Boolean(summary.aiSettings.provider?.trim()) &&
+      Boolean(summary.aiSettings.model?.trim()) &&
+      Boolean(summary.aiSettings.executionMode?.trim())
+  }
+  if (!summary.execution) {
+    return false
+  }
+  return Boolean(summary.execution.provider?.trim()) &&
+    Boolean(summary.execution.model?.trim()) &&
+    Boolean(summary.execution.executionMode?.trim())
+}
+
+interface PersonaSelectOption {
+  value: string
+  label: string
+}
+
+const PERSONA_EXECUTION_OPTIONS: PersonaSelectOption[] = [
+  { value: "batch", label: "バッチ処理" },
+  { value: "sync", label: "逐次処理" }
+]
+
+function buildPersonaProviderOptions(
+  summary: PersonaGenerationPhaseSummaryResponse | null,
+  availableProviders: PersonaSelectOption[]
+): PersonaSelectOption[] {
+  if (availableProviders.length > 0) {
+    const currentProvider = summary?.aiSettings?.provider ?? summary?.execution?.provider
+    if (!currentProvider || !availableProviders.some((p) => p.value === currentProvider)) {
+      return [{ value: "", label: "選んでください" }, ...availableProviders]
+    }
+    return availableProviders
+  }
+  const fallbackLabel = summary?.aiSettings?.provider ?? summary?.execution?.provider ?? "設定未完了"
+  return [{ value: fallbackLabel, label: fallbackLabel }]
+}
+
+function buildPersonaModelOptions(
+  summary: PersonaGenerationPhaseSummaryResponse | null,
+  availableModels: PersonaSelectOption[]
+): PersonaSelectOption[] {
+  if (availableModels.length > 0) {
+    const currentModel = summary?.aiSettings?.model ?? summary?.execution?.model
+    if (!currentModel || !availableModels.some((m) => m.value === currentModel)) {
+      return [{ value: "", label: "選んでください" }, ...availableModels]
+    }
+    return availableModels
+  }
+  const fallbackLabel = summary?.aiSettings?.model ?? summary?.execution?.model
+  if (fallbackLabel) {
+    return [{ value: fallbackLabel, label: fallbackLabel }]
+  }
+  return [{ value: "", label: "モデル一覧を更新してください" }]
+}
+
 function isPersonaTerminalJob(
   summary: PersonaGenerationPhaseSummaryResponse
 ): boolean {
@@ -607,7 +670,9 @@ function buildActionCards(
 export class PersonaGenerationPhasePresenter {
   toViewModel(
     state: PersonaGenerationPhaseScreenState,
-    isGatewayConnected: boolean
+    isGatewayConnected: boolean,
+    availableProviders: PersonaSelectOption[] = [],
+    availableModels: PersonaSelectOption[] = []
   ): PersonaGenerationPhaseScreenViewModel {
     const viewState = buildViewState(state)
     const statusCopy = buildStatusCopy(state, viewState)
@@ -617,6 +682,18 @@ export class PersonaGenerationPhasePresenter {
     const executionSummary = summary?.execution
     const errorSummary = summary?.errorSummary ?? null
     const screenActionEnablement = buildScreenActionEnablement(state)
+    const providerLabel =
+      summary?.aiSettings?.provider ??
+      executionSummary?.provider ??
+      "設定未完了"
+    const modelLabel =
+      summary?.aiSettings?.model ??
+      executionSummary?.model ??
+      "設定未完了"
+    const executionModeLabel =
+      summary?.aiSettings?.executionMode ??
+      executionSummary?.executionMode ??
+      "設定未完了"
 
     return {
       ...state,
@@ -648,10 +725,14 @@ export class PersonaGenerationPhasePresenter {
       ),
       skippedReasonsLabel: formatList(targetSummary?.skippedReasons),
       targetSnapshotLabel: buildTargetSnapshotLabel(state),
-      providerLabel: executionSummary?.provider ?? "-",
-      modelLabel: executionSummary?.model ?? "-",
-      executionModeLabel: executionSummary?.executionMode ?? "-",
-      credentialRefLabel: executionSummary?.credentialRef ?? "-",
+      isExecutionConfigured: summary ? isPersonaExecutionConfigured(summary) : false,
+      providerLabel,
+      modelLabel,
+      executionModeLabel,
+      credentialRefLabel: executionSummary?.credentialRef ?? "設定未完了",
+      providerOptions: buildPersonaProviderOptions(summary, availableProviders),
+      modelOptions: buildPersonaModelOptions(summary, availableModels),
+      executionOptions: PERSONA_EXECUTION_OPTIONS,
       inputCountLabel: formatCount(executionSummary?.inputCount),
       outputCountLabel: formatCount(executionSummary?.outputCount),
       evidenceRefsLabel: formatList(executionSummary?.evidenceRefs),

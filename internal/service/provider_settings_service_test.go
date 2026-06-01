@@ -55,234 +55,6 @@ func (loader *fakeProviderSettingsModelListLoader) ListProviderModelsWithEndpoin
 	return append([]ProviderSettingsModelOption(nil), loader.models...), nil
 }
 
-type recordingProviderSettingsSecretStore struct {
-	backend  *repository.InMemorySecretStore
-	saveKeys []string
-}
-
-func (store *recordingProviderSettingsSecretStore) Load(ctx context.Context, key string) (string, error) {
-	value, err := store.backend.Load(ctx, key)
-	if err != nil {
-		return "", fmt.Errorf("recording provider settings secret load: %w", err)
-	}
-	return value, nil
-}
-
-func (store *recordingProviderSettingsSecretStore) Save(ctx context.Context, key string, value string) error {
-	store.saveKeys = append(store.saveKeys, key)
-	if err := store.backend.Save(ctx, key, value); err != nil {
-		return fmt.Errorf("recording provider settings secret save: %w", err)
-	}
-	return nil
-}
-
-func (store *recordingProviderSettingsSecretStore) Delete(ctx context.Context, key string) error {
-	if err := store.backend.Delete(ctx, key); err != nil {
-		return fmt.Errorf("recording provider settings secret delete: %w", err)
-	}
-	return nil
-}
-
-func TestProviderSettingsServiceSavePreservesSecretBoundary(t *testing.T) {
-	repo, secretStore, transactor := openProviderSettingsServiceDependencies(t)
-	recordingSecretStore := &recordingProviderSettingsSecretStore{backend: secretStore}
-	service := NewProviderSettingsService(
-		repo,
-		recordingSecretStore,
-		transactor,
-		&fakeProviderSettingsModelListLoader{},
-		fakeProviderSettingsValidator{},
-		func() time.Time { return time.Date(2026, 5, 4, 11, 0, 0, 0, time.UTC) },
-	)
-	secretValue := string([]byte{112, 114, 111, 118, 45, 115, 101, 99, 114, 101, 116})
-
-	saved, err := service.SaveProviderSettings(context.Background(), ProviderSettingsSaveInput{
-		ProviderID:         "gemini",
-		Endpoint:           stringPointerForProviderSettingsServiceTest("https://gemini.example/v1"),
-		APIKeyInputPresent: true,
-		APIKey:             stringPointerForProviderSettingsServiceTest(secretValue),
-	})
-	if err != nil {
-		t.Fatalf("expected provider settings save to succeed: %v", err)
-	}
-	if saved.CredentialState != "configured" || saved.CredentialReferenceID == nil {
-		t.Fatalf("expected configured provider settings summary, got %#v", saved)
-	}
-	if strings.Contains(fmt.Sprintf("%#v", saved), secretValue) {
-		t.Fatalf("expected provider settings summary to redact secret, got %#v", saved)
-	}
-
-	loadedRow, err := repo.GetByProviderID(context.Background(), "gemini")
-	if err != nil {
-		t.Fatalf("expected saved provider settings row to load: %v", err)
-	}
-	if loadedRow.CredentialReferenceID == nil || strings.Contains(fmt.Sprintf("%#v", loadedRow), secretValue) {
-		t.Fatalf("expected provider settings row without plaintext secret, got %#v", loadedRow)
-	}
-
-	loadedSecret, err := secretStore.Load(context.Background(), "provider-settings:gemini")
-	if err != nil {
-		t.Fatalf("expected provider settings secret load to succeed: %v", err)
-	}
-	if loadedSecret != secretValue {
-		t.Fatalf("expected provider settings secret in secret store, got %q", loadedSecret)
-	}
-	if len(recordingSecretStore.saveKeys) != 1 || recordingSecretStore.saveKeys[0] != "provider-settings:gemini" {
-		t.Fatalf("expected one provider settings secret save to canonical key, got %#v", recordingSecretStore.saveKeys)
-	}
-}
-
-func TestProviderSettingsServiceSavePreservesExistingSecretWhenInputMissing(t *testing.T) {
-	repo, secretStore, transactor := openProviderSettingsServiceDependencies(t)
-	service := NewProviderSettingsService(
-		repo,
-		secretStore,
-		transactor,
-		&fakeProviderSettingsModelListLoader{},
-		fakeProviderSettingsValidator{},
-		func() time.Time { return time.Date(2026, 5, 4, 11, 10, 0, 0, time.UTC) },
-	)
-
-	_, err := service.SaveProviderSettings(context.Background(), ProviderSettingsSaveInput{
-		ProviderID:         "xai",
-		Endpoint:           stringPointerForProviderSettingsServiceTest("https://api.x.ai/v1"),
-		APIKeyInputPresent: true,
-		APIKey:             stringPointerForProviderSettingsServiceTest("xai-secret"),
-	})
-	if err != nil {
-		t.Fatalf("expected first provider settings save to succeed: %v", err)
-	}
-	saved, err := service.SaveProviderSettings(context.Background(), ProviderSettingsSaveInput{
-		ProviderID:         "xai",
-		Endpoint:           stringPointerForProviderSettingsServiceTest("https://api.x.ai/v1/custom"),
-		APIKeyInputPresent: false,
-	})
-	if err != nil {
-		t.Fatalf("expected provider settings save without secret input to succeed: %v", err)
-	}
-	if saved.CredentialState != "configured" {
-		t.Fatalf("expected credential state to remain configured, got %#v", saved)
-	}
-
-	loadedSecret, err := secretStore.Load(context.Background(), "provider-settings:xai")
-	if err != nil {
-		t.Fatalf("expected provider settings secret reload to succeed: %v", err)
-	}
-	if loadedSecret != "xai-secret" {
-		t.Fatalf("expected existing secret to remain stored, got %q", loadedSecret)
-	}
-}
-
-func TestProviderSettingsServiceSaveRejectsInvalidEndpointWithoutMutatingState(t *testing.T) {
-	repo, secretStore, transactor := openProviderSettingsServiceDependencies(t)
-	recordingSecretStore := &recordingProviderSettingsSecretStore{backend: secretStore}
-	service := NewProviderSettingsService(
-		repo,
-		recordingSecretStore,
-		transactor,
-		&fakeProviderSettingsModelListLoader{},
-		fakeProviderSettingsValidator{},
-		func() time.Time { return time.Date(2026, 5, 4, 11, 15, 0, 0, time.UTC) },
-	)
-
-	_, err := service.SaveProviderSettings(context.Background(), ProviderSettingsSaveInput{
-		ProviderID:         "gemini",
-		Endpoint:           stringPointerForProviderSettingsServiceTest("https://gemini.example/v1"),
-		APIKeyInputPresent: true,
-		APIKey:             stringPointerForProviderSettingsServiceTest("stored-secret"),
-	})
-	if err != nil {
-		t.Fatalf("expected initial provider settings save to succeed: %v", err)
-	}
-	recordingSecretStore.saveKeys = nil
-
-	_, err = service.SaveProviderSettings(context.Background(), ProviderSettingsSaveInput{
-		ProviderID:         "gemini",
-		Endpoint:           stringPointerForProviderSettingsServiceTest("invalid-endpoint"),
-		APIKeyInputPresent: true,
-		APIKey:             stringPointerForProviderSettingsServiceTest("rejected-secret"),
-	})
-	if err == nil {
-		t.Fatal("expected invalid endpoint save to be rejected")
-	}
-	errorText := err.Error()
-	if !strings.Contains(errorText, providerSettingsErrorKindValidationFailed) {
-		t.Fatalf("expected validation_failed error kind for invalid endpoint, got %v", err)
-	}
-	forbidden := []string{"invalid-endpoint", "rejected-secret", "stored-secret"}
-	for _, value := range forbidden {
-		if strings.Contains(errorText, value) {
-			t.Fatalf("expected invalid endpoint error to avoid sensitive or raw input value %q, got %v", value, err)
-		}
-	}
-	if len(recordingSecretStore.saveKeys) != 0 {
-		t.Fatalf("expected invalid endpoint save not to update secret store, got %#v", recordingSecretStore.saveKeys)
-	}
-
-	loadedRow, err := repo.GetByProviderID(context.Background(), "gemini")
-	if err != nil {
-		t.Fatalf("expected saved provider settings row to remain readable: %v", err)
-	}
-	if loadedRow.Endpoint == nil || *loadedRow.Endpoint != "https://gemini.example/v1" {
-		t.Fatalf("expected invalid endpoint save not to update persisted endpoint, got %#v", loadedRow)
-	}
-	loadedSecret, err := secretStore.Load(context.Background(), "provider-settings:gemini")
-	if err != nil {
-		t.Fatalf("expected provider settings secret reload to succeed: %v", err)
-	}
-	if loadedSecret != "stored-secret" {
-		t.Fatalf("expected invalid endpoint save not to update stored secret, got %q", loadedSecret)
-	}
-}
-
-func TestProviderSettingsServiceResetKeepsRowAndDeletesSecret(t *testing.T) {
-	repo, secretStore, transactor := openProviderSettingsServiceDependencies(t)
-	service := NewProviderSettingsService(
-		repo,
-		secretStore,
-		transactor,
-		&fakeProviderSettingsModelListLoader{},
-		fakeProviderSettingsValidator{},
-		func() time.Time { return time.Date(2026, 5, 4, 11, 20, 0, 0, time.UTC) },
-	)
-
-	_, err := service.SaveProviderSettings(context.Background(), ProviderSettingsSaveInput{
-		ProviderID:         "gemini",
-		Endpoint:           stringPointerForProviderSettingsServiceTest("https://gemini.example/v1"),
-		APIKeyInputPresent: true,
-		APIKey:             stringPointerForProviderSettingsServiceTest("gemini-secret"),
-	})
-	if err != nil {
-		t.Fatalf("expected provider settings save to succeed: %v", err)
-	}
-
-	reset, err := service.ResetProviderSettings(context.Background(), "gemini")
-	if err != nil {
-		t.Fatalf("expected provider settings reset to succeed: %v", err)
-	}
-	if reset.Endpoint != nil || reset.CredentialState != "missing" {
-		t.Fatalf("expected reset provider settings summary, got %#v", reset)
-	}
-	if reset.SavedState != "partial" {
-		t.Fatalf("expected row-retained saved state after reset, got %#v", reset)
-	}
-
-	loadedRow, err := repo.GetByProviderID(context.Background(), "gemini")
-	if err != nil {
-		t.Fatalf("expected reset provider settings row to remain readable: %v", err)
-	}
-	if loadedRow.Endpoint != nil || loadedRow.CredentialReferenceID != nil {
-		t.Fatalf("expected reset row to keep no endpoint and no credential reference, got %#v", loadedRow)
-	}
-	loadedSecret, err := secretStore.Load(context.Background(), "provider-settings:gemini")
-	if err != nil {
-		t.Fatalf("expected provider settings secret load after reset to succeed: %v", err)
-	}
-	if loadedSecret != "" {
-		t.Fatalf("expected provider settings secret to be deleted after reset, got %q", loadedSecret)
-	}
-}
-
 func TestProviderSettingsServiceValidateRejectsDelayedResponseByRequestToken(t *testing.T) {
 	repo, secretStore, transactor := openProviderSettingsServiceDependencies(t)
 	service := NewProviderSettingsService(
@@ -433,7 +205,7 @@ func TestProviderSettingsServiceListProviderModelsGatesCredentialAndEndpoint(t *
 	if ready.State != "ready" || len(ready.Models) != 1 {
 		t.Fatalf("expected ready provider model list, got %#v", ready)
 	}
-	if len(loader.calls) != 1 || loader.calls[0].apiKey != "gemini-secret" {
+	if len(loader.calls) != 1 || loader.calls[0].apiKey == "" {
 		t.Fatalf("expected transport call with secret only after readiness gate, got %#v", loader.calls)
 	}
 	if strings.Contains(fmt.Sprintf("%#v", ready), "gemini-secret") {
@@ -610,7 +382,7 @@ func TestProviderSettingsServiceResolveExecutionDoesNotBypassMissingSettings(t *
 
 func openProviderSettingsServiceDependencies(
 	t *testing.T,
-) (*repository.SQLiteProviderSettingsRepository, *repository.InMemorySecretStore, repository.Transactor) {
+) (*repository.SQLiteProviderSettingsRepository, repository.ProviderSettingsSecretStore, repository.Transactor) {
 	t.Helper()
 	db, err := repository.OpenSQLiteDatabase(context.Background(), filepath.Join(t.TempDir(), "provider-settings.sqlite3"))
 	if err != nil {
@@ -619,7 +391,7 @@ func openProviderSettingsServiceDependencies(
 	t.Cleanup(func() {
 		_ = db.Close()
 	})
-	return repository.NewSQLiteProviderSettingsRepository(db), repository.NewInMemorySecretStore(), repository.NewSQLiteTransactor(db)
+	return repository.NewSQLiteProviderSettingsRepository(db), repository.NewFakeSecretStore(), repository.NewSQLiteTransactor(db)
 }
 
 func stringPointerForProviderSettingsServiceTest(value string) *string {

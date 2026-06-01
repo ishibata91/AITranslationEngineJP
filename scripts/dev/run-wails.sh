@@ -60,7 +60,7 @@ set -o pipefail 2>/dev/null || true
 env \
   VITE_HOST="$vite_host" \
   VITE_PORT="$vite_port" \
-  AITRANSLATIONENGINEJP_PROVIDER_SETTINGS_SECRET_BACKEND="in-memory" \
+  AITRANSLATIONENGINEJP_PROVIDER_SETTINGS_SECRET_BACKEND="fake" \
   wails dev \
   -loglevel "$wails_log_level" \
   -devserver "$devserver_bind" \

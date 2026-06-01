@@ -50,7 +50,7 @@ func TestPersonaGenerationPhaseUsecase_MapsSummaryDTO(t *testing.T) {
 		JobID: 1, CurrentPhase: "persona_generation", PhaseState: "running", PhaseRunID: &phaseRunID,
 		StartedAt:        &now,
 		TargetSummary:    service.PersonaGenerationTargetSummaryReadModel{TargetSnapshotID: &targetSnapshotID, SkippedReasons: []string{"orphan"}},
-		Execution:        service.PersonaGenerationExecutionSummaryReadModel{EvidenceRefs: []string{"phase-run:9"}},
+		Execution:        &service.PersonaGenerationExecutionSummaryReadModel{EvidenceRefs: []string{"phase-run:9"}},
 		ActionEnablement: service.PersonaGenerationPhaseActionEnablementReadModel{CanStart: true},
 	}}
 	uc := NewPersonaGenerationPhaseUsecase(port)
@@ -98,20 +98,16 @@ func TestPersonaGenerationPhaseUsecase_CommandAndBodyReadinessErrorWrapping(t *t
 func TestPersonaGenerationPhaseUsecase_SaveAISettingsMapsReadModel(t *testing.T) {
 	port := &fakePersonaGenerationPhaseServicePort{
 		saveAI: service.PhaseAISettingsReadModel{
-			JobID:            3,
-			PhaseID:          "npc_persona_generation",
-			Provider:         "xai",
-			Model:            "grok-4",
-			CredentialStatus: "configured",
-			ExecutionMode:    "sync",
-			BatchMode:        "disabled",
-			ModelListStatus:  "success",
+			PhaseType:     "npc_persona_generation",
+			Provider:      "xai",
+			Model:         "grok-4",
+			ExecutionMode: "sync",
+			BatchMode:     "disabled",
 		},
 	}
 	uc := NewPersonaGenerationPhaseUsecase(port)
 
 	result, err := uc.SavePersonaGenerationPhaseAISettings(context.Background(), SavePersonaGenerationPhaseAISettingsRequest{
-		JobID:         3,
 		Provider:      "xai",
 		Model:         "grok-4",
 		ExecutionMode: "sync",
@@ -120,7 +116,7 @@ func TestPersonaGenerationPhaseUsecase_SaveAISettingsMapsReadModel(t *testing.T)
 	if err != nil {
 		t.Fatalf("expected save ai settings success: %v", err)
 	}
-	if result.CredentialStatus != "configured" || result.ModelListStatus != "success" {
-		t.Fatalf("expected public ai settings status mapping, got %#v", result)
+	if result.Provider != "xai" || result.Model != "grok-4" {
+		t.Fatalf("expected mapped public ai settings response, got %#v", result)
 	}
 }

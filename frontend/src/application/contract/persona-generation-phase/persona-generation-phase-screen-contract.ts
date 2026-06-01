@@ -25,6 +25,7 @@ export interface PersonaGenerationPhaseScreenControllerContract {
     executionMode: string
     batchMode: string
   }) => Promise<void>
+  refreshModelList?(provider: string): Promise<void>
 }
 
 export type CreatePersonaGenerationPhaseScreenController =

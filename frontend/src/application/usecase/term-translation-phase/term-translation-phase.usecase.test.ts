@@ -77,7 +77,7 @@ function cloneState(
       ? {
           ...state.summary,
           progress: { ...state.summary.progress },
-          execution: { ...state.summary.execution },
+          execution: state.summary.execution ? { ...state.summary.execution } : undefined,
           resultSummary: state.summary.resultSummary
             ? { ...state.summary.resultSummary }
             : undefined,

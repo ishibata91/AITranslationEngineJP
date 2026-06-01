@@ -36,10 +36,17 @@ export const bodyTranslationPhasePanelFixture: BodyTranslationPhaseScreenViewMod
     promptDigestLabel: "-",
     inputSnapshotRefLabel: "-",
     skippedReasonsLabel: "完全一致辞書により 2 件を除外",
+    isExecutionConfigured: true,
     providerLabel: "OpenAI",
     modelLabel: "gpt-4.1-mini",
     executionModeLabel: "通常実行",
     credentialRefLabel: "認証済み",
+    providerOptions: [{ value: "OpenAI", label: "OpenAI" }],
+    modelOptions: [{ value: "gpt-4.1-mini", label: "gpt-4.1-mini" }],
+    executionOptions: [
+      { value: "batch", label: "バッチ処理" },
+      { value: "sync", label: "逐次処理" }
+    ],
     providerTargetCountLabel: "22",
     exactDictionaryExclusionCountLabel: "2",
     partialDictionaryConstraintCountLabel: "5",

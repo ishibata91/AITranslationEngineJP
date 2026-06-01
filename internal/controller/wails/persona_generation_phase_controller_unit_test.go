@@ -111,11 +111,9 @@ func TestPersonaGenerationPhaseControllerGetSummaryReturnsEmptySkippedReasonsArr
 	if !strings.Contains(string(payload), `"skippedReasons":[]`) {
 		t.Fatalf("expected empty skippedReasons array, got %s", payload)
 	}
-	if strings.Contains(string(payload), `"evidenceRefs":null`) {
-		t.Fatalf("expected evidenceRefs array, got %s", payload)
-	}
-	if !strings.Contains(string(payload), `"evidenceRefs":[]`) {
-		t.Fatalf("expected empty evidenceRefs array, got %s", payload)
+	// execution field は JOB_PHASE_RUN が存在しない場合は省略される仕様のため evidenceRefs は不在になる。
+	if strings.Contains(string(payload), `"execution"`) {
+		t.Fatalf("expected execution to be absent when no JOB_PHASE_RUN, got %s", payload)
 	}
 }
 
@@ -219,7 +217,7 @@ func TestPersonaGenerationPhaseControllerStartMapsCommandResponseDTO(t *testing.
 					TargetSnapshotID:       &targetSnapshotID,
 					TargetSnapshotDigest:   "sha256:target",
 				},
-				Execution: usecase.PersonaGenerationExecutionSummary{
+				Execution: &usecase.PersonaGenerationExecutionSummary{
 					CredentialRef: "cred-1",
 					Provider:      "xai",
 					Model:         "grok-2",

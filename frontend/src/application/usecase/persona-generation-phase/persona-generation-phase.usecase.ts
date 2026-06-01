@@ -182,7 +182,7 @@ export class PersonaGenerationPhaseUseCase {
   }
 
   async saveAISettings(
-    request: Omit<PersonaGenerationPhaseAISettingsRequest, "jobId">
+    request: PersonaGenerationPhaseAISettingsRequest
   ): Promise<void> {
     const state = this.store.snapshot()
     if (state.jobId === null) {
@@ -198,10 +198,7 @@ export class PersonaGenerationPhaseUseCase {
       return
     }
     try {
-      await this.gateway.savePersonaGenerationPhaseAISettings({
-        jobId: state.jobId,
-        ...request
-      })
+      await this.gateway.savePersonaGenerationPhaseAISettings(request)
       await this.fetchSummaryAndReadiness(state.jobId)
     } catch (error) {
       this.store.update((draft) => {

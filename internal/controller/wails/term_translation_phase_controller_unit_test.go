@@ -245,20 +245,16 @@ func TestTermTranslationPhaseControllerSaveAISettingsMapsRequestAndResponse(t *t
 		saveAISettingsFunc: func(_ context.Context, request usecase.SaveTermTranslationPhaseAISettingsRequest) (usecase.TermTranslationPhaseAISettingsResult, error) {
 			captured = request
 			return usecase.TermTranslationPhaseAISettingsResult{
-				JobID:            request.JobID,
-				PhaseID:          "term_translation",
-				Provider:         request.Provider,
-				Model:            request.Model,
-				CredentialStatus: "Configured",
-				ExecutionMode:    request.ExecutionMode,
-				BatchMode:        request.BatchMode,
-				ModelListStatus:  "Loaded",
+				PhaseType:     "word_translation",
+				Provider:      request.Provider,
+				Model:         request.Model,
+				ExecutionMode: request.ExecutionMode,
+				BatchMode:     request.BatchMode,
 			}, nil
 		},
 	})
 
 	response, err := controller.SaveTermTranslationPhaseAISettings(SaveTermTranslationPhaseAISettingsRequestDTO{
-		JobID:         12,
 		Provider:      "xAI",
 		Model:         "grok-4",
 		ExecutionMode: "batch",
@@ -267,10 +263,10 @@ func TestTermTranslationPhaseControllerSaveAISettingsMapsRequestAndResponse(t *t
 	if err != nil {
 		t.Fatalf("expected save ai settings to succeed: %v", err)
 	}
-	if captured.JobID != 12 || captured.Provider != "xAI" || captured.Model != "grok-4" {
+	if captured.Provider != "xAI" || captured.Model != "grok-4" {
 		t.Fatalf("expected forwarded request, got %#v", captured)
 	}
-	if response.JobID != 12 || response.ModelListStatus != "Loaded" {
+	if response.Provider != "xAI" || response.Model != "grok-4" {
 		t.Fatalf("expected response mapping, got %#v", response)
 	}
 }
@@ -283,7 +279,7 @@ func TestTermTranslationPhaseControllerSaveAISettingsWrapsError(t *testing.T) {
 		},
 	})
 
-	_, err := controller.SaveTermTranslationPhaseAISettings(SaveTermTranslationPhaseAISettingsRequestDTO{JobID: 12})
+	_, err := controller.SaveTermTranslationPhaseAISettings(SaveTermTranslationPhaseAISettingsRequestDTO{})
 	if err == nil {
 		t.Fatal("expected error")
 	}

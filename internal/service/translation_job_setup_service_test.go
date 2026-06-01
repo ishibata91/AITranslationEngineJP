@@ -127,9 +127,7 @@ func (fakeTranslationJobSetupTransactor) WithTransaction(ctx context.Context, ca
 type fakeTranslationJobSetupJobLifecycleRepository struct {
 	createdJobs      []repository.TranslationJobDraft
 	createdPhaseRuns []repository.JobPhaseRunDraft
-	savedSnapshots   []repository.TranslationJobPhaseRuntimeSnapshotDraft
 	jobByID          repository.TranslationJob
-	summarySnapshots []repository.TranslationJobPhaseRuntimeSnapshot
 }
 
 func (repo *fakeTranslationJobSetupJobLifecycleRepository) CreateTranslationJob(_ context.Context, draft repository.TranslationJobDraft) (repository.TranslationJob, error) {
@@ -153,25 +151,6 @@ func (repo *fakeTranslationJobSetupJobLifecycleRepository) CreateJobPhaseRun(_ c
 
 func (repo *fakeTranslationJobSetupJobLifecycleRepository) ListJobPhaseRunsByJobID(context.Context, int64) ([]repository.JobPhaseRun, error) {
 	return nil, nil
-}
-
-func (repo *fakeTranslationJobSetupJobLifecycleRepository) SaveTranslationJobPhaseRuntimeSnapshot(_ context.Context, draft repository.TranslationJobPhaseRuntimeSnapshotDraft) (repository.TranslationJobPhaseRuntimeSnapshot, error) {
-	repo.savedSnapshots = append(repo.savedSnapshots, draft)
-	return repository.TranslationJobPhaseRuntimeSnapshot{
-		ID:               int64(len(repo.savedSnapshots)),
-		TranslationJobID: draft.TranslationJobID,
-		PhaseID:          draft.PhaseID,
-		Provider:         draft.Provider,
-		ModelName:        draft.ModelName,
-		CredentialStatus: draft.CredentialStatus,
-		ExecutionMode:    draft.ExecutionMode,
-		BatchMode:        draft.BatchMode,
-		CreatedAt:        time.Date(2026, 5, 4, 12, 0, 0, 0, time.UTC),
-	}, nil
-}
-
-func (repo *fakeTranslationJobSetupJobLifecycleRepository) ListTranslationJobPhaseRuntimeSnapshots(context.Context, int64) ([]repository.TranslationJobPhaseRuntimeSnapshot, error) {
-	return append([]repository.TranslationJobPhaseRuntimeSnapshot(nil), repo.summarySnapshots...), nil
 }
 
 func TestTJSPPS002TranslationJobSetupServiceIgnoresMasterPersonaProviderSettings(t *testing.T) {
@@ -459,22 +438,12 @@ func TestTJSPPS007TranslationJobSetupServiceCreateCapturesOnlyTargetPhaseRuntime
 	if err != nil {
 		t.Fatalf("SCN-TJSPPS-007: expected create success: %v", err)
 	}
-	if len(jobRepo.savedSnapshots) != 3 {
-		t.Fatalf("SCN-TJSPPS-007: expected three saved snapshots, got %#v", jobRepo.savedSnapshots)
+	// snapshot テーブルは廃止済み。CreateTranslationJob は PhaseRuntimeSummaries を nil で返す。
+	if created.PhaseRuntimeSummaries != nil {
+		t.Fatalf("SCN-TJSPPS-007: expected nil PhaseRuntimeSummaries after snapshot removal, got %#v", created.PhaseRuntimeSummaries)
 	}
 	if len(jobRepo.createdPhaseRuns) != 0 {
 		t.Fatalf("SCN-TJSPPS-007: expected no pre-created JOB_PHASE_RUN placeholders, got %#v", jobRepo.createdPhaseRuns)
-	}
-	if jobRepo.savedSnapshots[2].BatchMode != "unsupported" {
-		t.Fatalf("SCN-TJSPPS-007: expected stale batch mode to be stripped for openai, got %#v", jobRepo.savedSnapshots[2])
-	}
-	want := []TranslationJobSetupPhaseRuntimeSummaryReadModel{
-		{PhaseID: "word_translation", Provider: "openai", Model: "gpt-5.4-mini", CredentialRef: "openai-primary", CredentialStatus: "configured", ExecutionMode: "sync", BatchMode: "unsupported", ModelListSourceToken: "word_translation|openai|openai-primary|req-1"},
-		{PhaseID: "npc_persona_generation", Provider: "gemini", Model: "gemini-2.5-pro", CredentialRef: "gemini-primary", CredentialStatus: "configured", ExecutionMode: "sync", BatchMode: "disabled", ModelListSourceToken: "npc_persona_generation|gemini|gemini-primary|req-2"},
-		{PhaseID: "text_translation", Provider: "openai", Model: "gpt-5.4-mini", CredentialRef: "openai-primary", CredentialStatus: "configured", ExecutionMode: "sync", BatchMode: "unsupported", ModelListSourceToken: "text_translation|openai|openai-primary|req-3"},
-	}
-	if !reflect.DeepEqual(created.PhaseRuntimeSummaries, want) {
-		t.Fatalf("SCN-TJSPPS-007: expected phase-only runtime summaries %#v, got %#v", want, created.PhaseRuntimeSummaries)
 	}
 }
 
@@ -632,14 +601,11 @@ func TestTranslationJobSetupServiceProviderSettingsTestSafeModelListAllowsMissin
 	}
 }
 
-func TestTranslationJobSetupServiceReadSummaryReturnsPersistedPhaseRuntimeSnapshots(t *testing.T) {
+// TestTranslationJobSetupServiceReadSummaryReturnsJobState は snapshot 廃止後の ReadSummary が
+// ジョブの State を返し、PhaseRuntimeSummaries が nil であることを証明する。
+func TestTranslationJobSetupServiceReadSummaryReturnsJobState(t *testing.T) {
 	jobRepo := &fakeTranslationJobSetupJobLifecycleRepository{
 		jobByID: repository.TranslationJob{ID: 91, State: "ready"},
-		summarySnapshots: []repository.TranslationJobPhaseRuntimeSnapshot{
-			{PhaseID: "word_translation", Provider: "openai", ModelName: "gpt-5.4-mini", CredentialStatus: "configured", ExecutionMode: "sync", BatchMode: "unsupported"},
-			{PhaseID: "npc_persona_generation", Provider: "gemini", ModelName: "gemini-2.5-pro", CredentialStatus: "configured", ExecutionMode: "batch", BatchMode: "enabled"},
-			{PhaseID: "text_translation", Provider: "xai", ModelName: "grok-4", CredentialStatus: "configured", ExecutionMode: "sync", BatchMode: "disabled"},
-		},
 	}
 	service := NewPersistentTranslationJobSetupService(
 		jobRepo,
@@ -655,12 +621,12 @@ func TestTranslationJobSetupServiceReadSummaryReturnsPersistedPhaseRuntimeSnapsh
 	if err != nil {
 		t.Fatalf("expected summary success: %v", err)
 	}
-	if !summary.CanStartPhase || len(summary.PhaseRuntimeSummaries) != 3 {
-		t.Fatalf("expected persisted runtime snapshots in summary, got %#v", summary)
+	if summary.JobID != 91 || summary.JobState != "ready" {
+		t.Fatalf("expected job id=91 state=ready, got %#v", summary)
 	}
-	wantExecution := TranslationJobSetupExecutionSummaryReadModel{Provider: "openai", Model: "gpt-5.4-mini", ExecutionMode: "sync"}
-	if !reflect.DeepEqual(summary.ExecutionSummary, wantExecution) {
-		t.Fatalf("expected summary execution %#v, got %#v", wantExecution, summary.ExecutionSummary)
+	// snapshot テーブル廃止後、PhaseRuntimeSummaries は nil
+	if summary.PhaseRuntimeSummaries != nil {
+		t.Fatalf("expected nil PhaseRuntimeSummaries, got %#v", summary.PhaseRuntimeSummaries)
 	}
 }
 
@@ -744,36 +710,6 @@ func TestTranslationJobSetupServiceDeleteInputSourceRejectsReferencedInput(t *te
 	}
 	if decision.DeletedInputSourceID != nil {
 		t.Fatalf("expected no deleted id on rejection, got %#v", decision)
-	}
-}
-
-func TestTranslationJobSetupServiceReadSummaryRejectsStartWhenPhaseRuntimeSnapshotsAreIncomplete(t *testing.T) {
-	jobRepo := &fakeTranslationJobSetupJobLifecycleRepository{
-		jobByID: repository.TranslationJob{ID: 91, State: "ready"},
-		summarySnapshots: []repository.TranslationJobPhaseRuntimeSnapshot{
-			{PhaseID: "word_translation", Provider: "openai", ModelName: "gpt-5.4-mini", CredentialStatus: "configured", ExecutionMode: "sync", BatchMode: "unsupported"},
-			{PhaseID: "npc_persona_generation", Provider: "gemini", ModelName: "gemini-2.5-pro", CredentialStatus: "configured", ExecutionMode: "sync", BatchMode: "disabled"},
-		},
-	}
-	service := NewPersistentTranslationJobSetupService(
-		jobRepo,
-		fakeTranslationJobSetupSourceRepository{},
-		fakeTranslationJobSetupDictionaryRepository{},
-		fakeTranslationJobSetupPersonaRepository{},
-		nil,
-		nil,
-		fakeTranslationJobSetupTransactor{},
-	)
-
-	summary, err := service.ReadSummary(context.Background(), 91)
-	if err != nil {
-		t.Fatalf("expected summary success: %v", err)
-	}
-	if summary.CanStartPhase {
-		t.Fatalf("expected canStartPhase=false when phase runtime snapshots are incomplete, got %#v", summary)
-	}
-	if len(summary.PhaseRuntimeSummaries) != 2 {
-		t.Fatalf("expected only persisted snapshot summaries, got %#v", summary.PhaseRuntimeSummaries)
 	}
 }
 

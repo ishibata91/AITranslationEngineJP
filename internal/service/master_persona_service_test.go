@@ -40,7 +40,7 @@ func testMasterPersonaSeed(now time.Time) []repository.MasterPersonaEntry {
 func TestMasterPersonaGenerationServicePreviewSkipsExistingAndZeroDialogue(t *testing.T) {
 	now := func() time.Time { return time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC) }
 	repo := repository.NewInMemoryMasterPersonaRepository(testMasterPersonaSeed(now()))
-	secretStore := repository.NewInMemorySecretStore()
+	secretStore := repository.NewFakeSecretStore()
 	service := NewMasterPersonaGenerationService(
 		repo,
 		repo,
@@ -90,7 +90,7 @@ func TestMasterPersonaGenerationServicePreviewSkipsExistingAndZeroDialogue(t *te
 func TestMasterPersonaGenerationServiceExecuteUsesIdentityKeyWithoutOverwrite(t *testing.T) {
 	now := func() time.Time { return time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC) }
 	repo := repository.NewInMemoryMasterPersonaRepository(testMasterPersonaSeed(now()))
-	secretStore := repository.NewInMemorySecretStore()
+	secretStore := repository.NewFakeSecretStore()
 	service := NewMasterPersonaGenerationService(
 		repo,
 		repo,
@@ -144,7 +144,7 @@ func TestMasterPersonaGenerationServiceExecuteSkipsZeroDialogueWithoutCreatingEn
 		repo,
 		repo,
 		repo,
-		repository.NewInMemorySecretStore(),
+		repository.NewFakeSecretStore(),
 		now,
 		false,
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
@@ -186,7 +186,7 @@ func TestMasterPersonaGenerationServiceExecuteSkipsZeroDialogueWithoutCreatingEn
 func TestMasterPersonaGenerationServiceExecuteMarksGenericNPCWithoutSurfacingBaselinePhrase(t *testing.T) {
 	now := func() time.Time { return time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC) }
 	repo := repository.NewInMemoryMasterPersonaRepository(nil)
-	secretStore := repository.NewInMemorySecretStore()
+	secretStore := repository.NewFakeSecretStore()
 	service := NewMasterPersonaGenerationService(
 		repo,
 		repo,
@@ -241,7 +241,7 @@ func TestMasterPersonaGenerationServiceRejectsUpdateDuringActiveRun(t *testing.T
 		repo,
 		repo,
 		repo,
-		repository.NewInMemorySecretStore(),
+		repository.NewFakeSecretStore(),
 		now,
 		false,
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
@@ -263,7 +263,7 @@ func TestMasterPersonaGenerationServiceRejectsDeleteDuringActiveRun(t *testing.T
 		repo,
 		repo,
 		repo,
-		repository.NewInMemorySecretStore(),
+		repository.NewFakeSecretStore(),
 		now,
 		false,
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
@@ -278,7 +278,7 @@ func TestMasterPersonaGenerationServiceRejectsDeleteDuringActiveRun(t *testing.T
 func TestMasterPersonaGenerationServiceTestModeDoesNotOwnFakeProviderDecision(t *testing.T) {
 	now := func() time.Time { return time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC) }
 	repo := repository.NewInMemoryMasterPersonaRepository(nil)
-	secretStore := repository.NewInMemorySecretStore()
+	secretStore := repository.NewFakeSecretStore()
 	if err := secretStore.Save(context.Background(), "master-persona:gemini", "saved-real-key"); err != nil {
 		t.Fatalf("expected secret save to succeed: %v", err)
 	}
@@ -309,7 +309,7 @@ func TestMasterPersonaGenerationServiceExecuteWithFakeTransportDIWithoutSavedAPI
 		repo,
 		repo,
 		repo,
-		repository.NewInMemorySecretStore(),
+		repository.NewFakeSecretStore(),
 		now,
 		true,
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
@@ -344,7 +344,7 @@ func TestMasterPersonaGenerationServiceExecuteAllowsLMStudioWithoutSavedAPIKey(t
 		repo,
 		repo,
 		repo,
-		repository.NewInMemorySecretStore(),
+		repository.NewFakeSecretStore(),
 		now,
 		false,
 		WithMasterPersonaBodyGenerator(generator),
@@ -392,7 +392,7 @@ func TestMasterPersonaGenerationServicePreviewAggregatesWhenAISettingsIncomplete
 		repo,
 		repo,
 		repo,
-		repository.NewInMemorySecretStore(),
+		repository.NewFakeSecretStore(),
 		now,
 		false,
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
@@ -451,7 +451,7 @@ func TestMasterPersonaGenerationServiceExecutePersistsTransportResponseBody(t *t
 		repo,
 		repo,
 		repo,
-		repository.NewInMemorySecretStore(),
+		repository.NewFakeSecretStore(),
 		now,
 		false,
 		WithMasterPersonaBodyGenerator(&stubMasterPersonaBodyGenerator{body: "transport persona body"}),
@@ -490,7 +490,7 @@ func TestMasterPersonaGenerationServiceTestModePropagatesProviderBoundaryError(t
 		repo,
 		repo,
 		repo,
-		repository.NewInMemorySecretStore(),
+		repository.NewFakeSecretStore(),
 		now,
 		true,
 		WithMasterPersonaBodyGenerator(generator),
@@ -524,7 +524,7 @@ func TestMasterPersonaGenerationServiceSaveSettingsRejectsUnsupportedProvider(t 
 		repo,
 		repo,
 		repo,
-		repository.NewInMemorySecretStore(),
+		repository.NewFakeSecretStore(),
 		now,
 		false,
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
@@ -543,7 +543,7 @@ func TestMasterPersonaGenerationServiceSaveSettingsRejectsUnsupportedProvider(t 
 func TestMasterPersonaGenerationServiceSaveSettingsKeepsSavedAPIKeyWhenInputIsBlank(t *testing.T) {
 	now := func() time.Time { return time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC) }
 	repo := repository.NewInMemoryMasterPersonaRepository(nil)
-	secretStore := repository.NewInMemorySecretStore()
+	secretStore := repository.NewFakeSecretStore()
 	service := NewMasterPersonaGenerationService(
 		repo,
 		repo,
@@ -686,7 +686,7 @@ func TestMasterPersonaGenerationServicePersonaReadDetailCutoverUpdateSucceedsWit
 		repo,
 		repo,
 		repo,
-		repository.NewInMemorySecretStore(),
+		repository.NewFakeSecretStore(),
 		now,
 		false,
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
@@ -742,67 +742,6 @@ func (store *failingMasterPersonaSecretStore) Save(_ context.Context, _ string, 
 	return nil
 }
 
-// persona-ai-settings-restart-cutover: SaveSettings は API キーを master-persona 側に保存しないことを証明する。
-func TestMasterPersonaGenerationServicePersonaAISettingsRestartCutoverSaveSettingsDoesNotSaveAPIKey(t *testing.T) {
-	now := func() time.Time { return time.Date(2026, 4, 16, 0, 0, 0, 0, time.UTC) }
-	repo := repository.NewInMemoryMasterPersonaRepository(nil)
-	secretStore := repository.NewInMemorySecretStore()
-	svc := NewMasterPersonaGenerationService(repo, repo, repo, secretStore, now, false)
-
-	_, err := svc.SaveSettings(context.Background(), MasterPersonaAISettings{
-		Provider: "gemini",
-		Model:    "cutover-model",
-	})
-	if err != nil {
-		t.Fatalf("expected save settings to succeed: %v", err)
-	}
-
-	dbRecord, err := repo.LoadAISettings(context.Background())
-	if err != nil {
-		t.Fatalf("expected db record load to succeed: %v", err)
-	}
-	if dbRecord.Provider != "gemini" || dbRecord.Model != "cutover-model" {
-		t.Fatalf("expected provider/model in db record, got %#v", dbRecord)
-	}
-	storedKey, err := secretStore.Load(context.Background(), "master-persona:gemini")
-	if err != nil {
-		t.Fatalf("expected secret store load to succeed: %v", err)
-	}
-	if storedKey != "" {
-		t.Fatalf("expected no master-persona api key in secret store, got %q", storedKey)
-	}
-}
-
-// persona-ai-settings-restart-cutover: LoadSettings は再起動後も API キーを返さないことを証明する。
-func TestMasterPersonaGenerationServicePersonaAISettingsRestartCutoverLoadSettingsDoesNotRestoreAPIKeyFromSecretStore(t *testing.T) {
-	now := func() time.Time { return time.Date(2026, 4, 16, 0, 0, 0, 0, time.UTC) }
-	repo := repository.NewInMemoryMasterPersonaRepository(nil)
-	secretStore := repository.NewInMemorySecretStore()
-
-	// Arrange: DB に provider+model のみ保存、secret store に API キーを格納（再起動後の状態を模擬）
-	if err := repo.SaveAISettings(context.Background(), repository.MasterPersonaAISettingsRecord{
-		Provider: "gemini",
-		Model:    "restored-model",
-	}); err != nil {
-		t.Fatalf("expected db record setup to succeed: %v", err)
-	}
-	if err := secretStore.Save(context.Background(), "master-persona:gemini", "restored-api-key"); err != nil {
-		t.Fatalf("expected secret store setup to succeed: %v", err)
-	}
-	svc := NewMasterPersonaGenerationService(repo, repo, repo, secretStore, now, false)
-
-	settings, err := svc.LoadSettings(context.Background())
-	if err != nil {
-		t.Fatalf("expected load settings to succeed: %v", err)
-	}
-	if settings.Provider != "gemini" || settings.Model != "restored-model" {
-		t.Fatalf("expected provider/model restored, got %#v", settings)
-	}
-	if settings.APIKey != "" {
-		t.Fatalf("expected api key not to be restored from secret store, got %q", settings.APIKey)
-	}
-}
-
 // RED test: persona-json-preview-cutover - zero-dialogue NPC が parse 時点で除外され
 // preview の ZeroDialogueSkipCount が 0 になることを証明する。
 // analyzePreview がゼロ会話 NPC を parse-time filter で除去するまで失敗する。
@@ -810,7 +749,7 @@ func TestPersonaJSONPreviewCutoverServicePreviewExcludesZeroDialogueAtParseTime(
 	now := func() time.Time { return time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC) }
 	repo := repository.NewInMemoryMasterPersonaRepository(nil)
 	service := NewMasterPersonaGenerationService(
-		repo, repo, repo, repository.NewInMemorySecretStore(), now, false,
+		repo, repo, repo, repository.NewFakeSecretStore(), now, false,
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
 	)
 	fixturePath := writeMasterPersonaExtractFixture(t, `{
@@ -850,7 +789,7 @@ func TestPersonaJSONPreviewCutoverAllZeroDialogueReturnsZeroCountNotValidationEr
 	now := func() time.Time { return time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC) }
 	repo := repository.NewInMemoryMasterPersonaRepository(nil)
 	service := NewMasterPersonaGenerationService(
-		repo, repo, repo, repository.NewInMemorySecretStore(), now, false,
+		repo, repo, repo, repository.NewFakeSecretStore(), now, false,
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
 	)
 	fixturePath := writeMasterPersonaExtractFixture(t, `{
@@ -891,7 +830,7 @@ func TestPersonaJSONPreviewCutoverServiceExistingIdentityBoundaryUsesPluginFormI
 	now := func() time.Time { return time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC) }
 	repo := repository.NewInMemoryMasterPersonaRepository(testMasterPersonaSeed(now()))
 	service := NewMasterPersonaGenerationService(
-		repo, repo, repo, repository.NewInMemorySecretStore(), now, false,
+		repo, repo, repo, repository.NewFakeSecretStore(), now, false,
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
 	)
 	fixturePath := writeMasterPersonaExtractFixture(t, `{
@@ -922,7 +861,7 @@ func TestMasterPersonaGenerationCutoverExistingIdentityIsNotOverwritten(t *testi
 	now := func() time.Time { return time.Date(2026, 4, 21, 12, 0, 0, 0, time.UTC) }
 	repo := repository.NewInMemoryMasterPersonaRepository(testMasterPersonaSeed(now()))
 	service := NewMasterPersonaGenerationService(
-		repo, repo, repo, repository.NewInMemorySecretStore(), now, false,
+		repo, repo, repo, repository.NewFakeSecretStore(), now, false,
 		WithMasterPersonaBodyGenerator(&stubMasterPersonaBodyGenerator{body: "cutover-generated-body"}),
 	)
 	fixturePath := writeMasterPersonaExtractFixture(t, `{
@@ -977,7 +916,7 @@ func TestMasterPersonaGenerationCutoverSuccessWritesCanonicalNPCProfileAndPerson
 	repo := repository.NewInMemoryMasterPersonaRepository(nil)
 	const wantPersonaBody = "persona-generation-cutover canonical persona body"
 	service := NewMasterPersonaGenerationService(
-		repo, repo, repo, repository.NewInMemorySecretStore(), now, false,
+		repo, repo, repo, repository.NewFakeSecretStore(), now, false,
 		WithMasterPersonaBodyGenerator(&stubMasterPersonaBodyGenerator{body: wantPersonaBody}),
 	)
 	fixturePath := writeMasterPersonaExtractFixture(t, `{
@@ -1041,7 +980,7 @@ func TestMasterPersonaGenerationCutoverBodyFailureLeavesNoPartialRow(t *testing.
 	repo := repository.NewInMemoryMasterPersonaRepository(nil)
 	bodyErr := errors.New("ai body generation failed")
 	service := NewMasterPersonaGenerationService(
-		repo, repo, repo, repository.NewInMemorySecretStore(), now, false,
+		repo, repo, repo, repository.NewFakeSecretStore(), now, false,
 		WithMasterPersonaBodyGenerator(&stubMasterPersonaBodyGenerator{err: bodyErr}),
 	)
 	fixturePath := writeMasterPersonaExtractFixture(t, `{
@@ -1123,7 +1062,7 @@ func TestMasterPersonaGenerationServicePersonaEditDeleteCutoverUpdateUsesIdentit
 	repo := repository.NewInMemoryMasterPersonaRepository(testMasterPersonaSeed(now()))
 	svc := NewMasterPersonaGenerationService(
 		repo, repo, repo,
-		repository.NewInMemorySecretStore(),
+		repository.NewFakeSecretStore(),
 		now, false,
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
 	)
@@ -1168,7 +1107,7 @@ func TestMasterPersonaGenerationServicePersonaEditDeleteCutoverUpdateWritesPerso
 	repo := repository.NewInMemoryMasterPersonaRepository(testMasterPersonaSeed(now()))
 	svc := NewMasterPersonaGenerationService(
 		repo, repo, repo,
-		repository.NewInMemorySecretStore(),
+		repository.NewFakeSecretStore(),
 		now, false,
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
 	)
@@ -1195,7 +1134,7 @@ func TestMasterPersonaGenerationServicePersonaEditDeleteCutoverDeleteRemovesEntr
 	repo := repository.NewInMemoryMasterPersonaRepository(testMasterPersonaSeed(now()))
 	svc := NewMasterPersonaGenerationService(
 		repo, repo, repo,
-		repository.NewInMemorySecretStore(),
+		repository.NewFakeSecretStore(),
 		now, false,
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
 	)
@@ -1220,7 +1159,7 @@ func TestMasterPersonaGenerationServicePersonaEditDeleteCutoverDeleteRejectsEmpt
 	repo := repository.NewInMemoryMasterPersonaRepository(nil)
 	svc := NewMasterPersonaGenerationService(
 		repo, repo, repo,
-		repository.NewInMemorySecretStore(),
+		repository.NewFakeSecretStore(),
 		now, false,
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
 	)

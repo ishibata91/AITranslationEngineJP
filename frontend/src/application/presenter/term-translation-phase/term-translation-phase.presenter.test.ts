@@ -623,3 +623,187 @@ describe("TermTranslationPhasePresenter - 操作可否の等価性（UT-EQV-003�
     expect(retryCard?.blockedReason).toContain("再試行可能な状態ではありません")
   })
 })
+
+// U-PRES-PROVIDER-001/002: provider 一覧連動テスト（単語翻訳）
+describe("TermTranslationPhasePresenter - provider 一覧連動（U-PRES-PROVIDER-001/002）", () => {
+  const presenter = new TermTranslationPhasePresenter()
+
+  function buildState(): TestScreenState {
+    return {
+      jobId: 7,
+      phase: "ready",
+      summary: {
+        jobId: 7,
+        currentPhase: "term_translation",
+        phaseState: "ready",
+        progress: {
+          percent: 0,
+          processedCount: 0,
+          totalCount: 10,
+          aiTargetCount: 5,
+          currentStep: "ready"
+        },
+        totalTermCount: 10,
+        dictionaryHitCount: 5,
+        aiTargetCount: 5,
+        actionEnablement: {
+          canStart: false,
+          canPause: false,
+          canResume: false,
+          canRetry: false
+        }
+      },
+      nextPhaseReadiness: null,
+      errorMessage: "",
+      pendingAction: null,
+      hasLoaded: true,
+      initialFetchDone: true
+    }
+  }
+
+  // U-PRES-PROVIDER-001: provider 一覧が渡ると providerOptions に並ぶ
+  test("provider 一覧が渡ると providerOptions に並ぶ", () => {
+    const availableProviders = [
+      { value: "openai", label: "OpenAI" },
+      { value: "anthropic", label: "Anthropic" }
+    ]
+
+    const viewModel = presenter.toViewModel(buildState(), true, availableProviders)
+
+    expect(viewModel.providerOptions).toContainEqual({ value: "openai", label: "OpenAI" })
+    expect(viewModel.providerOptions).toContainEqual({ value: "anthropic", label: "Anthropic" })
+  })
+
+  // U-PRES-PROVIDER-002: 未選択時は先頭が「選んでください」
+  test("現在の provider が未設定のとき先頭が選んでください", () => {
+    const availableProviders = [
+      { value: "openai", label: "OpenAI" },
+      { value: "anthropic", label: "Anthropic" }
+    ]
+
+    // summary に aiSettings も execution も provider が設定されていない状態
+    const viewModel = presenter.toViewModel(buildState(), true, availableProviders)
+
+    expect(viewModel.providerOptions[0]).toEqual({ value: "", label: "選んでください" })
+  })
+
+  // U-PRES-PROVIDER-003: provider 一覧が空のときは現在のラベルをフォールバックで返す
+  test("provider 一覧が空のとき設定未完了ラベルをフォールバックで返す", () => {
+    const viewModel = presenter.toViewModel(buildState(), true, [])
+
+    expect(viewModel.providerOptions).toHaveLength(1)
+    expect(viewModel.providerOptions[0]?.label).toBe("設定未完了")
+  })
+})
+
+// U-PRES-002/003/004: execution field 不在時の presenter 判定（単語翻訳）
+// 根拠: term-translation-phase-REQ-002「execution field 不在で isExecutionConfigured=false」
+describe("TermTranslationPhasePresenter - execution field 不在判定（U-PRES-002/003/004）", () => {
+  const presenter = new TermTranslationPhasePresenter()
+
+  function buildSummaryWithoutExecution(): TermTranslationPhaseSummaryResponse {
+    return {
+      jobId: 7,
+      currentPhase: "term_translation",
+      phaseState: "ready",
+      progress: {
+        percent: 0,
+        processedCount: 0,
+        totalCount: 10,
+        aiTargetCount: 5,
+        currentStep: "ready"
+      },
+      totalTermCount: 10,
+      dictionaryHitCount: 5,
+      aiTargetCount: 5,
+      // execution field を意図的に含めない（不在で「未設定」を表す仕様）
+      actionEnablement: {
+        canStart: false,
+        canPause: false,
+        canResume: false,
+        canRetry: false
+      }
+    }
+  }
+
+  function buildStateWithoutExecution() {
+    return {
+      jobId: 7,
+      phase: "ready" as const,
+      summary: buildSummaryWithoutExecution(),
+      nextPhaseReadiness: null,
+      errorMessage: "",
+      pendingAction: null,
+      hasLoaded: true,
+      initialFetchDone: true
+    }
+  }
+
+  // U-PRES-002: execution field が不在の場合、isExecutionConfigured が false を返す
+  test("execution field が不在のとき isExecutionConfigured が false を返す", () => {
+    // 空文字ではなく field 不在で未設定を判定できることを証明する。
+    const viewModel = presenter.toViewModel(buildStateWithoutExecution(), true)
+
+    // field 不在 → isExecutionConfigured=false
+    expect(viewModel.isExecutionConfigured).toBe(false)
+  })
+
+  // U-PRES-003: execution field が不在の場合、modelLabel が「設定未完了」を返す（空文字 "" を返さない）
+  test("execution field が不在のとき modelLabel が設定未完了を返す", () => {
+    // 空文字フォールバックを防止し「設定未完了」相当の表示語を返すことを証明する（確定原因 2 の回帰防止）。
+    const viewModel = presenter.toViewModel(buildStateWithoutExecution(), true)
+
+    // execution 不在 → modelLabel は空文字 "" ではなく表示語を返す
+    expect(viewModel.modelLabel).not.toBe("")
+    expect(viewModel.modelLabel).toBe("設定未完了")
+  })
+
+  // U-PRES-003: execution field が不在の場合、providerLabel が「設定未完了」を返す
+  test("execution field が不在のとき providerLabel が設定未完了を返す", () => {
+    // provider も model と同様に空文字フォールバックを防止する。
+    const viewModel = presenter.toViewModel(buildStateWithoutExecution(), true)
+
+    expect(viewModel.providerLabel).not.toBe("")
+    expect(viewModel.providerLabel).toBe("設定未完了")
+  })
+
+  // U-PRES-004: execution field が不在の場合、start card が disabled になる
+  test("execution field が不在のとき start card が disabled になる", () => {
+    // AI 設定不足での開始ボタン無効化を証明する（確定原因 3 の回帰防止）。
+    const viewModel = presenter.toViewModel(buildStateWithoutExecution(), true)
+
+    const startCard = viewModel.actionCards.find((c) => c.id === "start")
+    expect(startCard?.disabled).toBe(true)
+  })
+
+  // U-PRES-005: execution field が存在する場合、isExecutionConfigured が true を返す
+  test("execution field が存在しモデル値が入力済みのとき isExecutionConfigured が true を返す", () => {
+    // 設定済み状態と未設定状態を presenter が独立して判定できることを証明する。
+    const summaryWithExecution: TermTranslationPhaseSummaryResponse = {
+      ...buildSummaryWithoutExecution(),
+      execution: {
+        credentialRef: "cred-main",
+        provider: "openai-compatible",
+        model: "gpt-4.1-mini",
+        executionMode: "batch"
+      }
+    }
+    const viewModel = presenter.toViewModel(
+      {
+        jobId: 7,
+        phase: "ready" as const,
+        summary: summaryWithExecution,
+        nextPhaseReadiness: null,
+        errorMessage: "",
+        pendingAction: null,
+        hasLoaded: true,
+        initialFetchDone: true
+      },
+      true
+    )
+
+    // execution field が存在し値が入力済み → isExecutionConfigured=true
+    expect(viewModel.isExecutionConfigured).toBe(true)
+    expect(viewModel.modelLabel).toBe("gpt-4.1-mini")
+  })
+})

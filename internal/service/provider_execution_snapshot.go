@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	"aitranslationenginejp/internal/repository"
 )
@@ -25,38 +26,26 @@ type providerExecutionSnapshot struct {
 	RequestToken    *string
 }
 
-// PhaseAISettingsSelection carries public phase AI settings without secret material.
+// PhaseAISettingsSelection carries the phase AI settings to save.
+// PhaseType は "word_translation"/"npc_persona_generation"/"text_translation" のいずれか。
+// 入力に job_id を含めない。保存操作はジョブと無関連で phase_type を主キーとして upsert する。
 type PhaseAISettingsSelection struct {
-	JobID         int64
-	PhaseID       string
+	PhaseType     string
 	Provider      string
 	Model         string
 	ExecutionMode string
 	BatchMode     string
 }
 
-// PhaseAISettingsReadModel returns public phase AI settings state.
+// PhaseAISettingsReadModel returns public phase AI settings state after save.
+// PhaseType は保存対象の phase_type を示す。
 type PhaseAISettingsReadModel struct {
-	JobID            int64
-	PhaseID          string
-	Provider         string
-	Model            string
-	CredentialStatus string
-	ExecutionMode    string
-	BatchMode        string
-	ModelListStatus  string
-}
-
-type translationJobPhaseRuntimeSnapshotStore interface {
-	SaveTranslationJobPhaseRuntimeSnapshot(
-		ctx context.Context,
-		draft repository.TranslationJobPhaseRuntimeSnapshotDraft,
-	) (repository.TranslationJobPhaseRuntimeSnapshot, error)
-	GetTranslationJobPhaseRuntimeSnapshot(
-		ctx context.Context,
-		translationJobID int64,
-		phaseID string,
-	) (repository.TranslationJobPhaseRuntimeSnapshot, error)
+	PhaseType     string
+	Provider      string
+	Model         string
+	ExecutionMode string
+	BatchMode     string
+	UpdatedAt     time.Time
 }
 
 func providerExecutionUsesProviderSettings(providerID string) bool {
@@ -87,93 +76,43 @@ func providerExecutionOptionalString(value *string) string {
 	return strings.TrimSpace(*value)
 }
 
-func providerExecutionSnapshotFromRuntimeSnapshot(
-	snapshot repository.TranslationJobPhaseRuntimeSnapshot,
-) providerExecutionSnapshot {
-	return providerExecutionSnapshot{
-		Provider:        strings.TrimSpace(snapshot.Provider),
-		Model:           strings.TrimSpace(snapshot.ModelName),
-		ExecutionMode:   strings.TrimSpace(snapshot.ExecutionMode),
-		CredentialState: strings.TrimSpace(snapshot.CredentialStatus),
-	}
-}
-
-func providerExecutionBatchMode(snapshot repository.TranslationJobPhaseRuntimeSnapshot) string {
-	return strings.TrimSpace(snapshot.BatchMode)
-}
-
+// savePhaseAISettings は JobPhaseAISettingsRepository へ AI 設定を upsert する。
+// 入力の PhaseType を主キーとして保存する。credential_ref は保存しない。
 func savePhaseAISettings(
 	ctx context.Context,
-	store translationJobPhaseRuntimeSnapshotStore,
-	providerSettings ProviderSettingsConsumer,
+	repo repository.JobPhaseAISettingsRepository,
 	consumerID string,
 	selection PhaseAISettingsSelection,
 ) (PhaseAISettingsReadModel, error) {
-	phaseID := strings.TrimSpace(selection.PhaseID)
+	phaseType := strings.TrimSpace(selection.PhaseType)
 	providerID := strings.TrimSpace(selection.Provider)
 	model := strings.TrimSpace(selection.Model)
 	executionMode := strings.TrimSpace(selection.ExecutionMode)
 	batchMode := strings.TrimSpace(selection.BatchMode)
-	credentialStatus := ""
-	modelListStatus := "not_updated"
 	if batchMode == "" {
 		batchMode = "disabled"
 	}
-	if providerSettings != nil && providerExecutionUsesProviderSettings(providerID) {
-		resolved, err := providerSettings.ResolveProviderExecutionSettings(ctx, ProviderSettingsResolveInput{
-			ConsumerID: consumerID,
-			Selection: ProviderSettingsResolveSelection{
-				ProviderID:      providerID,
-				Model:           model,
-				ExecutionMethod: executionMode,
-				UseBatchAPI:     batchMode == "enabled",
-			},
-		})
-		if err != nil {
-			logPhaseAISettingsSave(ctx, phaseAISettingsLogEvent, phaseAISettingsLogWhere, phaseAISettingsLogResultFailed, selection.JobID, phaseID, providerID, model, executionMode, batchMode, credentialStatus, modelListStatus, "provider_settings_resolve_failed")
-			return PhaseAISettingsReadModel{}, fmt.Errorf("resolve phase ai settings: %w", err)
-		}
-		credentialStatus = strings.TrimSpace(resolved.CredentialState)
-		if resolved.ErrorKind != nil {
-			switch strings.TrimSpace(*resolved.ErrorKind) {
-			case providerSettingsErrorKindCredentialMissing:
-				credentialStatus = "missing"
-				modelListStatus = "credential_missing"
-			default:
-				modelListStatus = "failed"
-			}
-		}
-	}
-	if credentialStatus == "" {
-		if providerID == "lm_studio" {
-			credentialStatus = "not_required"
-			modelListStatus = "credential_not_required"
-		} else {
-			credentialStatus = "configured"
-		}
-	}
-	if _, err := store.SaveTranslationJobPhaseRuntimeSnapshot(ctx, repository.TranslationJobPhaseRuntimeSnapshotDraft{
-		TranslationJobID: selection.JobID,
-		PhaseID:          phaseID,
-		Provider:         providerID,
-		ModelName:        model,
-		CredentialStatus: credentialStatus,
-		ExecutionMode:    executionMode,
-		BatchMode:        batchMode,
-	}); err != nil {
-		logPhaseAISettingsSave(ctx, phaseAISettingsLogEvent, phaseAISettingsLogWhere, phaseAISettingsLogResultFailed, selection.JobID, phaseID, providerID, model, executionMode, batchMode, credentialStatus, modelListStatus, "snapshot_save_failed")
+	now := time.Now().UTC()
+	saved, err := repo.Save(ctx, repository.JobPhaseAISettingsDraft{
+		PhaseType:     phaseType,
+		AIProvider:    providerID,
+		ModelName:     model,
+		ExecutionMode: executionMode,
+		BatchMode:     batchMode,
+		UpdatedAt:     now,
+	})
+	if err != nil {
+		logPhaseAISettingsSave(ctx, phaseAISettingsLogEvent, phaseAISettingsLogWhere, phaseAISettingsLogResultFailed, consumerID, phaseType, providerID, model, executionMode, batchMode, "save_failed")
 		return PhaseAISettingsReadModel{}, fmt.Errorf("save phase ai settings: %w", err)
 	}
-	logPhaseAISettingsSave(ctx, phaseAISettingsLogEvent, phaseAISettingsLogWhere, "accepted", selection.JobID, phaseID, providerID, model, executionMode, batchMode, credentialStatus, modelListStatus, "")
+	logPhaseAISettingsSave(ctx, phaseAISettingsLogEvent, phaseAISettingsLogWhere, "accepted", consumerID, phaseType, providerID, model, executionMode, batchMode, "")
 	return PhaseAISettingsReadModel{
-		JobID:            selection.JobID,
-		PhaseID:          phaseID,
-		Provider:         providerID,
-		Model:            model,
-		CredentialStatus: credentialStatus,
-		ExecutionMode:    executionMode,
-		BatchMode:        batchMode,
-		ModelListStatus:  modelListStatus,
+		PhaseType:     saved.PhaseType,
+		Provider:      saved.AIProvider,
+		Model:         saved.ModelName,
+		ExecutionMode: saved.ExecutionMode,
+		BatchMode:     saved.BatchMode,
+		UpdatedAt:     saved.UpdatedAt,
 	}, nil
 }
 
@@ -182,28 +121,24 @@ func logPhaseAISettingsSave(
 	event string,
 	where string,
 	result string,
-	jobID int64,
-	phaseID string,
+	consumerID string,
+	phaseType string,
 	providerID string,
 	model string,
 	executionMode string,
 	batchMode string,
-	credentialStatus string,
-	modelListStatus string,
 	reason string,
 ) {
 	attrs := []slog.Attr{
 		slog.String("event", strings.TrimSpace(event)),
 		slog.String("where", strings.TrimSpace(where)),
 		slog.String("result", strings.TrimSpace(result)),
-		slog.String("id", fmt.Sprintf("job:%d", jobID)),
-		slog.String("phase", strings.TrimSpace(phaseID)),
+		slog.String("consumer", strings.TrimSpace(consumerID)),
+		slog.String("phase_type", strings.TrimSpace(phaseType)),
 		slog.String("provider", strings.TrimSpace(providerID)),
 		slog.String("model", strings.TrimSpace(model)),
 		slog.String("executionMode", strings.TrimSpace(executionMode)),
 		slog.String("batchMode", strings.TrimSpace(batchMode)),
-		slog.String("credentialStatus", strings.TrimSpace(credentialStatus)),
-		slog.String("modelListStatus", strings.TrimSpace(modelListStatus)),
 	}
 	if strings.TrimSpace(reason) != "" {
 		attrs = append(attrs, slog.String("reason", strings.TrimSpace(reason)))

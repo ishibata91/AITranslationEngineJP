@@ -73,7 +73,7 @@ func TestTermTranslationPhaseUsecaseGetSummaryMapsPointersAndNormalizesErrorKind
 				CurrentPhase: "term_translation",
 				PhaseState:   "running",
 				StartedAt:    &startedAt,
-				Execution: service.TermTranslationExecutionConfigReadModel{
+				Execution: &service.TermTranslationExecutionConfigReadModel{
 					SnapshotDigest: &snapshot,
 				},
 				ErrorSummary: &service.TermTranslationPhaseErrorReadModel{ErrorKind: "  PROVIDER_FAILURE  "},
@@ -148,20 +148,16 @@ func TestTermTranslationPhaseUsecaseSaveAISettingsForwardsPublicSelectionOnly(t 
 		saveAISettingsFunc: func(_ context.Context, selection service.PhaseAISettingsSelection) (service.PhaseAISettingsReadModel, error) {
 			captured = selection
 			return service.PhaseAISettingsReadModel{
-				JobID:            selection.JobID,
-				PhaseID:          "word_translation",
-				Provider:         selection.Provider,
-				Model:            selection.Model,
-				CredentialStatus: "configured",
-				ExecutionMode:    selection.ExecutionMode,
-				BatchMode:        selection.BatchMode,
-				ModelListStatus:  "success",
+				PhaseType:     "word_translation",
+				Provider:      selection.Provider,
+				Model:         selection.Model,
+				ExecutionMode: selection.ExecutionMode,
+				BatchMode:     selection.BatchMode,
 			}, nil
 		},
 	})
 
 	result, err := usecase.SaveTermTranslationPhaseAISettings(context.Background(), SaveTermTranslationPhaseAISettingsRequest{
-		JobID:         88,
 		Provider:      "gemini",
 		Model:         "gemini-2.5-pro",
 		ExecutionMode: "sync",
@@ -170,10 +166,10 @@ func TestTermTranslationPhaseUsecaseSaveAISettingsForwardsPublicSelectionOnly(t 
 	if err != nil {
 		t.Fatalf("expected save ai settings success: %v", err)
 	}
-	if captured.JobID != 88 || captured.Provider != "gemini" || captured.Model != "gemini-2.5-pro" || captured.ExecutionMode != "sync" || captured.BatchMode != "enabled" {
+	if captured.Provider != "gemini" || captured.Model != "gemini-2.5-pro" || captured.ExecutionMode != "sync" || captured.BatchMode != "enabled" {
 		t.Fatalf("expected public selection forwarding only, got %#v", captured)
 	}
-	if result.CredentialStatus != "configured" || result.ModelListStatus != "success" {
-		t.Fatalf("expected read model mapping for status fields, got %#v", result)
+	if result.Provider != "gemini" || result.Model != "gemini-2.5-pro" {
+		t.Fatalf("expected read model mapping, got %#v", result)
 	}
 }

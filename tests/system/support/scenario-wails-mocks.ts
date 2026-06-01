@@ -7,6 +7,12 @@ interface ScenarioWailsMockOptions {
    * E2E-LTLE-003（境界: 母数0のとき空状態）専用オプション。
    */
   termZeroAITargetJobId?: number;
+  /**
+   * true のとき、jobId=14 のジョブは execution の provider/model/executionMode が空文字の
+   * 未設定状態として振る舞う。
+   * E2E-UC-FIX-MODEL-001/002/003（AI モデル設定未完了状態と設定固定経路）専用オプション。
+   */
+  termAISettingsMissing?: boolean;
 }
 
 export async function installScenarioWailsMocks(
@@ -16,6 +22,7 @@ export async function installScenarioWailsMocks(
   const masterPersonaAISettings =
     options.masterPersonaAISettings ?? "configured";
   const termZeroAITargetJobId = options.termZeroAITargetJobId ?? -1;
+  const termAISettingsMissing = options.termAISettingsMissing ?? false;
   await page.addInitScript({
     content: `
 (() => {
@@ -469,6 +476,63 @@ export async function installScenarioWailsMocks(
       retryBlockedReason: "未開始です。"
     }
   });
+  // E2E-UC-FIX-MODEL-001/002: execution の provider/model/executionMode が空文字の未設定状態。
+  // presenter の isExecutionConfigured が false を返し、状態 pill が「設定未完了」になる。
+  const missingExecution = {
+    credentialRef: "",
+    provider: "",
+    model: "",
+    executionMode: "",
+    snapshotDigest: "",
+    snapshotVersion: ""
+  };
+  const termSummaryMissing = (jobId = 14, targetCount = 3) => ({
+    jobId,
+    currentPhase: "term_translation",
+    phaseState: "pending",
+    phaseRunId: 1,
+    progress: commonProgress(0, targetCount, "未開始"),
+    totalTermCount: targetCount,
+    dictionaryHitCount: 0,
+    aiTargetCount: targetCount,
+    execution: missingExecution,
+    resultSummary: undefined,
+    errorSummary: blockedStartError,
+    actionEnablement: {
+      canStart: false,
+      startBlockedReason: "実行設定が未構成のため開始できません。",
+      canPause: false,
+      pauseBlockedReason: "未開始です。",
+      canResume: false,
+      resumeBlockedReason: "未開始です。",
+      canRetry: false,
+      retryBlockedReason: "未開始です。"
+    }
+  });
+  // E2E-UC-FIX-MODEL-003: SaveTermTranslationPhaseAISettings 後に configured execution を持つ summary。
+  const configuredExecution = {
+    credentialRef: "-",
+    provider: "gemini",
+    model: "gemini-test",
+    executionMode: "single_request",
+    snapshotDigest: "system-test-digest",
+    snapshotVersion: "1"
+  };
+  const termSummaryConfigured = (jobId = 14, targetCount = 3) => ({
+    ...termSummaryMissing(jobId, targetCount),
+    execution: configuredExecution,
+    actionEnablement: {
+      canStart: true,
+      startBlockedReason: undefined,
+      canPause: false,
+      pauseBlockedReason: "未開始です。",
+      canResume: false,
+      resumeBlockedReason: "未開始です。",
+      canRetry: false,
+      retryBlockedReason: "未開始です。"
+    }
+  });
+
   const personaSummary = (state = "pending") => ({
     jobId: 302,
     currentPhase: "persona_generation",
@@ -565,6 +629,10 @@ export async function installScenarioWailsMocks(
   };
 
   const termZeroAITargetJobId = ${JSON.stringify(termZeroAITargetJobId)};
+  const termAISettingsMissingJobId = ${JSON.stringify(termAISettingsMissing)} ? 14 : -1;
+  // E2E-UC-FIX-MODEL-001/002/003: AI 設定未完了ジョブの execution 状態をステートフルに管理する。
+  // false = 未設定（空文字 execution）、true = 設定済み（configured execution）
+  let termAIMissingJobConfigured = false;
   const seededPhaseJobs = [
     { jobId: 7, label: "system-test-term", state: "Ready", currentPhase: "term_translation", progressPercent: 0 },
     { jobId: 8, label: "system-test-persona", state: "Ready", currentPhase: "persona_generation", progressPercent: 0 },
@@ -576,6 +644,9 @@ export async function installScenarioWailsMocks(
   ];
   if (termZeroAITargetJobId >= 0) {
     seededPhaseJobs.push({ jobId: termZeroAITargetJobId, label: "system-test-term-zero-ai-target", state: "Ready", currentPhase: "term_translation", progressPercent: 0 });
+  }
+  if (termAISettingsMissingJobId >= 0) {
+    seededPhaseJobs.push({ jobId: termAISettingsMissingJobId, label: "system-test-term-ai-missing", state: "Ready", currentPhase: "term_translation", progressPercent: 0 });
   }
 
   const job = (jobId, label, state, currentPhase, progressPercent = 0) => ({
@@ -764,13 +835,23 @@ export async function installScenarioWailsMocks(
     }),
     GetJobDetail: (request) => Promise.resolve({ ...jobDetail(request.jobId), cacheState: "available", cacheStateLabel: "available", runtimeSummary: { providerLabel: "-", modelLabel: "-", executionModeLabel: "batch", credentialState: "missing", credentialStateLabel: "設定未完了" }, resumeBlockedReasons: [], warnings: [], deleteImpactLines: [] }),
     GetProcessingTargetList: (request) => Promise.resolve(getProcessingTargets(request)),
-    GetTermTranslationPhaseSummary: (request) => Promise.resolve(
-      request.jobId === 10
-        ? termSummary("completed", request.jobId)
-        : request.jobId === termZeroAITargetJobId
-          ? termSummary("pending", request.jobId, 0)
-          : termSummary("pending", request.jobId, request.jobId === lucienJobId ? lucienTermProcessingTargets.length : 3)
-    ),
+    GetTermTranslationPhaseSummary: (request) => {
+      if (request.jobId === 10) {
+        return Promise.resolve(termSummary("completed", request.jobId));
+      }
+      if (request.jobId === termZeroAITargetJobId) {
+        return Promise.resolve(termSummary("pending", request.jobId, 0));
+      }
+      // E2E-UC-FIX-MODEL-001/002/003: AI 設定未完了ジョブ。
+      // SaveTermTranslationPhaseAISettings 呼び出し後は termAIMissingJobConfigured=true に切り替わり、
+      // configured execution を持つ summary を返す。
+      if (request.jobId === termAISettingsMissingJobId) {
+        return termAIMissingJobConfigured
+          ? Promise.resolve(termSummaryConfigured(request.jobId))
+          : Promise.resolve(termSummaryMissing(request.jobId));
+      }
+      return Promise.resolve(termSummary("pending", request.jobId, request.jobId === lucienJobId ? lucienTermProcessingTargets.length : 3));
+    },
     StartTermTranslationPhase: () => Promise.resolve(termSummary()),
     PauseTermTranslationPhase: () => Promise.resolve(termSummary("paused")),
     ResumeTermTranslationPhase: () => Promise.resolve(termSummary("running")),
@@ -781,7 +862,15 @@ export async function installScenarioWailsMocks(
       currentPhase: "term_translation",
       phaseState: request.jobId === 10 ? "completed" : "pending"
     }),
-    SaveTermTranslationPhaseAISettings: (request) => Promise.resolve({ ...request, phaseId: "term", credentialStatus: "missing", modelListStatus: "credential_missing" }),
+    SaveTermTranslationPhaseAISettings: (request) => {
+      // E2E-UC-FIX-MODEL-003: termAISettingsMissing オプション有効時（jobId=14 専用シナリオ）、
+      // 保存が呼ばれたら configured 状態に切り替える。
+      // GetTermTranslationPhaseSummary の次回呼び出しで configured execution を返すようにする。
+      if (termAISettingsMissingJobId >= 0) {
+        termAIMissingJobConfigured = true;
+      }
+      return Promise.resolve({ ...request, phaseId: "term", credentialStatus: "configured", modelListStatus: "success" });
+    },
     GetPersonaGenerationPhaseSummary: () => Promise.resolve(personaSummary()),
     StartPersonaGenerationPhase: () => Promise.resolve(personaSummary()),
     PausePersonaGenerationPhase: () => Promise.resolve(personaSummary("paused")),

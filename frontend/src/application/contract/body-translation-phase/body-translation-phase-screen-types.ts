@@ -114,10 +114,14 @@ export interface BodyTranslationPhaseScreenViewModel extends BodyTranslationPhas
   promptDigestLabel: string
   inputSnapshotRefLabel: string
   skippedReasonsLabel: string
+  isExecutionConfigured: boolean
   providerLabel: string
   modelLabel: string
   executionModeLabel: string
   credentialRefLabel: string
+  providerOptions: { value: string; label: string }[]
+  modelOptions: { value: string; label: string }[]
+  executionOptions: { value: string; label: string }[]
   providerTargetCountLabel: string
   exactDictionaryExclusionCountLabel: string
   partialDictionaryConstraintCountLabel: string
