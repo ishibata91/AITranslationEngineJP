@@ -127,3 +127,10 @@ investigation-module で固定した想定は backend 側を判断保留とし�
 - 詳細仕様正本反映: 不要。
 - 人間承認状態: 不要（仕様変更なし）。
 
+
+## 作業 commit
+
+- commit hash: f2fbb14ab9a01eea7c2830d792eed1fe85cab42e
+- branch: claude/fix-term-translation-model-settings-empty-fixed
+- 同 commit に本 task と `fix-phase-ai-model-list-empty` の変更を統合（同 branch 継続使用のため）。
+

@@ -125,3 +125,10 @@ implementation-module（backend 中心、frontend は前 task で追加した経
 - 仕様変更または仕様追加: なし（想定 Y/N 評価で N、`uc-translation-management.md` 既存 E1 で説明可能）。
 - 詳細仕様正本反映: 不要。
 - 人間承認状態: 不要（仕様変更なし）。
+
+## 作業 commit
+
+- commit hash: f2fbb14ab9a01eea7c2830d792eed1fe85cab42e
+- branch: claude/fix-term-translation-model-settings-empty-fixed
+- 前 task `fix-term-translation-model-settings-empty-fixed` と同 commit に統合。
+
