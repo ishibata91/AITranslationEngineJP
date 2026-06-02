@@ -270,6 +270,31 @@ test("E2E-UC-048 job run shell advances from completed term phase to persona pha
   await expect(jobRun.selectedJobSummary).toContainText("ジョブ #10");
 });
 
+test("E2E-UC-048-B1 job run shell keeps persona phase without reverting to term phase after next action", async ({
+  page,
+}) => {
+  // $effect 循環による term 画面への逆戻りが発生しないことを証明する。
+  // untrack() 修正の退行防止観点: 次へ進む後に persona 画面が表示されたまま維持され、
+  // term 画面が再表示されないことを 500ms 待機で確認する。
+  const jobRun = await openJobRun(page, "system-test-completed-term");
+  const termPhase = new TermTranslationPhasePage(page);
+  const personaPhase = new PersonaGenerationPhasePage(page);
+
+  // Arrange: term 段階の初回取得完了（オーバーレイ消失）を待つ。
+  await termPhase.waitForScreen();
+  await expect(jobRun.nextActionFooter.getByRole("button", { name: "次へ進む" })).toBeEnabled();
+
+  // Act: 次へ進む操作で persona 段階へ遷移させる。
+  await jobRun.clickNext();
+
+  // Assert: persona 画面が visible になるまで待機し、その後 500ms 経過しても逆戻りがないことを確認する。
+  await personaPhase.waitForScreen();
+  await page.waitForTimeout(500);
+  await expect(jobRun.phaseScreenRegion).toContainText("NPC ペルソナ生成");
+  await expect(termPhase.screen).not.toBeVisible();
+  await expect(jobRun.selectedJobSummary).toContainText("ジョブ #10");
+});
+
 test("E2E-UC-049 job run shell advances from completed body phase to completion page", async ({
   page,
 }) => {

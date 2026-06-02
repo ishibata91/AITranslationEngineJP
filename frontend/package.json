@@ -73,6 +73,7 @@
       "src/ui/components/TextAreaField.svelte",
       "src/ui/components/TextInputField.svelte",
       "src/ui/screens/job-run/job-run-shell-props.ts",
+      "src/ui/screens/job-run/__tests__/UntrackEffectProbe.svelte",
       "src/ui/screens/translation-job-setup/CompatibilityPrecheckPanel.svelte",
       "src/ui/screens/translation-job-setup/CreatedJobSummaryPanel.svelte",
       "src/ui/screens/translation-job-setup/FoundationDataPanel.svelte",
