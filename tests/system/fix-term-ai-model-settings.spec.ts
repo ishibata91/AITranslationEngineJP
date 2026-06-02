@@ -77,8 +77,10 @@ test("E2E-UC-FIX-MODEL-002 AI 設定未完了状態で開始ボタンが無効�
 test("E2E-UC-FIX-MODEL-003 AI 設定未完了から保存操作で「固定済み」へ遷移する", async ({
   page,
 }) => {
-  // AI 設定未完了状態からユーザーが設定保存操作（モデル一覧を更新）を行い、
-  // 状態 pill が「固定済み」になり、開始ボタンの禁止理由が解消することを証明する。
+  // AI 設定未完了状態からユーザーが AI サービス選択 → モデル一覧更新 → モデル選択の操作を行い、
+  // saveAISettings が SaveTermTranslationPhaseAISettings を呼び出し、
+  // GetTermTranslationPhaseSummary 再取得後に pill が「固定済み」になり、
+  // 開始ボタンが有効化されることを証明する。
 
   // Arrange: AI 設定未完了ジョブの単語翻訳画面を開く。
   const phase = await openTermPhaseMissingAISettings(page);
@@ -89,10 +91,20 @@ test("E2E-UC-FIX-MODEL-003 AI 設定未完了から保存操作で「固定済�
     "操作前は状態 pill が「設定未完了」を表示する",
   ).toContainText("設定未完了");
 
-  // Act: 「モデル一覧を更新」ボタンを押して AI 設定を保存し、summary を再取得させる。
-  // このボタンは saveAISettings を呼び出し、SaveTermTranslationPhaseAISettings を経由して
-  // GetTermTranslationPhaseSummary の再取得まで実行される。
+  // Act: AI サービスを選択する（Gemini を選択してモデル一覧更新を可能にする）。
+  // ListProviderSettings が非同期で完了して provider options が更新されるまで待機する。
+  // <option> 要素は select が閉じた状態では Playwright の visibility 判定が hidden になるため attached で待機する。
+  await phase.aiProviderSelect.locator('option[value="gemini"]').waitFor({ state: "attached" });
+  await phase.aiProviderSelect.selectOption("gemini");
+
+  // Act: 「モデル一覧を更新」ボタンを押して ListTranslationJobSetupProviderModels を呼び出す。
   await phase.refreshAIModelButton.click();
+
+  // Act: モデル select で gemini-test を選択する（handleModelChange → saveAISettings →
+  // SaveTermTranslationPhaseAISettings → GetTermTranslationPhaseSummary 再取得）。
+  // ListTranslationJobSetupProviderModels が完了して gemini-test option が現れるまで待機する。
+  await phase.aiModelSelect.locator('option[value="gemini-test"]').waitFor({ state: "attached" });
+  await phase.aiModelSelect.selectOption("gemini-test");
 
   // Assert: 状態 pill が「固定済み」になる。
   await expect(

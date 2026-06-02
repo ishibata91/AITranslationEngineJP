@@ -144,6 +144,26 @@ export class PersonaGenerationPhasePage extends TranslationPhasePage {
       "persona-generation-phase-progress-card"
     )
   }
+
+  /** AI モデル設定パネルの状態 pill（「固定済み」または「設定未完了」を表示する要素）。 */
+  get aiSettingsStatusPill(): Locator {
+    return this.byTestId("persona-generation-phase-ai-settings-status-pill")
+  }
+
+  /** AI サービス select 要素。 */
+  get aiProviderSelect(): Locator {
+    return this.byTestId("persona-generation-phase-ai-provider-select")
+  }
+
+  /** モデル select 要素。 */
+  get aiModelSelect(): Locator {
+    return this.byTestId("persona-generation-phase-ai-model-select")
+  }
+
+  /** 「モデル一覧を更新」ボタン。モデル一覧を取得してモデル選択肢を更新する。 */
+  get refreshAIModelButton(): Locator {
+    return this.aiModelSelection.getByRole("button", { name: "モデル一覧を更新" })
+  }
 }
 
 export class BodyTranslationPhasePage extends TranslationPhasePage {
@@ -154,5 +174,25 @@ export class BodyTranslationPhasePage extends TranslationPhasePage {
       "body-translation-phase-ai-model-selection",
       "body-translation-phase-progress"
     )
+  }
+
+  /** AI モデル設定パネルの状態 pill（「固定済み」または「設定未完了」を表示する要素）。 */
+  get aiSettingsStatusPill(): Locator {
+    return this.byTestId("body-translation-phase-ai-settings-status-pill")
+  }
+
+  /** AI サービス select 要素。 */
+  get aiProviderSelect(): Locator {
+    return this.byTestId("body-translation-phase-ai-provider-select")
+  }
+
+  /** モデル select 要素。 */
+  get aiModelSelect(): Locator {
+    return this.byTestId("body-translation-phase-ai-model-select")
+  }
+
+  /** 「モデル一覧を更新」ボタン。モデル一覧を取得してモデル選択肢を更新する。 */
+  get refreshAIModelButton(): Locator {
+    return this.aiModelSelection.getByRole("button", { name: "モデル一覧を更新" })
   }
 }

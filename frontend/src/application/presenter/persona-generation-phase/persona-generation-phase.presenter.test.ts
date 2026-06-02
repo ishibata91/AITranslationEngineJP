@@ -478,3 +478,76 @@ describe("PersonaGenerationPhasePresenter - execution field 不在判定（U-PRE
     expect(vm.modelLabel).toBe("m")
   })
 })
+
+// U-PRES-MODEL-002: buildPersonaModelOptions の placeholder 重複解消（ペルソナ生成）
+// 根拠: fix-phase-ai-settings-pill-update-after-model-select の secondary 問題修正
+// AIModelSelectionCard が固定 placeholder を持つため、buildPersonaModelOptions が重複 placeholder を返さないことを証明する
+describe("PersonaGenerationPhasePresenter - buildPersonaModelOptions placeholder 重複解消（U-PRES-MODEL-002）", () => {
+  const presenter = new PersonaGenerationPhasePresenter()
+
+  function buildState() {
+    return {
+      jobId: 10,
+      phase: "ready" as const,
+      summary: {
+        jobId: 10,
+        currentPhase: "persona_generation" as const,
+        phaseState: "ready" as const,
+        progress: {
+          percent: 0,
+          processedCount: 0,
+          totalCount: 5,
+          targetCount: 5,
+          currentStep: "ready"
+        },
+        targetSummary: {
+          targetCount: 5,
+          commonPersonaHitCount: 0,
+          commonPersonaMissCount: 5,
+          skippedCount: 0,
+          skippedReasons: [],
+          targetSnapshotDigest: "sha256:1"
+        },
+        actionEnablement: {
+          canStart: false,
+          canPause: false,
+          canResume: false,
+          canRetry: false,
+          canCancel: false
+        }
+      },
+      bodyReadiness: null,
+      errorMessage: "",
+      pendingAction: null,
+      hasLoaded: true,
+      initialFetchDone: true
+    }
+  }
+
+  // U-PRES-MODEL-002: availableModels に要素がある時、modelOptions に placeholder が含まれない
+  test("availableModels に要素がある時 modelOptions に空 value の placeholder が含まれない", () => {
+    // AIModelSelectionCard が固定 placeholder を描画するため、buildPersonaModelOptions は重複 placeholder を返さない。
+    const availableModels = [{ value: "fake-model", label: "fake-model" }]
+
+    const vm = presenter.toViewModel(buildState(), true, [], availableModels)
+
+    // availableModels を渡した時 placeholder が含まれないことを証明する
+    const hasPlaceholder = vm.modelOptions.some((opt) => opt.value === "")
+    expect(hasPlaceholder).toBe(false)
+  })
+
+  // U-PRES-MODEL-002: availableModels に要素がある時、modelOptions は availableModels の内容を返す
+  test("availableModels に要素がある時 modelOptions が availableModels をそのまま返す", () => {
+    // placeholder を挿入せず availableModels の内容だけを返すことを証明する。
+    const availableModels = [
+      { value: "model-a", label: "Model A" },
+      { value: "model-b", label: "Model B" }
+    ]
+
+    const vm = presenter.toViewModel(buildState(), true, [], availableModels)
+
+    expect(vm.modelOptions).toHaveLength(2)
+    expect(vm.modelOptions).toContainEqual({ value: "model-a", label: "Model A" })
+    expect(vm.modelOptions).toContainEqual({ value: "model-b", label: "Model B" })
+  })
+})

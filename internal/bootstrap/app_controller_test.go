@@ -1119,6 +1119,88 @@ func TestNewProviderSettingsSecretStoreFromEnvRejectsUnsupportedBackend(t *testi
 	}
 }
 
+// fix-phase-ai-settings-pill-update-after-model-select: bootstrap DI 注入証明
+// 3 phase 全ての service に JobPhaseAISettingsRepository が注入されていることを証明する。
+// 注入が欠落していると SaveXxxPhaseAISettings が "phase ai settings repository is not configured" エラーを返す。
+
+// TestNewAppControllerTermTranslationPhaseAISettingsSaveSucceeds は、
+// bootstrap 経由で組み立てた AppController で SaveTermTranslationPhaseAISettings を呼んだ時に
+// repository 注入不足エラーが返らないことを証明する。
+func TestNewAppControllerTermTranslationPhaseAISettingsSaveSucceeds(t *testing.T) {
+	// Arrange: 実 SQLite wiring で AppController を構築する。
+	controller := newBootstrapTestController(t)
+	defer NewAppLifecycle(controller).OnShutdown(context.Background())
+
+	// Act: bootstrap 完了後に SaveTermTranslationPhaseAISettings を呼ぶ。
+	// repository 注入が欠落していると "phase ai settings repository is not configured" が返る。
+	result, err := controller.SaveTermTranslationPhaseAISettings(controllerwails.SaveTermTranslationPhaseAISettingsRequestDTO{
+		Provider:      "gemini",
+		Model:         "gemini-2.5-pro",
+		ExecutionMode: "batch",
+		BatchMode:     "disabled",
+	})
+
+	// Assert: repository 注入済みのため保存エラーが返らない。
+	if err != nil {
+		t.Fatalf("expected SaveTermTranslationPhaseAISettings to succeed after DI injection, got: %v", err)
+	}
+	if result.Provider != "gemini" || result.Model != "gemini-2.5-pro" {
+		t.Fatalf("expected saved provider/model to match input, got provider=%q model=%q", result.Provider, result.Model)
+	}
+}
+
+// TestNewAppControllerPersonaGenerationPhaseAISettingsSaveSucceeds は、
+// bootstrap 経由で組み立てた AppController で SavePersonaGenerationPhaseAISettings を呼んだ時に
+// repository 注入不足エラーが返らないことを証明する。
+func TestNewAppControllerPersonaGenerationPhaseAISettingsSaveSucceeds(t *testing.T) {
+	// Arrange: 実 SQLite wiring で AppController を構築する。
+	controller := newBootstrapTestController(t)
+	defer NewAppLifecycle(controller).OnShutdown(context.Background())
+
+	// Act: bootstrap 完了後に SavePersonaGenerationPhaseAISettings を呼ぶ。
+	// repository 注入が欠落していると "phase ai settings repository is not configured" が返る。
+	result, err := controller.SavePersonaGenerationPhaseAISettings(controllerwails.SavePersonaGenerationPhaseAISettingsRequestDTO{
+		Provider:      "gemini",
+		Model:         "gemini-2.5-pro",
+		ExecutionMode: "single_request",
+		BatchMode:     "disabled",
+	})
+
+	// Assert: repository 注入済みのため保存エラーが返らない。
+	if err != nil {
+		t.Fatalf("expected SavePersonaGenerationPhaseAISettings to succeed after DI injection, got: %v", err)
+	}
+	if result.Provider != "gemini" || result.Model != "gemini-2.5-pro" {
+		t.Fatalf("expected saved provider/model to match input, got provider=%q model=%q", result.Provider, result.Model)
+	}
+}
+
+// TestNewAppControllerBodyTranslationPhaseAISettingsSaveSucceeds は、
+// bootstrap 経由で組み立てた AppController で SaveBodyTranslationPhaseAISettings を呼んだ時に
+// repository 注入不足エラーが返らないことを証明する。
+func TestNewAppControllerBodyTranslationPhaseAISettingsSaveSucceeds(t *testing.T) {
+	// Arrange: 実 SQLite wiring で AppController を構築する。
+	controller := newBootstrapTestController(t)
+	defer NewAppLifecycle(controller).OnShutdown(context.Background())
+
+	// Act: bootstrap 完了後に SaveBodyTranslationPhaseAISettings を呼ぶ。
+	// repository 注入が欠落していると "phase ai settings repository is not configured" が返る。
+	result, err := controller.SaveBodyTranslationPhaseAISettings(controllerwails.SaveBodyTranslationPhaseAISettingsRequestDTO{
+		Provider:      "gemini",
+		Model:         "gemini-2.5-pro",
+		ExecutionMode: "batch",
+		BatchMode:     "disabled",
+	})
+
+	// Assert: repository 注入済みのため保存エラーが返らない。
+	if err != nil {
+		t.Fatalf("expected SaveBodyTranslationPhaseAISettings to succeed after DI injection, got: %v", err)
+	}
+	if result.Provider != "gemini" || result.Model != "gemini-2.5-pro" {
+		t.Fatalf("expected saved provider/model to match input, got provider=%q model=%q", result.Provider, result.Model)
+	}
+}
+
 func assertEventNames(t *testing.T, events []recordedRuntimeEvent, expected ...string) {
 	t.Helper()
 

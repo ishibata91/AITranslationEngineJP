@@ -696,6 +696,73 @@ describe("TermTranslationPhasePresenter - provider 一覧連動（U-PRES-PROVIDE
   })
 })
 
+// U-PRES-MODEL-001: buildModelOptions の placeholder 重複解消（単語翻訳）
+// 根拠: fix-phase-ai-settings-pill-update-after-model-select の secondary 問題修正
+// AIModelSelectionCard が固定 placeholder を持つため、buildModelOptions が重複 placeholder を返さないことを証明する
+describe("TermTranslationPhasePresenter - buildModelOptions placeholder 重複解消（U-PRES-MODEL-001）", () => {
+  const presenter = new TermTranslationPhasePresenter()
+
+  function buildState(): TestScreenState {
+    return {
+      jobId: 7,
+      phase: "ready",
+      summary: {
+        jobId: 7,
+        currentPhase: "term_translation",
+        phaseState: "ready",
+        progress: {
+          percent: 0,
+          processedCount: 0,
+          totalCount: 10,
+          aiTargetCount: 5,
+          currentStep: "ready"
+        },
+        totalTermCount: 10,
+        dictionaryHitCount: 5,
+        aiTargetCount: 5,
+        actionEnablement: {
+          canStart: false,
+          canPause: false,
+          canResume: false,
+          canRetry: false
+        }
+      },
+      nextPhaseReadiness: null,
+      errorMessage: "",
+      pendingAction: null,
+      hasLoaded: true,
+      initialFetchDone: true
+    }
+  }
+
+  // U-PRES-MODEL-001: availableModels に要素がある時、modelOptions に placeholder が含まれない
+  test("availableModels に要素がある時 modelOptions に空 value の placeholder が含まれない", () => {
+    // AIModelSelectionCard が固定 placeholder を描画するため、buildModelOptions は重複 placeholder を返さない。
+    const availableModels = [{ value: "fake-model", label: "fake-model" }]
+
+    const viewModel = presenter.toViewModel(buildState(), true, [], availableModels)
+
+    // availableModels を渡した時 placeholder が含まれないことを証明する
+    const hasPlaceholder = viewModel.modelOptions.some((opt) => opt.value === "")
+    expect(hasPlaceholder).toBe(false)
+  })
+
+  // U-PRES-MODEL-001: availableModels に要素がある時、modelOptions は availableModels の内容を返す
+  test("availableModels に要素がある時 modelOptions が availableModels をそのまま返す", () => {
+    // placeholder を挿入せず availableModels の内容だけを返すことを証明する。
+    const availableModels = [
+      { value: "model-a", label: "Model A" },
+      { value: "model-b", label: "Model B" }
+    ]
+
+    const viewModel = presenter.toViewModel(buildState(), true, [], availableModels)
+
+    expect(viewModel.modelOptions).toHaveLength(2)
+    expect(viewModel.modelOptions).toContainEqual({ value: "model-a", label: "Model A" })
+    expect(viewModel.modelOptions).toContainEqual({ value: "model-b", label: "Model B" })
+  })
+})
+
 // U-PRES-002/003/004: execution field 不在時の presenter 判定（単語翻訳）
 // 根拠: term-translation-phase-REQ-002「execution field 不在で isExecutionConfigured=false」
 describe("TermTranslationPhasePresenter - execution field 不在判定（U-PRES-002/003/004）", () => {

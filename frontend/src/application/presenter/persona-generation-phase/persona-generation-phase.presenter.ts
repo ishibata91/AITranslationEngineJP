@@ -464,10 +464,6 @@ function buildPersonaModelOptions(
   availableModels: PersonaSelectOption[]
 ): PersonaSelectOption[] {
   if (availableModels.length > 0) {
-    const currentModel = summary?.aiSettings?.model ?? summary?.execution?.model
-    if (!currentModel || !availableModels.some((m) => m.value === currentModel)) {
-      return [{ value: "", label: "選んでください" }, ...availableModels]
-    }
     return availableModels
   }
   const fallbackLabel = summary?.aiSettings?.model ?? summary?.execution?.model
