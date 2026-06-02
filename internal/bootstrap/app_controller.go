@@ -67,6 +67,7 @@ func newAppControllerWithSeeds(
 	foundationDataPort := service.NewSQLiteFoundationDataPort(foundationDataRepository)
 	translationSourceRepository := repository.NewSQLiteTranslationSourceRepository(foundationDataDB)
 	jobLifecycleRepository := repository.NewSQLiteJobLifecycleRepository(foundationDataDB)
+	jobPhaseAISettingsRepository := repository.NewSQLiteJobPhaseAISettingsRepository(foundationDataDB)
 	jobOutputRepository := repository.NewSQLiteJobOutputRepository(foundationDataDB)
 	jobOutputArtifactRepository := repository.NewSQLiteJobOutputArtifactRepository(foundationDataDB)
 	foundationTransactor := repository.NewSQLiteTransactor(foundationDataDB)
@@ -203,7 +204,8 @@ func newAppControllerWithSeeds(
 				foundationTransactor,
 				cachedProviderSettingsSecretStore,
 				termTranslationProvider,
-			).WithTermTranslationProviderSettings(providerSettingsService),
+			).WithTermTranslationProviderSettings(providerSettingsService).
+				WithTermTranslationJobPhaseAISettings(jobPhaseAISettingsRepository),
 		),
 	)
 	personaGenerationPhaseService := service.NewPersonaGenerationPhaseService(
@@ -215,6 +217,8 @@ func newAppControllerWithSeeds(
 		service.NewPersonaGenerationProviderAdapter(aiProviderClient),
 	).WithPersonaGenerationProviderSettings(
 		providerSettingsService,
+	).WithPersonaGenerationPhaseAISettingsRepository(
+		jobPhaseAISettingsRepository,
 	)
 	personaGenerationPhaseController := controllerwails.NewPersonaGenerationPhaseController(
 		usecase.NewPersonaGenerationPhaseUsecase(personaGenerationPhaseService),
@@ -228,7 +232,8 @@ func newAppControllerWithSeeds(
 				jobOutputRepository,
 				foundationTransactor,
 			).WithBodyTranslationProvider(service.NewBodyTranslationProviderAdapter(aiProviderClient)).
-				WithBodyTranslationProviderSettings(providerSettingsService),
+				WithBodyTranslationProviderSettings(providerSettingsService).
+				WithBodyTranslationJobPhaseAISettingsRepository(jobPhaseAISettingsRepository),
 		),
 	)
 	translationOutputArtifactService := service.NewTranslationOutputArtifactService(

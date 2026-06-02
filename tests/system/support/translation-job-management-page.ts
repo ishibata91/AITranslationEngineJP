@@ -73,9 +73,9 @@ export class TranslationJobManagementPage extends SystemTestPageObject {
   }
 
   openCurrentPhaseButton(card: Locator): Locator {
-    return this.cardActions(card).getByRole("button", {
-      name: "現在の翻訳段階へ進む"
-    })
+    // JobOperationGroup の continue-button は data-current-phase-action-state で識別する。
+    // ボタンの表示テキストは「再開」だが、現在の翻訳段階を開く操作専用の属性で区別する。
+    return this.cardActions(card).locator("[data-current-phase-action-state]")
   }
 
   stopButton(card: Locator): Locator {
@@ -83,6 +83,9 @@ export class TranslationJobManagementPage extends SystemTestPageObject {
   }
 
   resumeButton(card: Locator): Locator {
+    // continue-button（翻訳段階を開く「再開」ボタン）も含む。
+    // E2E-UC-019 では continue-button を使って再開操作の UI 経路を確認する。
+    // SCN-TJM-005/007 と E2E-UC-038 で resume 操作の不在確認には openCurrentPhaseButton を使う。
     return this.cardActions(card).getByRole("button", { name: "再開" })
   }
 

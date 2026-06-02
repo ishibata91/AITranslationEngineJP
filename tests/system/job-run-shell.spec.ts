@@ -123,6 +123,13 @@ async function expectProcessingTargetListScenario(
   await expect(phase.progress).toContainText(
     scenario.expectedProgressTargetDetail,
   );
+
+  // noResultQuery 検索後は 0 件状態のまま終わる。後続の検証で processingTargetRows を使う
+  // 場合に element not found が起きないよう、検索をクリアして初期一覧表示に戻す。
+  await phase.searchProcessingTargets("");
+  await expect(phase.processingTargetRows).toHaveCount(
+    scenario.expectedInitialRows,
+  );
 }
 
 test("E2E-UC-045 opens term phase through current phase action", async ({

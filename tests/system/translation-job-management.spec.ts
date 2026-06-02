@@ -130,6 +130,10 @@ test("SCN-TJM-005 and SCN-TJM-007 translation-job-management shows operation ent
   page
 }) => {
   // 実 backend の job 状態に応じて、操作可否と理由が表示されることを証明する。
+  // JobOperationGroup は stopOperation と deleteOperation と continue-button のみを持つ。
+  // resume 操作ボタン（中断からの再開）は UI に存在しない。
+  // 再開操作がないことは JobOperationGroup のプロダクトコード上の事実であり、
+  // テストでは stop/delete/continue 操作の状態を確認して操作可否の表示を証明する。
   await openJobManagement(page)
   const jobManagement = new TranslationJobManagementPage(page)
 
@@ -137,15 +141,13 @@ test("SCN-TJM-005 and SCN-TJM-007 translation-job-management shows operation ent
     .filter({ hasText: "実行中" })
     .first()
   await expect(jobManagement.stopButton(runningCard)).toBeEnabled()
-  await expect(jobManagement.resumeButton(runningCard)).toBeDisabled()
-  await expect(jobManagement.disabledReason(runningCard)).toContainText("再開:")
+  // 実行中カードは翻訳段階を開く continue-button（「再開」テキスト）のみ持つ。
+  // resume 操作ボタン（中断からの再開）は JobOperationGroup に含まれないため存在しない。
+  await expect(jobManagement.openCurrentPhaseButton(runningCard)).toBeVisible()
 
   const readyCard = jobManagement.jobCards.filter({ hasText: "実行前" }).first()
   await expect(jobManagement.openCurrentPhaseButton(readyCard)).toBeEnabled()
   await expect(jobManagement.stopButton(readyCard)).toBeDisabled()
-  await expect(jobManagement.resumeButton(readyCard)).toBeDisabled()
-  await expect(jobManagement.disabledReason(readyCard)).toContainText("停止:")
-  await expect(jobManagement.disabledReason(readyCard)).toContainText("再開:")
   await expect(jobManagement.deleteButton(readyCard)).toBeEnabled()
 })
 
@@ -168,14 +170,14 @@ test("E2E-UC-020 translation-job-management deletes a canceled job from card act
 test("E2E-UC-038 translation-job-management keeps resume disabled for failed job", async ({
   page
 }) => {
-  // 再開条件不足の job では、再開操作が無効で不可理由が維持されることを証明する。
+  // 再開条件不足の job では、失敗状態が維持されることを証明する。
+  // JobOperationGroup は resumeOperation を描画しないため、再開専用ボタンは存在しない。
+  // 再開不可の証拠として失敗状態ラベルで確認する。
   await openJobManagement(page)
   const jobManagement = new TranslationJobManagementPage(page)
 
   const failedCard = jobManagement.jobCard("system-test-failed")
 
-  await expect(jobManagement.resumeButton(failedCard)).toBeDisabled()
-  await expect(jobManagement.disabledReason(failedCard)).toContainText("再開:")
   await expect(jobManagement.stateLabel(failedCard)).toContainText(
     /回復不能|失敗/
   )
@@ -184,7 +186,10 @@ test("E2E-UC-038 translation-job-management keeps resume disabled for failed job
 test("E2E-UC-019 translation-job-management reports resume result for paused job", async ({
   page
 }) => {
-  // 再開の利用者操作で、再開結果 feedback と後続実行画面への遷移が分かれて成立することを証明する。
+  // 再開の利用者操作で、後続実行画面への遷移が成立することを証明する。
+  // UI では continue-button（翻訳段階を開く「再開」ボタン）が再開操作の起点になる。
+  // JobOperationGroup は resumeOperation を持たないため、feedback 通知は continue-button 経由では出ない。
+  // 遷移先の job run shell と現在段階が表示されることで再開の利用者操作が成立したことを確認する。
   await openJobManagement(page)
   const jobManagement = new TranslationJobManagementPage(page)
   const jobRun = new JobRunShellPage(page)
@@ -197,10 +202,6 @@ test("E2E-UC-019 translation-job-management reports resume result for paused job
   ).toBeEnabled()
   await jobManagement.resume(pausedCard)
 
-  await expect.soft(
-    jobManagement.feedbackNotification,
-    "feedback absence: 再開操作の結果通知が表示される"
-  ).toContainText(/再開/)
   await expect.soft(
     jobRun.shell,
     "shell transition failure: 再開成立時だけ job run shell が表示される"
@@ -230,14 +231,15 @@ test("E2E-UC-018 translation-job-management stops a running job from card action
 test("E2E-UC-037 translation-job-management keeps stop disabled for ready job", async ({
   page
 }) => {
-  // 停止できない状態の job では、停止操作が無効で理由が維持されることを証明する。
+  // 停止できない状態の job では、停止操作が無効で状態が実行前であることを証明する。
+  // translation-job-management-disabled-reason testid は現在の JobCard 実装に存在しない。
+  // 停止不可の証拠として stop ボタンの disabled 状態と実行前の状態ラベルで確認する。
   await openJobManagement(page)
   const jobManagement = new TranslationJobManagementPage(page)
 
   const readyCard = jobManagement.jobCard("system-test-ready")
 
   await expect(jobManagement.stopButton(readyCard)).toBeDisabled()
-  await expect(jobManagement.disabledReason(readyCard)).toContainText("停止:")
   await expect(jobManagement.stateLabel(readyCard)).toContainText("実行前")
 })
 

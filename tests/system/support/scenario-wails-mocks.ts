@@ -13,6 +13,31 @@ interface ScenarioWailsMockOptions {
    * E2E-UC-FIX-MODEL-001/002/003（AI モデル設定未完了状態と設定固定経路）専用オプション。
    */
   termAISettingsMissing?: boolean;
+  /**
+   * true のとき、jobId=15 のジョブは NPC ペルソナ生成段階で execution が未設定状態として振る舞う。
+   * E2E-UC-057（AI 設定保存後に pill が「固定済み」へ切り替わる NPC ペルソナ生成段階）専用オプション。
+   */
+  personaAISettingsMissing?: boolean;
+  /**
+   * true のとき、jobId=16 のジョブは本文翻訳段階で execution が未設定状態として振る舞う。
+   * E2E-UC-058（AI 設定保存後に pill が「固定済み」へ切り替わる本文翻訳段階）専用オプション。
+   */
+  bodyAISettingsMissing?: boolean;
+  /**
+   * true のとき、jobId=7 の単語翻訳段階 summary は execution が未設定状態として振る舞う。
+   * E2E-UC-051（AI 設定不足の開始操作で単語翻訳が未開始状態を維持する）専用オプション。
+   */
+  seededTermJobMissingExecution?: boolean;
+  /**
+   * true のとき、jobId=8 の NPC ペルソナ生成段階 summary は execution が未設定状態として振る舞う。
+   * E2E-UC-052（AI 設定不足の開始操作でペルソナ生成が未開始状態を維持する）専用オプション。
+   */
+  seededPersonaJobMissingExecution?: boolean;
+  /**
+   * true のとき、jobId=9 の本文翻訳段階 summary は execution が未設定状態として振る舞う。
+   * E2E-UC-053（AI 設定不足の開始操作で本文翻訳が未開始状態を維持する）専用オプション。
+   */
+  seededBodyJobMissingExecution?: boolean;
 }
 
 export async function installScenarioWailsMocks(
@@ -23,6 +48,11 @@ export async function installScenarioWailsMocks(
     options.masterPersonaAISettings ?? "configured";
   const termZeroAITargetJobId = options.termZeroAITargetJobId ?? -1;
   const termAISettingsMissing = options.termAISettingsMissing ?? false;
+  const personaAISettingsMissing = options.personaAISettingsMissing ?? false;
+  const bodyAISettingsMissing = options.bodyAISettingsMissing ?? false;
+  const seededTermJobMissingExecution = options.seededTermJobMissingExecution ?? false;
+  const seededPersonaJobMissingExecution = options.seededPersonaJobMissingExecution ?? false;
+  const seededBodyJobMissingExecution = options.seededBodyJobMissingExecution ?? false;
   await page.addInitScript({
     content: `
 (() => {
@@ -476,13 +506,14 @@ export async function installScenarioWailsMocks(
       retryBlockedReason: "未開始です。"
     }
   });
-  // E2E-UC-FIX-MODEL-001/002: execution の provider/model/executionMode が空文字の未設定状態。
+  // E2E-UC-FIX-MODEL-001/002: execution の provider/model が空文字の未設定状態。
   // presenter の isExecutionConfigured が false を返し、状態 pill が「設定未完了」になる。
+  // executionMode は "batch" をデフォルト値として保持し、saveAISettings の executionMode 空チェックを回避する。
   const missingExecution = {
     credentialRef: "",
     provider: "",
     model: "",
-    executionMode: "",
+    executionMode: "batch",
     snapshotDigest: "",
     snapshotVersion: ""
   };
@@ -497,7 +528,10 @@ export async function installScenarioWailsMocks(
     aiTargetCount: targetCount,
     execution: missingExecution,
     resultSummary: undefined,
-    errorSummary: blockedStartError,
+    // AI 設定未完了は retry ではなく設定不足のため retryable=false にする。
+    // retryable=true にすると presenter が isRecoverableFailed=true と判断し canResume=true になり
+    // selectPhaseProgressActions で resume が優先されて start が除外される。
+    errorSummary: { ...blockedStartError, retryable: false },
     actionEnablement: {
       canStart: false,
       startBlockedReason: "実行設定が未構成のため開始できません。",
@@ -530,6 +564,130 @@ export async function installScenarioWailsMocks(
       resumeBlockedReason: "未開始です。",
       canRetry: false,
       retryBlockedReason: "未開始です。"
+    }
+  });
+
+  // E2E-UC-057: NPC ペルソナ生成段階の AI 設定未完了シナリオ用 summary。
+  // executionMode は "batch" をデフォルト値として保持し、saveAISettings の executionMode 空チェックを回避する。
+  const missingPersonaExecution = {
+    credentialRef: "",
+    provider: "",
+    model: "",
+    executionMode: "batch",
+    promptDigest: "",
+    inputCount: 0,
+    outputCount: 0,
+    evidenceRefs: []
+  };
+  const configuredPersonaExecution = {
+    credentialRef: "-",
+    provider: "gemini",
+    model: "gemini-test",
+    executionMode: "single_request",
+    promptDigest: "prompt-digest",
+    inputCount: 0,
+    outputCount: 0,
+    evidenceRefs: []
+  };
+  const personaSummaryMissing = (jobId = 15) => ({
+    jobId,
+    currentPhase: "persona_generation",
+    phaseState: "pending",
+    phaseRunId: 2,
+    progress: commonProgress(0, 2, "未開始"),
+    targetSummary,
+    execution: missingPersonaExecution,
+    // AI 設定未完了は retry ではなく設定不足のため retryable=false にする。
+    // retryable=true にすると presenter が isRecoverableFailed=true と判断し canResume=true になり
+    // selectPhaseProgressActions で resume が優先されて start が除外される。
+    errorSummary: { ...blockedStartError, retryable: false },
+    actionEnablement: {
+      canStart: false,
+      startBlockedReason: "実行設定が未構成のため開始できません。",
+      canPause: false,
+      pauseBlockedReason: "未開始です。",
+      canResume: false,
+      resumeBlockedReason: "未開始です。",
+      canRetry: false,
+      retryBlockedReason: "未開始です。",
+      canCancel: false,
+      cancelBlockedReason: "実行中ではありません。"
+    }
+  });
+  const personaSummaryConfigured = (jobId = 15) => ({
+    ...personaSummaryMissing(jobId),
+    execution: configuredPersonaExecution,
+    actionEnablement: {
+      canStart: true,
+      startBlockedReason: undefined,
+      canPause: false,
+      pauseBlockedReason: "未開始です。",
+      canResume: false,
+      resumeBlockedReason: "未開始です。",
+      canRetry: false,
+      retryBlockedReason: "未開始です。",
+      canCancel: false,
+      cancelBlockedReason: "実行中ではありません。"
+    }
+  });
+  // E2E-UC-058: 本文翻訳段階の AI 設定未完了シナリオ用 summary。
+  // executionMode は "batch" をデフォルト値として保持し、saveAISettings の executionMode 空チェックを回避する。
+  const missingBodyExecution = {
+    credentialRef: "",
+    provider: "",
+    model: "",
+    executionMode: "batch",
+    requestUnitCount: 0,
+    outputCount: 0
+  };
+  const configuredBodyExecution = {
+    credentialRef: "-",
+    provider: "gemini",
+    model: "gemini-test",
+    executionMode: "single_request",
+    requestUnitCount: 4,
+    outputCount: 0
+  };
+  const bodySummaryMissing = (jobId = 16) => ({
+    jobId,
+    currentPhase: "body_translation",
+    phaseState: "pending",
+    phaseRunId: 3,
+    progress: commonProgress(0, 4, "未開始"),
+    inputSummary,
+    requestSummary,
+    execution: missingBodyExecution,
+    fieldResults: [],
+    resultSummary: undefined,
+    errorSummary: undefined,
+    actionEnablement: {
+      canStart: false,
+      startBlockedReason: "実行設定が未構成のため開始できません。",
+      canPause: false,
+      pauseBlockedReason: "実行中ではありません。",
+      canResume: false,
+      resumeBlockedReason: "再開対象ではありません。",
+      canRetry: false,
+      retryBlockedReason: "失敗状態ではありません。",
+      canCancel: false,
+      cancelBlockedReason: "実行中ではありません。"
+    },
+    outputReadiness: bodyOutputReadiness("pending")
+  });
+  const bodySummaryConfigured = (jobId = 16) => ({
+    ...bodySummaryMissing(jobId),
+    execution: configuredBodyExecution,
+    actionEnablement: {
+      canStart: true,
+      startBlockedReason: undefined,
+      canPause: false,
+      pauseBlockedReason: "実行中ではありません。",
+      canResume: false,
+      resumeBlockedReason: "再開対象ではありません。",
+      canRetry: false,
+      retryBlockedReason: "失敗状態ではありません。",
+      canCancel: false,
+      cancelBlockedReason: "実行中ではありません。"
     }
   });
 
@@ -628,11 +786,47 @@ export async function installScenarioWailsMocks(
     return "failed";
   };
 
+  // E2E-UC-051: jobId=7 用。execution を未設定にしつつ errorSummary.retryable=false にする。
+  // pill「設定未完了」を表示させる。retryable=true のままだと presenter が isRecoverableFailed=true と判断し
+  // canResume=true になって selectPhaseProgressActions で resume が優先され start が非表示になる。
+  // retryable=false にすることで canResume=false を維持し、start ボタン（disabled）が表示される。
+  // Playwright は disabled ボタンもクリックできるため、開始操作を実行して状態が変わらないことを証明できる。
+  const termSummarySeededMissing = (jobId = 7, targetCount = 3) => ({
+    ...termSummary("pending", jobId, targetCount),
+    execution: missingExecution,
+    errorSummary: { ...blockedStartError, retryable: false }
+  });
+  // E2E-UC-052: jobId=8 用。execution を未設定にしつつ errorSummary.retryable=false にする。
+  // termSummarySeededMissing と同じ理由: retryable=true だと resume が表示されて start が非表示になる。
+  const personaSummarySeededMissing = (jobId = 8) => ({
+    ...personaSummary("pending"),
+    jobId,
+    execution: missingPersonaExecution,
+    errorSummary: { ...blockedStartError, retryable: false }
+  });
+  // E2E-UC-053: jobId=9 用。execution だけ未設定にしつつ canStart=true を維持する。
+  const bodySummarySeededMissing = (jobId = 9) => ({
+    ...bodySummary("pending", jobId),
+    execution: missingBodyExecution
+  });
+
   const termZeroAITargetJobId = ${JSON.stringify(termZeroAITargetJobId)};
   const termAISettingsMissingJobId = ${JSON.stringify(termAISettingsMissing)} ? 14 : -1;
   // E2E-UC-FIX-MODEL-001/002/003: AI 設定未完了ジョブの execution 状態をステートフルに管理する。
   // false = 未設定（空文字 execution）、true = 設定済み（configured execution）
   let termAIMissingJobConfigured = false;
+  // E2E-UC-051/052/053: seeded phase jobs（jobId=7/8/9）の execution を未設定状態にする。
+  // デフォルトの execution は provider="-" を持ち isExecutionConfigured が truthy になるため、
+  // テストが期待する「設定未完了」pill を表示するには missingExecution が必要。
+  const seededTermJobMissingExecution = ${JSON.stringify(seededTermJobMissingExecution)};
+  const seededPersonaJobMissingExecution = ${JSON.stringify(seededPersonaJobMissingExecution)};
+  const seededBodyJobMissingExecution = ${JSON.stringify(seededBodyJobMissingExecution)};
+  const personaAISettingsMissingJobId = ${JSON.stringify(personaAISettingsMissing)} ? 15 : -1;
+  // E2E-UC-057: NPC ペルソナ生成段階で AI 設定未完了ジョブの execution 状態をステートフルに管理する。
+  let personaAIMissingJobConfigured = false;
+  const bodyAISettingsMissingJobId = ${JSON.stringify(bodyAISettingsMissing)} ? 16 : -1;
+  // E2E-UC-058: 本文翻訳段階で AI 設定未完了ジョブの execution 状態をステートフルに管理する。
+  let bodyAIMissingJobConfigured = false;
   const seededPhaseJobs = [
     { jobId: 7, label: "system-test-term", state: "Ready", currentPhase: "term_translation", progressPercent: 0 },
     { jobId: 8, label: "system-test-persona", state: "Ready", currentPhase: "persona_generation", progressPercent: 0 },
@@ -647,6 +841,12 @@ export async function installScenarioWailsMocks(
   }
   if (termAISettingsMissingJobId >= 0) {
     seededPhaseJobs.push({ jobId: termAISettingsMissingJobId, label: "system-test-term-ai-missing", state: "Ready", currentPhase: "term_translation", progressPercent: 0 });
+  }
+  if (personaAISettingsMissingJobId >= 0) {
+    seededPhaseJobs.push({ jobId: personaAISettingsMissingJobId, label: "system-test-persona-ai-missing", state: "Ready", currentPhase: "persona_generation", progressPercent: 0 });
+  }
+  if (bodyAISettingsMissingJobId >= 0) {
+    seededPhaseJobs.push({ jobId: bodyAISettingsMissingJobId, label: "system-test-body-ai-missing", state: "Ready", currentPhase: "body_translation", progressPercent: 0 });
   }
 
   const job = (jobId, label, state, currentPhase, progressPercent = 0) => ({
@@ -850,9 +1050,23 @@ export async function installScenarioWailsMocks(
           ? Promise.resolve(termSummaryConfigured(request.jobId))
           : Promise.resolve(termSummaryMissing(request.jobId));
       }
+      // E2E-UC-051: jobId=7 を未設定 execution で返す。
+      // デフォルト execution の provider="-" は isExecutionConfigured が truthy になるため
+      // pill「固定済み」になってしまう。missingExecution で「設定未完了」状態を実現する。
+      // canStart=true を維持して start ボタンを enabled にし、start 操作が状態を変えないことを証明する。
+      if (request.jobId === 7 && seededTermJobMissingExecution) {
+        return Promise.resolve(termSummarySeededMissing(request.jobId));
+      }
       return Promise.resolve(termSummary("pending", request.jobId, request.jobId === lucienJobId ? lucienTermProcessingTargets.length : 3));
     },
-    StartTermTranslationPhase: () => Promise.resolve(termSummary()),
+    StartTermTranslationPhase: (request) => {
+      // E2E-UC-051: seededTermJobMissingExecution 有効時は jobId=7 の start 後も未設定 execution を返す。
+      // AI 設定不足のため開始操作が状態を変えないシナリオを実現する。
+      if (request && request.jobId === 7 && seededTermJobMissingExecution) {
+        return Promise.resolve(termSummarySeededMissing(request.jobId));
+      }
+      return Promise.resolve(termSummary());
+    },
     PauseTermTranslationPhase: () => Promise.resolve(termSummary("paused")),
     ResumeTermTranslationPhase: () => Promise.resolve(termSummary("running")),
     RetryTermTranslationPhase: () => Promise.resolve(termSummary("running")),
@@ -869,26 +1083,128 @@ export async function installScenarioWailsMocks(
       if (termAISettingsMissingJobId >= 0) {
         termAIMissingJobConfigured = true;
       }
-      return Promise.resolve({ ...request, phaseId: "term", credentialStatus: "configured", modelListStatus: "success" });
+      // isTermTranslationAISettingsResponseDto が phaseType を必須フィールドとして要求するため含める。
+      return Promise.resolve({ ...request, phaseType: "term_translation", phaseId: "term", credentialStatus: "configured", modelListStatus: "success" });
     },
-    GetPersonaGenerationPhaseSummary: () => Promise.resolve(personaSummary()),
-    StartPersonaGenerationPhase: () => Promise.resolve(personaSummary()),
+    GetPersonaGenerationPhaseSummary: (request) => {
+      // E2E-UC-057: AI 設定未完了ジョブ（jobId=15）は SavePersonaGenerationPhaseAISettings 後に configured summary を返す。
+      if (request && request.jobId === personaAISettingsMissingJobId && personaAISettingsMissingJobId >= 0) {
+        return personaAIMissingJobConfigured
+          ? Promise.resolve(personaSummaryConfigured(request.jobId))
+          : Promise.resolve(personaSummaryMissing(request.jobId));
+      }
+      // E2E-UC-052: jobId=8 を未設定 execution で返す。
+      // デフォルト personaExecution の provider="-" は isExecutionConfigured が truthy になるため
+      // pill「固定済み」になってしまう。missingPersonaExecution で「設定未完了」状態を実現する。
+      // canStart=true を維持して start ボタンを enabled にし、start 操作が状態を変えないことを証明する。
+      if (request && request.jobId === 8 && seededPersonaJobMissingExecution) {
+        return Promise.resolve(personaSummarySeededMissing(request.jobId));
+      }
+      return Promise.resolve(personaSummary());
+    },
+    StartPersonaGenerationPhase: (request) => {
+      // E2E-UC-052: seededPersonaJobMissingExecution 有効時は jobId=8 の start 後も未設定 execution を返す。
+      // AI 設定不足のため開始操作が状態を変えないシナリオを実現する。
+      if (request && request.jobId === 8 && seededPersonaJobMissingExecution) {
+        return Promise.resolve(personaSummarySeededMissing(request.jobId));
+      }
+      return Promise.resolve(personaSummary());
+    },
     PausePersonaGenerationPhase: () => Promise.resolve(personaSummary("paused")),
     ResumePersonaGenerationPhase: () => Promise.resolve(personaSummary("running")),
     RetryPersonaGenerationPhase: () => Promise.resolve(personaSummary("running")),
     CancelPersonaGenerationPhase: () => Promise.resolve(personaSummary("canceled")),
     // wave-3 (BE-fact-only-persona) 完了後: 可否値を含まず事実状態 (inputSummary) のみ返す
     GetPersonaGenerationBodyReadiness: () => Promise.resolve({ jobId: 302, currentPhase: "persona_generation", phaseState: "pending", inputSummary: { personaCount: 0, missingCount: 1, snapshotId: "persona-snapshot", snapshotDigest: "persona-digest", evidenceRefs: [] } }),
-    SavePersonaGenerationPhaseAISettings: (request) => Promise.resolve({ ...request, phaseId: "persona", credentialStatus: "missing", modelListStatus: "credential_missing" }),
-    GetBodyTranslationPhaseSummary: (request) => Promise.resolve(bodySummary(bodyStateForJob(request.jobId), request.jobId)),
-    StartBodyTranslationPhase: (request) => Promise.resolve(bodyCommandSummary("pending", request.jobId)),
+    SavePersonaGenerationPhaseAISettings: (request) => {
+      // E2E-UC-057: personaAISettingsMissing オプション有効時（jobId=15 専用シナリオ）、
+      // 保存が呼ばれたら configured 状態に切り替える。
+      if (personaAISettingsMissingJobId >= 0) {
+        personaAIMissingJobConfigured = true;
+      }
+      return Promise.resolve({ ...request, phaseId: "persona", credentialStatus: "configured", modelListStatus: "success" });
+    },
+    GetBodyTranslationPhaseSummary: (request) => {
+      // E2E-UC-058: AI 設定未完了ジョブ（jobId=16）は SaveBodyTranslationPhaseAISettings 後に configured summary を返す。
+      if (request && request.jobId === bodyAISettingsMissingJobId && bodyAISettingsMissingJobId >= 0) {
+        return bodyAIMissingJobConfigured
+          ? Promise.resolve(bodySummaryConfigured(request.jobId))
+          : Promise.resolve(bodySummaryMissing(request.jobId));
+      }
+      // E2E-UC-053: jobId=9 を未設定 execution で返す。
+      // デフォルト bodyExecution の provider="-" は isExecutionConfigured が truthy になるため
+      // pill「固定済み」になってしまう。missingBodyExecution で「設定未完了」状態を実現する。
+      // canStart=true を維持して start ボタンを enabled にし、start 操作が状態を変えないことを証明する。
+      if (request && request.jobId === 9 && seededBodyJobMissingExecution) {
+        return Promise.resolve(bodySummarySeededMissing(request.jobId));
+      }
+      return Promise.resolve(bodySummary(bodyStateForJob(request.jobId), request.jobId));
+    },
+    StartBodyTranslationPhase: (request) => {
+      // E2E-UC-053: seededBodyJobMissingExecution 有効時は jobId=9 の start 後も未設定 execution を返す。
+      // AI 設定不足のため開始操作が状態を変えないシナリオを実現する。
+      if (request && request.jobId === 9 && seededBodyJobMissingExecution) {
+        return Promise.resolve(bodySummarySeededMissing(request.jobId));
+      }
+      return Promise.resolve(bodyCommandSummary("pending", request.jobId));
+    },
     PauseBodyTranslationPhase: (request) => Promise.resolve(bodyCommandSummary("paused", request.jobId)),
     ResumeBodyTranslationPhase: (request) => Promise.resolve(bodyCommandSummary("running", request.jobId)),
     RetryBodyTranslationPhase: (request) => Promise.resolve(bodyCommandSummary("running", request.jobId)),
     CancelBodyTranslationPhase: (request) => Promise.resolve(bodyCommandSummary("canceled", request.jobId)),
     // GetBodyTranslationOutputReadiness は wave-3 (BE-fact-only-body) で廃止済み。
     // 成果物出力確認の事実は GetBodyTranslationPhaseSummary の outputReadiness フィールドから取得する。
-    SaveBodyTranslationPhaseAISettings: (request) => Promise.resolve({ ...request, phaseId: "body", credentialStatus: "missing", modelListStatus: "credential_missing" }),
+    SaveBodyTranslationPhaseAISettings: (request) => {
+      // E2E-UC-058: bodyAISettingsMissing オプション有効時（jobId=16 専用シナリオ）、
+      // 保存が呼ばれたら configured 状態に切り替える。
+      if (bodyAISettingsMissingJobId >= 0) {
+        bodyAIMissingJobConfigured = true;
+      }
+      // isBodyTranslationAISettingsResponseDto が phaseType を必須フィールドとして要求するため含める。
+      return Promise.resolve({ ...request, phaseType: "body_translation", phaseId: "body", credentialStatus: "configured", modelListStatus: "success" });
+    },
+    // E2E-UC-056/057/058: 「モデル一覧を更新」ボタンが ListTranslationJobSetupProviderModels を呼ぶ。
+    // gemini provider に対して gemini-test モデルを返す。
+    ListTranslationJobSetupProviderModels: (request) => Promise.resolve({
+      provider: request.provider,
+      credentialStatus: "configured",
+      status: "success",
+      models: request.provider === "gemini" ? [{ modelId: "gemini-test", label: "gemini-test" }] : []
+    }),
+    // E2E-UC-056/057/058: AI サービス provider 一覧を返す。
+    // createTermTranslationPhaseScreenControllerFactory が ListProviderSettings を呼ぶ。
+    // isListProviderSettingsResponseDto バリデーションを通過するために route と各 provider の
+    // credentialState / validationState / savedState フィールドが必要。
+    ListProviderSettings: () => Promise.resolve({
+      route: {
+        routeId: "translation-job-management",
+        label: "翻訳管理",
+        currentRouteState: "idle",
+        dashboardEntryId: "translation-management"
+      },
+      providers: [
+        {
+          providerId: "gemini",
+          label: "Gemini",
+          endpoint: undefined,
+          credentialState: "configured",
+          credentialReferenceId: undefined,
+          validationState: "validated",
+          savedState: "configured",
+          requestToken: undefined
+        },
+        {
+          providerId: "lm_studio",
+          label: "LM Studio",
+          endpoint: "http://localhost:1234",
+          credentialState: "not_required",
+          credentialReferenceId: undefined,
+          validationState: "validated",
+          savedState: "configured",
+          requestToken: undefined
+        }
+      ]
+    }),
     GetTranslationOutputReview: (request) => Promise.resolve(outputReview(request.selectedJobId || 401)),
     GetTranslationOutputDiffPreview: (request) => Promise.resolve({
       jobId: request.jobId,
