@@ -7,8 +7,6 @@ description: "frontend ロジック実装、backend 実装、統合境界実装�
 ## 目的
 
 `implementation-module` は、承認済み `実装範囲` と `テスト設計` から、frontend ロジック実装、backend 実装、統合境界実装、テスト、観測ログ、最終検証を decision table で取捨選択するモジュール skill である。
-svelte 表示コンポーネント、props、style、story、fixture は本モジュールでは扱わない（`storybook-module` で扱う）。
-画面の表示変更がある task では、`storybook-module` の出口（`合意済み frontend 保護`）を受け取ってから本モジュールの実装を進める。
 
 ## 扱う範囲と扱わない範囲
 
@@ -30,7 +28,7 @@ svelte 表示コンポーネント、props、style、story、fixture は本モ�
 - 呼び出し元: 人間、または上位モジュール skill。
 - 返却先: 呼び出し元。
 - モジュールが呼ぶ下位 skill: `implement-frontend`（ロジック層だけ）、`implement-backend`、`implement-integration`、`tests-scenario`、`tests-unit`、`observability-implementer`。
-- モジュールが呼ぶ下位 agent: `frontend_implementer`、`backend_implementer`、`integration_implementer`、`implementation_tester`（シナリオテスト担当または単体テスト担当として、引き継ぎ入力でどちらを担当するかを 1 つに指定して起動する）。`観測ログ追加` は対象層に応じて `backend_implementer` または `frontend_implementer` が `observability-implementer` skill を参照して担当する。
+- モジュールが呼ぶ下位 agent: `frontend_implementer`、`backend_implementer`、`integration_implementer`、`implementation_tester`（テスト種別は引き継ぎ入力で指定）。観測ログは対象層の implementer が担当する。
 
 ## 入口条件
 
@@ -38,7 +36,7 @@ svelte 表示コンポーネント、props、style、story、fixture は本モ�
     - 実装系 task 経路（`design-module` 通過）: `実装範囲`、`テスト設計`。
     - 修正系 task 経路（`investigation-module` 通過）: `修正方針判断`、`UC 差分候補`、`E2E テスト観点差分`（必要なら `実装範囲`、`テスト設計` も）。
 - 画面の表示変更がある場合は `storybook-module` の出口（`合意済み frontend 保護`）が固定されている。
-- 想定 Y/N（frontend ロジック変更がある、backend 変更がある、frontend と backend を接続する、実装済み責務を独立に証明したい、実行時にしか確定しない値または原因分離が要る分岐がある）が `design-module` または `investigation-module` の `想定 Y/N 評価` で固定されている。
+- 想定 Y/N（後段 decision table の各行）が `design-module` または `investigation-module` の `想定 Y/N 評価` で固定されている。
 
 ## 出口条件
 
@@ -64,8 +62,6 @@ svelte 表示コンポーネント、props、style、story、fixture は本モ�
 | frontend と backend を接続する | - | - | 要 | 要 | - | - |
 | 実装済み責務を独立に証明したい | - | - | - | - | 要 | - |
 | 実行時にしか確定しない値または原因分離が要る分岐がある | - | - | - | - | - | 要 |
-
-注: 画面の表示変更（svelte 表示コンポーネント、props、style、story、fixture）は `storybook-module` の `Storybook 表示実装` で完了している。本モジュールの `frontend ロジック実装` は state、API、Wails bridge、ルーティング、副作用、フォーム validation のロジック層だけを扱う。
 
 ## 条件付き artifact
 
@@ -93,7 +89,6 @@ svelte 表示コンポーネント、props、style、story、fixture は本モ�
 - 実装対象: state（svelte store、グローバル state）、API 呼び出し、Wails bridge 呼び出し、ルーティング、ページ遷移、副作用、ライフサイクル処理、フォーム validation のロジック。
 - 実装対象外: svelte 表示コンポーネントの template、props、表示用 script、style、story、fixture（これらは `storybook-module` で扱う）。
 - 表示範囲を触る必要が出た場合は停止し、`storybook-module` の再実行または人間返却を固定する。
-- 画面の表示変更がある task では、`合意済み frontend 保護` で固定された表示境界の中だけで動く。
 
 ### backend 実装
 
@@ -104,7 +99,7 @@ svelte 表示コンポーネント、props、style、story、fixture は本モ�
 
 - `integration_implementer` を Task ツールで起動して作らせる。
 - 下位 skill: `implement-integration`。
-- `backend 実装` 完了後に着手する。画面の表示変更がある場合は `合意済み frontend 保護` を越えない範囲で実装する。
+- `backend 実装` 完了後に着手する。
 
 ### シナリオテスト
 
@@ -116,13 +111,13 @@ svelte 表示コンポーネント、props、style、story、fixture は本モ�
 
 - `implementation_tester`（単体テスト担当） を Task ツールで起動して作らせる。
 - 下位 skill: `tests-unit`。
-- 実装済み責務の公開振る舞い、分岐、エラー経路を証明する。
+- 実装済み責務を `tests-unit` の証明対象で証明する。
 
 ### 観測ログ追加
 
 - 対象層に応じて `backend_implementer` または `frontend_implementer` を Task ツールで起動して作らせる（backend ログは `backend_implementer`、frontend ログは `frontend_implementer`）。
 - 下位 skill: `observability-implementer`。
-- 完了済み実装・テスト成果物に対し、実行時にしか確定しない値または原因分離が要る分岐へ恒久ログを追加する。
+- 追加対象判断は `observability-implementer` の観測ログ対象表に従う。
 - `最終検証` の前に固定する。
 
 ### 最終検証
@@ -134,10 +129,11 @@ svelte 表示コンポーネント、props、style、story、fixture は本モ�
 
 ## 不変条件
 
-### 表示範囲ゲート
+### 表示範囲・UI 順序ゲート
 
 - 本モジュールは svelte 表示コンポーネント、props、style、story、fixture を変更しない。これらは `storybook-module` で扱う。
-- `frontend ロジック実装` が表示範囲（layout、文言、style、表示構造）を触る必要が出た場合は停止し、`storybook-module` の再実行入力または人間への返却を固定する。
+- 画面の表示変更がある場合、`合意済み frontend 保護` の固定なしに `frontend ロジック実装`、`backend 実装`、`統合境界実装` を起動しない。
+- 後続実装で表示範囲（layout、文言、style、表示構造、svelte 表示コンポーネント、props、story、fixture）の変更が必要になった場合は、本モジュールで進めず、`storybook-module` の再実行入力または人間への返却を固定する。
 
 ### 責務境界
 
@@ -145,11 +141,6 @@ svelte 表示コンポーネント、props、style、story、fixture は本モ�
 - 起動先 agent には会話文脈を引き継がず、必要情報を引き継ぎ入力へ明示する。起動先 agent に下位 agent を起動させない。
 - 終わった subagent は逐次閉じる。
 - 本モジュール skill と呼び出し元 agent は、起動先 agent の担当 artifact 本文を代筆しない。
-
-### UI 順序ゲート
-
-- 画面の表示変更がある場合、`合意済み frontend 保護` の固定なしに `frontend ロジック実装`、`backend 実装`、`統合境界実装` を起動しない。
-- 後続実装で表示範囲（svelte 表示コンポーネント、props、style、story、fixture）の変更が必要になった場合は、本モジュールで進めず、`storybook-module` の再実行入力または人間への返却を固定する。
 
 ### 検証順序ゲート
 
@@ -159,7 +150,6 @@ svelte 表示コンポーネント、props、style、story、fixture は本モ�
 ### 安全境界
 
 - 本モジュール skill と呼び出し元 agent は、プロダクトコード、プロダクトテスト、人間承認なしの docs 正本を直接変更しない。
-- 検証失敗原因が generated file にある場合は、直接編集せず生成元または公開境界の修正として担当 agent に渡す。
 
 ## 返す成果物
 

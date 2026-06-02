@@ -57,7 +57,6 @@ Storybook の作成、起動、分類、確認資源、`fixture` 種類基準は
 - frontend 実行入力 と 承認済み実装範囲 を確認して プロダクトコード と Storybook 確認資源だけを変更する
 - `frontend-local` の失敗原因が承認済み実装範囲 外にある場合でも、generated file、生成元、公開境界、または検証を壊した frontend プロダクトコードに限り 影響範囲修正 として直す
 - 影響範囲修正は、UI 表示、画面文言、layout、style、承認済み画面設計差分を越える変更に使わない
-- 明確なブロッカーがない限りはモジュールを中断せずに成果物の生成を継続すること。
 - UI 状態 の初期値と更新条件を確認する
 - [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の frontend 境界に従い、View、ScreenController、Frontend UseCase、Gateway の責務を跨がない
 - generated `wailsjs` と backend DTO の import は `frontend/src/controller/wails/` に閉じ込める
@@ -101,21 +100,11 @@ Storybook の作成、起動、分類、確認資源、`fixture` 種類基準は
 - 検証、未実行項目、残留リスク が 根拠参照 付きで整理されている。
 - frontend 実行入力、実装対象、対象変更範囲、依存完了情報、検証コマンドを確認した。
 - 画面設計根拠を確認した。
-- 画面導線と 状態 反映を確認した。
-- Wails bridge 境界を確認した。
-- generated `wailsjs` を gateway 境界に閉じ込めた。
-- UI 状態 の初期値と更新条件を確認した。
-- 承認済み画面設計差分、`docs/UX-standard.md`、frontend コーディング規約に合わせて実装した。
-- 変更または追加したコンポーネント、画面、表示状態を Storybook で確認できる story、`fixture`、関連資源を準備した。
-- Storybook 人間レビュー前または差し戻し対応中に変更した story が、作業中分類へ置かれている。
-- Storybook 人間レビュー承認後に変更した story が、通常分類へ戻っている。
-- Storybook 確認資源が不要な場合は、不要理由を返した。
+- Storybook 確認資源の分類が `Storybookカテゴリー結果` で返されている。
 - Storybook 確認資源を追加または更新した場合は、`npm --prefix frontend run build-storybook` を実行し、通過結果または未実行理由を返した。
-- 実画面と画面設計根拠 の一致確認結果を返した。
-- 画面設計差分がある場合は、画面ID と セレクタ（`aria-label`） の実装差分を確認した。
-- 画面設計根拠確認結果は、`chrome-devtools` MCP の `take_snapshot`、`take_screenshot`、`list_console_messages` の根拠または未取得理由を含んでいる。
+- `返す成果物` の `画面設計根拠確認結果` と `UI証跡参照` を返した。
 - frontend lint と format:check で拾われる境界違反を確認した。
-- frontend 変更として `python3 scripts/harness/run.py --suite frontend-local` を実行し、失敗した場合は承認済み実装範囲 または許可された 影響範囲修正 でその場で直して再実行し、通過結果または未実行理由を返した。
+- `モジュール内検証結果` を返した。
 
 ## 作業を止める条件
 
@@ -132,8 +121,6 @@ Storybook の作成、起動、分類、確認資源、`fixture` 種類基準は
 - プロダクトテスト、Storybook 人間レビューと無関係な検証データ、スナップショット、test helper の変更が必要になる場合は停止する。
 - 実画面と画面設計根拠 の差分が承認済み実装範囲 外の修正を必要とする場合は停止し、人間承認へ戻す。
 - 画面設計根拠確認に必要な実画面確認根拠を取得できない場合は停止し、未取得理由と戻し先を返す。
-- `python3 scripts/harness/run.py --suite frontend-local` の失敗原因が承認済み実装範囲 外にある場合は、generated file、生成元、公開境界、または検証を壊した frontend プロダクトコードに限り 影響範囲修正 として直す。
-- `python3 scripts/harness/run.py --suite frontend-local` の失敗原因が generated file にある場合は、generated file を直接編集せず、生成元または公開境界を 影響範囲修正 として直す。
 - `python3 scripts/harness/run.py --suite frontend-local` の失敗原因を直すために UI 表示、画面文言、layout、style、承認済み画面設計差分を越える変更が必要な場合は停止し、人間承認へ戻す。
 - 承認済み実装範囲外へ実装を広げる必要があり、許可された 影響範囲修正 に該当しない場合は停止し、人間承認へ戻す。
 - 停止時は不足項目、衝突箇所、戻し先を返す。

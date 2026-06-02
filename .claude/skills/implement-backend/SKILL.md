@@ -35,19 +35,16 @@ description: "`implementation-module` 内で `backend_implementer` agent が使�
 
 ## skill 内の拘束条件
 
+backend 層責務、依存方向、lint 観点は [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) と [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) の backend 章が拘束する。
+
 ## 担当ロールが判断してよい範囲
 
-- 層 責務と依存方向を守る
 - エラー経路 と 検証 を 承認済み実装範囲 内で閉じる
 - 単一引き継ぎ入力 と 承認済み実装範囲 を確認して プロダクトコード だけを変更する
 - モジュール内検証 結果 または未実行理由を返す
-- `lint:backend` の format、vet、static、arch、module で落ちる境界違反を事前に避ける
-
 - usecase / service / repository / adapter の責務を確認する
-- [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) の backend lint 内訳を確認する
-- [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の backend 依存方向に従い、usecase、service、repository、adapter concrete の境界を跨がない
+- `architecture.md` の backend 依存方向に従い、usecase、service、repository、adapter concrete の境界を跨がない
 - usecase から repository concrete、実行定義 concrete、driver API を直接参照しない
-- モジュール内検証 を実行した場合は結果を 終了処理 に残す
 
 ## skill が扱わない対象
 
@@ -73,11 +70,7 @@ description: "`implementation-module` 内で `backend_implementer` agent が使�
 - 承認済み実装範囲 または backend 責務内の影響範囲修正 の成果だけが返却されている。
 - 検証、未実行項目、残留リスク が 根拠参照 付きで整理されている。
 - 単一引き継ぎ入力、実装対象、対象変更範囲、依存完了情報、検証コマンドを確認した。
-- 層 責務と 依存方向 を確認した。
-- backend lint の format、static、arch、module 観点を確認した。
-- 検証 と エラー経路 を 承認済み実装範囲 または backend 責務内の影響範囲修正 で確認した。
-- backend 変更として `python3 scripts/harness/run.py --suite backend-local` を実行し、失敗した場合は承認済み実装範囲 または backend 責務内の影響範囲修正 でその場で直して再実行し、通過結果または未実行理由を返した。
-- 単一引き継ぎ入力 と モジュール内検証 を確認した。
+- `モジュール内検証結果` を返した。
 
 ## 作業を止める条件
 
@@ -85,10 +78,8 @@ description: "`implementation-module` 内で `backend_implementer` agent が使�
 - UI check を行う時
 - backend 境界を設計し直す時
 - 単一引き継ぎ入力、実装対象、対象変更範囲、依存完了情報、検証コマンドが不足する場合は停止する。
-- controller、usecase、service で concrete 実装を new する必要がある場合は停止する。
-- service core から filesystem、Wails 実行定義、DB driver の concrete API を直接呼ぶ必要がある場合は停止する。
+- `architecture.md` の backend 境界違反が必要になる場合は停止する（controller / usecase / service での concrete 実装 new、service core からの filesystem / Wails 実行定義 / DB driver の concrete API 直接呼び出しを含む）。
 - プロダクトテスト、検証データ、スナップショット、test helper の変更が必要になる場合は停止する。
-- `python3 scripts/harness/run.py --suite backend-local` の失敗原因が今回変更の直接影響で、backend 責務内プロダクトコードに閉じる場合だけ、影響範囲修正 として直す。
 - UI 表示、画面、部品、文言、style、人間承認済み UI 証跡の差分が必要になる場合は停止する。
 - secret、trust boundary、API / DTO / DB / schema の意味拡張が必要になる場合は停止する。
 - docs 正本化 または `.codex` 作業流れの変更が必要になる場合は停止する。
