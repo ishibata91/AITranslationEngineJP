@@ -82,6 +82,7 @@ frontend ロジック層（state、API、Wails bridge、ルーティング、副
 
 - 呼び出し元 agent が `chrome-devtools` MCP ツール群（`mcp__plugin_chrome-devtools-mcp_chrome-devtools__*`）を MCP ツールとして実行し、Storybook 上で人間レビューを反復する。
 - 反復で扱う対象: 人間コメント本文、対象 story、対象 selector、frame URL、marker screenshot。
+- 人間レビューを依頼する直前に、active plan folder に `summary.md` を一時作成し、レビュー終了後に削除する。固定セクションは「概要」と「図」の 2 つ。「概要」は今回のレビューで判断したい論点を 1〜数文で書く。「図」は Mermaid（シーケンス図、ロバストネス図、コンポーネント図、フロー図など）または表のうち、その時々の論点に合うものを選んで貼る。
 - 人間コメントは frontend 表示修正の入力として扱う。`storybook-review-loop.md` には履歴として残さず、確定結果のみを記録する。
 - frontend 表示修正は `frontend_implementer` を再起動して作らせる。下位 skill: `implement-frontend`。
 - 承認済み画面設計根拠を越える UI 表示、画面文言、layout、style の変更は行わない。越える必要がある場合は `Storybook 後画面設計差分整合` へ進む。
