@@ -114,3 +114,11 @@
 
 - 修正前: `fix_decider` が `http://localhost:34115` で jobId=3 を選択し、`setCurrentPhasePage("persona")` 経路を踏んで `$effect` 再実行による term への差し戻しをコンソールログで観測（`fix-decision.md` 画面再現確認節）。
 - 修正後: dev seed には完了済み term ジョブが存在せず、実 app での「次へ進む」クリック経路は到達できないため、E2E playwright（headless Chromium、fixture `system-test-completed-term`）の E2E-UC-048 / 049 / 048-B1 pass を実画面動作確認の代替とする。
+
+## merge / 完了記録
+
+- 作業 commit: `d806b2f2`
+- merge commit: `9fe42d5e`（`git merge --no-ff claude/fix-job-run-shell-effect-untrack` → `master`）
+- conflict: なし
+- merge 後検証: `python3 scripts/harness/run.py --suite frontend-local` PASS（54 files / 582 tests）
+- active → completed 移動済み
