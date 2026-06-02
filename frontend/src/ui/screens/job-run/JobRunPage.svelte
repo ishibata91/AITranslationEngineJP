@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte"
+  import { onMount, untrack } from "svelte"
 
   import type { TranslationJobManagementJobRunTarget } from "@application/contract/translation-job-management/translation-job-management-screen-types"
   import type {
@@ -110,7 +110,7 @@
   }
 
   function setCurrentPhasePage(phasePage: PhasePageId): void {
-    const previous = currentPhasePage
+    const previous = untrack(() => currentPhasePage)
     currentPhasePage = phasePage
 
     if (!selectedJobTarget || phasePage === previous) {
