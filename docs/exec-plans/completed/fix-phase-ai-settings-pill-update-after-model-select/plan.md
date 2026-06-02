@@ -214,3 +214,11 @@
 - 人間承認済みの恒久仕様: なし
 - `詳細仕様正本反映`（`updating-docs` skill）: skip
 - 承認日: 2026-06-02
+
+## finalization-module 完了記録
+
+- 作業 commit: `652d72d7` （branch `claude/fix-phase-ai-settings-pill-update-after-model-select` 上、28 ファイル変更 / 1543 insertions / 69 deletions）
+- local merge commit: `0d79db66` （`master` 上、`--no-ff`、conflict なし）
+- merge 後検証: `python3 scripts/harness/run.py --suite all` → backend / frontend / coverage 全 pass、system 76 pass / 2 fail（既知の `E2E-UC-048/049`、follow-up task `fix-job-run-shell-effect-untrack` に切り出し済み）
+- completed 移動: active → completed フォルダへ git mv 完了
+- remote push: 行わない（finalization-module 規約）
