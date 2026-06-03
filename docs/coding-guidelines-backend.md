@@ -29,6 +29,9 @@ frontend と test の規約は別文書を正本にする。
 - `Service` は実処理と port 呼び出しを持ち、filesystem、Wails runtime、SQL driver の concrete API を直接扱わない
 - `Repository` と adapter は外部入出力の concrete 実装を持ち、usecase の手順判断を持たない
 - `internal/bootstrap/` だけが production graph を組み立てる
+- backend が返す情報は「状態」「種別」「条件」のいずれかで表現し、boolean flag に潰さない。状態は entity の lifecycle 値（enum）、種別は分類（discriminator）、条件は状態と種別とデータから導かれる述語を指す
+- 「次へ進めるか」「操作可能か」のような UX 遷移判断は backend が返さない。frontend が状態、種別、条件から導出する
+- domain 不変条件として述語を返す必要がある場合も、判断の根拠となる状態、種別、条件を併せて返し、frontend が同じ情報から検証できる形にする
 
 ## 4. エラー処理
 
@@ -61,6 +64,8 @@ frontend と test の規約は別文書を正本にする。
 - controller、usecase、service、repository、adapter の責務を 1 ファイルへまとめる実装
 - 失敗を無視して処理を継続する実装
 - 初期化、migration、schema 更新を通常 request 経路へ混ぜる実装
+- 状態 enum、種別 discriminator、条件式に展開可能な情報を boolean flag に潰して返す実装
+- `canProceed`、`nextEnabled`、`isReady`、`isStartable` のような UX 遷移可否を表す flag を戻り値に含める実装
 
 ## 8. 参照元
 
