@@ -9,7 +9,7 @@ import (
 
 // BodyTranslationPhaseUsecasePort defines the frozen body translation phase usecase seam.
 type BodyTranslationPhaseUsecasePort interface {
-	GetBodyTranslationPhaseSummary(ctx context.Context, request usecase.GetBodyTranslationPhaseSummaryRequest) (usecase.BodyTranslationPhaseSummaryResult, error)
+	GetBodyTranslationPhaseSummary(ctx context.Context, request usecase.GetBodyTranslationPhaseSummaryRequest) (usecase.BodyTranslationPhaseFetchResult, error)
 	StartBodyTranslationPhase(ctx context.Context, request usecase.StartBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error)
 	PauseBodyTranslationPhase(ctx context.Context, request usecase.PauseBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error)
 	ResumeBodyTranslationPhase(ctx context.Context, request usecase.ResumeBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error)
@@ -169,18 +169,22 @@ type BodyTranslationPhaseErrorSummaryDTO struct {
 	IsRedacted bool   `json:"isRedacted"`
 }
 
-// BodyTranslationPhaseActionEnablementDTO summarizes Job Run button state.
-type BodyTranslationPhaseActionEnablementDTO struct {
-	CanStart            bool    `json:"canStart"`
-	StartBlockedReason  *string `json:"startBlockedReason,omitempty"`
-	CanPause            bool    `json:"canPause"`
-	PauseBlockedReason  *string `json:"pauseBlockedReason,omitempty"`
-	CanResume           bool    `json:"canResume"`
-	ResumeBlockedReason *string `json:"resumeBlockedReason,omitempty"`
-	CanRetry            bool    `json:"canRetry"`
-	RetryBlockedReason  *string `json:"retryBlockedReason,omitempty"`
-	CanCancel           bool    `json:"canCancel"`
-	CancelBlockedReason *string `json:"cancelBlockedReason,omitempty"`
+// BodyTranslationPhasePersonaBodyReadinessDTO carries the minimum digest of persona snapshot availability.
+type BodyTranslationPhasePersonaBodyReadinessDTO struct {
+	BodyReadiness           bool   `json:"bodyReadiness"`
+	SnapshotReferenceStatus string `json:"snapshotReferenceStatus"`
+}
+
+// BodyTranslationPhaseProjectionDTO carries the domain state projection fields for UX transition derivation.
+// summary DTO と並列に summary response の field group として配置する。
+type BodyTranslationPhaseProjectionDTO struct {
+	PhaseLifecycle         string                                      `json:"phaseLifecycle"`
+	JobLifecycle           string                                      `json:"jobLifecycle"`
+	ErrorKind              string                                      `json:"errorKind"`
+	AISettingsConfigured   bool                                        `json:"aiSettingsConfigured"`
+	TargetCount            int                                         `json:"targetCount"`
+	PreviousPhaseLifecycle string                                      `json:"previousPhaseLifecycle"`
+	PersonaBodyReadiness   BodyTranslationPhasePersonaBodyReadinessDTO `json:"personaBodyReadiness"`
 }
 
 // BodyTranslationOutputReadinessSummaryDTO summarizes downstream output readiness.
@@ -192,22 +196,22 @@ type BodyTranslationOutputReadinessSummaryDTO struct {
 
 // BodyTranslationPhaseSummaryResponseDTO returns the frozen summary response shape.
 type BodyTranslationPhaseSummaryResponseDTO struct {
-	JobID            int64                                      `json:"jobId"`
-	CurrentPhase     string                                     `json:"currentPhase"`
-	PhaseState       string                                     `json:"phaseState"`
-	PhaseRunID       *int64                                     `json:"phaseRunId,omitempty"`
-	StartedAt        *string                                    `json:"startedAt,omitempty"`
-	FinishedAt       *string                                    `json:"finishedAt,omitempty"`
-	Progress         BodyTranslationPhaseProgressSummaryDTO     `json:"progress"`
-	InputSummary     BodyTranslationPhaseInputSummaryDTO        `json:"inputSummary"`
-	RequestSummary   BodyTranslationPhaseRequestSummaryDTO      `json:"requestSummary"`
-	AISettings       *BodyTranslationPhaseAISettingsDTO         `json:"aiSettings,omitempty"`
-	Execution        *BodyTranslationPhaseExecutionSummaryDTO   `json:"execution,omitempty"`
-	FieldResults     []BodyTranslationPhaseFieldResultItemDTO   `json:"fieldResults,omitempty"`
-	ResultSummary    *BodyTranslationPhaseFieldResultSummaryDTO `json:"resultSummary,omitempty"`
-	ErrorSummary     *BodyTranslationPhaseErrorSummaryDTO       `json:"errorSummary,omitempty"`
-	ActionEnablement BodyTranslationPhaseActionEnablementDTO    `json:"actionEnablement"`
-	OutputReadiness  BodyTranslationOutputReadinessSummaryDTO   `json:"outputReadiness"`
+	JobID           int64                                      `json:"jobId"`
+	CurrentPhase    string                                     `json:"currentPhase"`
+	PhaseState      string                                     `json:"phaseState"`
+	PhaseRunID      *int64                                     `json:"phaseRunId,omitempty"`
+	StartedAt       *string                                    `json:"startedAt,omitempty"`
+	FinishedAt      *string                                    `json:"finishedAt,omitempty"`
+	Progress        BodyTranslationPhaseProgressSummaryDTO     `json:"progress"`
+	InputSummary    BodyTranslationPhaseInputSummaryDTO        `json:"inputSummary"`
+	RequestSummary  BodyTranslationPhaseRequestSummaryDTO      `json:"requestSummary"`
+	AISettings      *BodyTranslationPhaseAISettingsDTO         `json:"aiSettings,omitempty"`
+	Execution       *BodyTranslationPhaseExecutionSummaryDTO   `json:"execution,omitempty"`
+	FieldResults    []BodyTranslationPhaseFieldResultItemDTO   `json:"fieldResults,omitempty"`
+	ResultSummary   *BodyTranslationPhaseFieldResultSummaryDTO `json:"resultSummary,omitempty"`
+	ErrorSummary    *BodyTranslationPhaseErrorSummaryDTO       `json:"errorSummary,omitempty"`
+	OutputReadiness BodyTranslationOutputReadinessSummaryDTO   `json:"outputReadiness"`
+	Projection      BodyTranslationPhaseProjectionDTO          `json:"projection"`
 }
 
 // BodyTranslationPhaseCommandResponseDTO returns the frozen write-seam response shape.
@@ -239,14 +243,14 @@ func NewBodyTranslationPhaseController(usecase BodyTranslationPhaseUsecasePort) 
 func (controller *BodyTranslationPhaseController) GetBodyTranslationPhaseSummary(
 	request GetBodyTranslationPhaseSummaryRequestDTO,
 ) (BodyTranslationPhaseSummaryResponseDTO, error) {
-	result, err := controller.bodyTranslationPhaseUsecase.GetBodyTranslationPhaseSummary(
+	fetchResult, err := controller.bodyTranslationPhaseUsecase.GetBodyTranslationPhaseSummary(
 		context.Background(),
 		usecase.GetBodyTranslationPhaseSummaryRequest{JobID: request.JobID},
 	)
 	if err != nil {
 		return BodyTranslationPhaseSummaryResponseDTO{}, fmt.Errorf("get body translation phase summary: %w", err)
 	}
-	return toBodyTranslationPhaseSummaryResponseDTO(result), nil
+	return toBodyTranslationPhaseSummaryResponseDTO(fetchResult.Summary, fetchResult.Projection), nil
 }
 
 // StartBodyTranslationPhase starts one body translation phase run or returns a rejected result.
@@ -335,6 +339,7 @@ func (controller *BodyTranslationPhaseController) SaveBodyTranslationPhaseAISett
 
 func toBodyTranslationPhaseSummaryResponseDTO(
 	result usecase.BodyTranslationPhaseSummaryResult,
+	projection usecase.BodyTranslationPhaseProjectionResult,
 ) BodyTranslationPhaseSummaryResponseDTO {
 	executionDTO := toOptionalBodyTranslationPhaseExecutionSummaryDTO(result.Execution)
 	var outputCount int
@@ -342,22 +347,22 @@ func toBodyTranslationPhaseSummaryResponseDTO(
 		outputCount = result.Execution.OutputCount
 	}
 	return BodyTranslationPhaseSummaryResponseDTO{
-		JobID:            result.JobID,
-		CurrentPhase:     result.CurrentPhase,
-		PhaseState:       result.PhaseState,
-		PhaseRunID:       cloneOptionalInt64(result.PhaseRunID),
-		StartedAt:        formatOptionalTime(result.StartedAt),
-		FinishedAt:       formatOptionalTime(result.FinishedAt),
-		Progress:         toBodyTranslationPhaseProgressSummaryDTO(result.Progress),
-		InputSummary:     toBodyTranslationPhaseInputSummaryDTO(result.InputSummary),
-		RequestSummary:   toBodyTranslationPhaseRequestSummaryDTO(result.RequestSummary),
-		AISettings:       toBodyTranslationPhaseAISettingsDTO(result.AISettings),
-		Execution:        executionDTO,
-		FieldResults:     toBodyTranslationPhaseFieldResultItemsDTO(result.FieldResults),
-		ResultSummary:    toOptionalBodyTranslationPhaseFieldResultSummaryDTO(firstNonNilBodyTranslationFieldResult(result.ResultSummary, result.FieldResultSummary)),
-		ErrorSummary:     toOptionalBodyTranslationPhaseErrorSummaryDTO(result.ErrorSummary),
-		ActionEnablement: toBodyTranslationPhaseActionEnablementDTO(result.ActionEnablement),
-		OutputReadiness:  toBodyTranslationOutputReadinessSummaryDTO(result.OutputReadiness, outputCount),
+		JobID:           result.JobID,
+		CurrentPhase:    result.CurrentPhase,
+		PhaseState:      result.PhaseState,
+		PhaseRunID:      cloneOptionalInt64(result.PhaseRunID),
+		StartedAt:       formatOptionalTime(result.StartedAt),
+		FinishedAt:      formatOptionalTime(result.FinishedAt),
+		Progress:        toBodyTranslationPhaseProgressSummaryDTO(result.Progress),
+		InputSummary:    toBodyTranslationPhaseInputSummaryDTO(result.InputSummary),
+		RequestSummary:  toBodyTranslationPhaseRequestSummaryDTO(result.RequestSummary),
+		AISettings:      toBodyTranslationPhaseAISettingsDTO(result.AISettings),
+		Execution:       executionDTO,
+		FieldResults:    toBodyTranslationPhaseFieldResultItemsDTO(result.FieldResults),
+		ResultSummary:   toOptionalBodyTranslationPhaseFieldResultSummaryDTO(firstNonNilBodyTranslationFieldResult(result.ResultSummary, result.FieldResultSummary)),
+		ErrorSummary:    toOptionalBodyTranslationPhaseErrorSummaryDTO(result.ErrorSummary),
+		OutputReadiness: toBodyTranslationOutputReadinessSummaryDTO(result.OutputReadiness, outputCount),
+		Projection:      toBodyTranslationPhaseProjectionDTO(projection),
 	}
 }
 
@@ -541,20 +546,20 @@ func toOptionalBodyTranslationPhaseErrorSummaryDTO(
 	}
 }
 
-func toBodyTranslationPhaseActionEnablementDTO(
-	summary usecase.BodyTranslationPhaseActionEnablement,
-) BodyTranslationPhaseActionEnablementDTO {
-	return BodyTranslationPhaseActionEnablementDTO{
-		CanStart:            summary.CanStart,
-		StartBlockedReason:  cloneOptionalString(summary.StartBlockedReason),
-		CanPause:            summary.CanPause,
-		PauseBlockedReason:  cloneOptionalString(summary.PauseBlockedReason),
-		CanResume:           summary.CanResume,
-		ResumeBlockedReason: cloneOptionalString(summary.ResumeBlockedReason),
-		CanRetry:            summary.CanRetry,
-		RetryBlockedReason:  cloneOptionalString(summary.RetryBlockedReason),
-		CanCancel:           summary.CanCancel,
-		CancelBlockedReason: cloneOptionalString(summary.CancelBlockedReason),
+func toBodyTranslationPhaseProjectionDTO(
+	projection usecase.BodyTranslationPhaseProjectionResult,
+) BodyTranslationPhaseProjectionDTO {
+	return BodyTranslationPhaseProjectionDTO{
+		PhaseLifecycle:         projection.PhaseLifecycle,
+		JobLifecycle:           projection.JobLifecycle,
+		ErrorKind:              projection.ErrorKind,
+		AISettingsConfigured:   projection.AISettingsConfigured,
+		TargetCount:            projection.TargetCount,
+		PreviousPhaseLifecycle: projection.PreviousPhaseLifecycle,
+		PersonaBodyReadiness: BodyTranslationPhasePersonaBodyReadinessDTO{
+			BodyReadiness:           projection.PersonaBodyReadiness.BodyReadiness,
+			SnapshotReferenceStatus: projection.PersonaBodyReadiness.SnapshotReferenceStatus,
+		},
 	}
 }
 

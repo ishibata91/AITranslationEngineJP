@@ -244,25 +244,29 @@ function isErrorSummary(value: unknown, path: string): boolean {
   )
 }
 
-function isActionEnablement(value: unknown, path: string): boolean {
+/**
+ * isProjection validates the domain state projection field group.
+ * This replaces the removed isActionEnablement validator. The motivating bug
+ * (canStartNextPhase required validator failing when field was absent) is
+ * resolved by removing actionEnablement entirely and introducing projection.
+ */
+function isProjection(value: unknown, path: string): boolean {
   if (!isRecord(value)) {
     return invalid(path, "object")
   }
 
   return (
-    (isBoolean(value["canStart"]) || invalid(`${path}.canStart`, "boolean")) &&
-    (isOptionalString(value["startBlockedReason"]) ||
-      invalid(`${path}.startBlockedReason`, "string or undefined")) &&
-    (isBoolean(value["canPause"]) || invalid(`${path}.canPause`, "boolean")) &&
-    (isOptionalString(value["pauseBlockedReason"]) ||
-      invalid(`${path}.pauseBlockedReason`, "string or undefined")) &&
-    (isBoolean(value["canResume"]) ||
-      invalid(`${path}.canResume`, "boolean")) &&
-    (isOptionalString(value["resumeBlockedReason"]) ||
-      invalid(`${path}.resumeBlockedReason`, "string or undefined")) &&
-    (isBoolean(value["canRetry"]) || invalid(`${path}.canRetry`, "boolean")) &&
-    (isOptionalString(value["retryBlockedReason"]) ||
-      invalid(`${path}.retryBlockedReason`, "string or undefined"))
+    (isString(value["phaseLifecycle"]) ||
+      invalid(`${path}.phaseLifecycle`, "string")) &&
+    (isString(value["jobLifecycle"]) ||
+      invalid(`${path}.jobLifecycle`, "string")) &&
+    (isString(value["errorKind"]) || invalid(`${path}.errorKind`, "string")) &&
+    (isBoolean(value["aiSettingsConfigured"]) ||
+      invalid(`${path}.aiSettingsConfigured`, "boolean")) &&
+    (isNumber(value["aiTargetCount"]) ||
+      invalid(`${path}.aiTargetCount`, "number")) &&
+    (isNumber(value["confirmedCount"]) ||
+      invalid(`${path}.confirmedCount`, "number"))
   )
 }
 
@@ -295,7 +299,7 @@ function isTermTranslationPhaseSummaryResponseDto(
     isExecution(value["execution"], "$.execution") &&
     isResultSummary(value["resultSummary"], "$.resultSummary") &&
     isErrorSummary(value["errorSummary"], "$.errorSummary") &&
-    isActionEnablement(value["actionEnablement"], "$.actionEnablement")
+    isProjection(value["projection"], "$.projection")
   )
 }
 
@@ -319,8 +323,6 @@ function isTermTranslationPhaseCommandResponseDto(
       invalid("$.finishedAt", "string or undefined")) &&
     isProgress(value["progress"], "$.progress") &&
     (isBoolean(value["retryable"]) || invalid("$.retryable", "boolean")) &&
-    (isBoolean(value["canStartNextPhase"]) ||
-      invalid("$.canStartNextPhase", "boolean")) &&
     isErrorSummary(value["errorSummary"], "$.errorSummary")
   )
 }
@@ -385,10 +387,11 @@ function isTermTranslationNextPhaseReadinessResponseDto(
     (isNumber(value["jobId"]) || invalid("$.jobId", "number")) &&
     (isString(value["currentPhase"]) || invalid("$.currentPhase", "string")) &&
     (isString(value["phaseState"]) || invalid("$.phaseState", "string")) &&
-    (isBoolean(value["canStartNextPhase"]) ||
-      invalid("$.canStartNextPhase", "boolean")) &&
-    (isOptionalString(value["blockedReason"]) ||
-      invalid("$.blockedReason", "string or undefined")) &&
+    (isBoolean(value["jobIsTerminal"]) ||
+      invalid("$.jobIsTerminal", "boolean")) &&
+    (isNumber(value["totalCount"]) || invalid("$.totalCount", "number")) &&
+    (isNumber(value["confirmedCount"]) ||
+      invalid("$.confirmedCount", "number")) &&
     (isOptionalString(value["errorKind"]) ||
       invalid("$.errorKind", "string or undefined"))
   )

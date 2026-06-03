@@ -34,16 +34,19 @@ func NewTermTranslationPhaseUsecase(service termTranslationPhaseServicePort) *Te
 	return &TermTranslationPhaseUsecase{service: service}
 }
 
-// GetTermTranslationPhaseSummary returns the term phase summary contract.
+// GetTermTranslationPhaseSummary returns the term phase fetch result with projection and summary.
 func (usecase *TermTranslationPhaseUsecase) GetTermTranslationPhaseSummary(
 	ctx context.Context,
 	request GetTermTranslationPhaseSummaryRequest,
-) (TermTranslationPhaseSummaryResult, error) {
+) (TermTranslationPhaseFetchResult, error) {
 	readModel, err := usecase.service.ReadSummary(ctx, request.JobID)
 	if err != nil {
-		return TermTranslationPhaseSummaryResult{}, fmt.Errorf("get term translation phase summary: %w", err)
+		return TermTranslationPhaseFetchResult{}, fmt.Errorf("get term translation phase summary: %w", err)
 	}
-	return toTermTranslationPhaseSummaryResult(readModel), nil
+	return TermTranslationPhaseFetchResult{
+		Projection: toTermTranslationPhaseProjectionResult(readModel),
+		Summary:    toTermTranslationPhaseSummaryResult(readModel),
+	}, nil
 }
 
 // StartTermTranslationPhase starts one term phase run and returns the command contract.
@@ -262,6 +265,37 @@ func termCommandResultFromSummary(summary service.TermTranslationPhaseSummaryRea
 	}
 }
 
+func toTermTranslationPhaseProjectionResult(
+	readModel service.TermTranslationPhaseSummaryReadModel,
+) TermTranslationPhaseProjectionResult {
+	errorKind := ""
+	if readModel.ErrorSummary != nil {
+		errorKind = NormalizeTermTranslationPhasePublicErrorKind(readModel.ErrorSummary.ErrorKind)
+	}
+	return TermTranslationPhaseProjectionResult{
+		PhaseLifecycle:       readModel.PhaseState,
+		JobLifecycle:         readModel.JobState,
+		ErrorKind:            errorKind,
+		AISettingsConfigured: termAISettingsConfigured(readModel),
+		AITargetCount:        readModel.Progress.AITargetCount,
+		ConfirmedCount:       termConfirmedCount(readModel),
+	}
+}
+
+func termAISettingsConfigured(readModel service.TermTranslationPhaseSummaryReadModel) bool {
+	return readModel.AISettings != nil &&
+		readModel.AISettings.Provider != "" &&
+		readModel.AISettings.Model != "" &&
+		readModel.AISettings.ExecutionMode != ""
+}
+
+func termConfirmedCount(readModel service.TermTranslationPhaseSummaryReadModel) int {
+	if readModel.ResultSummary == nil {
+		return 0
+	}
+	return readModel.ResultSummary.ConfirmedCount
+}
+
 func toTermTranslationPhaseSummaryResult(
 	readModel service.TermTranslationPhaseSummaryReadModel,
 ) TermTranslationPhaseSummaryResult {
@@ -280,7 +314,6 @@ func toTermTranslationPhaseSummaryResult(
 		Execution:          toTermTranslationExecutionConfigSummary(readModel.Execution),
 		ResultSummary:      toTermTranslationPhaseResultSummary(readModel.ResultSummary),
 		ErrorSummary:       toTermTranslationPhaseErrorSummary(readModel.ErrorSummary),
-		ActionEnablement:   toTermTranslationPhaseActionEnablement(readModel.ActionEnablement),
 	}
 }
 
@@ -368,21 +401,6 @@ func toTermTranslationPhaseErrorSummary(
 		Reason:     readModel.Reason,
 		Retryable:  readModel.Retryable,
 		IsRedacted: readModel.IsRedacted,
-	}
-}
-
-func toTermTranslationPhaseActionEnablement(
-	readModel service.TermTranslationPhaseActionEnablementReadModel,
-) TermTranslationPhaseActionEnablement {
-	return TermTranslationPhaseActionEnablement{
-		CanStart:            readModel.CanStart,
-		StartBlockedReason:  cloneStringPointer(readModel.StartBlockedReason),
-		CanPause:            readModel.CanPause,
-		PauseBlockedReason:  cloneStringPointer(readModel.PauseBlockedReason),
-		CanResume:           readModel.CanResume,
-		ResumeBlockedReason: cloneStringPointer(readModel.ResumeBlockedReason),
-		CanRetry:            readModel.CanRetry,
-		RetryBlockedReason:  cloneStringPointer(readModel.RetryBlockedReason),
 	}
 }
 

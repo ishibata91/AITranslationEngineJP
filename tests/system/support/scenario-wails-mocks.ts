@@ -481,31 +481,41 @@ export async function installScenarioWailsMocks(
     isRedacted: true
   };
 
-  const termSummary = (state = "pending", jobId = 301, targetCount = 3) => ({
-    jobId,
-    currentPhase: "term_translation",
-    phaseState: state,
-    phaseRunId: 1,
-    progress: state === "completed" ? commonProgress(targetCount, targetCount, "完了") : commonProgress(0, targetCount, "未開始"),
-    totalTermCount: targetCount,
-    dictionaryHitCount: 0,
-    aiTargetCount: targetCount,
-    execution,
-    // wave-3 (BE-fact-only-term) 完了後: frontend が resultSummary.confirmedCount から次段階開始可否を導出する
-    // state=completed では confirmedCount=targetCount (全件確認済み) として次段階開始可を導く
-    resultSummary: state === "completed" ? { confirmedCount: targetCount, jobDictionaryAppliedCount: 0, replacementTargetCount: 0, unmatchedCount: 0, providerSkipped: false } : undefined,
-    errorSummary: blockedStartError,
-    actionEnablement: {
-      canStart: state === "pending",
-      startBlockedReason: "AI 設定未完了。認証状態を確認してください。",
-      canPause: false,
-      pauseBlockedReason: "未開始です。",
-      canResume: false,
-      resumeBlockedReason: "未開始です。",
-      canRetry: false,
-      retryBlockedReason: "未開始です。"
-    }
-  });
+  const termSummary = (state = "pending", jobId = 301, targetCount = 3) => {
+    // state から phaseLifecycle を導出する。presenter の H-1 条件導出に使う。
+    const phaseLifecycle =
+      state === "completed" ? "completed" :
+      state === "running" ? "running" :
+      state === "paused" ? "paused" :
+      state === "failed" ? "recoverable_failed" :
+      "idle_ready";
+    const confirmedCount = state === "completed" ? targetCount : 0;
+    return {
+      jobId,
+      currentPhase: "term_translation",
+      phaseState: state,
+      phaseRunId: 1,
+      progress: state === "completed" ? commonProgress(targetCount, targetCount, "完了") : commonProgress(0, targetCount, "未開始"),
+      totalTermCount: targetCount,
+      dictionaryHitCount: 0,
+      aiTargetCount: targetCount,
+      execution,
+      // wave-3 (BE-fact-only-term) 完了後: frontend が resultSummary.confirmedCount から次段階開始可否を導出する
+      // state=completed では confirmedCount=targetCount (全件確認済み) として次段階開始可を導く
+      resultSummary: state === "completed" ? { confirmedCount: targetCount, jobDictionaryAppliedCount: 0, replacementTargetCount: 0, unmatchedCount: 0, providerSkipped: false } : undefined,
+      errorSummary: blockedStartError,
+      // projection: ドメイン状態射影。frontend presenter の UX 遷移可否導出に使う（G-4-a）。
+      // actionEnablement は frontend 側で導出するため含めない（refactor-action-enablement-derive-on-frontend）。
+      projection: {
+        phaseLifecycle,
+        jobLifecycle: "running",
+        errorKind: "none",
+        aiSettingsConfigured: true,
+        aiTargetCount: targetCount,
+        confirmedCount
+      }
+    };
+  };
   // E2E-UC-FIX-MODEL-001/002: execution の provider/model が空文字の未設定状態。
   // presenter の isExecutionConfigured が false を返し、状態 pill が「設定未完了」になる。
   // executionMode は "batch" をデフォルト値として保持し、saveAISettings の executionMode 空チェックを回避する。
@@ -532,15 +542,14 @@ export async function installScenarioWailsMocks(
     // retryable=true にすると presenter が isRecoverableFailed=true と判断し canResume=true になり
     // selectPhaseProgressActions で resume が優先されて start が除外される。
     errorSummary: { ...blockedStartError, retryable: false },
-    actionEnablement: {
-      canStart: false,
-      startBlockedReason: "実行設定が未構成のため開始できません。",
-      canPause: false,
-      pauseBlockedReason: "未開始です。",
-      canResume: false,
-      resumeBlockedReason: "未開始です。",
-      canRetry: false,
-      retryBlockedReason: "未開始です。"
+    // projection: aiSettingsConfigured=false により presenter が canStart=false を導出する（H-1）。
+    projection: {
+      phaseLifecycle: "idle_ready",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: false,
+      aiTargetCount: targetCount,
+      confirmedCount: 0
     }
   });
   // E2E-UC-FIX-MODEL-003: SaveTermTranslationPhaseAISettings 後に configured execution を持つ summary。
@@ -555,15 +564,14 @@ export async function installScenarioWailsMocks(
   const termSummaryConfigured = (jobId = 14, targetCount = 3) => ({
     ...termSummaryMissing(jobId, targetCount),
     execution: configuredExecution,
-    actionEnablement: {
-      canStart: true,
-      startBlockedReason: undefined,
-      canPause: false,
-      pauseBlockedReason: "未開始です。",
-      canResume: false,
-      resumeBlockedReason: "未開始です。",
-      canRetry: false,
-      retryBlockedReason: "未開始です。"
+    // projection: aiSettingsConfigured=true に切り替えることで presenter が canStart=true を導出する（H-1）。
+    projection: {
+      phaseLifecycle: "idle_ready",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: true,
+      aiTargetCount: targetCount,
+      confirmedCount: 0
     }
   });
 
@@ -601,33 +609,28 @@ export async function installScenarioWailsMocks(
     // retryable=true にすると presenter が isRecoverableFailed=true と判断し canResume=true になり
     // selectPhaseProgressActions で resume が優先されて start が除外される。
     errorSummary: { ...blockedStartError, retryable: false },
-    actionEnablement: {
-      canStart: false,
-      startBlockedReason: "実行設定が未構成のため開始できません。",
-      canPause: false,
-      pauseBlockedReason: "未開始です。",
-      canResume: false,
-      resumeBlockedReason: "未開始です。",
-      canRetry: false,
-      retryBlockedReason: "未開始です。",
-      canCancel: false,
-      cancelBlockedReason: "実行中ではありません。"
+    // projection: aiSettingsConfigured=false により presenter が canStart=false を導出する（H-6）。
+    // previousPhaseLifecycle=completed は term 完了済み状態を示す。
+    projection: {
+      phaseLifecycle: "idle_ready",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: false,
+      targetCount: 2,
+      previousPhaseLifecycle: "completed"
     }
   });
   const personaSummaryConfigured = (jobId = 15) => ({
     ...personaSummaryMissing(jobId),
     execution: configuredPersonaExecution,
-    actionEnablement: {
-      canStart: true,
-      startBlockedReason: undefined,
-      canPause: false,
-      pauseBlockedReason: "未開始です。",
-      canResume: false,
-      resumeBlockedReason: "未開始です。",
-      canRetry: false,
-      retryBlockedReason: "未開始です。",
-      canCancel: false,
-      cancelBlockedReason: "実行中ではありません。"
+    // projection: aiSettingsConfigured=true に切り替えることで presenter が canStart=true を導出する（H-6）。
+    projection: {
+      phaseLifecycle: "idle_ready",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: true,
+      targetCount: 2,
+      previousPhaseLifecycle: "completed"
     }
   });
   // E2E-UC-058: 本文翻訳段階の AI 設定未完了シナリオ用 summary。
@@ -660,61 +663,68 @@ export async function installScenarioWailsMocks(
     fieldResults: [],
     resultSummary: undefined,
     errorSummary: undefined,
-    actionEnablement: {
-      canStart: false,
-      startBlockedReason: "実行設定が未構成のため開始できません。",
-      canPause: false,
-      pauseBlockedReason: "実行中ではありません。",
-      canResume: false,
-      resumeBlockedReason: "再開対象ではありません。",
-      canRetry: false,
-      retryBlockedReason: "失敗状態ではありません。",
-      canCancel: false,
-      cancelBlockedReason: "実行中ではありません。"
+    // projection: aiSettingsConfigured=false により presenter が canStart=false を導出する（H-12）。
+    projection: {
+      phaseLifecycle: "idle_ready",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: false,
+      targetCount: 4,
+      previousPhaseLifecycle: "completed",
+      personaBodyReadiness: {
+        bodyReadiness: true,
+        snapshotReferenceStatus: "available"
+      }
     },
     outputReadiness: bodyOutputReadiness("pending")
   });
   const bodySummaryConfigured = (jobId = 16) => ({
     ...bodySummaryMissing(jobId),
     execution: configuredBodyExecution,
-    actionEnablement: {
-      canStart: true,
-      startBlockedReason: undefined,
-      canPause: false,
-      pauseBlockedReason: "実行中ではありません。",
-      canResume: false,
-      resumeBlockedReason: "再開対象ではありません。",
-      canRetry: false,
-      retryBlockedReason: "失敗状態ではありません。",
-      canCancel: false,
-      cancelBlockedReason: "実行中ではありません。"
+    // projection: aiSettingsConfigured=true に切り替えることで presenter が canStart=true を導出する（H-12）。
+    projection: {
+      phaseLifecycle: "idle_ready",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: true,
+      targetCount: 4,
+      previousPhaseLifecycle: "completed",
+      personaBodyReadiness: {
+        bodyReadiness: true,
+        snapshotReferenceStatus: "available"
+      }
     }
   });
 
-  const personaSummary = (state = "pending") => ({
-    jobId: 302,
-    currentPhase: "persona_generation",
-    phaseState: state,
-    phaseRunId: 2,
-    progress: commonProgress(0, 2, "未開始"),
-    targetSummary,
-    execution: personaExecution,
-    errorSummary: blockedStartError,
-    actionEnablement: {
-      canStart: true,
-      startBlockedReason: "AI 設定未完了。認証状態を確認してください。",
-      canPause: false,
-      pauseBlockedReason: "未開始です。",
-      canResume: false,
-      resumeBlockedReason: "未開始です。",
-      canRetry: state === "failed",
-      retryBlockedReason: state === "failed" ? "" : "未開始です。",
-      canCancel: state === "running",
-      cancelBlockedReason: state === "running" ? "" : "実行中ではありません。"
-      // wave-3 (BE-fact-only-persona) 完了後: canStartBodyPhase は frontend が
-      // derivePersonaCanStartBodyPhase で summary.resultSummary.bodyReadiness から導出するため除去済み。
-    }
-  });
+  const personaSummary = (state = "pending") => {
+    // state から phaseLifecycle を導出する。presenter の H-6 条件導出に使う。
+    const phaseLifecycle =
+      state === "completed" ? "completed" :
+      state === "running" ? "running" :
+      state === "paused" ? "paused" :
+      state === "failed" ? "recoverable_failed" :
+      "idle_ready";
+    return {
+      jobId: 302,
+      currentPhase: "persona_generation",
+      phaseState: state,
+      phaseRunId: 2,
+      progress: commonProgress(0, 2, "未開始"),
+      targetSummary,
+      execution: personaExecution,
+      errorSummary: blockedStartError,
+      // projection: ドメイン状態射影。frontend presenter の UX 遷移可否導出に使う（G-4-b）。
+      // previousPhaseLifecycle=completed は term 完了済み状態。aiSettingsConfigured=true で start が有効になる。
+      projection: {
+        phaseLifecycle,
+        jobLifecycle: "running",
+        errorKind: state === "failed" ? "recoverable" : "none",
+        aiSettingsConfigured: true,
+        targetCount: 2,
+        previousPhaseLifecycle: "completed"
+      }
+    };
+  };
   // BodyTranslationOutputReadinessSummary: completedFieldCount / statusConsistent / outputCount
   // wave-3 (BE-fact-only-body) 完了後は ready / blockedReason を DTO が含まない。
   // ただし body gateway の hasBodyPhaseBase バリデーションが通るよう型フィールドのみ返す。
@@ -757,19 +767,24 @@ export async function installScenarioWailsMocks(
       retryable: true,
       isRedacted: true
     } : undefined,
-    actionEnablement: {
-      canStart: state === "pending",
-      startBlockedReason: "AI 設定未完了。認証状態を確認してください。",
-      canPause: state === "running",
-      pauseBlockedReason: state === "running" ? "" : "実行中ではありません。",
-      canResume: false,
-      resumeBlockedReason: "再開対象ではありません。",
-      canRetry: state === "failed",
-      retryBlockedReason: state === "failed" ? "" : "失敗状態ではありません。",
-      canCancel: state === "running",
-      cancelBlockedReason: state === "running" ? "" : "実行中ではありません。"
-      // wave-3 (BE-fact-only-body) 完了後: canCheckOutputReadiness は frontend が
-      // deriveBodyOutputReadinessReady で summary.outputReadiness から導出するため除去済み。
+    // projection: ドメイン状態射影。frontend presenter の UX 遷移可否導出に使う（G-4-c）。
+    // previousPhaseLifecycle=completed で persona 完了済み。personaBodyReadiness.bodyReadiness=true で body start が有効。
+    projection: {
+      phaseLifecycle:
+        state === "completed" ? "completed" :
+        state === "running" ? "running" :
+        state === "paused" ? "paused" :
+        state === "failed" ? "recoverable_failed" :
+        "idle_ready",
+      jobLifecycle: "running",
+      errorKind: state === "failed" ? "recoverable" : "none",
+      aiSettingsConfigured: true,
+      targetCount: 4,
+      previousPhaseLifecycle: "completed",
+      personaBodyReadiness: {
+        bodyReadiness: true,
+        snapshotReferenceStatus: "available"
+      }
     },
     outputReadiness: bodyOutputReadiness(state)
   });
@@ -794,7 +809,17 @@ export async function installScenarioWailsMocks(
   const termSummarySeededMissing = (jobId = 7, targetCount = 3) => ({
     ...termSummary("pending", jobId, targetCount),
     execution: missingExecution,
-    errorSummary: { ...blockedStartError, retryable: false }
+    errorSummary: { ...blockedStartError, retryable: false },
+    // E2E-UC-051: AI 設定未完了（aiSettingsConfigured=false）を projection で示す。
+    // presenter は projection.aiSettingsConfigured=false から canStart=false を導出し、start ボタンを disabled にする。
+    projection: {
+      phaseLifecycle: "idle_ready",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: false,
+      aiTargetCount: targetCount,
+      confirmedCount: 0
+    }
   });
   // E2E-UC-052: jobId=8 用。execution を未設定にしつつ errorSummary.retryable=false にする。
   // termSummarySeededMissing と同じ理由: retryable=true だと resume が表示されて start が非表示になる。
@@ -802,12 +827,202 @@ export async function installScenarioWailsMocks(
     ...personaSummary("pending"),
     jobId,
     execution: missingPersonaExecution,
-    errorSummary: { ...blockedStartError, retryable: false }
+    errorSummary: { ...blockedStartError, retryable: false },
+    // E2E-UC-052: AI 設定未完了（aiSettingsConfigured=false）を projection で示す。
+    // presenter は projection.aiSettingsConfigured=false から canStart=false を導出し、start ボタンを disabled にする。
+    projection: {
+      phaseLifecycle: "idle_ready",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: false,
+      targetCount: 2,
+      previousPhaseLifecycle: "completed"
+    }
   });
-  // E2E-UC-053: jobId=9 用。execution だけ未設定にしつつ canStart=true を維持する。
+  // E2E-UC-053: jobId=9 用。execution を未設定にしつつ aiSettingsConfigured=false で start blocked を維持する。
+  // 旧設計では canStart=true が明示されていたが、新設計では aiSettingsConfigured=false が canStart=false を導出する。
+  // ただし bodySummarySeededMissing を返すのは seededBodyJobMissingExecution=true 時だけであり、
+  // E2E-UC-053 は start() 後も未開始状態が維持されることを証明する。
   const bodySummarySeededMissing = (jobId = 9) => ({
     ...bodySummary("pending", jobId),
-    execution: missingBodyExecution
+    execution: missingBodyExecution,
+    // E2E-UC-053: AI 設定未完了（aiSettingsConfigured=false）を projection で示す。
+    projection: {
+      phaseLifecycle: "idle_ready",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: false,
+      targetCount: 4,
+      previousPhaseLifecycle: "completed",
+      personaBodyReadiness: {
+        bodyReadiness: true,
+        snapshotReferenceStatus: "available"
+      }
+    }
+  });
+
+  // RAEF-E2E 専用 summary 関数群。
+  // RAEF-E2E-001: 正常開始用。projection.aiSettingsConfigured=true, aiTargetCount=3, phaseLifecycle=idle_ready, jobLifecycle=running。
+  const raefTermNormalStart = (jobId) => ({
+    ...termSummary("pending", jobId, 3),
+    errorSummary: undefined
+  });
+  // RAEF-E2E-002: aiSettingsConfigured=false による start 無効用。
+  const raefTermBlockedAIMissing = (jobId) => ({
+    ...termSummary("pending", jobId, 3),
+    errorSummary: undefined,
+    projection: {
+      phaseLifecycle: "idle_ready",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: false,
+      aiTargetCount: 3,
+      confirmedCount: 0
+    }
+  });
+  // RAEF-E2E-003: aiTargetCount=0 による start 無効用。
+  const raefTermBlockedZeroTarget = (jobId) => ({
+    ...termSummary("pending", jobId, 0),
+    errorSummary: undefined,
+    projection: {
+      phaseLifecycle: "idle_ready",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: true,
+      aiTargetCount: 0,
+      confirmedCount: 0
+    }
+  });
+  // RAEF-E2E-004: jobLifecycle=completed（TERMINAL_JOB）による start 無効用。
+  const raefTermBlockedTerminal = (jobId) => ({
+    ...termSummary("pending", jobId, 3),
+    errorSummary: undefined,
+    projection: {
+      phaseLifecycle: "idle_ready",
+      jobLifecycle: "completed",
+      errorKind: "none",
+      aiSettingsConfigured: true,
+      aiTargetCount: 3,
+      confirmedCount: 0
+    }
+  });
+  // RAEF-E2E-005: persona 正常開始用。previousPhaseLifecycle=completed, aiSettingsConfigured=true。
+  const raefPersonaNormalStart = (jobId) => ({
+    ...personaSummary("pending"),
+    jobId,
+    errorSummary: undefined,
+    projection: {
+      phaseLifecycle: "idle_ready",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: true,
+      targetCount: 2,
+      previousPhaseLifecycle: "completed"
+    }
+  });
+  // RAEF-E2E-006: previousPhaseLifecycle が非 COMPLETED による start 無効用。
+  const raefPersonaBlockedPrevIncomplete = (jobId) => ({
+    ...personaSummary("pending"),
+    jobId,
+    errorSummary: undefined,
+    projection: {
+      phaseLifecycle: "idle_ready",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: true,
+      targetCount: 2,
+      previousPhaseLifecycle: "pending"
+    }
+  });
+  // RAEF-E2E-007: body 正常開始用。previousPhaseLifecycle=completed, personaBodyReadiness.bodyReadiness=true。
+  const raefBodyNormalStart = (jobId) => ({
+    ...bodySummary("pending", jobId),
+    errorSummary: undefined,
+    projection: {
+      phaseLifecycle: "idle_ready",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: true,
+      targetCount: 4,
+      previousPhaseLifecycle: "completed",
+      personaBodyReadiness: {
+        bodyReadiness: true,
+        snapshotReferenceStatus: "available"
+      }
+    }
+  });
+  // RAEF-E2E-008: personaBodyReadiness.bodyReadiness=false による start 無効用。
+  const raefBodyBlockedNoReadiness = (jobId) => ({
+    ...bodySummary("pending", jobId),
+    errorSummary: undefined,
+    projection: {
+      phaseLifecycle: "idle_ready",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: true,
+      targetCount: 4,
+      previousPhaseLifecycle: "completed",
+      personaBodyReadiness: {
+        bodyReadiness: false,
+        snapshotReferenceStatus: "not_available"
+      }
+    }
+  });
+  // RAEF-E2E-009: persona COMPLETED（次段階へボタン有効用）。personaBodyReadiness ガードは persona 側にない。
+  const raefPersonaCompleted = (jobId) => ({
+    ...personaSummary("completed"),
+    jobId,
+    errorSummary: undefined,
+    projection: {
+      phaseLifecycle: "completed",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: true,
+      targetCount: 2,
+      previousPhaseLifecycle: "completed"
+    }
+  });
+  // RAEF-E2E-010: persona 非 COMPLETED（次段階へボタン無効用）。
+  const raefPersonaIncomplete = (jobId) => ({
+    ...personaSummary("pending"),
+    jobId,
+    errorSummary: undefined
+  });
+  // RAEF-E2E-011: term RUNNING（中断有効用）。
+  const raefTermRunning = (jobId) => ({
+    ...termSummary("running", jobId, 3),
+    errorSummary: undefined
+  });
+  // RAEF-E2E-012: term IDLE_READY（中断無効用）。
+  const raefTermIdle = (jobId) => ({
+    ...termSummary("pending", jobId, 3),
+    errorSummary: undefined
+  });
+  // RAEF-E2E-013: term PAUSED（再開有効用）。
+  const raefTermPaused = (jobId) => ({
+    ...termSummary("paused", jobId, 3),
+    errorSummary: undefined
+  });
+  // RAEF-E2E-014: term RECOVERABLE_FAILED（再試行有効用）。
+  const raefTermFailed = (jobId) => ({
+    ...termSummary("failed", jobId, 3),
+    errorSummary: {
+      errorKind: "provider_failure",
+      reason: "system-test retryable failure",
+      retryable: true,
+      isRedacted: false
+    }
+  });
+  // RAEF-E2E-015: persona RUNNING（キャンセル有効用）。
+  const raefPersonaRunning = (jobId) => ({
+    ...personaSummary("running"),
+    jobId,
+    errorSummary: undefined
+  });
+  // RAEF-E2E-016: body RUNNING（キャンセル有効用）。
+  const raefBodyRunning = (jobId) => ({
+    ...bodySummary("running", jobId),
+    errorSummary: undefined
   });
 
   const termZeroAITargetJobId = ${JSON.stringify(termZeroAITargetJobId)};
@@ -834,7 +1049,24 @@ export async function installScenarioWailsMocks(
     { jobId: 10, label: "system-test-completed-term", state: "Ready", currentPhase: "term_translation", progressPercent: 100 },
     { jobId: 11, label: "system-test-body-ready-for-completion", state: "Ready", currentPhase: "body_translation", progressPercent: 100 },
     { jobId: 12, label: "system-test-body-failed", state: "Failed", currentPhase: "body_translation", progressPercent: 68 },
-    { jobId: 13, label: "system-test-body-running", state: "Running", currentPhase: "body_translation", progressPercent: 48 }
+    { jobId: 13, label: "system-test-body-running", state: "Running", currentPhase: "body_translation", progressPercent: 48 },
+    // RAEF-E2E 専用シードジョブ（jobId 20〜35）
+    { jobId: 20, label: "raef-term-normal-start", state: "Ready", currentPhase: "term_translation", progressPercent: 0 },
+    { jobId: 21, label: "raef-term-blocked-ai-missing", state: "Ready", currentPhase: "term_translation", progressPercent: 0 },
+    { jobId: 22, label: "raef-term-blocked-zero-target", state: "Ready", currentPhase: "term_translation", progressPercent: 0 },
+    { jobId: 23, label: "raef-term-blocked-terminal", state: "Ready", currentPhase: "term_translation", progressPercent: 0 },
+    { jobId: 24, label: "raef-persona-normal-start", state: "Ready", currentPhase: "persona_generation", progressPercent: 0 },
+    { jobId: 25, label: "raef-persona-blocked-prev-incomplete", state: "Ready", currentPhase: "persona_generation", progressPercent: 0 },
+    { jobId: 26, label: "raef-body-normal-start", state: "Ready", currentPhase: "body_translation", progressPercent: 0 },
+    { jobId: 27, label: "raef-body-blocked-no-readiness", state: "Ready", currentPhase: "body_translation", progressPercent: 0 },
+    { jobId: 28, label: "raef-persona-completed-next-phase", state: "Ready", currentPhase: "persona_generation", progressPercent: 100 },
+    { jobId: 29, label: "raef-persona-incomplete-next-phase", state: "Ready", currentPhase: "persona_generation", progressPercent: 0 },
+    { jobId: 30, label: "raef-term-running-pause", state: "Running", currentPhase: "term_translation", progressPercent: 50 },
+    { jobId: 31, label: "raef-term-idle-pause-blocked", state: "Ready", currentPhase: "term_translation", progressPercent: 0 },
+    { jobId: 32, label: "raef-term-paused-resume", state: "Ready", currentPhase: "term_translation", progressPercent: 30 },
+    { jobId: 33, label: "raef-term-failed-retry", state: "Failed", currentPhase: "term_translation", progressPercent: 60 },
+    { jobId: 34, label: "raef-persona-running-cancel", state: "Running", currentPhase: "persona_generation", progressPercent: 50 },
+    { jobId: 35, label: "raef-body-running-cancel", state: "Running", currentPhase: "body_translation", progressPercent: 40 }
   ];
   if (termZeroAITargetJobId >= 0) {
     seededPhaseJobs.push({ jobId: termZeroAITargetJobId, label: "system-test-term-zero-ai-target", state: "Ready", currentPhase: "term_translation", progressPercent: 0 });
@@ -1057,6 +1289,15 @@ export async function installScenarioWailsMocks(
       if (request.jobId === 7 && seededTermJobMissingExecution) {
         return Promise.resolve(termSummarySeededMissing(request.jobId));
       }
+      // RAEF-E2E 専用 jobId の分岐。
+      if (request.jobId === 20) return Promise.resolve(raefTermNormalStart(request.jobId));
+      if (request.jobId === 21) return Promise.resolve(raefTermBlockedAIMissing(request.jobId));
+      if (request.jobId === 22) return Promise.resolve(raefTermBlockedZeroTarget(request.jobId));
+      if (request.jobId === 23) return Promise.resolve(raefTermBlockedTerminal(request.jobId));
+      if (request.jobId === 30) return Promise.resolve(raefTermRunning(request.jobId));
+      if (request.jobId === 31) return Promise.resolve(raefTermIdle(request.jobId));
+      if (request.jobId === 32) return Promise.resolve(raefTermPaused(request.jobId));
+      if (request.jobId === 33) return Promise.resolve(raefTermFailed(request.jobId));
       return Promise.resolve(termSummary("pending", request.jobId, request.jobId === lucienJobId ? lucienTermProcessingTargets.length : 3));
     },
     StartTermTranslationPhase: (request) => {
@@ -1064,6 +1305,10 @@ export async function installScenarioWailsMocks(
       // AI 設定不足のため開始操作が状態を変えないシナリオを実現する。
       if (request && request.jobId === 7 && seededTermJobMissingExecution) {
         return Promise.resolve(termSummarySeededMissing(request.jobId));
+      }
+      // RAEF-E2E-001: term 正常開始後は running 状態に遷移する。
+      if (request && request.jobId === 20) {
+        return Promise.resolve(raefTermRunning(request.jobId));
       }
       return Promise.resolve(termSummary());
     },
@@ -1100,6 +1345,12 @@ export async function installScenarioWailsMocks(
       if (request && request.jobId === 8 && seededPersonaJobMissingExecution) {
         return Promise.resolve(personaSummarySeededMissing(request.jobId));
       }
+      // RAEF-E2E 専用 jobId の分岐。
+      if (request && request.jobId === 24) return Promise.resolve(raefPersonaNormalStart(request.jobId));
+      if (request && request.jobId === 25) return Promise.resolve(raefPersonaBlockedPrevIncomplete(request.jobId));
+      if (request && request.jobId === 28) return Promise.resolve(raefPersonaCompleted(request.jobId));
+      if (request && request.jobId === 29) return Promise.resolve(raefPersonaIncomplete(request.jobId));
+      if (request && request.jobId === 34) return Promise.resolve(raefPersonaRunning(request.jobId));
       return Promise.resolve(personaSummary());
     },
     StartPersonaGenerationPhase: (request) => {
@@ -1107,6 +1358,10 @@ export async function installScenarioWailsMocks(
       // AI 設定不足のため開始操作が状態を変えないシナリオを実現する。
       if (request && request.jobId === 8 && seededPersonaJobMissingExecution) {
         return Promise.resolve(personaSummarySeededMissing(request.jobId));
+      }
+      // RAEF-E2E-005: persona 正常開始後は running 状態に遷移する。
+      if (request && request.jobId === 24) {
+        return Promise.resolve(raefPersonaRunning(request.jobId));
       }
       return Promise.resolve(personaSummary());
     },
@@ -1138,6 +1393,10 @@ export async function installScenarioWailsMocks(
       if (request && request.jobId === 9 && seededBodyJobMissingExecution) {
         return Promise.resolve(bodySummarySeededMissing(request.jobId));
       }
+      // RAEF-E2E 専用 jobId の分岐。
+      if (request && request.jobId === 26) return Promise.resolve(raefBodyNormalStart(request.jobId));
+      if (request && request.jobId === 27) return Promise.resolve(raefBodyBlockedNoReadiness(request.jobId));
+      if (request && request.jobId === 35) return Promise.resolve(raefBodyRunning(request.jobId));
       return Promise.resolve(bodySummary(bodyStateForJob(request.jobId), request.jobId));
     },
     StartBodyTranslationPhase: (request) => {
@@ -1145,6 +1404,10 @@ export async function installScenarioWailsMocks(
       // AI 設定不足のため開始操作が状態を変えないシナリオを実現する。
       if (request && request.jobId === 9 && seededBodyJobMissingExecution) {
         return Promise.resolve(bodySummarySeededMissing(request.jobId));
+      }
+      // RAEF-E2E-007: body 正常開始後は running 状態に遷移する。
+      if (request && request.jobId === 26) {
+        return Promise.resolve(raefBodyRunning(request.jobId));
       }
       return Promise.resolve(bodyCommandSummary("pending", request.jobId));
     },

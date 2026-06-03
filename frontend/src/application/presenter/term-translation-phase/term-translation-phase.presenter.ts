@@ -5,7 +5,7 @@ import type {
 import type {
   TermTranslationExecutionConfigSummary,
   TermTranslationNextPhaseReadinessResponse,
-  TermTranslationPhaseActionEnablement,
+  TermTranslationPhaseProjection,
   TermTranslationPhaseErrorSummary,
   TermTranslationPhaseErrorKind,
   TermTranslationPhaseProgressSummary,
@@ -94,7 +94,7 @@ interface TermTranslationPhaseScreenViewModel extends TermTranslationPhaseScreen
   executionOptions: SelectOption[]
   actionCards: TermTranslationPhaseActionCard[]
   lastErrorSummary: TermTranslationPhaseErrorSummary | null
-  actionEnablement: TermTranslationPhaseActionEnablement | null
+  projection: TermTranslationPhaseProjection | null
   latestProgressSummary: TermTranslationPhaseProgressSummary | null
   latestResultSummary: TermTranslationPhaseResultSummary | null
   latestExecutionSummary: TermTranslationExecutionConfigSummary | null
@@ -347,10 +347,13 @@ function buildSnapshotLabel(state: TermTranslationPhaseScreenState): string {
   return "-"
 }
 
-function isTerminalJob(summary: TermTranslationPhaseSummaryResponse): boolean {
-  const startReason = summary.actionEnablement?.startBlockedReason ?? ""
-  return startReason === "terminal_job"
-}
+// ドメイン状態射影 field に対する enum 集合定数（design-diff H 節の略号と対応）
+const TERMINAL_JOB = new Set(["completed", "failed", "canceled"])
+const RUNNING_PHASE = new Set(["running", "in_progress", "processing"])
+const IDLE_READY_PHASE = new Set(["pending", "idle_ready", "ready", ""])
+const PAUSED_PHASE = new Set(["paused"])
+const RECOVERABLE_FAILED_PHASE = new Set(["recoverable_failed", "retryable_failed"])
+const COMPLETED_PHASE = new Set(["completed", "succeeded", "done"])
 
 function isExecutionConfigured(summary: TermTranslationPhaseSummaryResponse): boolean {
   if (summary.aiSettings) {
@@ -404,98 +407,101 @@ function buildModelOptions(
 }
 
 function deriveCanStartNextPhase(
-  summary: TermTranslationPhaseSummaryResponse
+  projection: TermTranslationPhaseProjection
 ): boolean {
-  if (isTerminalJob(summary)) {
+  // H-5: not terminal ∧ phaseLifecycle ∈ COMPLETED_PHASE ∧ confirmedCount ≥ aiTargetCount
+  if (TERMINAL_JOB.has(projection.jobLifecycle)) {
     return false
   }
-  const normalizedState = normalizePhaseState(summary.phaseState)
-  const isCompleted =
-    normalizedState === "completed" ||
-    normalizedState === "succeeded" ||
-    normalizedState === "done"
-  if (!isCompleted) {
+  if (!COMPLETED_PHASE.has(projection.phaseLifecycle)) {
     return false
   }
-  const confirmedCount = summary.resultSummary?.confirmedCount ?? 0
-  const aiTargetCount = summary.aiTargetCount ?? 0
-  return confirmedCount >= aiTargetCount
+  return projection.confirmedCount >= projection.aiTargetCount
 }
 
 function deriveNextPhaseBlockedReason(
-  summary: TermTranslationPhaseSummaryResponse
+  projection: TermTranslationPhaseProjection
 ): string {
-  if (isTerminalJob(summary)) {
+  // H-5 BlockedReason 決定論理（上から評価）
+  if (TERMINAL_JOB.has(projection.jobLifecycle)) {
     return "ジョブが終端状態のため次段階を開始できません。"
   }
-  const normalizedState = normalizePhaseState(summary.phaseState)
-  const isCompleted =
-    normalizedState === "completed" ||
-    normalizedState === "succeeded" ||
-    normalizedState === "done"
-  if (!isCompleted) {
+  if (!COMPLETED_PHASE.has(projection.phaseLifecycle)) {
     return "単語翻訳段階が未完了のため次段階を開始できません。"
+  }
+  if (projection.confirmedCount < projection.aiTargetCount) {
+    return "確定件数が AI 対象件数に達していないため次段階を開始できません。"
   }
   return ""
 }
 
+interface TermActionEnablementResult {
+  canStart: boolean
+  startBlockedReason?: string
+  canPause: boolean
+  pauseBlockedReason?: string
+  canResume: boolean
+  resumeBlockedReason?: string
+  canRetry: boolean
+  retryBlockedReason?: string
+}
+
 function deriveTermActionEnablement(
-  summary: TermTranslationPhaseSummaryResponse
-): TermTranslationPhaseActionEnablement {
-  const normalizedState = normalizePhaseState(summary.phaseState)
-  const terminal = isTerminalJob(summary)
-  const configured = isExecutionConfigured(summary)
+  projection: TermTranslationPhaseProjection
+): TermActionEnablementResult {
+  // H-1〜H-4: ドメイン状態射影だけを入力とする決定論的導出
+  const terminal = TERMINAL_JOB.has(projection.jobLifecycle)
+  const running = RUNNING_PHASE.has(projection.phaseLifecycle)
+  const paused = PAUSED_PHASE.has(projection.phaseLifecycle)
+  const recoverableFailed =
+    RECOVERABLE_FAILED_PHASE.has(projection.phaseLifecycle) ||
+    projection.errorKind === "recoverable"
+  const idleReady = IDLE_READY_PHASE.has(projection.phaseLifecycle)
+  const hasProcessingTarget = projection.aiTargetCount > 0
 
-  const isIdleReady =
-    normalizedState === "pending" ||
-    normalizedState === "idle_ready" ||
-    normalizedState === "ready"
-  const isRunning =
-    normalizedState === "running" ||
-    normalizedState === "in_progress" ||
-    normalizedState === "processing"
-  const isPaused = normalizedState === "paused"
-  const isRecoverableFailed =
-    normalizedState === "recoverable_failed" ||
-    normalizedState === "retryable_failed" ||
-    summary.errorSummary?.retryable === true
-
-  const activePhaseExists = isRunning
-
+  // H-1: canStart = not terminal ∧ phaseLifecycle ∉ RUNNING_PHASE ∧ phaseLifecycle ∈ IDLE_READY_PHASE
+  //               ∧ aiSettingsConfigured = true ∧ aiTargetCount > 0
   const canStart =
     !terminal &&
-    !activePhaseExists &&
-    (isIdleReady || normalizedState === "") &&
-    configured
+    !running &&
+    idleReady &&
+    projection.aiSettingsConfigured &&
+    hasProcessingTarget
 
+  // H-1 BlockedReason（上から評価）
   const startBlockedReason = terminal
     ? "ジョブが終端状態のため開始できません。"
-    : activePhaseExists
+    : running
       ? "実行中の翻訳段階があるため開始できません。"
-      : !configured
+      : !projection.aiSettingsConfigured
         ? "実行設定が未構成のため開始できません。"
-        : !isIdleReady && normalizedState !== ""
-          ? "ジョブが開始可能状態ではありません。"
-          : undefined
+        : !hasProcessingTarget
+          ? "処理対象が 0 件のため開始できません。"
+          : !idleReady
+            ? "ジョブが開始可能状態ではありません。"
+            : undefined
 
-  const canPause = !terminal && isRunning
+  // H-2: canPause = not terminal ∧ phaseLifecycle ∈ RUNNING_PHASE
+  const canPause = !terminal && running
   const pauseBlockedReason = terminal
     ? "ジョブが終端状態のため中断できません。"
-    : !isRunning
+    : !running
       ? "フェーズが実行中ではありません。"
       : undefined
 
-  const canResume = !terminal && (isPaused || isRecoverableFailed)
+  // H-3: canResume = not terminal ∧ (phaseLifecycle ∈ PAUSED_PHASE ∨ RECOVERABLE_FAILED_PHASE ∨ errorKind = recoverable)
+  const canResume = !terminal && (paused || recoverableFailed)
   const resumeBlockedReason = terminal
     ? "ジョブが終端状態のため再開できません。"
-    : !isPaused && !isRecoverableFailed
+    : !paused && !recoverableFailed
       ? "フェーズが再開可能な状態ではありません。"
       : undefined
 
-  const canRetry = !terminal && isRecoverableFailed
+  // H-4: canRetry = not terminal ∧ (phaseLifecycle ∈ RECOVERABLE_FAILED_PHASE ∨ errorKind = recoverable)
+  const canRetry = !terminal && recoverableFailed
   const retryBlockedReason = terminal
     ? "ジョブが終端状態のため再試行できません。"
-    : !isRecoverableFailed
+    : !recoverableFailed
       ? "フェーズが再試行可能な状態ではありません。"
       : undefined
 
@@ -526,7 +532,8 @@ function buildActionCards(
     ]
   }
 
-  const derived = deriveTermActionEnablement(state.summary)
+  const projection = state.summary.projection
+  const derived = deriveTermActionEnablement(projection)
 
   return [
     {
@@ -560,8 +567,8 @@ function buildActionCards(
     {
       id: "next-phase",
       label: "次の翻訳段階へ進む",
-      disabled: isBusy || !deriveCanStartNextPhase(state.summary),
-      blockedReason: deriveNextPhaseBlockedReason(state.summary) || "",
+      disabled: isBusy || !deriveCanStartNextPhase(projection),
+      blockedReason: deriveNextPhaseBlockedReason(projection) || "",
       tone: "primary"
     }
   ]
@@ -634,18 +641,18 @@ export class TermTranslationPhasePresenter {
             ? "再試行可能"
             : "再試行不可",
       nextPhaseStatusLabel:
-        (summary ? deriveCanStartNextPhase(summary) : false)
+        (summary ? deriveCanStartNextPhase(summary.projection) : false)
           ? "開始可能"
           : "開始不可",
       nextPhaseBlockedReason:
-        summary ? (deriveNextPhaseBlockedReason(summary) || "") : "",
+        summary ? (deriveNextPhaseBlockedReason(summary.projection) || "") : "",
       providerSkippedLabel: buildProviderSkippedLabel(state),
       providerOptions: buildProviderOptions(summary, availableProviders),
       modelOptions: buildModelOptions(summary, availableModels),
       executionOptions: EXECUTION_OPTIONS,
       actionCards: buildActionCards(state),
       lastErrorSummary: errorSummary,
-      actionEnablement: summary?.actionEnablement ?? null,
+      projection: summary?.projection ?? null,
       latestProgressSummary: summary?.progress ?? null,
       latestResultSummary: resultSummary ?? null,
       latestExecutionSummary: summary?.execution ?? null,

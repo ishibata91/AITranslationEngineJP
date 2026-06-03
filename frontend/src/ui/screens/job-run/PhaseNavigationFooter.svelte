@@ -8,6 +8,7 @@
     reasons: string[]
     primaryLabel?: string
     primaryDisabled?: boolean
+    primaryTestId?: string
     showPrimary?: boolean
     showBack?: boolean
     showOutput?: boolean
@@ -24,6 +25,7 @@
     reasons,
     primaryLabel = "次へ進む",
     primaryDisabled = false,
+    primaryTestId = undefined,
     showPrimary = true,
     showBack = true,
     showOutput = false,
@@ -41,6 +43,7 @@
     {onPrimary}
     {primaryDisabled}
     {primaryLabel}
+    {primaryTestId}
     {reasons}
     {dataTestId}
     {title}

@@ -1,10 +1,13 @@
 import { describe, expect, test } from "vitest"
 
-import type { PersonaGenerationPhaseSummaryResponse } from "./persona-generation-phase-gateway-contract"
+import type {
+  PersonaGenerationPhaseFetchResponse,
+  PersonaGenerationPhaseSummaryResponse
+} from "./persona-generation-phase-gateway-contract"
 
 describe("persona-generation-contract", () => {
   test("summary contract exposes only redacted reference fields", () => {
-    const response: PersonaGenerationPhaseSummaryResponse = {
+    const summary: PersonaGenerationPhaseSummaryResponse = {
       jobId: 101,
       currentPhase: "persona_generation",
       phaseState: "running",
@@ -32,20 +35,57 @@ describe("persona-generation-contract", () => {
         inputCount: 5,
         outputCount: 4,
         evidenceRefs: ["evidence:npc:001"]
+      }
+      // actionEnablement は削除済み。UX 遷移可否は frontend presenter が projection から導出する
+    }
+
+    expect(summary.execution?.credentialRef).toBe("credential:persona:test")
+    expect(summary.execution !== undefined && "apiKey" in summary.execution).toBe(false)
+    expect(summary.execution !== undefined && "token" in summary.execution).toBe(false)
+    expect(summary.execution !== undefined && "rawPrompt" in summary.execution).toBe(false)
+  })
+
+  test("fetch response holds projection and summary as separate field groups", () => {
+    const response: PersonaGenerationPhaseFetchResponse = {
+      projection: {
+        phaseLifecycle: "running",
+        jobLifecycle: "running",
+        errorKind: "none",
+        aiSettingsConfigured: true,
+        targetCount: 5,
+        previousPhaseLifecycle: "completed"
       },
-      actionEnablement: {
-        canStart: false,
-        canPause: true,
-        canResume: false,
-        canRetry: true,
-        canCancel: true
-        // canStartBodyPhase はフロント導出値であり DTO に含まれない
+      summary: {
+        jobId: 101,
+        currentPhase: "persona_generation",
+        phaseState: "running",
+        progress: {
+          percent: 40,
+          processedCount: 2,
+          totalCount: 5,
+          targetCount: 5,
+          currentStep: "generating"
+        },
+        targetSummary: {
+          targetCount: 5,
+          commonPersonaHitCount: 1,
+          commonPersonaMissCount: 4,
+          skippedCount: 1,
+          skippedReasons: [],
+          targetSnapshotDigest: "sha256:target-snapshot"
+        }
       }
     }
 
-    expect(response.execution?.credentialRef).toBe("credential:persona:test")
-    expect(response.execution !== undefined && "apiKey" in response.execution).toBe(false)
-    expect(response.execution !== undefined && "token" in response.execution).toBe(false)
-    expect(response.execution !== undefined && "rawPrompt" in response.execution).toBe(false)
+    // projection は UX 遷移可否導出に必要な 6 field を持つ
+    expect(typeof response.projection.phaseLifecycle).toBe("string")
+    expect(typeof response.projection.jobLifecycle).toBe("string")
+    expect(typeof response.projection.errorKind).toBe("string")
+    expect(typeof response.projection.aiSettingsConfigured).toBe("boolean")
+    expect(typeof response.projection.targetCount).toBe("number")
+    expect(typeof response.projection.previousPhaseLifecycle).toBe("string")
+
+    // summary に actionEnablement が存在しない
+    expect("actionEnablement" in response.summary).toBe(false)
   })
 })

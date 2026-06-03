@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest"
 
 import type {
+  BodyTranslationPhaseProjection,
   BodyTranslationPhaseSummaryResponse
 } from "@application/gateway-contract/body-translation-phase"
 
@@ -64,12 +65,17 @@ function createState(
         exactDictionaryExclusionCount: 2,
         partialDictionaryConstraintCount: 3
       },
-      actionEnablement: {
-        canStart: false,
-        canPause: true,
-        canResume: false,
-        canRetry: false,
-        canCancel: true
+      projection: {
+        phaseLifecycle: "running",
+        jobLifecycle: "running",
+        errorKind: "none",
+        aiSettingsConfigured: true,
+        targetCount: 10,
+        previousPhaseLifecycle: "completed",
+        personaBodyReadiness: {
+          bodyReadiness: true,
+          snapshotReferenceStatus: "available"
+        }
       },
       outputReadiness: {
         completedFieldCount: 3,
@@ -137,9 +143,9 @@ describe("BodyTranslationPhasePresenter", () => {
             ...base.summary!.progress,
             currentStep: "pending"
           },
-          actionEnablement: {
-            ...base.summary!.actionEnablement,
-            canStart: true
+          projection: {
+            ...base.summary!.projection,
+            phaseLifecycle: "pending"
           }
         }
       }),
@@ -278,12 +284,17 @@ describe("BodyTranslationPhasePresenter - 成果物出力確認可否・操作�
         requestUnitCount: 10,
         outputCount: 10
       },
-      actionEnablement: {
-        canStart: false,
-        canPause: false,
-        canResume: false,
-        canRetry: false,
-        canCancel: false
+      projection: {
+        phaseLifecycle: "completed",
+        jobLifecycle: "running",
+        errorKind: "none",
+        aiSettingsConfigured: true,
+        targetCount: 10,
+        previousPhaseLifecycle: "completed",
+        personaBodyReadiness: {
+          bodyReadiness: true,
+          snapshotReferenceStatus: "available"
+        }
       },
       outputReadiness: {
         completedFieldCount: 10,
@@ -377,9 +388,22 @@ describe("BodyTranslationPhasePresenter - 成果物出力確認可否・操作�
 
   // UT-EQV-010: 操作可否 - running のとき canPause=true・canStart=false・canCheckOutputReadiness=false
   test("phaseState=running のとき一時停止可・開始不可・出力確認不可", () => {
+    // 新実装は projection を唯一の入力とするため、projection.phaseLifecycle も running に揃える
     const viewModel = presenter.toViewModel(
       buildState({
         phaseState: "running",
+        projection: {
+          phaseLifecycle: "running",
+          jobLifecycle: "running",
+          errorKind: "none",
+          aiSettingsConfigured: true,
+          targetCount: 10,
+          previousPhaseLifecycle: "completed",
+          personaBodyReadiness: {
+            bodyReadiness: true,
+            snapshotReferenceStatus: "available"
+          }
+        },
         outputReadiness: {
           completedFieldCount: 5,
           statusConsistent: true,
@@ -389,7 +413,7 @@ describe("BodyTranslationPhasePresenter - 成果物出力確認可否・操作�
       true
     )
 
-    // 操作可否は事実状態から導出する
+    // 操作可否は projection から導出する
     expect(viewModel.screenActionEnablement.canPause).toBe(true)
     expect(viewModel.screenActionEnablement.canStart).toBe(false)
     // 段階未完了なので出力確認不可
@@ -407,9 +431,22 @@ describe("BodyTranslationPhasePresenter - 成果物出力確認可否・操作�
 
   // UT-EQV-010: 操作可否 - recoverable_failed のとき canRetry=true・canCancel=true
   test("phaseState=recoverable_failed のとき再試行可かつキャンセル可", () => {
+    // 新実装は projection を唯一の入力とするため、projection.phaseLifecycle も recoverable_failed に揃える
     const viewModel = presenter.toViewModel(
       buildState({
         phaseState: "recoverable_failed",
+        projection: {
+          phaseLifecycle: "recoverable_failed",
+          jobLifecycle: "running",
+          errorKind: "none",
+          aiSettingsConfigured: true,
+          targetCount: 10,
+          previousPhaseLifecycle: "completed",
+          personaBodyReadiness: {
+            bodyReadiness: true,
+            snapshotReferenceStatus: "available"
+          }
+        },
         outputReadiness: {
           completedFieldCount: 5,
           statusConsistent: false,
@@ -429,13 +466,17 @@ describe("BodyTranslationPhasePresenter - 成果物出力確認可否・操作�
     const viewModel = presenter.toViewModel(
       buildState({
         phaseState: "running",
-        actionEnablement: {
-          canStart: false,
-          startBlockedReason: "terminal_job",
-          canPause: false,
-          canResume: false,
-          canRetry: false,
-          canCancel: false
+        projection: {
+          phaseLifecycle: "running",
+          jobLifecycle: "completed", // terminal
+          errorKind: "none",
+          aiSettingsConfigured: true,
+          targetCount: 10,
+          previousPhaseLifecycle: "completed",
+          personaBodyReadiness: {
+            bodyReadiness: true,
+            snapshotReferenceStatus: "available"
+          }
         }
       }),
       true
@@ -476,12 +517,17 @@ describe("BodyTranslationPhasePresenter - execution field 不在判定（U-PRES-
         promptDigest: "sha256:prompt"
       },
       // execution field を意図的に含めない（不在で「未設定」を表す仕様）
-      actionEnablement: {
-        canStart: false,
-        canPause: false,
-        canResume: false,
-        canRetry: false,
-        canCancel: false
+      projection: {
+        phaseLifecycle: "ready",
+        jobLifecycle: "running",
+        errorKind: "none",
+        aiSettingsConfigured: false,
+        targetCount: 10,
+        previousPhaseLifecycle: "completed",
+        personaBodyReadiness: {
+          bodyReadiness: true,
+          snapshotReferenceStatus: "available"
+        }
       },
       outputReadiness: {
         completedFieldCount: 0,
@@ -585,12 +631,17 @@ describe("BodyTranslationPhasePresenter - buildBodyModelOptions placeholder 重�
           metadataDigest: "sha256:meta",
           promptDigest: "sha256:prompt"
         },
-        actionEnablement: {
-          canStart: false,
-          canPause: false,
-          canResume: false,
-          canRetry: false,
-          canCancel: false
+        projection: {
+          phaseLifecycle: "ready",
+          jobLifecycle: "running",
+          errorKind: "none",
+          aiSettingsConfigured: false,
+          targetCount: 10,
+          previousPhaseLifecycle: "completed",
+          personaBodyReadiness: {
+            bodyReadiness: true,
+            snapshotReferenceStatus: "available"
+          }
         },
         outputReadiness: {
           completedFieldCount: 0,
@@ -631,5 +682,355 @@ describe("BodyTranslationPhasePresenter - buildBodyModelOptions placeholder 重�
     expect(viewModel.modelOptions).toHaveLength(2)
     expect(viewModel.modelOptions).toContainEqual({ value: "model-a", label: "Model A" })
     expect(viewModel.modelOptions).toContainEqual({ value: "model-b", label: "Model B" })
+  })
+})
+
+// RAEF-UNIT-015〜018: deriveBodyActionEnablement の境界値証明
+// 根拠: design-diff.md H-12
+
+// body 画面の state を projection 差し替えで構築するヘルパー
+function buildBodyStateWithProjection(
+  projectionOverrides: Partial<BodyTranslationPhaseProjection> = {}
+) {
+  const baseProjection: BodyTranslationPhaseProjection = {
+    phaseLifecycle: "idle_ready",
+    jobLifecycle: "running",
+    errorKind: "none",
+    aiSettingsConfigured: true,
+    targetCount: 1,
+    previousPhaseLifecycle: "completed",
+    personaBodyReadiness: {
+      bodyReadiness: true,
+      snapshotReferenceStatus: "available"
+    },
+    ...projectionOverrides
+  }
+  return {
+    jobId: 9,
+    phase: "ready" as const,
+    summary: {
+      jobId: 9,
+      currentPhase: "body_translation",
+      phaseState: "idle_ready",
+      progress: {
+        percent: 0,
+        processedCount: 0,
+        totalCount: 10,
+        targetCount: 1,
+        translatedCount: 0,
+        skippedCount: 0,
+        currentStep: "idle_ready"
+      },
+      inputSummary: {
+        targetCount: 1,
+        dictionaryDigest: "sha256:dictionary",
+        personaDigest: "sha256:persona",
+        metadataDigest: "sha256:metadata",
+        promptDigest: "sha256:prompt"
+      },
+      requestSummary: {
+        providerTargetCount: 1,
+        exactDictionaryExclusionCount: 0,
+        partialDictionaryConstraintCount: 0
+      },
+      execution: {
+        credentialRef: "cred",
+        provider: "fake",
+        model: "model",
+        executionMode: "batch",
+        requestUnitCount: 0,
+        outputCount: 0
+      },
+      outputReadiness: {
+        completedFieldCount: 0,
+        statusConsistent: true,
+        outputCount: 0
+      },
+      projection: baseProjection
+    },
+    outputReadiness: null,
+    errorMessage: "",
+    pendingAction: null,
+    hasLoaded: true,
+    initialFetchDone: true
+  }
+}
+
+describe("deriveBodyActionEnablement — H-12 start 境界値（RAEF-UNIT-015〜018）", () => {
+  const presenter = new BodyTranslationPhasePresenter()
+
+  // RAEF-UNIT-015: previousPhaseLifecycle ∉ COMPLETED_PHASE のとき canStart=false かつ ペルソナ生成未完了理由を返す
+  test("previousPhaseLifecycle が running のとき開始不可でペルソナ生成段階未完了理由を返す（H-12 previousPhaseCompleted=false 境界）", () => {
+    // H-12: previousPhaseLifecycle ∉ COMPLETED_PHASE → canStart=false、startBlockedReason=「ペルソナ生成段階が完了していないため本文翻訳を開始できません。」
+    const vm = presenter.toViewModel(buildBodyStateWithProjection({ previousPhaseLifecycle: "running" }), true)
+    const card = vm.actionCards.find((c) => c.id === "start")
+
+    expect(card?.disabled).toBe(true)
+    expect(card?.blockedReason).toBe("ペルソナ生成段階が完了していないため本文翻訳を開始できません。")
+  })
+
+  // RAEF-UNIT-016: previousPhaseCompleted=true だが personaBodyReadiness.bodyReadiness=false かつ snapshotReferenceStatus≠available のとき canStart=false かつ snapshot 参照未準備理由を返す
+  test("previousPhaseLifecycle が completed だが personaBodyReadiness 両条件とも false のとき開始不可でスナップショット未準備理由を返す（H-12 personaBodyReady=false 境界）", () => {
+    // H-12: previousPhaseCompleted=true ∧ bodyReadiness=false ∧ snapshotReferenceStatus≠available → canStart=false、startBlockedReason=「ペルソナ snapshot 参照が準備できていないため本文翻訳を開始できません。」
+    const vm = presenter.toViewModel(
+      buildBodyStateWithProjection({
+        previousPhaseLifecycle: "completed",
+        personaBodyReadiness: { bodyReadiness: false, snapshotReferenceStatus: "missing" }
+      }),
+      true
+    )
+    const card = vm.actionCards.find((c) => c.id === "start")
+
+    expect(card?.disabled).toBe(true)
+    expect(card?.blockedReason).toBe("ペルソナ snapshot 参照が準備できていないため本文翻訳を開始できません。")
+  })
+
+  // RAEF-UNIT-017: personaBodyReadiness.bodyReadiness=true のとき personaBodyReady=true として canStart 成立。snapshotReferenceStatus=available のとき同様に canStart 成立
+  test("personaBodyReadiness.bodyReadiness=true のとき開始条件が personaBodyReady=true になる（H-12 bodyReadiness 経路）", () => {
+    // H-12: personaBodyReadiness.bodyReadiness=true → personaBodyReady=true
+    const vm = presenter.toViewModel(
+      buildBodyStateWithProjection({
+        personaBodyReadiness: { bodyReadiness: true, snapshotReferenceStatus: "" }
+      }),
+      true
+    )
+    const card = vm.actionCards.find((c) => c.id === "start")
+
+    // personaBodyReady=true なので他の条件が満たされれば開始可
+    expect(card?.disabled).toBe(false)
+  })
+
+  test("snapshotReferenceStatus=available のとき開始条件が personaBodyReady=true になる（H-12 snapshotReferenceStatus 経路）", () => {
+    // H-12: personaBodyReadiness.snapshotReferenceStatus=available → personaBodyReady=true
+    const vm = presenter.toViewModel(
+      buildBodyStateWithProjection({
+        personaBodyReadiness: { bodyReadiness: false, snapshotReferenceStatus: "available" }
+      }),
+      true
+    )
+    const card = vm.actionCards.find((c) => c.id === "start")
+
+    // personaBodyReady=true（snapshotReferenceStatus 経路）なので開始可
+    expect(card?.disabled).toBe(false)
+  })
+
+  // RAEF-UNIT-018: 全条件満足（¬terminal ∧ idleReady ∧ aiSettingsConfigured ∧ targetCount=1 ∧ previousPhaseCompleted ∧ personaBodyReady）のとき canStart=true かつ startBlockedReason が空文字
+  test("全条件満足のとき開始可かつ startBlockedReason が空文字になる（H-12 正常パス、targetCount 最小値 1）", () => {
+    // H-12: 全有効化条件を満たす最小境界値で canStart=true、startBlockedReason=""
+    const vm = presenter.toViewModel(
+      buildBodyStateWithProjection({
+        phaseLifecycle: "idle_ready",
+        jobLifecycle: "running",
+        aiSettingsConfigured: true,
+        targetCount: 1,
+        previousPhaseLifecycle: "completed",
+        personaBodyReadiness: { bodyReadiness: true, snapshotReferenceStatus: "available" }
+      }),
+      true
+    )
+    const card = vm.actionCards.find((c) => c.id === "start")
+
+    expect(card?.disabled).toBe(false)
+    expect(card?.blockedReason).toBe("")
+  })
+})
+
+// RAEF-UNIT-EXT-010〜018: deriveBodyActionEnablement の H-13〜H-16 境界値証明
+// 根拠: design-diff.md H-13（pause）、H-14（resume）、H-15（retry）、H-16（cancel）
+
+describe("deriveBodyActionEnablement — H-13 pause 境界値（RAEF-UNIT-EXT-010〜012）", () => {
+  const presenter = new BodyTranslationPhasePresenter()
+
+  // RAEF-UNIT-EXT-010: phaseLifecycle ∈ RUNNING_PHASE かつ ¬terminal のとき canPause=true
+  test("phaseLifecycle が running かつ ¬terminal のとき中断可になる（H-13 RUNNING_PHASE 境界）", () => {
+    // H-13: jobLifecycle ∉ TERMINAL_JOB ∧ phaseLifecycle ∈ RUNNING_PHASE → canPause=true
+    const vm = presenter.toViewModel(
+      buildBodyStateWithProjection({ phaseLifecycle: "running", jobLifecycle: "running" }),
+      true
+    )
+    const card = vm.actionCards.find((c) => c.id === "pause")
+
+    expect(card?.disabled).toBe(false)
+    expect(card?.blockedReason).toBe("")
+  })
+
+  // RAEF-UNIT-EXT-011: jobLifecycle ∈ TERMINAL_JOB のとき canPause=false かつ pauseBlockedReason が終端文を返す
+  test("jobLifecycle が completed のとき中断不可でジョブ終端理由を返す（H-13 TERMINAL_JOB 境界）", () => {
+    // H-13: jobLifecycle ∈ TERMINAL_JOB → canPause=false、pauseBlockedReason=「ジョブが終端状態のため中断できません。」
+    const vm = presenter.toViewModel(
+      buildBodyStateWithProjection({ phaseLifecycle: "running", jobLifecycle: "completed" }),
+      true
+    )
+    const card = vm.actionCards.find((c) => c.id === "pause")
+
+    expect(card?.disabled).toBe(true)
+    expect(card?.blockedReason).toBe("ジョブが終端状態のため中断できません。")
+  })
+
+  // RAEF-UNIT-EXT-012: phaseLifecycle ∉ RUNNING_PHASE かつ ¬terminal のとき canPause=false かつ pauseBlockedReason が実行中でない文を返す
+  test("phaseLifecycle が paused かつ ¬terminal のとき中断不可でフェーズ実行中でない理由を返す（H-13 ¬RUNNING_PHASE 境界）", () => {
+    // H-13: phaseLifecycle ∉ RUNNING_PHASE ∧ ¬terminal → canPause=false、pauseBlockedReason=「フェーズが実行中ではありません。」
+    const vm = presenter.toViewModel(
+      buildBodyStateWithProjection({ phaseLifecycle: "paused", jobLifecycle: "running" }),
+      true
+    )
+    const card = vm.actionCards.find((c) => c.id === "pause")
+
+    expect(card?.disabled).toBe(true)
+    expect(card?.blockedReason).toBe("フェーズが実行中ではありません。")
+  })
+})
+
+describe("deriveBodyActionEnablement — H-14 resume 境界値（RAEF-UNIT-EXT-013〜016）", () => {
+  const presenter = new BodyTranslationPhasePresenter()
+
+  // RAEF-UNIT-EXT-013: phaseLifecycle ∈ PAUSED_PHASE かつ ¬terminal のとき canResume=true
+  test("phaseLifecycle が paused かつ ¬terminal のとき再開可になる（H-14 PAUSED_PHASE 境界）", () => {
+    // H-14: phaseLifecycle ∈ PAUSED_PHASE ∧ jobLifecycle ∉ TERMINAL_JOB → canResume=true
+    const vm = presenter.toViewModel(
+      buildBodyStateWithProjection({ phaseLifecycle: "paused", jobLifecycle: "running" }),
+      true
+    )
+    const card = vm.actionCards.find((c) => c.id === "resume")
+
+    expect(card?.disabled).toBe(false)
+    expect(card?.blockedReason).toBe("")
+  })
+
+  // RAEF-UNIT-EXT-014: phaseLifecycle ∈ RECOVERABLE_FAILED_PHASE かつ ¬terminal のとき canResume=true
+  test("phaseLifecycle が recoverable_failed かつ ¬terminal のとき再開可になる（H-14 RECOVERABLE_FAILED_PHASE 境界）", () => {
+    // H-14: phaseLifecycle ∈ RECOVERABLE_FAILED_PHASE ∧ jobLifecycle ∉ TERMINAL_JOB → canResume=true
+    const vm = presenter.toViewModel(
+      buildBodyStateWithProjection({ phaseLifecycle: "recoverable_failed", jobLifecycle: "running" }),
+      true
+    )
+    const card = vm.actionCards.find((c) => c.id === "resume")
+
+    expect(card?.disabled).toBe(false)
+    expect(card?.blockedReason).toBe("")
+  })
+
+  // RAEF-UNIT-EXT-015: errorKind=recoverable かつ ¬terminal のとき canResume=true
+  test("errorKind が recoverable かつ ¬terminal のとき再開可になる（H-14 errorKind=recoverable 境界）", () => {
+    // H-14: errorKind=recoverable ∧ jobLifecycle ∉ TERMINAL_JOB → canResume=true
+    const vm = presenter.toViewModel(
+      buildBodyStateWithProjection({ phaseLifecycle: "running", errorKind: "recoverable", jobLifecycle: "running" }),
+      true
+    )
+    const card = vm.actionCards.find((c) => c.id === "resume")
+
+    expect(card?.disabled).toBe(false)
+  })
+
+  // RAEF-UNIT-EXT-016: jobLifecycle ∈ TERMINAL_JOB のとき canResume=false かつ resumeBlockedReason が終端文を返す
+  test("jobLifecycle が failed のとき再開不可でジョブ終端理由を返す（H-14 TERMINAL_JOB 境界）", () => {
+    // H-14: jobLifecycle ∈ TERMINAL_JOB → canResume=false、resumeBlockedReason=「ジョブが終端状態のため再開できません。」
+    const vm = presenter.toViewModel(
+      buildBodyStateWithProjection({ phaseLifecycle: "paused", jobLifecycle: "failed" }),
+      true
+    )
+    const card = vm.actionCards.find((c) => c.id === "resume")
+
+    expect(card?.disabled).toBe(true)
+    expect(card?.blockedReason).toBe("ジョブが終端状態のため再開できません。")
+  })
+})
+
+describe("deriveBodyActionEnablement — H-15 retry 境界値（RAEF-UNIT-EXT-017〜018）", () => {
+  const presenter = new BodyTranslationPhasePresenter()
+
+  // RAEF-UNIT-EXT-017: phaseLifecycle ∈ RECOVERABLE_FAILED_PHASE かつ ¬terminal のとき canRetry=true
+  test("phaseLifecycle が recoverable_failed かつ ¬terminal のとき再試行可になる（H-15 RECOVERABLE_FAILED_PHASE 境界）", () => {
+    // H-15: phaseLifecycle ∈ RECOVERABLE_FAILED_PHASE ∧ jobLifecycle ∉ TERMINAL_JOB → canRetry=true
+    const vm = presenter.toViewModel(
+      buildBodyStateWithProjection({ phaseLifecycle: "recoverable_failed", jobLifecycle: "running" }),
+      true
+    )
+    const card = vm.actionCards.find((c) => c.id === "retry")
+
+    expect(card?.disabled).toBe(false)
+    expect(card?.blockedReason).toBe("")
+  })
+
+  // RAEF-UNIT-EXT-018: phaseLifecycle ∈ PAUSED_PHASE かつ errorKind=none のとき canRetry=false かつ retryBlockedReason が再試行不可文を返す
+  test("phaseLifecycle が paused かつ errorKind=none のとき再試行不可でフェーズ再試行不可理由を返す（H-15 ¬recoverableFailed 境界）", () => {
+    // H-15: phaseLifecycle ∉ RECOVERABLE_FAILED_PHASE ∧ errorKind ≠ recoverable → canRetry=false、retryBlockedReason=「フェーズが再試行可能な状態ではありません。」
+    const vm = presenter.toViewModel(
+      buildBodyStateWithProjection({ phaseLifecycle: "paused", errorKind: "none", jobLifecycle: "running" }),
+      true
+    )
+    const card = vm.actionCards.find((c) => c.id === "retry")
+
+    expect(card?.disabled).toBe(true)
+    expect(card?.blockedReason).toBe("フェーズが再試行可能な状態ではありません。")
+  })
+})
+
+describe("deriveBodyActionEnablement — H-16 cancel 境界値（RAEF-UNIT-EXT-019〜023）", () => {
+  const presenter = new BodyTranslationPhasePresenter()
+
+  // RAEF-UNIT-EXT-019: phaseLifecycle ∈ RUNNING_PHASE かつ ¬terminal のとき canCancel=true
+  test("phaseLifecycle が running かつ ¬terminal のときキャンセル可になる（H-16 RUNNING_PHASE 境界）", () => {
+    // H-16: phaseLifecycle ∈ RUNNING_PHASE ∧ jobLifecycle ∉ TERMINAL_JOB → canCancel=true
+    const vm = presenter.toViewModel(
+      buildBodyStateWithProjection({ phaseLifecycle: "running", jobLifecycle: "running" }),
+      true
+    )
+    const card = vm.actionCards.find((c) => c.id === "cancel")
+
+    expect(card?.disabled).toBe(false)
+    expect(card?.blockedReason).toBe("")
+  })
+
+  // RAEF-UNIT-EXT-020: phaseLifecycle ∈ PAUSED_PHASE かつ ¬terminal のとき canCancel=true
+  test("phaseLifecycle が paused かつ ¬terminal のときキャンセル可になる（H-16 PAUSED_PHASE 境界）", () => {
+    // H-16: phaseLifecycle ∈ PAUSED_PHASE ∧ jobLifecycle ∉ TERMINAL_JOB → canCancel=true
+    const vm = presenter.toViewModel(
+      buildBodyStateWithProjection({ phaseLifecycle: "paused", jobLifecycle: "running" }),
+      true
+    )
+    const card = vm.actionCards.find((c) => c.id === "cancel")
+
+    expect(card?.disabled).toBe(false)
+    expect(card?.blockedReason).toBe("")
+  })
+
+  // RAEF-UNIT-EXT-021: phaseLifecycle ∈ RECOVERABLE_FAILED_PHASE かつ ¬terminal のとき canCancel=true
+  test("phaseLifecycle が recoverable_failed かつ ¬terminal のときキャンセル可になる（H-16 RECOVERABLE_FAILED_PHASE 境界）", () => {
+    // H-16: phaseLifecycle ∈ RECOVERABLE_FAILED_PHASE ∧ jobLifecycle ∉ TERMINAL_JOB → canCancel=true
+    const vm = presenter.toViewModel(
+      buildBodyStateWithProjection({ phaseLifecycle: "recoverable_failed", jobLifecycle: "running" }),
+      true
+    )
+    const card = vm.actionCards.find((c) => c.id === "cancel")
+
+    expect(card?.disabled).toBe(false)
+    expect(card?.blockedReason).toBe("")
+  })
+
+  // RAEF-UNIT-EXT-022: phaseLifecycle が idle_ready（非アクティブ）かつ ¬terminal のとき canCancel=false かつ cancelBlockedReason がキャンセル不可文を返す
+  test("phaseLifecycle が idle_ready かつ ¬terminal のときキャンセル不可でフェーズキャンセル不可理由を返す（H-16 ¬active 境界）", () => {
+    // H-16: phaseLifecycle ∉ RUNNING_PHASE ∧ phaseLifecycle ∉ PAUSED_PHASE ∧ phaseLifecycle ∉ RECOVERABLE_FAILED_PHASE ∧ errorKind ≠ recoverable → canCancel=false、cancelBlockedReason=「フェーズがキャンセル可能な状態ではありません。」
+    const vm = presenter.toViewModel(
+      buildBodyStateWithProjection({ phaseLifecycle: "idle_ready", errorKind: "none", jobLifecycle: "running" }),
+      true
+    )
+    const card = vm.actionCards.find((c) => c.id === "cancel")
+
+    expect(card?.disabled).toBe(true)
+    expect(card?.blockedReason).toBe("フェーズがキャンセル可能な状態ではありません。")
+  })
+
+  // RAEF-UNIT-EXT-023: jobLifecycle ∈ TERMINAL_JOB のとき canCancel=false かつ cancelBlockedReason が終端文を返す
+  test("jobLifecycle が canceled のときキャンセル不可でジョブ終端理由を返す（H-16 TERMINAL_JOB 境界）", () => {
+    // H-16: jobLifecycle ∈ TERMINAL_JOB → canCancel=false、cancelBlockedReason=「ジョブが終端状態のためキャンセルできません。」
+    const vm = presenter.toViewModel(
+      buildBodyStateWithProjection({ phaseLifecycle: "running", jobLifecycle: "canceled" }),
+      true
+    )
+    const card = vm.actionCards.find((c) => c.id === "cancel")
+
+    expect(card?.disabled).toBe(true)
+    expect(card?.blockedReason).toBe("ジョブが終端状態のためキャンセルできません。")
   })
 })

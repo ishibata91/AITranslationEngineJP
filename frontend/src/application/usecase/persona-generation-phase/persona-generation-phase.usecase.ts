@@ -14,6 +14,7 @@ import type {
   PersonaGenerationPhaseAISettingsRequest,
   PersonaGenerationPhaseCommandResponse,
   PersonaGenerationPhaseGatewayContract,
+  PersonaGenerationPhaseProjection,
   PersonaGenerationPhaseSummaryResponse,
   PausePersonaGenerationPhaseRequest,
   ResumePersonaGenerationPhaseRequest,
@@ -33,6 +34,7 @@ type PersonaGenerationPhaseActionKind =
 interface PersonaGenerationPhaseScreenState {
   jobId: number | null
   phase: "idle" | "loading" | "ready" | "submitting"
+  projection: PersonaGenerationPhaseProjection | null
   summary: PersonaGenerationPhaseSummaryResponse | null
   bodyReadiness: PersonaGenerationBodyReadinessResponse | null
   errorMessage: string
@@ -123,6 +125,7 @@ export class PersonaGenerationPhaseUseCase {
     )
     this.store.update((draft) => {
       draft.jobId = jobId
+      draft.projection = null
       draft.summary = null
       draft.bodyReadiness = null
       draft.hasLoaded = false
@@ -283,10 +286,11 @@ export class PersonaGenerationPhaseUseCase {
     )
 
     try {
-      const summary = await summaryPromise
+      const fetchResponse = await summaryPromise
       const summaryElapsedMs = Math.round(performance.now() - summaryStart)
       this.store.update((draft) => {
-        draft.summary = summary
+        draft.projection = fetchResponse.projection
+        draft.summary = fetchResponse.summary
         draft.errorMessage = ""
       })
       logger.info(

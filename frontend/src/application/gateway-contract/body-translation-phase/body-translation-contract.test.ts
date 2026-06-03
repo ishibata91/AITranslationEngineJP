@@ -4,6 +4,7 @@ import type {
   BodyTranslationPhaseCommandResponse,
   BodyTranslationPhaseErrorKind,
   BodyTranslationPhaseGatewayContract,
+  BodyTranslationPhaseProjection,
   BodyTranslationPhaseSummaryResponse,
   BodyTranslationOutputReadinessResponse
 } from "./body-translation-phase-gateway-contract"
@@ -13,6 +14,30 @@ describe("body-translation-contract", () => {
     await expect(
       import("./body-translation-phase-gateway-contract")
     ).resolves.toBeDefined()
+  })
+
+  test("projection type satisfies BodyTranslationPhaseProjection contract", () => {
+    const projection: BodyTranslationPhaseProjection = {
+      phaseLifecycle: "running",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: true,
+      targetCount: 10,
+      previousPhaseLifecycle: "completed",
+      personaBodyReadiness: {
+        bodyReadiness: true,
+        snapshotReferenceStatus: "available"
+      }
+    }
+
+    expectTypeOf(projection.phaseLifecycle).toBeString()
+    expectTypeOf(projection.jobLifecycle).toBeString()
+    expectTypeOf(projection.errorKind).toBeString()
+    expectTypeOf(projection.aiSettingsConfigured).toBeBoolean()
+    expectTypeOf(projection.targetCount).toBeNumber()
+    expectTypeOf(projection.previousPhaseLifecycle).toBeString()
+    expectTypeOf(projection.personaBodyReadiness.bodyReadiness).toBeBoolean()
+    expectTypeOf(projection.personaBodyReadiness.snapshotReferenceStatus).toBeString()
   })
 
   test("gateway exposes frozen public seam names", () => {
@@ -37,7 +62,7 @@ describe("body-translation-contract", () => {
     // getBodyTranslationOutputReadiness は wave-2/3 で廃止済み。専用取得は段階要約取得へ統合された。
   })
 
-  test("summary DTO exposes progress, field result, enablement, and output readiness", () => {
+  test("summary DTO exposes progress, field result, projection, and output readiness", () => {
     const response: BodyTranslationPhaseSummaryResponse = {
       jobId: 501,
       currentPhase: "body_translation",
@@ -81,12 +106,17 @@ describe("body-translation-contract", () => {
         retryable: true,
         isRedacted: true
       },
-      actionEnablement: {
-        canStart: false,
-        canPause: true,
-        canResume: false,
-        canRetry: true,
-        canCancel: false
+      projection: {
+        phaseLifecycle: "running",
+        jobLifecycle: "running",
+        errorKind: "none",
+        aiSettingsConfigured: true,
+        targetCount: 10,
+        previousPhaseLifecycle: "completed",
+        personaBodyReadiness: {
+          bodyReadiness: true,
+          snapshotReferenceStatus: "available"
+        }
       },
       outputReadiness: {
         completedFieldCount: 3,
@@ -228,13 +258,18 @@ describe("body-translation-contract", () => {
         protectionFailedCount: 0,
         outputReadyCount: 2
       },
-      actionEnablement: {
-        canStart: false,
-        canPause: false,
-        canResume: false,
-        canRetry: false,
-        canCancel: false
-        // canCheckOutputReadiness はフロント導出値であり DTO に含まれない
+      projection: {
+        phaseLifecycle: "completed",
+        jobLifecycle: "completed",
+        errorKind: "none",
+        aiSettingsConfigured: true,
+        targetCount: 2,
+        previousPhaseLifecycle: "completed",
+        personaBodyReadiness: {
+          bodyReadiness: true,
+          snapshotReferenceStatus: "available"
+        }
+        // UX 遷移可否（canStart/canPause/canResume/canRetry/canCancel）は frontend presenter が projection から導出する
       },
       outputReadiness: {
         completedFieldCount: 2,
@@ -305,13 +340,18 @@ describe("body-translation-contract", () => {
         retryable: true,
         isRedacted: true
       },
-      actionEnablement: {
-        canStart: false,
-        canPause: false,
-        canResume: false,
-        canRetry: true,
-        canCancel: true
-        // canCheckOutputReadiness はフロント導出値であり DTO に含まれない
+      projection: {
+        phaseLifecycle: "recoverable_failed",
+        jobLifecycle: "running",
+        errorKind: "recoverable",
+        aiSettingsConfigured: true,
+        targetCount: 2,
+        previousPhaseLifecycle: "completed",
+        personaBodyReadiness: {
+          bodyReadiness: true,
+          snapshotReferenceStatus: "available"
+        }
+        // UX 遷移可否（canStart/canPause/canResume/canRetry/canCancel）は frontend presenter が projection から導出する
       },
       outputReadiness: {
         completedFieldCount: 0,
@@ -332,7 +372,8 @@ describe("body-translation-contract", () => {
       retryable: true,
       isRedacted: true
     })
-    expect(summary.actionEnablement.canRetry).toBe(true)
+    // UX 遷移可否は frontend presenter が projection.errorKind から導出する
+    expect(summary.projection.errorKind).toBe("recoverable")
     // ready/blockedReason/errorKind はフロント導出値。事実状態（completedFieldCount/statusConsistent）から application 層が導出する
     expect(summary.outputReadiness).toMatchObject({
       completedFieldCount: 0,

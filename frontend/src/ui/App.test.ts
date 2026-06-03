@@ -322,7 +322,7 @@ function buildTermTranslationPhaseScreenViewModel(
     providerSkippedLabel: "-",
     actionCards: [],
     lastErrorSummary: null,
-    actionEnablement: null,
+    projection: null,
     latestProgressSummary: null,
     latestResultSummary: null,
     latestExecutionSummary: null,
@@ -337,6 +337,7 @@ function buildPersonaGenerationPhaseScreenViewModel(
   return {
     jobId: 101,
     phase: "ready",
+    projection: null,
     summary: null,
     bodyReadiness: null,
     errorMessage: "",
@@ -403,7 +404,6 @@ function buildPersonaGenerationPhaseScreenViewModel(
       canStartBodyPhase: false
     },
     lastErrorSummary: null,
-    actionEnablement: null,
     latestProgressSummary: null,
     latestTargetSummary: null,
     latestResultSummary: null,

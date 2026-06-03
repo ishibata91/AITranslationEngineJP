@@ -234,7 +234,7 @@ func newAppControllerWithSeeds(
 			).WithBodyTranslationProvider(service.NewBodyTranslationProviderAdapter(aiProviderClient)).
 				WithBodyTranslationProviderSettings(providerSettingsService).
 				WithBodyTranslationJobPhaseAISettingsRepository(jobPhaseAISettingsRepository),
-		),
+		).WithPersonaReadiness(personaGenerationPhaseService),
 	)
 	translationOutputArtifactService := service.NewTranslationOutputArtifactService(
 		jobLifecycleRepository,

@@ -11,7 +11,7 @@ import type {
   PersonaGenerationPhaseCommandResponse,
   PersonaGenerationPhaseAISettingsRequest,
   PersonaGenerationPhaseAISettingsResponse,
-  PersonaGenerationPhaseSummaryResponse,
+  PersonaGenerationPhaseFetchResponse,
   ResumePersonaGenerationPhaseRequest,
   RetryPersonaGenerationPhaseRequest,
   StartPersonaGenerationPhaseRequest
@@ -23,7 +23,7 @@ export type GetProcessingTargetListResponseDto = ProcessingTargetListResponse
 export type GetPersonaGenerationPhaseSummaryRequestDto =
   GetPersonaGenerationPhaseSummaryRequest
 export type GetPersonaGenerationPhaseSummaryResponseDto =
-  PersonaGenerationPhaseSummaryResponse
+  PersonaGenerationPhaseFetchResponse
 
 export type StartPersonaGenerationPhaseRequestDto =
   StartPersonaGenerationPhaseRequest

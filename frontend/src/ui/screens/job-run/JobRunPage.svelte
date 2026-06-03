@@ -465,6 +465,7 @@
             setCurrentPhasePage("persona")
           }}
           primaryDisabled={!canOpenPersonaPhase}
+          primaryTestId="term-translation-phase-start-next-phase-button"
           reasons={termFooterReasons}
           title="単語翻訳の次の作業"
           titleId="termPhaseNavigationFooter"
@@ -491,6 +492,7 @@
             syncBodyProcessingTargetPage("body")
           }}
           primaryDisabled={!canOpenBodyPhase}
+          primaryTestId="persona-generation-phase-start-next-phase-button"
           reasons={personaFooterReasons}
           title="NPC ペルソナ生成の次の作業"
           titleId="personaPhaseNavigationFooter"

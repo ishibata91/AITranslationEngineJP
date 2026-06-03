@@ -16,6 +16,16 @@ export type PersonaGenerationPhaseErrorKind =
   | "secret_redacted"
   | "input_missing"
 
+// ドメイン状態射影: UX 遷移可否導出にだけ使う、enum / 数値 / 真偽 の最小集合（design-diff C-2）
+export interface PersonaGenerationPhaseProjection {
+  phaseLifecycle: string
+  jobLifecycle: string
+  errorKind: string
+  aiSettingsConfigured: boolean
+  targetCount: number
+  previousPhaseLifecycle: string
+}
+
 export interface GetPersonaGenerationPhaseSummaryRequest {
   jobId: number
 }
@@ -117,19 +127,6 @@ export interface PersonaGenerationPhaseErrorSummary {
   isRedacted: boolean
 }
 
-export interface PersonaGenerationPhaseActionEnablement {
-  canStart: boolean
-  startBlockedReason?: string
-  canPause: boolean
-  pauseBlockedReason?: string
-  canResume: boolean
-  resumeBlockedReason?: string
-  canRetry: boolean
-  retryBlockedReason?: string
-  canCancel: boolean
-  cancelBlockedReason?: string
-}
-
 export interface PersonaGenerationPhaseSummaryResponse {
   jobId: number
   currentPhase: string
@@ -143,7 +140,12 @@ export interface PersonaGenerationPhaseSummaryResponse {
   execution?: PersonaGenerationExecutionSummary
   resultSummary?: PersonaGenerationPhaseResultSummary
   errorSummary?: PersonaGenerationPhaseErrorSummary
-  actionEnablement: PersonaGenerationPhaseActionEnablement
+}
+
+// fetch 系 response: projection（UX 遷移可否判定入力）と summary（表示入力）の 2 系統を並べる（design-diff C-2 / G-4-b）
+export interface PersonaGenerationPhaseFetchResponse {
+  projection: PersonaGenerationPhaseProjection
+  summary: PersonaGenerationPhaseSummaryResponse
 }
 
 export interface PersonaGenerationPhaseCommandResponse {
@@ -158,7 +160,6 @@ export interface PersonaGenerationPhaseCommandResponse {
   execution?: PersonaGenerationExecutionSummary
   resultSummary?: PersonaGenerationPhaseResultSummary
   retryable: boolean
-  canStartBodyPhase: boolean
   errorSummary?: PersonaGenerationPhaseErrorSummary
 }
 
@@ -204,7 +205,7 @@ export interface PersonaGenerationPhaseGatewayContract {
   ): Promise<ProcessingTargetListResponse>
   getPersonaGenerationPhaseSummary(
     request: GetPersonaGenerationPhaseSummaryRequest
-  ): Promise<PersonaGenerationPhaseSummaryResponse>
+  ): Promise<PersonaGenerationPhaseFetchResponse>
   startPersonaGenerationPhase(
     request: StartPersonaGenerationPhaseRequest
   ): Promise<PersonaGenerationPhaseCommandResponse>

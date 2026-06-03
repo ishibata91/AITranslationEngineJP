@@ -9,7 +9,7 @@ export type {
   StartTermTranslationPhaseRequest,
   TermTranslationExecutionConfigSummary,
   TermTranslationNextPhaseReadinessResponse,
-  TermTranslationPhaseActionEnablement,
+  TermTranslationPhaseProjection,
   TermTranslationPhaseCommandResponse,
   TermTranslationPhaseErrorKind,
   TermTranslationPhaseErrorSummary,

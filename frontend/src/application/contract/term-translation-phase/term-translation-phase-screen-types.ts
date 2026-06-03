@@ -5,7 +5,7 @@ import type {
   ResumeTermTranslationPhaseRequest,
   TermTranslationExecutionConfigSummary,
   TermTranslationNextPhaseReadinessResponse,
-  TermTranslationPhaseActionEnablement,
+  TermTranslationPhaseProjection,
   TermTranslationPhaseErrorSummary,
   TermTranslationPhaseErrorKind,
   TermTranslationPhaseProgressSummary,
@@ -94,7 +94,7 @@ export interface TermTranslationPhaseScreenViewModel extends TermTranslationPhas
   executionOptions: TermTranslationPhaseSelectOption[]
   actionCards: TermTranslationPhaseActionCard[]
   lastErrorSummary: TermTranslationPhaseErrorSummary | null
-  actionEnablement: TermTranslationPhaseActionEnablement | null
+  projection: TermTranslationPhaseProjection | null
   latestProgressSummary: TermTranslationPhaseProgressSummary | null
   latestResultSummary: TermTranslationPhaseResultSummary | null
   latestExecutionSummary: TermTranslationExecutionConfigSummary | null

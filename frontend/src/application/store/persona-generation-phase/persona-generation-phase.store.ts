@@ -2,6 +2,7 @@ import type { ProcessingTargetListPageState } from "@application/gateway-contrac
 
 import type {
   PersonaGenerationBodyReadinessResponse,
+  PersonaGenerationPhaseProjection,
   PersonaGenerationPhaseSummaryResponse
 } from "@application/gateway-contract/persona-generation-phase"
 
@@ -17,6 +18,7 @@ type PersonaGenerationPhaseActionKind =
 interface PersonaGenerationPhaseScreenState {
   jobId: number | null
   phase: "idle" | "loading" | "ready" | "submitting"
+  projection: PersonaGenerationPhaseProjection | null
   summary: PersonaGenerationPhaseSummaryResponse | null
   bodyReadiness: PersonaGenerationBodyReadinessResponse | null
   errorMessage: string
@@ -55,8 +57,7 @@ function cloneSummary(
       : undefined,
     errorSummary: summary.errorSummary
       ? { ...summary.errorSummary }
-      : undefined,
-    actionEnablement: { ...summary.actionEnablement }
+      : undefined
   }
 }
 
@@ -98,6 +99,7 @@ function createInitialState(): PersonaGenerationPhaseScreenState {
   return {
     jobId: null,
     phase: "idle",
+    projection: null,
     summary: null,
     bodyReadiness: null,
     errorMessage: "",

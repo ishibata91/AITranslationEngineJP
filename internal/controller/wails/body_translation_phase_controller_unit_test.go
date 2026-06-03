@@ -12,7 +12,7 @@ import (
 )
 
 type fakeBodyTranslationPhaseUsecase struct {
-	getSummaryFunc func(context.Context, usecase.GetBodyTranslationPhaseSummaryRequest) (usecase.BodyTranslationPhaseSummaryResult, error)
+	getSummaryFunc func(context.Context, usecase.GetBodyTranslationPhaseSummaryRequest) (usecase.BodyTranslationPhaseFetchResult, error)
 	startFunc      func(context.Context, usecase.StartBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error)
 	pauseFunc      func(context.Context, usecase.PauseBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error)
 	resumeFunc     func(context.Context, usecase.ResumeBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error)
@@ -20,11 +20,11 @@ type fakeBodyTranslationPhaseUsecase struct {
 	cancelFunc     func(context.Context, usecase.CancelBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error)
 }
 
-func (fake fakeBodyTranslationPhaseUsecase) GetBodyTranslationPhaseSummary(ctx context.Context, request usecase.GetBodyTranslationPhaseSummaryRequest) (usecase.BodyTranslationPhaseSummaryResult, error) {
+func (fake fakeBodyTranslationPhaseUsecase) GetBodyTranslationPhaseSummary(ctx context.Context, request usecase.GetBodyTranslationPhaseSummaryRequest) (usecase.BodyTranslationPhaseFetchResult, error) {
 	if fake.getSummaryFunc != nil {
 		return fake.getSummaryFunc(ctx, request)
 	}
-	return usecase.BodyTranslationPhaseSummaryResult{}, nil
+	return usecase.BodyTranslationPhaseFetchResult{}, nil
 }
 
 func (fake fakeBodyTranslationPhaseUsecase) StartBodyTranslationPhase(ctx context.Context, request usecase.StartBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error) {
@@ -66,79 +66,81 @@ func TestBodyTranslationPhaseControllerGetSummaryMapsPublicSeamAndRedactsSecrets
 	startedAt := time.Date(2026, 5, 2, 13, 0, 0, 0, time.FixedZone("JST", 9*60*60))
 	phaseRunID := int64(901)
 	controller := NewBodyTranslationPhaseController(fakeBodyTranslationPhaseUsecase{
-		getSummaryFunc: func(context.Context, usecase.GetBodyTranslationPhaseSummaryRequest) (usecase.BodyTranslationPhaseSummaryResult, error) {
-			return usecase.BodyTranslationPhaseSummaryResult{
-				JobID:        501,
-				CurrentPhase: "body_translation",
-				PhaseState:   "running",
-				PhaseRunID:   &phaseRunID,
-				StartedAt:    &startedAt,
-				Progress: usecase.BodyTranslationPhaseProgressSummary{
-					Percent:         40,
-					ProcessedCount:  4,
-					TotalCount:      10,
-					TargetCount:     10,
-					TranslatedCount: 3,
-					SkippedCount:    1,
-					CurrentStep:     "provider_request",
-				},
-				InputSummary: usecase.BodyTranslationInputSummary{
-					TargetCount:      10,
-					DictionaryDigest: "sha256:dictionary",
-					PersonaDigest:    "sha256:persona",
-					MetadataDigest:   "sha256:metadata",
-					PromptDigest:     "sha256:prompt",
-				},
-				Execution: &usecase.BodyTranslationExecutionSummary{
-					CredentialRef:    "credential:body:test",
-					Provider:         "fake",
-					Model:            "body-model",
-					ExecutionMode:    "batch",
-					RequestUnitCount: 10,
-					OutputCount:      3,
-				},
-				FieldResultSummary: &usecase.BodyTranslationFieldResultSummary{
-					TranslatedCount: 3,
-					FailedCount:     1,
-					SkippedCount:    1,
-					OutputCount:     3,
-				},
-				FieldResults: []usecase.BodyTranslationPhaseFieldResultItem{
-					{
-						Identity: usecase.BodyTranslationPhaseFieldIdentity{
-							TranslationFieldID:      701,
-							PhaseTranslationFieldID: 801,
-							RecordType:              "NPC_",
-							FieldType:               "FULL",
-							FormID:                  "000001",
-							EditorID:                "FixtureNPC",
-							FieldLabel:              "FixtureNPC / FULL",
+		getSummaryFunc: func(context.Context, usecase.GetBodyTranslationPhaseSummaryRequest) (usecase.BodyTranslationPhaseFetchResult, error) {
+			return usecase.BodyTranslationPhaseFetchResult{
+				Summary: usecase.BodyTranslationPhaseSummaryResult{
+					JobID:        501,
+					CurrentPhase: "body_translation",
+					PhaseState:   "running",
+					PhaseRunID:   &phaseRunID,
+					StartedAt:    &startedAt,
+					Progress: usecase.BodyTranslationPhaseProgressSummary{
+						Percent:         40,
+						ProcessedCount:  4,
+						TotalCount:      10,
+						TargetCount:     10,
+						TranslatedCount: 3,
+						SkippedCount:    1,
+						CurrentStep:     "provider_request",
+					},
+					InputSummary: usecase.BodyTranslationInputSummary{
+						TargetCount:      10,
+						DictionaryDigest: "sha256:dictionary",
+						PersonaDigest:    "sha256:persona",
+						MetadataDigest:   "sha256:metadata",
+						PromptDigest:     "sha256:prompt",
+					},
+					Execution: &usecase.BodyTranslationExecutionSummary{
+						CredentialRef:    "credential:body:test",
+						Provider:         "fake",
+						Model:            "body-model",
+						ExecutionMode:    "batch",
+						RequestUnitCount: 10,
+						OutputCount:      3,
+					},
+					FieldResultSummary: &usecase.BodyTranslationFieldResultSummary{
+						TranslatedCount: 3,
+						FailedCount:     1,
+						SkippedCount:    1,
+						OutputCount:     3,
+					},
+					FieldResults: []usecase.BodyTranslationPhaseFieldResultItem{
+						{
+							Identity: usecase.BodyTranslationPhaseFieldIdentity{
+								TranslationFieldID:      701,
+								PhaseTranslationFieldID: 801,
+								RecordType:              "NPC_",
+								FieldType:               "FULL",
+								FormID:                  "000001",
+								EditorID:                "FixtureNPC",
+								FieldLabel:              "FixtureNPC / FULL",
+							},
+							FieldID:                    701,
+							FieldLabel:                 "FixtureNPC / FULL",
+							SourceExcerpt:              "Hello",
+							TranslatedText:             "こんにちは",
+							OutputStatus:               "ready",
+							ProtectionValidationResult: "passed",
+							RetryCount:                 1,
 						},
-						FieldID:                    701,
-						FieldLabel:                 "FixtureNPC / FULL",
-						SourceExcerpt:              "Hello",
-						TranslatedText:             "こんにちは",
-						OutputStatus:               "ready",
-						ProtectionValidationResult: "passed",
-						RetryCount:                 1,
+					},
+					ErrorSummary: &usecase.BodyTranslationPhaseErrorSummary{
+						ErrorKind:  " SECRET_REDACTED ",
+						Reason:     "redacted public summary",
+						Retryable:  true,
+						IsRedacted: true,
+					},
+					OutputReadiness: usecase.BodyTranslationOutputReadinessSummary{
+						CompletedFieldCount: 3,
+						StatusConsistent:    true,
 					},
 				},
-				ErrorSummary: &usecase.BodyTranslationPhaseErrorSummary{
-					ErrorKind:  " SECRET_REDACTED ",
-					Reason:     "redacted public summary",
-					Retryable:  true,
-					IsRedacted: true,
-				},
-				ActionEnablement: usecase.BodyTranslationPhaseActionEnablement{
-					CanStart:  false,
-					CanPause:  true,
-					CanResume: false,
-					CanRetry:  true,
-					CanCancel: false,
-				},
-				OutputReadiness: usecase.BodyTranslationOutputReadinessSummary{
-					CompletedFieldCount: 3,
-					StatusConsistent:    true,
+				Projection: usecase.BodyTranslationPhaseProjectionResult{
+					PhaseLifecycle:       "running",
+					JobLifecycle:         "running",
+					ErrorKind:            "recoverable",
+					AISettingsConfigured: false,
+					TargetCount:          10,
 				},
 			}, nil
 		},
@@ -165,8 +167,8 @@ func TestBodyTranslationPhaseControllerGetSummaryMapsPublicSeamAndRedactsSecrets
 
 func TestBodyTranslationPhaseControllerGetSummaryReturnsEmptySkippedReasonsArray(t *testing.T) {
 	controller := NewBodyTranslationPhaseController(fakeBodyTranslationPhaseUsecase{
-		getSummaryFunc: func(context.Context, usecase.GetBodyTranslationPhaseSummaryRequest) (usecase.BodyTranslationPhaseSummaryResult, error) {
-			return usecase.BodyTranslationPhaseSummaryResult{}, nil
+		getSummaryFunc: func(context.Context, usecase.GetBodyTranslationPhaseSummaryRequest) (usecase.BodyTranslationPhaseFetchResult, error) {
+			return usecase.BodyTranslationPhaseFetchResult{}, nil
 		},
 	})
 

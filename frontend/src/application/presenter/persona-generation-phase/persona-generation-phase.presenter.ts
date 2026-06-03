@@ -4,10 +4,10 @@ import type {
   PersonaGenerationBodyReadinessInputSummary,
   PersonaGenerationBodyReadinessResponse,
   PersonaGenerationExecutionSummary,
-  PersonaGenerationPhaseActionEnablement,
   PersonaGenerationPhaseErrorKind,
   PersonaGenerationPhaseErrorSummary,
   PersonaGenerationPhaseProgressSummary,
+  PersonaGenerationPhaseProjection,
   PersonaGenerationPhaseResultSummary,
   PersonaGenerationPhaseSummaryResponse,
   PersonaGenerationTargetSummary
@@ -37,6 +37,7 @@ type PersonaGenerationPhaseViewState =
 interface PersonaGenerationPhaseScreenState {
   jobId: number | null
   phase: "idle" | "loading" | "ready" | "submitting"
+  projection: PersonaGenerationPhaseProjection | null
   summary: PersonaGenerationPhaseSummaryResponse | null
   bodyReadiness: PersonaGenerationBodyReadinessResponse | null
   errorMessage: string
@@ -114,7 +115,6 @@ interface PersonaGenerationPhaseScreenViewModel extends PersonaGenerationPhaseSc
   actionCards: PersonaGenerationPhaseActionCard[]
   screenActionEnablement: PersonaGenerationPhaseScreenActionEnablement
   lastErrorSummary: PersonaGenerationPhaseErrorSummary | null
-  actionEnablement: PersonaGenerationPhaseActionEnablement | null
   latestProgressSummary: PersonaGenerationPhaseProgressSummary | null
   latestTargetSummary: PersonaGenerationTargetSummary | null
   latestResultSummary: PersonaGenerationPhaseResultSummary | null
@@ -234,7 +234,7 @@ function buildSummaryViewState(
       : "completed"
   }
 
-  if (!summary.phaseRunId && summary.actionEnablement.canStart) {
+  if (!summary.phaseRunId) {
     return "not_started"
   }
 
@@ -473,60 +473,68 @@ function buildPersonaModelOptions(
   return [{ value: "", label: "モデル一覧を更新してください" }]
 }
 
-function isPersonaTerminalJob(
-  summary: PersonaGenerationPhaseSummaryResponse
-): boolean {
-  const startReason = summary.actionEnablement?.startBlockedReason ?? ""
-  return startReason === "terminal_job"
+// ドメイン状態射影 field に対する enum 集合定数（design-diff H 節の略号と対応）
+const TERMINAL_JOB = new Set(["completed", "failed", "canceled"])
+const RUNNING_PHASE = new Set(["running", "in_progress", "processing"])
+const IDLE_READY_PHASE = new Set(["pending", "idle_ready", "ready", ""])
+const PAUSED_PHASE = new Set(["paused"])
+const RECOVERABLE_FAILED_PHASE = new Set(["recoverable_failed", "retryable_failed"])
+const COMPLETED_PHASE = new Set(["completed", "succeeded", "done"])
+
+type PersonaActionEnablementShape = {
+  canStart: boolean
+  startBlockedReason?: string
+  canPause: boolean
+  pauseBlockedReason?: string
+  canResume: boolean
+  resumeBlockedReason?: string
+  canRetry: boolean
+  retryBlockedReason?: string
+  canCancel: boolean
+  cancelBlockedReason?: string
 }
 
-function derivePersonaCanStartBodyPhase(
-  summary: PersonaGenerationPhaseSummaryResponse
-): boolean {
-  if (isPersonaTerminalJob(summary)) {
-    return false
-  }
-  const bodyReadiness = summary.resultSummary?.bodyReadiness
-  return bodyReadiness === true
-}
-
-function derivePersonaBodyReadinessBlockedReason(
-  summary: PersonaGenerationPhaseSummaryResponse
-): string {
-  if (isPersonaTerminalJob(summary)) {
-    return "ジョブが終端状態のため本文翻訳を開始できません。"
-  }
-  const bodyReadiness = summary.resultSummary?.bodyReadiness
-  if (!bodyReadiness) {
-    return "ペルソナ snapshot 参照が準備できていません。"
-  }
-  return ""
-}
-
+// H-6〜H-10: persona phase のアクション有効化条件（projection だけを入力にする純関数）
 function derivePersonaActionEnablement(
-  summary: PersonaGenerationPhaseSummaryResponse
-): PersonaGenerationPhaseActionEnablement {
-  const normalizedState = normalizePhaseState(summary.phaseState)
-  const terminal = isPersonaTerminalJob(summary)
-
-  const isRunning =
-    normalizedState === "running" ||
-    normalizedState === "in_progress" ||
-    normalizedState === "processing"
-  const isPaused = normalizedState === "paused"
+  projection: PersonaGenerationPhaseProjection
+): PersonaActionEnablementShape {
+  const terminal = TERMINAL_JOB.has(projection.jobLifecycle)
+  const isRunning = RUNNING_PHASE.has(projection.phaseLifecycle)
+  const isPaused = PAUSED_PHASE.has(projection.phaseLifecycle)
   const isRecoverableFailed =
-    normalizedState === "recoverable_failed" ||
-    normalizedState === "retryable_failed" ||
-    summary.errorSummary?.retryable === true
+    RECOVERABLE_FAILED_PHASE.has(projection.phaseLifecycle) ||
+    projection.errorKind === "recoverable"
+  const isIdleReady = IDLE_READY_PHASE.has(projection.phaseLifecycle)
   const isActive = isRunning || isPaused || isRecoverableFailed
+  const previousPhaseCompleted = COMPLETED_PHASE.has(projection.previousPhaseLifecycle)
+  const hasProcessingTarget = projection.targetCount > 0
 
-  const canStart = !terminal && !isActive
+  // H-6: 開始ボタン
+  const canStart =
+    !terminal &&
+    !isRunning &&
+    !isPaused &&
+    !isRecoverableFailed &&
+    isIdleReady &&
+    projection.aiSettingsConfigured &&
+    hasProcessingTarget &&
+    previousPhaseCompleted
+
   const startBlockedReason = terminal
     ? "ジョブが終端状態のため開始できません。"
-    : isActive
+    : isRunning || isPaused || isRecoverableFailed
       ? "実行中の翻訳段階があるため開始できません。"
-      : undefined
+      : !previousPhaseCompleted
+        ? "単語翻訳段階が完了していないためペルソナ生成を開始できません。"
+        : !projection.aiSettingsConfigured
+          ? "実行設定が未構成のため開始できません。"
+          : !hasProcessingTarget
+            ? "処理対象が 0 件のため開始できません。"
+            : !isIdleReady
+              ? "ジョブが開始可能状態ではありません。"
+              : undefined
 
+  // H-7: 中断ボタン
   const canPause = !terminal && isRunning
   const pauseBlockedReason = terminal
     ? "ジョブが終端状態のため中断できません。"
@@ -534,6 +542,7 @@ function derivePersonaActionEnablement(
       ? "フェーズが実行中ではありません。"
       : undefined
 
+  // H-8: 再開ボタン
   const canResume = !terminal && (isPaused || isRecoverableFailed)
   const resumeBlockedReason = terminal
     ? "ジョブが終端状態のため再開できません。"
@@ -541,6 +550,7 @@ function derivePersonaActionEnablement(
       ? "フェーズが再開可能な状態ではありません。"
       : undefined
 
+  // H-9: 再試行ボタン
   const canRetry = !terminal && isRecoverableFailed
   const retryBlockedReason = terminal
     ? "ジョブが終端状態のため再試行できません。"
@@ -548,6 +558,7 @@ function derivePersonaActionEnablement(
       ? "フェーズが再試行可能な状態ではありません。"
       : undefined
 
+  // H-10: キャンセルボタン
   const canCancel = !terminal && isActive
   const cancelBlockedReason = terminal
     ? "ジョブが終端状態のためキャンセルできません。"
@@ -569,12 +580,37 @@ function derivePersonaActionEnablement(
   }
 }
 
+// H-11: persona → body 移行ボタンの有効化条件（projection だけを入力にする純関数）
+// personaBodyReadiness は body 側 projection に集約するため、本関数では含めない（design-diff G-2-b）
+function derivePersonaCanStartBodyPhase(
+  projection: PersonaGenerationPhaseProjection
+): boolean {
+  const terminal = TERMINAL_JOB.has(projection.jobLifecycle)
+  if (terminal) {
+    return false
+  }
+  return COMPLETED_PHASE.has(projection.phaseLifecycle)
+}
+
+function derivePersonaBodyReadinessBlockedReason(
+  projection: PersonaGenerationPhaseProjection
+): string {
+  const terminal = TERMINAL_JOB.has(projection.jobLifecycle)
+  if (terminal) {
+    return "ジョブが終端状態のため本文翻訳を開始できません。"
+  }
+  if (!COMPLETED_PHASE.has(projection.phaseLifecycle)) {
+    return "ペルソナ生成段階が未完了のため本文翻訳を開始できません。"
+  }
+  return ""
+}
+
 function buildScreenActionEnablement(
   state: PersonaGenerationPhaseScreenState
 ): PersonaGenerationPhaseScreenActionEnablement {
   const isBusy = state.phase === "loading" || state.phase === "submitting"
 
-  if (!state.summary) {
+  if (!state.projection) {
     return {
       canStart: false,
       canPause: false,
@@ -586,7 +622,7 @@ function buildScreenActionEnablement(
     }
   }
 
-  const derived = derivePersonaActionEnablement(state.summary)
+  const derived = derivePersonaActionEnablement(state.projection)
 
   return {
     canStart: !isBusy && derived.canStart,
@@ -595,7 +631,7 @@ function buildScreenActionEnablement(
     canRetry: !isBusy && derived.canRetry,
     canCancel: !isBusy && derived.canCancel,
     canCheckBodyReadiness: !isBusy && state.jobId !== null,
-    canStartBodyPhase: !isBusy && derivePersonaCanStartBodyPhase(state.summary)
+    canStartBodyPhase: !isBusy && derivePersonaCanStartBodyPhase(state.projection)
   }
 }
 
@@ -603,11 +639,11 @@ function buildActionCards(
   state: PersonaGenerationPhaseScreenState
 ): PersonaGenerationPhaseActionCard[] {
   const screenEnablement = buildScreenActionEnablement(state)
-  const derived = state.summary
-    ? derivePersonaActionEnablement(state.summary)
+  const derived = state.projection
+    ? derivePersonaActionEnablement(state.projection)
     : null
-  const bodyReadinessBlockedReason = state.summary
-    ? derivePersonaBodyReadinessBlockedReason(state.summary)
+  const bodyReadinessBlockedReason = state.projection
+    ? derivePersonaBodyReadinessBlockedReason(state.projection)
     : ""
 
   return [
@@ -738,11 +774,11 @@ export class PersonaGenerationPhasePresenter {
         resultSummary?.snapshotReferenceStatus ?? "-",
       personaCountLabel: formatCount(resultSummary?.personaCount),
       missingCountLabel: formatCount(resultSummary?.missingCount),
-      bodyReadinessLabel: summary
-        ? (derivePersonaCanStartBodyPhase(summary) ? "Ready" : "Blocked")
+      bodyReadinessLabel: state.projection
+        ? (derivePersonaCanStartBodyPhase(state.projection) ? "Ready" : "Blocked")
         : "-",
-      bodyReadinessBlockedReason: summary
-        ? derivePersonaBodyReadinessBlockedReason(summary)
+      bodyReadinessBlockedReason: state.projection
+        ? derivePersonaBodyReadinessBlockedReason(state.projection)
         : "",
       bodyReadinessInputSummaryLabel:
         buildBodyReadinessInputSummaryLabel(state),
@@ -758,7 +794,6 @@ export class PersonaGenerationPhasePresenter {
       actionCards: buildActionCards(state),
       screenActionEnablement,
       lastErrorSummary: errorSummary,
-      actionEnablement: summary?.actionEnablement ?? null,
       latestProgressSummary: summary?.progress ?? null,
       latestTargetSummary: targetSummary ?? null,
       latestResultSummary: resultSummary ?? null,

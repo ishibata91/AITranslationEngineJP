@@ -49,6 +49,26 @@ export class TranslationPhasePage extends SystemTestPageObject {
     return this.byTestId(`${this.prefix}-start-button`)
   }
 
+  /** 中断ボタン（aria-label=中断）。H-2 の有効化条件確認に使う。 */
+  get pauseButton(): Locator {
+    return this.page.getByRole("button", { name: "中断" })
+  }
+
+  /** 再開ボタン（aria-label=再開）。H-3 の有効化条件確認に使う。 */
+  get resumeButton(): Locator {
+    return this.page.getByRole("button", { name: "再開" })
+  }
+
+  /** リトライボタン（aria-label=リトライ）。H-4 の有効化条件確認に使う。 */
+  get retryButton(): Locator {
+    return this.page.getByRole("button", { name: "リトライ" })
+  }
+
+  /** キャンセルボタン（aria-label=キャンセル）。H-10/H-16 の有効化条件確認に使う。 */
+  get cancelButton(): Locator {
+    return this.page.getByRole("button", { name: "キャンセル" })
+  }
+
   get processingTargetListRegion(): Locator {
     return this.screen.getByRole("region", { name: "処理対象一覧" })
   }
@@ -150,6 +170,16 @@ export class PersonaGenerationPhasePage extends TranslationPhasePage {
     return this.byTestId("persona-generation-phase-ai-settings-status-pill")
   }
 
+  /** 開始ボタンの禁止理由を表示する領域。 */
+  get startBlockedReason(): Locator {
+    return this.byTestId("persona-generation-phase-start-blocked-reason")
+  }
+
+  /** 次段階へボタン（persona → body 移行）。H-11 の有効化条件確認に使う。 */
+  get nextPhaseButton(): Locator {
+    return this.byTestId("persona-generation-phase-start-next-phase-button")
+  }
+
   /** AI サービス select 要素。 */
   get aiProviderSelect(): Locator {
     return this.byTestId("persona-generation-phase-ai-provider-select")
@@ -179,6 +209,11 @@ export class BodyTranslationPhasePage extends TranslationPhasePage {
   /** AI モデル設定パネルの状態 pill（「固定済み」または「設定未完了」を表示する要素）。 */
   get aiSettingsStatusPill(): Locator {
     return this.byTestId("body-translation-phase-ai-settings-status-pill")
+  }
+
+  /** 開始ボタンの禁止理由を表示する領域。 */
+  get startBlockedReason(): Locator {
+    return this.byTestId("body-translation-phase-start-blocked-reason")
   }
 
   /** AI サービス select 要素。 */

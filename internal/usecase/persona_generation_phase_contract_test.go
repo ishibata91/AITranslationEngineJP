@@ -9,7 +9,7 @@ type personaGenerationPhaseContractAPI interface {
 	GetPersonaGenerationPhaseSummary(
 		context.Context,
 		GetPersonaGenerationPhaseSummaryRequest,
-	) (PersonaGenerationPhaseSummaryResult, error)
+	) (GetPersonaGenerationPhaseFetchResult, error)
 	StartPersonaGenerationPhase(
 		context.Context,
 		StartPersonaGenerationPhaseRequest,
@@ -96,13 +96,6 @@ func TestPersonaGenerationContract_PublicSeamsAndRedactionDTOShape(t *testing.T)
 			Reason:     "provider failure",
 			Retryable:  true,
 			IsRedacted: true,
-		},
-		ActionEnablement: PersonaGenerationPhaseActionEnablement{
-			CanStart:  false,
-			CanPause:  true,
-			CanResume: false,
-			CanRetry:  true,
-			CanCancel: true,
 		},
 	}
 

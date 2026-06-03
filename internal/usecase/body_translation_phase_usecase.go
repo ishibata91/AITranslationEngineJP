@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"aitranslationenginejp/internal/service"
 	"aitranslationenginejp/internal/usecase/translationjobpolicy"
@@ -21,11 +22,17 @@ type bodyTranslationPhaseAISettingsSaver interface {
 	SaveAISettings(ctx context.Context, selection service.PhaseAISettingsSelection) (service.PhaseAISettingsReadModel, error)
 }
 
+// bodyTranslationPersonaReadinessPort reads persona snapshot readiness for the body phase start condition.
+type bodyTranslationPersonaReadinessPort interface {
+	ReadBodyReadiness(ctx context.Context, jobID int64) (service.PersonaGenerationBodyReadinessReadModel, error)
+}
+
 const bodyTranslationPhaseUsecaseLogWhere = "backend.usecase.body_translation_phase"
 
 // BodyTranslationPhaseUsecase bridges the frozen body translation contract to the service layer.
 type BodyTranslationPhaseUsecase struct {
-	service bodyTranslationPhaseServicePort
+	service          bodyTranslationPhaseServicePort
+	personaReadiness bodyTranslationPersonaReadinessPort
 }
 
 // NewBodyTranslationPhaseUsecase creates the body translation phase usecase.
@@ -33,16 +40,115 @@ func NewBodyTranslationPhaseUsecase(service bodyTranslationPhaseServicePort) *Bo
 	return &BodyTranslationPhaseUsecase{service: service}
 }
 
-// GetBodyTranslationPhaseSummary returns the current body phase summary contract.
+// WithPersonaReadiness injects the persona readiness service used to resolve persona snapshot availability.
+func (usecase *BodyTranslationPhaseUsecase) WithPersonaReadiness(port bodyTranslationPersonaReadinessPort) *BodyTranslationPhaseUsecase {
+	if usecase == nil {
+		return nil
+	}
+	usecase.personaReadiness = port
+	return usecase
+}
+
+// GetBodyTranslationPhaseSummary returns the current body phase summary and domain state projection.
 func (usecase *BodyTranslationPhaseUsecase) GetBodyTranslationPhaseSummary(
 	ctx context.Context,
 	request GetBodyTranslationPhaseSummaryRequest,
-) (BodyTranslationPhaseSummaryResult, error) {
+) (BodyTranslationPhaseFetchResult, error) {
 	readModel, err := usecase.service.ReadSummary(ctx, request.JobID)
 	if err != nil {
-		return BodyTranslationPhaseSummaryResult{}, fmt.Errorf("get body translation phase summary: %w", err)
+		return BodyTranslationPhaseFetchResult{}, fmt.Errorf("get body translation phase summary: %w", err)
 	}
-	return toBodyTranslationPhaseSummaryResult(readModel), nil
+	projection := usecase.buildBodyProjection(ctx, request.JobID, readModel)
+	return BodyTranslationPhaseFetchResult{
+		Summary:    toBodyTranslationPhaseSummaryResult(readModel),
+		Projection: projection,
+	}, nil
+}
+
+// buildBodyProjection assembles the domain state projection for UX transition derivation.
+// persona readiness は personaReadiness port が注入されていない場合は zero 値を使う。
+// persona phase lifecycle と readiness は 1 回の ReadBodyReadiness 呼び出しで同時に解決する。
+func (usecase *BodyTranslationPhaseUsecase) buildBodyProjection(
+	ctx context.Context,
+	jobID int64,
+	readModel service.BodyTranslationPhaseSummaryReadModel,
+) BodyTranslationPhaseProjectionResult {
+	phaseLifecycle := readModel.PhaseState
+	jobLifecycle := readModel.JobState
+	errorKind := bodyTranslationProjectionErrorKind(readModel.ErrorSummary)
+	aiSettingsConfigured := readModel.AISettings != nil &&
+		readModel.AISettings.Provider != "" &&
+		readModel.AISettings.Model != "" &&
+		readModel.AISettings.ExecutionMode != ""
+	targetCount := readModel.Progress.TargetCount
+	previousPhaseLifecycle, personaBodyReadiness := usecase.resolvePersonaState(ctx, jobID)
+	return BodyTranslationPhaseProjectionResult{
+		PhaseLifecycle:         phaseLifecycle,
+		JobLifecycle:           jobLifecycle,
+		ErrorKind:              errorKind,
+		AISettingsConfigured:   aiSettingsConfigured,
+		TargetCount:            targetCount,
+		PreviousPhaseLifecycle: previousPhaseLifecycle,
+		PersonaBodyReadiness:   personaBodyReadiness,
+	}
+}
+
+// resolvePersonaState reads persona phase lifecycle and snapshot readiness in one call.
+// personaReadiness port が注入されていない場合、または取得に失敗した場合は空文字と zero 値を返す。
+// persona phase lifecycle は PersonaGenerationBodyReadinessReadModel.PhaseState から取得する。
+// この値は persona service が正規化済みの lifecycle 値（"completed" など）を格納している。
+func (usecase *BodyTranslationPhaseUsecase) resolvePersonaState(
+	ctx context.Context,
+	jobID int64,
+) (previousPhaseLifecycle string, readiness BodyTranslationPhasePersonaBodyReadiness) {
+	if usecase.personaReadiness == nil {
+		return "", BodyTranslationPhasePersonaBodyReadiness{}
+	}
+	readinessModel, err := usecase.personaReadiness.ReadBodyReadiness(ctx, jobID)
+	if err != nil {
+		return "", BodyTranslationPhasePersonaBodyReadiness{}
+	}
+	previousPhaseLifecycle = readinessModel.PhaseState
+	readiness = BodyTranslationPhasePersonaBodyReadiness{
+		BodyReadiness:           readinessModel.InputSummary.PersonaCount > 0 && readinessModel.InputSummary.MissingCount == 0,
+		SnapshotReferenceStatus: bodyTranslationPersonaSnapshotReferenceStatus(readinessModel),
+	}
+	return previousPhaseLifecycle, readiness
+}
+
+func bodyTranslationProjectionErrorKind(errorSummary *service.BodyTranslationPhaseErrorSummaryReadModel) string {
+	if errorSummary == nil {
+		return "none"
+	}
+	kind := strings.TrimSpace(errorSummary.ErrorKind)
+	switch kind {
+	case "provider_failure", "invalid_provider_response", "protection_validation_failed",
+		"save_failed", "late_response_rejected":
+		return "recoverable"
+	case "input_snapshot_failed", "output_readiness_blocked", "secret_redacted",
+		"persona_phase_incomplete", "terminal_job", "active_phase_exists":
+		return "unrecoverable"
+	default:
+		if kind == "" {
+			return "none"
+		}
+		return "recoverable"
+	}
+}
+
+func bodyTranslationPersonaSnapshotReferenceStatus(
+	readinessModel service.PersonaGenerationBodyReadinessReadModel,
+) string {
+	if readinessModel.InputSummary.SnapshotID == "" {
+		return ""
+	}
+	if readinessModel.InputSummary.MissingCount > 0 {
+		return "missing"
+	}
+	if readinessModel.InputSummary.PersonaCount > 0 {
+		return "available"
+	}
+	return ""
 }
 
 // StartBodyTranslationPhase starts one body phase run and returns the command contract.
@@ -289,7 +395,6 @@ func toBodyTranslationPhaseSummaryResult(
 		ResultSummary:      toOptionalBodyTranslationFieldResultSummary(readModel.ResultSummary),
 		FieldResults:       toBodyTranslationFieldResultItems(readModel.FieldResults),
 		ErrorSummary:       toOptionalBodyTranslationErrorSummary(readModel.ErrorSummary),
-		ActionEnablement:   toBodyTranslationPhaseActionEnablement(readModel.ActionEnablement),
 		OutputReadiness:    toBodyTranslationOutputReadinessSummary(readModel.OutputReadiness),
 	}
 }
@@ -455,23 +560,6 @@ func toOptionalBodyTranslationErrorSummary(
 		Reason:     readModel.Reason,
 		Retryable:  readModel.Retryable,
 		IsRedacted: readModel.IsRedacted,
-	}
-}
-
-func toBodyTranslationPhaseActionEnablement(
-	readModel service.BodyTranslationPhaseActionEnablementReadModel,
-) BodyTranslationPhaseActionEnablement {
-	return BodyTranslationPhaseActionEnablement{
-		CanStart:            readModel.CanStart,
-		StartBlockedReason:  cloneStringPointer(readModel.StartBlockedReason),
-		CanPause:            readModel.CanPause,
-		PauseBlockedReason:  cloneStringPointer(readModel.PauseBlockedReason),
-		CanResume:           readModel.CanResume,
-		ResumeBlockedReason: cloneStringPointer(readModel.ResumeBlockedReason),
-		CanRetry:            readModel.CanRetry,
-		RetryBlockedReason:  cloneStringPointer(readModel.RetryBlockedReason),
-		CanCancel:           readModel.CanCancel,
-		CancelBlockedReason: cloneStringPointer(readModel.CancelBlockedReason),
 	}
 }
 

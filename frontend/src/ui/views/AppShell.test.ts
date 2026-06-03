@@ -166,7 +166,7 @@ function createTermTranslationPhaseViewModel(): TermTranslationPhaseScreenViewMo
     providerSkippedLabel: "-",
     actionCards: [],
     lastErrorSummary: null,
-    actionEnablement: null,
+    projection: null,
     latestProgressSummary: null,
     latestResultSummary: null,
     latestExecutionSummary: null,

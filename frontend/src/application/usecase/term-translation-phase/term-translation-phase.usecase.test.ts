@@ -35,11 +35,13 @@ function createSummary(
       model: "gpt-4.1-mini",
       executionMode: "batch"
     },
-    actionEnablement: {
-      canStart: true,
-      canPause: false,
-      canResume: false,
-      canRetry: false
+    projection: {
+      phaseLifecycle: "ready",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: true,
+      aiTargetCount: 7,
+      confirmedCount: 0
     },
     ...overrides
   }
@@ -52,6 +54,9 @@ function createReadiness(
     jobId: 9,
     currentPhase: "term_translation",
     phaseState: "ready",
+    jobIsTerminal: false,
+    totalCount: 10,
+    confirmedCount: 0,
     ...overrides
   }
 }
@@ -84,7 +89,7 @@ function cloneState(
           errorSummary: state.summary.errorSummary
             ? { ...state.summary.errorSummary }
             : undefined,
-          actionEnablement: { ...state.summary.actionEnablement }
+          projection: { ...state.summary.projection }
         }
       : null,
     nextPhaseReadiness: state.nextPhaseReadiness
@@ -163,8 +168,7 @@ function createGatewaySpies() {
           aiTargetCount: 7,
           currentStep: "starting"
         },
-        retryable: false,
-        canStartNextPhase: false
+        retryable: false
       })
     ),
     pauseTermTranslationPhase: vi.fn(() =>
@@ -180,8 +184,7 @@ function createGatewaySpies() {
           aiTargetCount: 7,
           currentStep: "paused"
         },
-        retryable: true,
-        canStartNextPhase: false
+        retryable: true
       })
     ),
     resumeTermTranslationPhase: vi.fn(() =>
@@ -197,8 +200,7 @@ function createGatewaySpies() {
           aiTargetCount: 7,
           currentStep: "resumed"
         },
-        retryable: false,
-        canStartNextPhase: false
+        retryable: false
       })
     ),
     retryTermTranslationPhase: vi.fn(() =>
@@ -214,8 +216,7 @@ function createGatewaySpies() {
           aiTargetCount: 7,
           currentStep: "retry"
         },
-        retryable: false,
-        canStartNextPhase: false
+        retryable: false
       })
     )
   }

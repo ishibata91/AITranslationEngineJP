@@ -26,6 +26,7 @@ import type {
 import {
   createGatewayResponseShapeError,
   isArrayOf,
+  isBoolean,
   isNumber,
   isRecord,
   isString
@@ -207,6 +208,49 @@ function isListProviderModelsResponseDto(value: unknown): value is {
   )
 }
 
+function isPersonaGenerationPhaseProjection(value: unknown, path: string): boolean {
+  if (!isRecord(value)) {
+    return invalid(path, "object")
+  }
+
+  return (
+    (isString(value["phaseLifecycle"]) || invalid(`${path}.phaseLifecycle`, "string")) &&
+    (isString(value["jobLifecycle"]) || invalid(`${path}.jobLifecycle`, "string")) &&
+    (isString(value["errorKind"]) || invalid(`${path}.errorKind`, "string")) &&
+    (isBoolean(value["aiSettingsConfigured"]) ||
+      invalid(`${path}.aiSettingsConfigured`, "boolean")) &&
+    (isNumber(value["targetCount"]) || invalid(`${path}.targetCount`, "number")) &&
+    (isString(value["previousPhaseLifecycle"]) ||
+      invalid(`${path}.previousPhaseLifecycle`, "string"))
+  )
+}
+
+function isPersonaGenerationPhaseSummaryShape(value: unknown, path: string): boolean {
+  if (!isRecord(value)) {
+    return invalid(path, "object")
+  }
+
+  return (
+    (isNumber(value["jobId"]) || invalid(`${path}.jobId`, "number")) &&
+    (isString(value["currentPhase"]) || invalid(`${path}.currentPhase`, "string")) &&
+    (isString(value["phaseState"]) || invalid(`${path}.phaseState`, "string"))
+  )
+}
+
+function isPersonaGenerationPhaseFetchResponseDto(
+  value: unknown
+): value is GetPersonaGenerationPhaseSummaryResponseDto {
+  resetIssues()
+  if (!isRecord(value)) {
+    return invalid("$", "object")
+  }
+
+  return (
+    isPersonaGenerationPhaseProjection(value["projection"], "$.projection") &&
+    isPersonaGenerationPhaseSummaryShape(value["summary"], "$.summary")
+  )
+}
+
 function createBindingInvoker(): BindingInvoker {
   return <RequestDto, ResponseDto>(
     bindingName: PersonaGenerationPhaseBindingName,
@@ -268,7 +312,11 @@ class PersonaGenerationPhaseGateway implements PersonaGenerationPhaseGatewayCont
   getPersonaGenerationPhaseSummary(
     request: GetPersonaGenerationPhaseSummaryRequestDto
   ): Promise<GetPersonaGenerationPhaseSummaryResponseDto> {
-    return this.invokeBinding("GetPersonaGenerationPhaseSummary", request)
+    return this.invokeBinding(
+      "GetPersonaGenerationPhaseSummary",
+      request,
+      isPersonaGenerationPhaseFetchResponseDto
+    )
   }
 
   startPersonaGenerationPhase(

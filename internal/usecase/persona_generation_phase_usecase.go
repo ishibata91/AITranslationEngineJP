@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"aitranslationenginejp/internal/service"
@@ -35,16 +36,19 @@ func NewPersonaGenerationPhaseUsecase(service personaGenerationPhaseServicePort)
 	return &PersonaGenerationPhaseUsecase{service: service}
 }
 
-// GetPersonaGenerationPhaseSummary returns the persona phase summary contract.
+// GetPersonaGenerationPhaseSummary returns the persona phase summary and projection contract.
 func (usecase *PersonaGenerationPhaseUsecase) GetPersonaGenerationPhaseSummary(
 	ctx context.Context,
 	request GetPersonaGenerationPhaseSummaryRequest,
-) (PersonaGenerationPhaseSummaryResult, error) {
+) (GetPersonaGenerationPhaseFetchResult, error) {
 	readModel, err := usecase.service.ReadSummary(ctx, request.JobID)
 	if err != nil {
-		return PersonaGenerationPhaseSummaryResult{}, fmt.Errorf("get persona generation phase summary: %w", err)
+		return GetPersonaGenerationPhaseFetchResult{}, fmt.Errorf("get persona generation phase summary: %w", err)
 	}
-	return toPersonaGenerationPhaseSummaryResult(readModel), nil
+	return GetPersonaGenerationPhaseFetchResult{
+		Summary:    toPersonaGenerationPhaseSummaryResult(readModel),
+		Projection: toPersonaGenerationPhaseProjectionResult(readModel),
+	}, nil
 }
 
 // StartPersonaGenerationPhase starts one persona phase run and returns the command contract.
@@ -316,12 +320,45 @@ func toPersonaGenerationPhaseSummaryResult(
 			TargetSnapshotID:       clonePersonaGenerationStringPointer(readModel.TargetSummary.TargetSnapshotID),
 			TargetSnapshotDigest:   readModel.TargetSummary.TargetSnapshotDigest,
 		},
-		AISettings:       toPersonaGenerationPhaseAISettings(readModel.AISettings),
-		Execution:        toPersonaGenerationExecutionSummaryFromPointer(readModel.Execution),
-		ResultSummary:    toPersonaGenerationPhaseResultSummary(readModel.ResultSummary),
-		ErrorSummary:     toPersonaGenerationPhaseErrorSummary(readModel.ErrorSummary),
-		ActionEnablement: toPersonaGenerationPhaseActionEnablement(readModel.ActionEnablement),
+		AISettings:    toPersonaGenerationPhaseAISettings(readModel.AISettings),
+		Execution:     toPersonaGenerationExecutionSummaryFromPointer(readModel.Execution),
+		ResultSummary: toPersonaGenerationPhaseResultSummary(readModel.ResultSummary),
+		ErrorSummary:  toPersonaGenerationPhaseErrorSummary(readModel.ErrorSummary),
 	}
+}
+
+func toPersonaGenerationPhaseProjectionResult(
+	readModel service.PersonaGenerationPhaseSummaryReadModel,
+) PersonaGenerationPhaseProjectionResult {
+	return PersonaGenerationPhaseProjectionResult{
+		PhaseLifecycle:         readModel.PhaseState,
+		JobLifecycle:           readModel.JobState,
+		ErrorKind:              personaGenerationProjectionErrorKind(readModel.ErrorSummary),
+		AISettingsConfigured:   personaGenerationAISettingsConfigured(readModel.AISettings),
+		TargetCount:            readModel.TargetSummary.TargetCount,
+		PreviousPhaseLifecycle: readModel.PreviousPhaseLifecycle,
+	}
+}
+
+// personaGenerationProjectionErrorKind maps error summary to none / recoverable / unrecoverable.
+func personaGenerationProjectionErrorKind(readModel *service.PersonaGenerationPhaseErrorSummaryReadModel) string {
+	if readModel == nil {
+		return "none"
+	}
+	if readModel.Retryable {
+		return "recoverable"
+	}
+	return "unrecoverable"
+}
+
+// personaGenerationAISettingsConfigured returns true when provider, model, and executionMode are all set.
+func personaGenerationAISettingsConfigured(readModel *service.PersonaGenerationPhaseAISettingsReadModel) bool {
+	if readModel == nil {
+		return false
+	}
+	return strings.TrimSpace(readModel.Provider) != "" &&
+		strings.TrimSpace(readModel.Model) != "" &&
+		strings.TrimSpace(readModel.ExecutionMode) != ""
 }
 
 func toPersonaGenerationPhaseAISettings(
@@ -453,23 +490,6 @@ func toPersonaGenerationPhaseErrorSummary(
 		Reason:     readModel.Reason,
 		Retryable:  readModel.Retryable,
 		IsRedacted: readModel.IsRedacted,
-	}
-}
-
-func toPersonaGenerationPhaseActionEnablement(
-	readModel service.PersonaGenerationPhaseActionEnablementReadModel,
-) PersonaGenerationPhaseActionEnablement {
-	return PersonaGenerationPhaseActionEnablement{
-		CanStart:            readModel.CanStart,
-		StartBlockedReason:  clonePersonaGenerationStringPointer(readModel.StartBlockedReason),
-		CanPause:            readModel.CanPause,
-		PauseBlockedReason:  clonePersonaGenerationStringPointer(readModel.PauseBlockedReason),
-		CanResume:           readModel.CanResume,
-		ResumeBlockedReason: clonePersonaGenerationStringPointer(readModel.ResumeBlockedReason),
-		CanRetry:            readModel.CanRetry,
-		RetryBlockedReason:  clonePersonaGenerationStringPointer(readModel.RetryBlockedReason),
-		CanCancel:           readModel.CanCancel,
-		CancelBlockedReason: clonePersonaGenerationStringPointer(readModel.CancelBlockedReason),
 	}
 }
 

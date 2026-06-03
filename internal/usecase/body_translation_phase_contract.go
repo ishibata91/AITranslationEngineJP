@@ -235,24 +235,36 @@ type BodyTranslationPhaseErrorSummary struct {
 	IsRedacted bool
 }
 
-// BodyTranslationPhaseActionEnablement summarizes Job Run operation button state.
-type BodyTranslationPhaseActionEnablement struct {
-	CanStart            bool
-	StartBlockedReason  *string
-	CanPause            bool
-	PauseBlockedReason  *string
-	CanResume           bool
-	ResumeBlockedReason *string
-	CanRetry            bool
-	RetryBlockedReason  *string
-	CanCancel           bool
-	CancelBlockedReason *string
+// BodyTranslationPhasePersonaBodyReadiness is the minimum digest of persona snapshot availability.
+// snapshot が存在しない場合は zero 値（BodyReadiness: false、SnapshotReferenceStatus: ""）を使う。
+type BodyTranslationPhasePersonaBodyReadiness struct {
+	BodyReadiness           bool
+	SnapshotReferenceStatus string
+}
+
+// BodyTranslationPhaseProjectionResult carries the domain state projection fields for UX transition derivation.
+// UX 遷移可否の導出にだけ使い、summary とは別 field group として controller に渡す。
+type BodyTranslationPhaseProjectionResult struct {
+	PhaseLifecycle         string
+	JobLifecycle           string
+	ErrorKind              string
+	AISettingsConfigured   bool
+	TargetCount            int
+	PreviousPhaseLifecycle string
+	PersonaBodyReadiness   BodyTranslationPhasePersonaBodyReadiness
 }
 
 // BodyTranslationOutputReadinessSummary summarizes downstream output fact state.
 type BodyTranslationOutputReadinessSummary struct {
 	CompletedFieldCount int
 	StatusConsistent    bool
+}
+
+// BodyTranslationPhaseFetchResult bundles summary and projection as parallel field groups for one fetch call.
+// controller は 1 method 呼び出しで両系統を受け取り、個別 DTO に変換して JSON response を組み立てる。
+type BodyTranslationPhaseFetchResult struct {
+	Summary    BodyTranslationPhaseSummaryResult
+	Projection BodyTranslationPhaseProjectionResult
 }
 
 // BodyTranslationPhaseSummaryResult is the frozen Job Run summary contract.
@@ -274,7 +286,6 @@ type BodyTranslationPhaseSummaryResult struct {
 	ResultSummary      *BodyTranslationPhaseFieldResultSummary
 	FieldResults       []BodyTranslationPhaseFieldResultItem
 	ErrorSummary       *BodyTranslationPhaseErrorSummary
-	ActionEnablement   BodyTranslationPhaseActionEnablement
 	OutputReadiness    BodyTranslationOutputReadinessSummary
 }
 
@@ -315,8 +326,8 @@ type BodyTranslationPhaseContractStub struct{}
 func (BodyTranslationPhaseContractStub) GetBodyTranslationPhaseSummary(
 	context.Context,
 	GetBodyTranslationPhaseSummaryRequest,
-) (BodyTranslationPhaseSummaryResult, error) {
-	return BodyTranslationPhaseSummaryResult{}, errBodyTranslationPhaseNotImplemented
+) (BodyTranslationPhaseFetchResult, error) {
+	return BodyTranslationPhaseFetchResult{}, errBodyTranslationPhaseNotImplemented
 }
 
 // StartBodyTranslationPhase returns a not-implemented error for the frozen contract seam.

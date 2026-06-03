@@ -70,12 +70,17 @@ function createSummary(): BodyTranslationPhaseSummaryResponse {
       retryable: true,
       isRedacted: true
     },
-    actionEnablement: {
-      canStart: false,
-      canPause: true,
-      canResume: false,
-      canRetry: true,
-      canCancel: true
+    projection: {
+      phaseLifecycle: "running",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: true,
+      targetCount: 10,
+      previousPhaseLifecycle: "completed",
+      personaBodyReadiness: {
+        bodyReadiness: true,
+        snapshotReferenceStatus: "available"
+      }
     },
     outputReadiness: {
       completedFieldCount: 3,
@@ -147,7 +152,7 @@ describe("BodyTranslationPhaseStore", () => {
     snapshot.summary!.resultSummary!.fieldResults![0].identity!.formId =
       "changed"
     snapshot.summary!.errorSummary!.reason = "changed"
-    snapshot.summary!.actionEnablement.canPause = false
+    snapshot.summary!.projection.phaseLifecycle = "changed"
     snapshot.summary!.outputReadiness.outputCount = 0
     snapshot.outputReadiness!.ready = false
 
@@ -165,7 +170,7 @@ describe("BodyTranslationPhaseStore", () => {
       nextSnapshot.summary?.resultSummary?.fieldResults?.[0]?.identity?.formId
     ).toBe("FE01A813")
     expect(nextSnapshot.summary?.errorSummary?.reason).toBe("reason")
-    expect(nextSnapshot.summary?.actionEnablement.canPause).toBe(true)
+    expect(nextSnapshot.summary?.projection.phaseLifecycle).toBe("running")
     expect(nextSnapshot.summary?.outputReadiness.outputCount).toBe(3)
     expect(nextSnapshot.outputReadiness?.ready).toBe(true)
   })

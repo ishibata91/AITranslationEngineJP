@@ -206,18 +206,21 @@ type PersonaGenerationPhaseErrorSummary struct {
 	IsRedacted bool
 }
 
-// PersonaGenerationPhaseActionEnablement summarizes Job Run operation button state.
-type PersonaGenerationPhaseActionEnablement struct {
-	CanStart            bool
-	StartBlockedReason  *string
-	CanPause            bool
-	PauseBlockedReason  *string
-	CanResume           bool
-	ResumeBlockedReason *string
-	CanRetry            bool
-	RetryBlockedReason  *string
-	CanCancel           bool
-	CancelBlockedReason *string
+// PersonaGenerationPhaseProjectionResult is the frozen domain state projection contract.
+// UX 遷移可否の導出にだけ使うために frontend に運ぶ「状態 enum 値、種別 enum 値、条件根拠」の集合。
+type PersonaGenerationPhaseProjectionResult struct {
+	// PhaseLifecycle は persona JOB_PHASE_RUN の lifecycle 値。phase run 未生成時は空文字。
+	PhaseLifecycle string
+	// JobLifecycle は親 TRANSLATION_JOB の lifecycle 値。
+	JobLifecycle string
+	// ErrorKind は none / recoverable / unrecoverable のいずれか。
+	ErrorKind string
+	// AISettingsConfigured は AI 設定が provider / model / executionMode を満たすかの真偽。
+	AISettingsConfigured bool
+	// TargetCount は persona 対象件数。
+	TargetCount int
+	// PreviousPhaseLifecycle は直前 term JOB_PHASE_RUN の lifecycle 値。phase run 未生成時は空文字。
+	PreviousPhaseLifecycle string
 }
 
 // PersonaGenerationPhaseSummaryResult is the frozen Job Run summary contract.
@@ -233,10 +236,9 @@ type PersonaGenerationPhaseSummaryResult struct {
 	// AISettings は JOB_PHASE_AI_SETTINGS record が存在する場合だけ設定する。nil は未設定を意味する。
 	AISettings *PersonaGenerationPhaseAISettings
 	// Execution は JOB_PHASE_RUN が存在する場合だけ設定する。nil は未開始を意味する。
-	Execution        *PersonaGenerationExecutionSummary
-	ResultSummary    *PersonaGenerationPhaseResultSummary
-	ErrorSummary     *PersonaGenerationPhaseErrorSummary
-	ActionEnablement PersonaGenerationPhaseActionEnablement
+	Execution     *PersonaGenerationExecutionSummary
+	ResultSummary *PersonaGenerationPhaseResultSummary
+	ErrorSummary  *PersonaGenerationPhaseErrorSummary
 }
 
 // PersonaGenerationPhaseCommandResult is the frozen write-seam response contract.
@@ -282,12 +284,12 @@ func NewPersonaGenerationPhaseContractStub() PersonaGenerationPhaseContractStub 
 // PersonaGenerationPhaseContractStub is a temporary contract-only usecase used until the real phase usecase exists.
 type PersonaGenerationPhaseContractStub struct{}
 
-// GetPersonaGenerationPhaseSummary returns the frozen summary contract fixture.
+// GetPersonaGenerationPhaseSummary returns the frozen summary and projection contract fixture.
 func (PersonaGenerationPhaseContractStub) GetPersonaGenerationPhaseSummary(
 	context.Context,
 	GetPersonaGenerationPhaseSummaryRequest,
-) (PersonaGenerationPhaseSummaryResult, error) {
-	return personaGenerationPhaseSummaryFixture(), nil
+) (GetPersonaGenerationPhaseFetchResult, error) {
+	return personaGenerationPhaseFetchFixture(), nil
 }
 
 // StartPersonaGenerationPhase returns one frozen start contract fixture.
@@ -387,6 +389,12 @@ func (PersonaGenerationPhaseContractStub) CancelPersonaGenerationPhase(
 	return result, nil
 }
 
+// GetPersonaGenerationPhaseFetchResult bundles summary and projection for the fetch seam.
+type GetPersonaGenerationPhaseFetchResult struct {
+	Summary    PersonaGenerationPhaseSummaryResult
+	Projection PersonaGenerationPhaseProjectionResult
+}
+
 // GetPersonaGenerationBodyReadiness returns one frozen body readiness fact state fixture.
 func (PersonaGenerationPhaseContractStub) GetPersonaGenerationBodyReadiness(
 	_ context.Context,
@@ -424,10 +432,10 @@ var (
 	errPersonaGenerationPhaseSaveFailed              = errors.New("persona generation save failed")
 )
 
-func personaGenerationPhaseSummaryFixture() PersonaGenerationPhaseSummaryResult {
+func personaGenerationPhaseFetchFixture() GetPersonaGenerationPhaseFetchResult {
 	phaseRunID := int64(3001)
 	startedAt := time.Date(2026, 5, 1, 12, 0, 0, 0, time.FixedZone("JST", 9*60*60))
-	return PersonaGenerationPhaseSummaryResult{
+	summary := PersonaGenerationPhaseSummaryResult{
 		JobID:        101,
 		CurrentPhase: "persona_generation",
 		PhaseState:   "running",
@@ -469,14 +477,16 @@ func personaGenerationPhaseSummaryFixture() PersonaGenerationPhaseSummaryResult 
 			BodyReadiness:           false,
 		},
 		ErrorSummary: personaGenerationErrorSummary(" PROVIDER_FAILURE ", true),
-		ActionEnablement: PersonaGenerationPhaseActionEnablement{
-			CanStart:  false,
-			CanPause:  true,
-			CanResume: false,
-			CanRetry:  true,
-			CanCancel: true,
-		},
 	}
+	projection := PersonaGenerationPhaseProjectionResult{
+		PhaseLifecycle:         "running",
+		JobLifecycle:           "running",
+		ErrorKind:              "recoverable",
+		AISettingsConfigured:   true,
+		TargetCount:            5,
+		PreviousPhaseLifecycle: "completed",
+	}
+	return GetPersonaGenerationPhaseFetchResult{Summary: summary, Projection: projection}
 }
 
 func personaPhaseRunIDForJob(jobID int64) int64 {

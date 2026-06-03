@@ -7,7 +7,9 @@ import type {
 import type {
   PersonaGenerationBodyReadinessResponse,
   PersonaGenerationPhaseCommandResponse,
+  PersonaGenerationPhaseFetchResponse,
   PersonaGenerationPhaseGatewayContract,
+  PersonaGenerationPhaseProjection,
   PersonaGenerationPhaseSummaryResponse
 } from "@application/gateway-contract/persona-generation-phase"
 
@@ -23,6 +25,7 @@ type ActionKind =
 interface ScreenState {
   jobId: number | null
   phase: "idle" | "loading" | "ready" | "submitting"
+  projection: PersonaGenerationPhaseProjection | null
   summary: PersonaGenerationPhaseSummaryResponse | null
   bodyReadiness: PersonaGenerationBodyReadinessResponse | null
   errorMessage: string
@@ -80,43 +83,46 @@ function createGateway(): GatewayWithSpies {
   const getSummarySpy = vi.fn(
     (request: {
       jobId: number
-    }): Promise<PersonaGenerationPhaseSummaryResponse> =>
+    }): Promise<PersonaGenerationPhaseFetchResponse> =>
       Promise.resolve({
-        jobId: request.jobId,
-        currentPhase: "persona_generation",
-        phaseState: "running",
-        phaseRunId: 77,
-        progress: {
-          percent: 10,
-          processedCount: 1,
-          totalCount: 10,
+        projection: {
+          phaseLifecycle: "running",
+          jobLifecycle: "running",
+          errorKind: "none",
+          aiSettingsConfigured: true,
           targetCount: 10,
-          currentStep: "running"
+          previousPhaseLifecycle: "completed"
         },
-        targetSummary: {
-          targetCount: 10,
-          commonPersonaHitCount: 0,
-          commonPersonaMissCount: 10,
-          skippedCount: 0,
-          skippedReasons: [],
-          targetSnapshotDigest: "sha256:1"
-        },
-        execution: {
-          credentialRef: "cred",
-          provider: "fake",
-          model: "m",
-          executionMode: "single_request",
-          promptDigest: "sha256:1",
-          inputCount: 10,
-          outputCount: 0,
-          evidenceRefs: []
-        },
-        actionEnablement: {
-          canStart: false,
-          canPause: true,
-          canResume: false,
-          canRetry: false,
-          canCancel: true
+        summary: {
+          jobId: request.jobId,
+          currentPhase: "persona_generation",
+          phaseState: "running",
+          phaseRunId: 77,
+          progress: {
+            percent: 10,
+            processedCount: 1,
+            totalCount: 10,
+            targetCount: 10,
+            currentStep: "running"
+          },
+          targetSummary: {
+            targetCount: 10,
+            commonPersonaHitCount: 0,
+            commonPersonaMissCount: 10,
+            skippedCount: 0,
+            skippedReasons: [],
+            targetSnapshotDigest: "sha256:1"
+          },
+          execution: {
+            credentialRef: "cred",
+            provider: "fake",
+            model: "m",
+            executionMode: "single_request",
+            promptDigest: "sha256:1",
+            inputCount: 10,
+            outputCount: 0,
+            evidenceRefs: []
+          }
         }
       })
   )
@@ -168,8 +174,7 @@ function createGateway(): GatewayWithSpies {
       outputCount: 0,
       evidenceRefs: []
     },
-    retryable: false,
-    canStartBodyPhase: false
+    retryable: false
   })
   const startSpy = vi.fn(() => Promise.resolve(command("running")))
   const pauseSpy = vi.fn(() => Promise.resolve(command("paused")))
@@ -229,13 +234,6 @@ function baseSummary(): PersonaGenerationPhaseSummaryResponse {
       outputCount: 0,
       evidenceRefs: []
     },
-    actionEnablement: {
-      canStart: false,
-      canPause: true,
-      canResume: false,
-      canRetry: false,
-      canCancel: true
-    }
   }
 }
 
@@ -253,6 +251,7 @@ describe("PersonaGenerationPhaseUseCase", () => {
     const store = createStore({
       jobId: 10,
       phase: "idle",
+      projection: null,
       summary: null,
       bodyReadiness: null,
       errorMessage: "",
@@ -272,6 +271,7 @@ describe("PersonaGenerationPhaseUseCase", () => {
     const store = createStore({
       jobId: 10,
       phase: "idle",
+      projection: null,
       summary: baseSummary(),
       bodyReadiness: null,
       errorMessage: "",
@@ -316,6 +316,7 @@ describe("PersonaGenerationPhaseUseCase", () => {
     const store = createStore({
       jobId: 10,
       phase: "idle",
+      projection: null,
       summary: baseSummary(),
       bodyReadiness: null,
       errorMessage: "",
@@ -361,6 +362,7 @@ describe("PersonaGenerationPhaseUseCase", () => {
     const store = createStore({
       jobId: 10,
       phase: "ready",
+      projection: null,
       summary: baseSummary(),
       bodyReadiness: null,
       errorMessage: "",
@@ -409,6 +411,7 @@ describe("PersonaGenerationPhaseUseCase", () => {
     const store = createStore({
       jobId: 10,
       phase: "ready",
+      projection: null,
       summary: baseSummary(),
       bodyReadiness: null,
       errorMessage: "",
@@ -489,6 +492,7 @@ describe("PersonaGenerationPhaseUseCase", () => {
     const store = createStore({
       jobId: 10,
       phase: "ready",
+      projection: null,
       summary: baseSummary(),
       bodyReadiness: null,
       errorMessage: "",
@@ -569,6 +573,7 @@ describe("PersonaGenerationPhaseUseCase", () => {
     const store = createStore({
       jobId: 10,
       phase: "idle",
+      projection: null,
       summary: null,
       bodyReadiness: null,
       errorMessage: "",

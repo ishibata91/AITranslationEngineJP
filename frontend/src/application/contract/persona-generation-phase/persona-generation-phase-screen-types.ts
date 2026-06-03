@@ -8,10 +8,10 @@ import type {
   PersonaGenerationBodyReadinessInputSummary,
   PersonaGenerationBodyReadinessResponse,
   PersonaGenerationExecutionSummary,
-  PersonaGenerationPhaseActionEnablement,
   PersonaGenerationPhaseErrorKind,
   PersonaGenerationPhaseErrorSummary,
   PersonaGenerationPhaseProgressSummary,
+  PersonaGenerationPhaseProjection,
   PersonaGenerationPhaseResultSummary,
   PersonaGenerationPhaseSummaryResponse,
   PersonaGenerationTargetSummary,
@@ -42,6 +42,7 @@ export type PersonaGenerationPhaseViewState =
 export interface PersonaGenerationPhaseScreenState {
   jobId: number | null
   phase: "idle" | "loading" | "ready" | "submitting"
+  projection: PersonaGenerationPhaseProjection | null
   summary: PersonaGenerationPhaseSummaryResponse | null
   bodyReadiness: PersonaGenerationBodyReadinessResponse | null
   errorMessage: string
@@ -124,7 +125,6 @@ export interface PersonaGenerationPhaseScreenViewModel extends PersonaGeneration
   actionCards: PersonaGenerationPhaseActionCard[]
   screenActionEnablement: PersonaGenerationPhaseScreenActionEnablement
   lastErrorSummary: PersonaGenerationPhaseErrorSummary | null
-  actionEnablement: PersonaGenerationPhaseActionEnablement | null
   latestProgressSummary: PersonaGenerationPhaseProgressSummary | null
   latestTargetSummary: PersonaGenerationTargetSummary | null
   latestResultSummary: PersonaGenerationPhaseResultSummary | null

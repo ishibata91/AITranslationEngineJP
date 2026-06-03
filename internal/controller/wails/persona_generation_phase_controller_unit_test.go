@@ -12,7 +12,7 @@ import (
 )
 
 type fakePersonaGenerationPhaseUsecase struct {
-	getSummaryFunc       func(context.Context, usecase.GetPersonaGenerationPhaseSummaryRequest) (usecase.PersonaGenerationPhaseSummaryResult, error)
+	getSummaryFunc       func(context.Context, usecase.GetPersonaGenerationPhaseSummaryRequest) (usecase.GetPersonaGenerationPhaseFetchResult, error)
 	startFunc            func(context.Context, usecase.StartPersonaGenerationPhaseRequest) (usecase.PersonaGenerationPhaseCommandResult, error)
 	pauseFunc            func(context.Context, usecase.PausePersonaGenerationPhaseRequest) (usecase.PersonaGenerationPhaseCommandResult, error)
 	resumeFunc           func(context.Context, usecase.ResumePersonaGenerationPhaseRequest) (usecase.PersonaGenerationPhaseCommandResult, error)
@@ -21,11 +21,11 @@ type fakePersonaGenerationPhaseUsecase struct {
 	getBodyReadinessFunc func(context.Context, usecase.GetPersonaGenerationBodyReadinessRequest) (usecase.PersonaGenerationBodyReadinessResult, error)
 }
 
-func (fake fakePersonaGenerationPhaseUsecase) GetPersonaGenerationPhaseSummary(ctx context.Context, request usecase.GetPersonaGenerationPhaseSummaryRequest) (usecase.PersonaGenerationPhaseSummaryResult, error) {
+func (fake fakePersonaGenerationPhaseUsecase) GetPersonaGenerationPhaseSummary(ctx context.Context, request usecase.GetPersonaGenerationPhaseSummaryRequest) (usecase.GetPersonaGenerationPhaseFetchResult, error) {
 	if fake.getSummaryFunc != nil {
 		return fake.getSummaryFunc(ctx, request)
 	}
-	return usecase.PersonaGenerationPhaseSummaryResult{}, nil
+	return usecase.GetPersonaGenerationPhaseFetchResult{}, nil
 }
 func (fake fakePersonaGenerationPhaseUsecase) StartPersonaGenerationPhase(ctx context.Context, request usecase.StartPersonaGenerationPhaseRequest) (usecase.PersonaGenerationPhaseCommandResult, error) {
 	if fake.startFunc != nil {
@@ -67,12 +67,14 @@ func (fake fakePersonaGenerationPhaseUsecase) GetPersonaGenerationBodyReadiness(
 func TestPersonaGenerationPhaseControllerGetSummaryFormatsTimeAndNormalizesErrorKind(t *testing.T) {
 	startedAt := time.Date(2026, 5, 1, 12, 0, 0, 0, time.FixedZone("JST", 9*60*60))
 	controller := NewPersonaGenerationPhaseController(fakePersonaGenerationPhaseUsecase{
-		getSummaryFunc: func(context.Context, usecase.GetPersonaGenerationPhaseSummaryRequest) (usecase.PersonaGenerationPhaseSummaryResult, error) {
-			return usecase.PersonaGenerationPhaseSummaryResult{
-				JobID:     10,
-				StartedAt: &startedAt,
-				ErrorSummary: &usecase.PersonaGenerationPhaseErrorSummary{
-					ErrorKind: " PROVIDER_FAILURE ",
+		getSummaryFunc: func(context.Context, usecase.GetPersonaGenerationPhaseSummaryRequest) (usecase.GetPersonaGenerationPhaseFetchResult, error) {
+			return usecase.GetPersonaGenerationPhaseFetchResult{
+				Summary: usecase.PersonaGenerationPhaseSummaryResult{
+					JobID:     10,
+					StartedAt: &startedAt,
+					ErrorSummary: &usecase.PersonaGenerationPhaseErrorSummary{
+						ErrorKind: " PROVIDER_FAILURE ",
+					},
 				},
 			}, nil
 		},
@@ -82,18 +84,18 @@ func TestPersonaGenerationPhaseControllerGetSummaryFormatsTimeAndNormalizesError
 	if err != nil {
 		t.Fatalf("expected success, got %v", err)
 	}
-	if response.StartedAt == nil || *response.StartedAt != "2026-05-01T03:00:00Z" {
-		t.Fatalf("expected UTC RFC3339 time, got %#v", response.StartedAt)
+	if response.Summary.StartedAt == nil || *response.Summary.StartedAt != "2026-05-01T03:00:00Z" {
+		t.Fatalf("expected UTC RFC3339 time, got %#v", response.Summary.StartedAt)
 	}
-	if response.ErrorSummary == nil || response.ErrorSummary.ErrorKind != "provider_failure" {
-		t.Fatalf("expected normalized error kind, got %#v", response.ErrorSummary)
+	if response.Summary.ErrorSummary == nil || response.Summary.ErrorSummary.ErrorKind != "provider_failure" {
+		t.Fatalf("expected normalized error kind, got %#v", response.Summary.ErrorSummary)
 	}
 }
 
 func TestPersonaGenerationPhaseControllerGetSummaryReturnsEmptySkippedReasonsArray(t *testing.T) {
 	controller := NewPersonaGenerationPhaseController(fakePersonaGenerationPhaseUsecase{
-		getSummaryFunc: func(context.Context, usecase.GetPersonaGenerationPhaseSummaryRequest) (usecase.PersonaGenerationPhaseSummaryResult, error) {
-			return usecase.PersonaGenerationPhaseSummaryResult{}, nil
+		getSummaryFunc: func(context.Context, usecase.GetPersonaGenerationPhaseSummaryRequest) (usecase.GetPersonaGenerationPhaseFetchResult, error) {
+			return usecase.GetPersonaGenerationPhaseFetchResult{}, nil
 		},
 	})
 

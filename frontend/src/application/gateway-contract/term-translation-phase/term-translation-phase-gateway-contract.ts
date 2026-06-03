@@ -95,15 +95,14 @@ export interface TermTranslationPhaseErrorSummary {
   isRedacted: boolean
 }
 
-export interface TermTranslationPhaseActionEnablement {
-  canStart: boolean
-  startBlockedReason?: string
-  canPause: boolean
-  pauseBlockedReason?: string
-  canResume: boolean
-  resumeBlockedReason?: string
-  canRetry: boolean
-  retryBlockedReason?: string
+// ドメイン状態射影: UX 遷移可否導出にだけ使う、enum / 数値 / 真偽 の最小集合（design-diff C-1）
+export interface TermTranslationPhaseProjection {
+  phaseLifecycle: string
+  jobLifecycle: string
+  errorKind: string
+  aiSettingsConfigured: boolean
+  aiTargetCount: number
+  confirmedCount: number
 }
 
 export interface TermTranslationPhaseSummaryResponse {
@@ -121,7 +120,7 @@ export interface TermTranslationPhaseSummaryResponse {
   execution?: TermTranslationExecutionConfigSummary
   resultSummary?: TermTranslationPhaseResultSummary
   errorSummary?: TermTranslationPhaseErrorSummary
-  actionEnablement: TermTranslationPhaseActionEnablement
+  projection: TermTranslationPhaseProjection
 }
 
 export interface TermTranslationPhaseCommandResponse {
@@ -133,7 +132,6 @@ export interface TermTranslationPhaseCommandResponse {
   finishedAt?: string
   progress: TermTranslationPhaseProgressSummary
   retryable: boolean
-  canStartNextPhase: boolean
   errorSummary?: TermTranslationPhaseErrorSummary
 }
 
@@ -141,7 +139,10 @@ export interface TermTranslationNextPhaseReadinessResponse {
   jobId: number
   currentPhase: string
   phaseState: string
-  errorKind?: TermTranslationPhaseErrorKind
+  jobIsTerminal: boolean
+  totalCount: number
+  confirmedCount: number
+  errorKind?: string
 }
 
 export interface PhaseProviderModelsRequest {

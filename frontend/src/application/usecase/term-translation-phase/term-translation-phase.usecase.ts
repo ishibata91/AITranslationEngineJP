@@ -103,10 +103,7 @@ function patchSummaryFromCommand(
     errorSummary: response.errorSummary
       ? { ...response.errorSummary }
       : undefined,
-    actionEnablement: {
-      ...currentSummary.actionEnablement,
-      canRetry: response.retryable
-    }
+    projection: { ...currentSummary.projection }
   }
 }
 
