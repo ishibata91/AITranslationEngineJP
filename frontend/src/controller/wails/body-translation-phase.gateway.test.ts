@@ -87,17 +87,17 @@ function createSummaryResponse(): GetBodyTranslationPhaseSummaryResponse {
       retryable: true,
       isRedacted: true
     },
-    actionEnablement: {
-      canStart: true,
-      startBlockedReason: undefined,
-      canPause: false,
-      pauseBlockedReason: "not running",
-      canResume: false,
-      resumeBlockedReason: "not paused",
-      canRetry: false,
-      retryBlockedReason: "not failed",
-      canCancel: false,
-      cancelBlockedReason: "not running"
+    projection: {
+      phaseLifecycle: "ready",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: true,
+      targetCount: 10,
+      previousPhaseLifecycle: "completed",
+      personaBodyReadiness: {
+        bodyReadiness: true,
+        snapshotReferenceStatus: "available"
+      }
     }
   } as unknown as GetBodyTranslationPhaseSummaryResponse
 }
@@ -197,6 +197,35 @@ describe("createBodyTranslationPhaseGateway", () => {
     await expect(
       gateway.startBodyTranslationPhase({ jobId: 5 })
     ).rejects.toThrow("Wails binding is not wired yet: StartBodyTranslationPhase")
+  })
+
+  // RAEF-UNIT-023: assertBodyProjectionShape — personaBodyReadiness object が存在しない場合は検証失敗する
+  // 根拠: design-diff.md G-4-c
+
+  // RAEF-UNIT-023: personaBodyReadiness object が存在しない場合は GatewayResponseShapeError を返す
+  test("projection の personaBodyReadiness が存在しない場合は GatewayResponseShapeError を返す（G-4-c personaBodyReadiness 必須 object）", async () => {
+    // G-4-c: projection.personaBodyReadiness が存在しない → 必須 object 不足で検証失敗
+    const responseWithoutPersonaBodyReadiness = {
+      ...createSummaryResponse(),
+      projection: {
+        phaseLifecycle: "ready",
+        jobLifecycle: "running",
+        errorKind: "none",
+        aiSettingsConfigured: true,
+        targetCount: 10,
+        previousPhaseLifecycle: "completed"
+        // personaBodyReadiness を意図的に除外する
+      }
+    } as unknown as Awaited<ReturnType<typeof GetBodyTranslationPhaseSummary>>
+
+    vi.mocked(GetBodyTranslationPhaseSummary).mockResolvedValue(responseWithoutPersonaBodyReadiness)
+
+    const gateway = createBodyTranslationPhaseGateway()
+
+    await expect(gateway.getBodyTranslationPhaseSummary({ jobId: 5 })).rejects.toMatchObject({
+      name: "GatewayResponseShapeError",
+      userFacingMessage: "Gateway response shape is invalid."
+    })
   })
 
   test("invalid response shape: GatewayResponseShapeError と secret 非露出診断を返す", async () => {

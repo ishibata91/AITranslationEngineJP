@@ -11,7 +11,7 @@ import (
 )
 
 type fakeTermTranslationPhaseUsecase struct {
-	getSummaryFunc            func(context.Context, usecase.GetTermTranslationPhaseSummaryRequest) (usecase.TermTranslationPhaseSummaryResult, error)
+	getSummaryFunc            func(context.Context, usecase.GetTermTranslationPhaseSummaryRequest) (usecase.TermTranslationPhaseFetchResult, error)
 	startFunc                 func(context.Context, usecase.StartTermTranslationPhaseRequest) (usecase.TermTranslationPhaseCommandResult, error)
 	pauseFunc                 func(context.Context, usecase.PauseTermTranslationPhaseRequest) (usecase.TermTranslationPhaseCommandResult, error)
 	resumeFunc                func(context.Context, usecase.ResumeTermTranslationPhaseRequest) (usecase.TermTranslationPhaseCommandResult, error)
@@ -20,11 +20,11 @@ type fakeTermTranslationPhaseUsecase struct {
 	saveAISettingsFunc        func(context.Context, usecase.SaveTermTranslationPhaseAISettingsRequest) (usecase.TermTranslationPhaseAISettingsResult, error)
 }
 
-func (fake fakeTermTranslationPhaseUsecase) GetTermTranslationPhaseSummary(ctx context.Context, request usecase.GetTermTranslationPhaseSummaryRequest) (usecase.TermTranslationPhaseSummaryResult, error) {
+func (fake fakeTermTranslationPhaseUsecase) GetTermTranslationPhaseSummary(ctx context.Context, request usecase.GetTermTranslationPhaseSummaryRequest) (usecase.TermTranslationPhaseFetchResult, error) {
 	if fake.getSummaryFunc != nil {
 		return fake.getSummaryFunc(ctx, request)
 	}
-	return usecase.TermTranslationPhaseSummaryResult{}, nil
+	return usecase.TermTranslationPhaseFetchResult{}, nil
 }
 
 func (fake fakeTermTranslationPhaseUsecase) StartTermTranslationPhase(ctx context.Context, request usecase.StartTermTranslationPhaseRequest) (usecase.TermTranslationPhaseCommandResult, error) {
@@ -72,11 +72,13 @@ func (fake fakeTermTranslationPhaseUsecase) SaveTermTranslationPhaseAISettings(c
 func TestTermTranslationPhaseControllerGetSummaryFormatsTimeAndNormalizesErrorKind(t *testing.T) {
 	startedAt := time.Date(2026, 5, 1, 12, 0, 0, 0, time.FixedZone("JST", 9*60*60))
 	controller := NewTermTranslationPhaseController(fakeTermTranslationPhaseUsecase{
-		getSummaryFunc: func(context.Context, usecase.GetTermTranslationPhaseSummaryRequest) (usecase.TermTranslationPhaseSummaryResult, error) {
-			return usecase.TermTranslationPhaseSummaryResult{
-				JobID:        10,
-				StartedAt:    &startedAt,
-				ErrorSummary: &usecase.TermTranslationPhaseErrorSummary{ErrorKind: " PROVIDER_FAILURE "},
+		getSummaryFunc: func(context.Context, usecase.GetTermTranslationPhaseSummaryRequest) (usecase.TermTranslationPhaseFetchResult, error) {
+			return usecase.TermTranslationPhaseFetchResult{
+				Summary: usecase.TermTranslationPhaseSummaryResult{
+					JobID:        10,
+					StartedAt:    &startedAt,
+					ErrorSummary: &usecase.TermTranslationPhaseErrorSummary{ErrorKind: " PROVIDER_FAILURE "},
+				},
 			}, nil
 		},
 	})
@@ -85,11 +87,11 @@ func TestTermTranslationPhaseControllerGetSummaryFormatsTimeAndNormalizesErrorKi
 	if err != nil {
 		t.Fatalf("expected success, got %v", err)
 	}
-	if response.StartedAt == nil || *response.StartedAt != "2026-05-01T03:00:00Z" {
-		t.Fatalf("expected UTC RFC3339 time, got %#v", response.StartedAt)
+	if response.Summary.StartedAt == nil || *response.Summary.StartedAt != "2026-05-01T03:00:00Z" {
+		t.Fatalf("expected UTC RFC3339 time, got %#v", response.Summary.StartedAt)
 	}
-	if response.ErrorSummary == nil || response.ErrorSummary.ErrorKind != "provider_failure" {
-		t.Fatalf("expected normalized error kind, got %#v", response.ErrorSummary)
+	if response.Summary.ErrorSummary == nil || response.Summary.ErrorSummary.ErrorKind != "provider_failure" {
+		t.Fatalf("expected normalized error kind, got %#v", response.Summary.ErrorSummary)
 	}
 }
 

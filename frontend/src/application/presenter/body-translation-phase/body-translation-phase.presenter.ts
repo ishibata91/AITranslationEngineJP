@@ -4,7 +4,6 @@ import type {
 } from "@application/gateway-contract/processing-target"
 
 import type {
-  BodyTranslationPhaseActionEnablement,
   BodyTranslationPhaseErrorKind,
   BodyTranslationPhaseErrorSummary,
   BodyTranslationPhaseExecutionSummary,
@@ -12,6 +11,7 @@ import type {
   BodyTranslationPhaseFieldResultSummary,
   BodyTranslationPhaseInputSummary,
   BodyTranslationPhaseProgressSummary,
+  BodyTranslationPhaseProjection,
   BodyTranslationPhaseRequestSummary,
   BodyTranslationPhaseSummaryResponse
 } from "@application/gateway-contract/body-translation-phase"
@@ -145,7 +145,7 @@ interface BodyTranslationPhaseScreenViewModel extends BodyTranslationPhaseScreen
     canCheckOutputReadiness: boolean
   }
   lastErrorSummary: BodyTranslationPhaseErrorSummary | null
-  actionEnablement: BodyTranslationPhaseActionEnablement | null
+  projection: BodyTranslationPhaseProjection | null
   latestProgressSummary: BodyTranslationPhaseProgressSummary | null
   latestInputSummary: BodyTranslationPhaseInputSummary | null
   latestRequestSummary: BodyTranslationPhaseRequestSummary | null
@@ -159,6 +159,14 @@ interface BodyTranslationPhaseScreenViewModel extends BodyTranslationPhaseScreen
   cancelRequestShape?: { jobId: number; phaseRunId: number }
   outputReadinessRequestShape?: { jobId: number }
 }
+
+// H 節 enum 集合定数（body phase 内に閉じる）
+const TERMINAL_JOB = ["completed", "failed", "canceled"] as const
+const RUNNING_PHASE = ["running", "in_progress", "processing"] as const
+const IDLE_READY_PHASE = ["pending", "idle_ready", "ready", ""] as const
+const PAUSED_PHASE = ["paused"] as const
+const RECOVERABLE_FAILED_PHASE = ["recoverable_failed", "retryable_failed"] as const
+const COMPLETED_PHASE = ["completed", "succeeded", "done"] as const
 
 const PHASE_STATE_LABELS: Record<string, string> = {
   canceled: "キャンセル済み",
@@ -262,11 +270,8 @@ function buildBodyModelOptions(
   return [{ value: "", label: "モデル一覧を更新してください" }]
 }
 
-function isBodyTerminalJob(
-  summary: BodyTranslationPhaseSummaryResponse
-): boolean {
-  const startReason = summary.actionEnablement?.startBlockedReason ?? ""
-  return startReason === "terminal_job"
+function isBodyTerminalJob(jobLifecycle: string): boolean {
+  return (TERMINAL_JOB as readonly string[]).includes(jobLifecycle)
 }
 
 function deriveBodyOutputReadinessReady(
@@ -303,56 +308,103 @@ function deriveBodyOutputReadinessBlockedReason(
   return ""
 }
 
+interface BodyTranslationPhaseActionEnablement {
+  canStart: boolean
+  startBlockedReason?: string
+  canPause: boolean
+  pauseBlockedReason?: string
+  canResume: boolean
+  resumeBlockedReason?: string
+  canRetry: boolean
+  retryBlockedReason?: string
+  canCancel: boolean
+  cancelBlockedReason?: string
+}
+
+// H-12〜H-16 の論理式。入力は body projection のみ。summary は読まない。
 function deriveBodyActionEnablement(
-  summary: BodyTranslationPhaseSummaryResponse
+  projection: BodyTranslationPhaseProjection
 ): BodyTranslationPhaseActionEnablement {
-  const normalizedState = normalizePhaseState(summary.phaseState)
-  const terminal = isBodyTerminalJob(summary)
+  const terminal = isBodyTerminalJob(projection.jobLifecycle)
 
-  const isRunning =
-    normalizedState === "running" ||
-    normalizedState === "in_progress" ||
-    normalizedState === "processing"
-  const isPaused = normalizedState === "paused"
+  const isRunning = (RUNNING_PHASE as readonly string[]).includes(projection.phaseLifecycle)
+  const isPaused = (PAUSED_PHASE as readonly string[]).includes(projection.phaseLifecycle)
   const isRecoverableFailed =
-    normalizedState === "recoverable_failed" ||
-    summary.errorSummary?.retryable === true
+    (RECOVERABLE_FAILED_PHASE as readonly string[]).includes(projection.phaseLifecycle) ||
+    projection.errorKind === "recoverable"
   const isActive = isRunning || isPaused || isRecoverableFailed
+  const isIdleReady = (IDLE_READY_PHASE as readonly string[]).includes(projection.phaseLifecycle)
 
-  const canStart = !terminal && !isActive
-  const startBlockedReason = terminal
-    ? "ジョブが終端状態のため開始できません。"
-    : isActive
-      ? "実行中の翻訳段階があるため開始できません。"
-      : undefined
+  const previousPhaseCompleted = (COMPLETED_PHASE as readonly string[]).includes(projection.previousPhaseLifecycle)
+  const hasProcessingTarget = projection.targetCount > 0
+  const personaBodyReady =
+    projection.personaBodyReadiness.bodyReadiness === true ||
+    projection.personaBodyReadiness.snapshotReferenceStatus === "available"
 
+  // H-12: 開始ボタン
+  const canStart =
+    !terminal &&
+    !isRunning &&
+    !isPaused &&
+    !isRecoverableFailed &&
+    isIdleReady &&
+    projection.aiSettingsConfigured &&
+    hasProcessingTarget &&
+    previousPhaseCompleted &&
+    personaBodyReady
+
+  let startBlockedReason: string | undefined
+  if (terminal) {
+    startBlockedReason = "ジョブが終端状態のため開始できません。"
+  } else if (isActive) {
+    startBlockedReason = "実行中の翻訳段階があるため開始できません。"
+  } else if (!previousPhaseCompleted) {
+    startBlockedReason = "ペルソナ生成段階が完了していないため本文翻訳を開始できません。"
+  } else if (!personaBodyReady) {
+    startBlockedReason = "ペルソナ snapshot 参照が準備できていないため本文翻訳を開始できません。"
+  } else if (!projection.aiSettingsConfigured) {
+    startBlockedReason = "実行設定が未構成のため開始できません。"
+  } else if (!hasProcessingTarget) {
+    startBlockedReason = "処理対象が 0 件のため開始できません。"
+  } else if (!isIdleReady) {
+    startBlockedReason = "ジョブが開始可能状態ではありません。"
+  }
+
+  // H-13: 中断ボタン
   const canPause = !terminal && isRunning
-  const pauseBlockedReason = terminal
-    ? "ジョブが終端状態のため中断できません。"
-    : !isRunning
-      ? "フェーズが実行中ではありません。"
-      : undefined
+  let pauseBlockedReason: string | undefined
+  if (terminal) {
+    pauseBlockedReason = "ジョブが終端状態のため中断できません。"
+  } else if (!isRunning) {
+    pauseBlockedReason = "フェーズが実行中ではありません。"
+  }
 
+  // H-14: 再開ボタン
   const canResume = !terminal && (isPaused || isRecoverableFailed)
-  const resumeBlockedReason = terminal
-    ? "ジョブが終端状態のため再開できません。"
-    : !isPaused && !isRecoverableFailed
-      ? "フェーズが再開可能な状態ではありません。"
-      : undefined
+  let resumeBlockedReason: string | undefined
+  if (terminal) {
+    resumeBlockedReason = "ジョブが終端状態のため再開できません。"
+  } else if (!isPaused && !isRecoverableFailed) {
+    resumeBlockedReason = "フェーズが再開可能な状態ではありません。"
+  }
 
+  // H-15: 再試行ボタン
   const canRetry = !terminal && isRecoverableFailed
-  const retryBlockedReason = terminal
-    ? "ジョブが終端状態のため再試行できません。"
-    : !isRecoverableFailed
-      ? "フェーズが再試行可能な状態ではありません。"
-      : undefined
+  let retryBlockedReason: string | undefined
+  if (terminal) {
+    retryBlockedReason = "ジョブが終端状態のため再試行できません。"
+  } else if (!isRecoverableFailed) {
+    retryBlockedReason = "フェーズが再試行可能な状態ではありません。"
+  }
 
+  // H-16: キャンセルボタン
   const canCancel = !terminal && isActive
-  const cancelBlockedReason = terminal
-    ? "ジョブが終端状態のためキャンセルできません。"
-    : !isActive
-      ? "フェーズがキャンセル可能な状態ではありません。"
-      : undefined
+  let cancelBlockedReason: string | undefined
+  if (terminal) {
+    cancelBlockedReason = "ジョブが終端状態のためキャンセルできません。"
+  } else if (!isActive) {
+    cancelBlockedReason = "フェーズがキャンセル可能な状態ではありません。"
+  }
 
   return {
     canStart,
@@ -452,7 +504,9 @@ function buildViewState(
     return summary.progress.targetCount === 0 ? "empty_completed" : "completed"
   }
 
-  if (summary.actionEnablement.canStart) {
+  const proj = summary.projection
+  const enablement = deriveBodyActionEnablement(proj)
+  if (enablement.canStart) {
     return "ready"
   }
 
@@ -718,7 +772,7 @@ function buildActionCards(
     ]
   }
 
-  const derived = deriveBodyActionEnablement(state.summary)
+  const derived = deriveBodyActionEnablement(state.summary.projection)
 
   return [
     {
@@ -809,7 +863,7 @@ function buildScreenActionEnablement(
       canCheckOutputReadiness: false
     }
   }
-  const derived = deriveBodyActionEnablement(summary)
+  const derived = deriveBodyActionEnablement(summary.projection)
   return {
     canStart: derived.canStart,
     canPause: derived.canPause,
@@ -930,7 +984,7 @@ export class BodyTranslationPhasePresenter {
       actionCards: buildActionCards(state),
       screenActionEnablement: buildScreenActionEnablement(summary),
       lastErrorSummary: errorSummary,
-      actionEnablement: summary?.actionEnablement ?? null,
+      projection: summary?.projection ?? null,
       latestProgressSummary: summary?.progress ?? null,
       latestInputSummary: summary?.inputSummary ?? null,
       latestRequestSummary: summary?.requestSummary ?? null,

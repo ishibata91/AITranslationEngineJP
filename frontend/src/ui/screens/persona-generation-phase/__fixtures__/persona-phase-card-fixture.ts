@@ -4,6 +4,7 @@ export const personaGenerationPhasePanelFixture: PersonaGenerationPhaseScreenVie
   {
     jobId: 101,
     phase: "ready",
+    projection: null,
     summary: null,
     bodyReadiness: null,
     errorMessage: "",
@@ -85,7 +86,6 @@ export const personaGenerationPhasePanelFixture: PersonaGenerationPhaseScreenVie
       canStartBodyPhase: false
     },
     lastErrorSummary: null,
-    actionEnablement: null,
     latestProgressSummary: null,
     latestTargetSummary: null,
     latestResultSummary: null,

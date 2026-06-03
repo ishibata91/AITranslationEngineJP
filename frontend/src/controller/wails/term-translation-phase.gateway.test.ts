@@ -19,6 +19,33 @@ type SaveTermTranslationPhaseAISettingsResponse = Awaited<
   ReturnType<typeof SaveTermTranslationPhaseAISettings>
 >
 
+// 有効な term phase summary response の最小 fixture を返すヘルパー
+function createValidTermSummaryResponse(): GetTermTranslationPhaseSummaryResponse {
+  return {
+    jobId: 5,
+    currentPhase: "term_translation",
+    phaseState: "ready",
+    progress: {
+      percent: 0,
+      processedCount: 0,
+      totalCount: 1,
+      aiTargetCount: 1,
+      currentStep: "ready"
+    },
+    totalTermCount: 1,
+    dictionaryHitCount: 0,
+    aiTargetCount: 1,
+    projection: {
+      phaseLifecycle: "ready",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: true,
+      aiTargetCount: 1,
+      confirmedCount: 0
+    }
+  } as unknown as GetTermTranslationPhaseSummaryResponse
+}
+
 vi.mock("../../../wailsjs/go/wails/AppController.js", () => ({
   GetProcessingTargetList: vi.fn(),
   GetTermTranslationNextPhaseReadiness: vi.fn(),
@@ -103,12 +130,13 @@ describe("createTermTranslationPhaseGateway", () => {
         model: "gpt-4.1-mini",
         executionMode: "batch"
       },
-      actionEnablement: {
-        canStart: true,
-        canPause: false,
-        canResume: false,
-        canRetry: false,
-        canStartNextPhase: false
+      projection: {
+        phaseLifecycle: "ready",
+        jobLifecycle: "running",
+        errorKind: "none",
+        aiSettingsConfigured: true,
+        aiTargetCount: 1,
+        confirmedCount: 0
       }
     } as unknown as GetTermTranslationPhaseSummaryResponse)
 
@@ -125,8 +153,9 @@ describe("createTermTranslationPhaseGateway", () => {
       jobId: 5,
       currentPhase: "term_translation",
       phaseState: "ready",
-      canStartNextPhase: false,
-      blockedReason: "pending"
+      jobIsTerminal: false,
+      totalCount: 10,
+      confirmedCount: 0
     } as unknown as GetTermTranslationNextPhaseReadinessResponse)
 
     const gateway = createTermTranslationPhaseGateway()
@@ -134,8 +163,8 @@ describe("createTermTranslationPhaseGateway", () => {
       gateway.getTermTranslationNextPhaseReadiness({ jobId: 5 })
     ).resolves.toMatchObject({
       jobId: 5,
-      canStartNextPhase: false,
-      blockedReason: "pending"
+      jobIsTerminal: false,
+      totalCount: 10
     })
   })
 
@@ -177,12 +206,13 @@ describe("createTermTranslationPhaseGateway", () => {
         executionMode: "batch",
         credentialInput: "raw-secret-value"
       },
-      actionEnablement: {
-        canStart: true,
-        canPause: false,
-        canResume: false,
-        canRetry: false,
-        canStartNextPhase: false
+      projection: {
+        phaseLifecycle: "ready",
+        jobLifecycle: "running",
+        errorKind: "none",
+        aiSettingsConfigured: true,
+        aiTargetCount: 1,
+        confirmedCount: 0
       }
     } as unknown as GetTermTranslationPhaseSummaryResponse)
 
@@ -205,6 +235,68 @@ describe("createTermTranslationPhaseGateway", () => {
       expect(diagnostic).not.toContain("credentialInput")
       expect(diagnostic).not.toContain("apiKey")
     }
+  })
+
+  // RAEF-UNIT-019〜021: assertTermProjectionShape の runtime shape validator 境界値証明
+  // 根拠: design-diff.md G-4-a
+
+  // RAEF-UNIT-019: projection 必須 field が全て揃う場合は shape 検証通過する（正常パス）
+  test("projection 必須 field が全て揃う場合は shape 検証が通過する（G-4-a projection 正常パス）", async () => {
+    // G-4-a: projection に phaseLifecycle / jobLifecycle / errorKind / aiSettingsConfigured / aiTargetCount / confirmedCount が揃う → 検証通過
+    vi.mocked(GetTermTranslationPhaseSummary).mockResolvedValue(createValidTermSummaryResponse())
+
+    const gateway = createTermTranslationPhaseGateway()
+
+    await expect(gateway.getTermTranslationPhaseSummary({ jobId: 5 })).resolves.toMatchObject({
+      projection: {
+        phaseLifecycle: "ready",
+        jobLifecycle: "running",
+        errorKind: "none",
+        aiSettingsConfigured: true,
+        aiTargetCount: 1,
+        confirmedCount: 0
+      }
+    })
+  })
+
+  // RAEF-UNIT-020: actionEnablement field が response に含まれない場合でも検証通過する（削除後の非必須化確認）
+  test("response に actionEnablement field が存在しない場合でも検証が通過する（G-4-a actionEnablement 削除後の非必須化）", async () => {
+    // G-4-a: actionEnablement は削除済みのため response に含まれなくても検証通過する
+    // motivating bug（canStartNextPhase 必須検証で落ちる）の解消を証明する
+    const responseWithoutActionEnablement = createValidTermSummaryResponse()
+    // actionEnablement field が存在しないことを確認する
+    expect((responseWithoutActionEnablement as unknown as Record<string, unknown>)["actionEnablement"]).toBeUndefined()
+
+    vi.mocked(GetTermTranslationPhaseSummary).mockResolvedValue(responseWithoutActionEnablement)
+
+    const gateway = createTermTranslationPhaseGateway()
+
+    await expect(gateway.getTermTranslationPhaseSummary({ jobId: 5 })).resolves.toBeDefined()
+  })
+
+  // RAEF-UNIT-021: phaseLifecycle が存在しない場合は検証失敗する
+  test("projection の phaseLifecycle が存在しない場合は GatewayResponseShapeError を返す（G-4-a projection 必須 field 不足）", async () => {
+    // G-4-a: projection.phaseLifecycle が存在しない → 必須 field 不足で検証失敗
+    const invalidResponse = {
+      ...createValidTermSummaryResponse(),
+      projection: {
+        // phaseLifecycle を意図的に除外する
+        jobLifecycle: "running",
+        errorKind: "none",
+        aiSettingsConfigured: true,
+        aiTargetCount: 1,
+        confirmedCount: 0
+      }
+    } as unknown as GetTermTranslationPhaseSummaryResponse
+
+    vi.mocked(GetTermTranslationPhaseSummary).mockResolvedValue(invalidResponse)
+
+    const gateway = createTermTranslationPhaseGateway()
+
+    await expect(gateway.getTermTranslationPhaseSummary({ jobId: 5 })).rejects.toMatchObject({
+      name: "GatewayResponseShapeError",
+      userFacingMessage: "Gateway response shape is invalid."
+    })
   })
 
   test("save ai settings は公開フィールドだけを受け渡し secret を含まない", async () => {

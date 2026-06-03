@@ -22,6 +22,15 @@ interface TestScreenState {
   initialFetchDone: boolean
 }
 
+const defaultProjection = {
+  phaseLifecycle: "ready",
+  jobLifecycle: "running",
+  errorKind: "none",
+  aiSettingsConfigured: true,
+  aiTargetCount: 5,
+  confirmedCount: 0
+}
+
 function createState(
   overrides: Partial<TestScreenState> = {}
 ): TestScreenState {
@@ -48,12 +57,7 @@ function createState(
         model: "gpt-4.1-mini",
         executionMode: "batch"
       },
-      actionEnablement: {
-        canStart: true,
-        canPause: false,
-        canResume: false,
-        canRetry: false
-      }
+      projection: { ...defaultProjection }
     },
     nextPhaseReadiness: null,
     errorMessage: "",
@@ -234,12 +238,7 @@ describe("TermTranslationPhasePresenter - 次段階開始可否の等価性（UT
         model: "gpt-4.1-mini",
         executionMode: "batch"
       },
-      actionEnablement: {
-        canStart: true,
-        canPause: false,
-        canResume: false,
-        canRetry: false
-      },
+      projection: { ...defaultProjection },
       ...overrides
     }
   }
@@ -273,12 +272,12 @@ describe("TermTranslationPhasePresenter - 次段階開始可否の等価性（UT
           unmatchedCount: 0,
           providerSkipped: false
         },
-        actionEnablement: {
-          canStart: false,
-          canPause: false,
-          canResume: false,
-          canRetry: false
-          // startBlockedReason なし = 終端ジョブでない
+        projection: {
+          ...defaultProjection,
+          phaseLifecycle: "completed",
+          jobLifecycle: "running", // 終端でない
+          confirmedCount: 5, // aiTargetCount 以上
+          aiTargetCount: 5
         }
       }),
       true
@@ -304,11 +303,10 @@ describe("TermTranslationPhasePresenter - 次段階開始可否の等価性（UT
           unmatchedCount: 0,
           providerSkipped: false
         },
-        actionEnablement: {
-          canStart: false,
-          canPause: false,
-          canResume: false,
-          canRetry: false
+        projection: {
+          ...defaultProjection,
+          phaseLifecycle: "completed",
+          jobLifecycle: "running"
         }
       }),
       true
@@ -334,8 +332,8 @@ describe("TermTranslationPhasePresenter - 次段階開始可否の等価性（UT
   })
 
   // UT-EQV-002: 区別理由 - ジョブが終端状態のとき「ジョブが終端状態のため」の理由を返す
-  test("startBlockedReason=terminal_job のとき次段階不可理由にジョブ終端を示す（terminal_job 相当）", () => {
-    // 区別理由: ジョブが終端状態 → startBlockedReason で判定
+  test("jobLifecycle=completed のとき次段階不可理由にジョブ終端を示す（terminal_job 相当）", () => {
+    // 区別理由: ジョブが終端状態 → projection.jobLifecycle で判定
     const viewModel = presenter.toViewModel(
       buildState({
         phaseState: "completed",
@@ -347,12 +345,10 @@ describe("TermTranslationPhasePresenter - 次段階開始可否の等価性（UT
           unmatchedCount: 0,
           providerSkipped: false
         },
-        actionEnablement: {
-          canStart: false,
-          startBlockedReason: "terminal_job", // ジョブが終端状態の識別子
-          canPause: false,
-          canResume: false,
-          canRetry: false
+        projection: {
+          ...defaultProjection,
+          phaseLifecycle: "completed",
+          jobLifecycle: "completed" // ジョブが終端状態
         }
       }),
       true
@@ -370,11 +366,9 @@ describe("TermTranslationPhasePresenter - 次段階開始可否の等価性（UT
     const viewModel = presenter.toViewModel(
       buildState({
         phaseState: "paused",
-        actionEnablement: {
-          canStart: false,
-          canPause: false,
-          canResume: true,
-          canRetry: false
+        projection: {
+          ...defaultProjection,
+          phaseLifecycle: "paused"
         }
       }),
       true
@@ -392,9 +386,13 @@ describe("TermTranslationPhasePresenter - 次段階開始可否の等価性（UT
 describe("TermTranslationPhasePresenter - 操作可否の等価性（UT-EQV-003〜006）", () => {
   const presenter = new TermTranslationPhasePresenter()
 
+  // phaseState を projection.phaseLifecycle に整合させるヘルパー
+  // 新実装は projection.phaseLifecycle で判定するため、phaseState と phaseLifecycle を同一値にする
   function buildSummary(
     overrides: Partial<TermTranslationPhaseSummaryResponse>
   ): TermTranslationPhaseSummaryResponse {
+    const phaseState = overrides.phaseState ?? "ready"
+    const baseProjection = { ...defaultProjection, phaseLifecycle: phaseState }
     return {
       jobId: 7,
       currentPhase: "term_translation",
@@ -415,12 +413,7 @@ describe("TermTranslationPhasePresenter - 操作可否の等価性（UT-EQV-003�
         model: "gpt-4.1-mini",
         executionMode: "batch"
       },
-      actionEnablement: {
-        canStart: true,
-        canPause: false,
-        canResume: false,
-        canRetry: false
-      },
+      projection: baseProjection,
       ...overrides
     }
   }
@@ -452,11 +445,10 @@ describe("TermTranslationPhasePresenter - 操作可否の等価性（UT-EQV-003�
           model: "gpt-4.1-mini",
           executionMode: "batch"
         },
-        actionEnablement: {
-          canStart: false, // presenter が導出するため gateway 値は参考にしない
-          canPause: false,
-          canResume: false,
-          canRetry: false
+        projection: {
+          ...defaultProjection,
+          phaseLifecycle: "ready",
+          jobLifecycle: "running" // presenter が導出するため、終端でないこと
         }
       }),
       true
@@ -468,16 +460,13 @@ describe("TermTranslationPhasePresenter - 操作可否の等価性（UT-EQV-003�
   })
 
   // UT-EQV-003: canStart 不可理由 - ジョブが終端状態
-  test("terminal_job のとき開始不可でジョブ終端理由を返す", () => {
+  test("jobLifecycle=completed のとき開始不可でジョブ終端理由を返す", () => {
     const viewModel = presenter.toViewModel(
       buildState({
         phaseState: "ready",
-        actionEnablement: {
-          canStart: false,
-          startBlockedReason: "terminal_job",
-          canPause: false,
-          canResume: false,
-          canRetry: false
+        projection: {
+          ...defaultProjection,
+          jobLifecycle: "completed" // 終端
         }
       }),
       true
@@ -503,6 +492,7 @@ describe("TermTranslationPhasePresenter - 操作可否の等価性（UT-EQV-003�
   })
 
   // UT-EQV-003: canStart 不可理由 - 実行設定が未構成
+  // projection.aiSettingsConfigured で判定するため、projection を false に上書きする
   test("実行設定が未構成のとき開始不可で未構成理由を返す", () => {
     const viewModel = presenter.toViewModel(
       buildState({
@@ -512,6 +502,11 @@ describe("TermTranslationPhasePresenter - 操作可否の等価性（UT-EQV-003�
           provider: "", // 未構成
           model: "",
           executionMode: ""
+        },
+        projection: {
+          ...defaultProjection,
+          phaseLifecycle: "ready",
+          aiSettingsConfigured: false // 未構成を projection から導出
         }
       }),
       true
@@ -534,16 +529,14 @@ describe("TermTranslationPhasePresenter - 操作可否の等価性（UT-EQV-003�
   })
 
   // UT-EQV-004: canPause 不可理由 - 終端ジョブ
-  test("terminal_job のとき一時停止不可でジョブ終端理由を返す", () => {
+  test("jobLifecycle=completed のとき一時停止不可でジョブ終端理由を返す", () => {
     const viewModel = presenter.toViewModel(
       buildState({
         phaseState: "running",
-        actionEnablement: {
-          canStart: false,
-          startBlockedReason: "terminal_job",
-          canPause: false,
-          canResume: false,
-          canRetry: false
+        projection: {
+          ...defaultProjection,
+          phaseLifecycle: "running",
+          jobLifecycle: "completed" // 終端
         }
       }),
       true
@@ -646,11 +639,9 @@ describe("TermTranslationPhasePresenter - provider 一覧連動（U-PRES-PROVIDE
         totalTermCount: 10,
         dictionaryHitCount: 5,
         aiTargetCount: 5,
-        actionEnablement: {
-          canStart: false,
-          canPause: false,
-          canResume: false,
-          canRetry: false
+        projection: {
+          ...defaultProjection,
+          aiSettingsConfigured: false
         }
       },
       nextPhaseReadiness: null,
@@ -720,11 +711,9 @@ describe("TermTranslationPhasePresenter - buildModelOptions placeholder 重複�
         totalTermCount: 10,
         dictionaryHitCount: 5,
         aiTargetCount: 5,
-        actionEnablement: {
-          canStart: false,
-          canPause: false,
-          canResume: false,
-          canRetry: false
+        projection: {
+          ...defaultProjection,
+          aiSettingsConfigured: false
         }
       },
       nextPhaseReadiness: null,
@@ -763,6 +752,324 @@ describe("TermTranslationPhasePresenter - buildModelOptions placeholder 重複�
   })
 })
 
+// RAEF-UNIT-001〜009: deriveTermActionEnablement および deriveCanStartNextPhase の境界値証明
+// 根拠: design-diff.md H-1〜H-5
+describe("deriveTermActionEnablement — H-1 start 境界値（RAEF-UNIT-001〜004）", () => {
+  const presenter = new TermTranslationPhasePresenter()
+
+  function buildState(projectionOverrides: Partial<TermTranslationPhaseSummaryResponse["projection"]> = {}) {
+    const baseProjection = {
+      phaseLifecycle: "ready",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: true,
+      aiTargetCount: 1,
+      confirmedCount: 0,
+      ...projectionOverrides
+    }
+    return {
+      jobId: 7,
+      phase: "ready" as const,
+      summary: {
+        jobId: 7,
+        currentPhase: "term_translation",
+        phaseState: "ready",
+        progress: {
+          percent: 0,
+          processedCount: 0,
+          totalCount: 10,
+          aiTargetCount: 1,
+          currentStep: "ready"
+        },
+        totalTermCount: 10,
+        dictionaryHitCount: 0,
+        aiTargetCount: 1,
+        projection: baseProjection
+      },
+      nextPhaseReadiness: null as TermTranslationNextPhaseReadinessResponse | null,
+      errorMessage: "",
+      pendingAction: null,
+      hasLoaded: true,
+      initialFetchDone: true
+    }
+  }
+
+  // RAEF-UNIT-001: jobLifecycle が TERMINAL_JOB のとき canStart=false かつ startBlockedReason にジョブ終端文を返す
+  test("jobLifecycle が completed のとき開始不可でジョブ終端理由を返す（H-1 terminal 境界）", () => {
+    // H-1: jobLifecycle ∈ TERMINAL_JOB → canStart=false、startBlockedReason=「ジョブが終端状態のため開始できません。」
+    const vm = presenter.toViewModel(buildState({ jobLifecycle: "completed" }), true)
+    const card = vm.actionCards.find((c) => c.id === "start")
+
+    expect(card?.disabled).toBe(true)
+    expect(card?.blockedReason).toBe("ジョブが終端状態のため開始できません。")
+  })
+
+  // RAEF-UNIT-002: aiSettingsConfigured=false のとき canStart=false かつ startBlockedReason に未構成文を返す
+  test("aiSettingsConfigured=false のとき開始不可で実行設定未構成理由を返す（H-1 aiSettingsConfigured=false 境界）", () => {
+    // H-1: aiSettingsConfigured ≠ true → canStart=false、startBlockedReason=「実行設定が未構成のため開始できません。」
+    const vm = presenter.toViewModel(buildState({ aiSettingsConfigured: false }), true)
+    const card = vm.actionCards.find((c) => c.id === "start")
+
+    expect(card?.disabled).toBe(true)
+    expect(card?.blockedReason).toBe("実行設定が未構成のため開始できません。")
+  })
+
+  // RAEF-UNIT-003: aiTargetCount=0 のとき canStart=false かつ startBlockedReason に 0件文を返す
+  test("aiTargetCount=0 のとき開始不可で処理対象 0 件理由を返す（H-1 aiTargetCount≤0 境界値）", () => {
+    // H-1: aiTargetCount ≤ 0 → canStart=false、startBlockedReason=「処理対象が 0 件のため開始できません。」
+    const vm = presenter.toViewModel(buildState({ aiTargetCount: 0 }), true)
+    const card = vm.actionCards.find((c) => c.id === "start")
+
+    expect(card?.disabled).toBe(true)
+    expect(card?.blockedReason).toBe("処理対象が 0 件のため開始できません。")
+  })
+
+  // RAEF-UNIT-004: 全条件満足（¬terminal ∧ ¬running ∧ idleReady ∧ aiSettingsConfigured ∧ aiTargetCount=1）で canStart=true
+  test("全条件満足のとき開始可かつ startBlockedReason が空文字になる（H-1 正常パス、aiTargetCount 最小値 1）", () => {
+    // H-1: 全有効化条件を満たす最小境界値（aiTargetCount=1）で canStart=true、startBlockedReason=""
+    const vm = presenter.toViewModel(
+      buildState({ phaseLifecycle: "ready", jobLifecycle: "running", aiSettingsConfigured: true, aiTargetCount: 1 }),
+      true
+    )
+    const card = vm.actionCards.find((c) => c.id === "start")
+
+    expect(card?.disabled).toBe(false)
+    expect(card?.blockedReason).toBe("")
+  })
+})
+
+describe("deriveTermActionEnablement — H-2 pause 境界値（RAEF-UNIT-005）", () => {
+  const presenter = new TermTranslationPhasePresenter()
+
+  function buildState(projectionOverrides: Partial<TermTranslationPhaseSummaryResponse["projection"]> = {}) {
+    const baseProjection = {
+      phaseLifecycle: "running",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: true,
+      aiTargetCount: 5,
+      confirmedCount: 0,
+      ...projectionOverrides
+    }
+    return {
+      jobId: 7,
+      phase: "ready" as const,
+      summary: {
+        jobId: 7,
+        currentPhase: "term_translation",
+        phaseState: "running",
+        progress: { percent: 0, processedCount: 0, totalCount: 10, aiTargetCount: 5, currentStep: "running" },
+        totalTermCount: 10,
+        dictionaryHitCount: 0,
+        aiTargetCount: 5,
+        projection: baseProjection
+      },
+      nextPhaseReadiness: null as TermTranslationNextPhaseReadinessResponse | null,
+      errorMessage: "",
+      pendingAction: null,
+      hasLoaded: true,
+      initialFetchDone: true
+    }
+  }
+
+  // RAEF-UNIT-005: RUNNING_PHASE のとき canPause=true、IDLE_READY_PHASE のとき canPause=false かつ pauseBlockedReason を返す
+  test("phaseLifecycle が running のとき中断可になる（H-2 running 境界）", () => {
+    // H-2: phaseLifecycle ∈ RUNNING_PHASE → canPause=true
+    const vm = presenter.toViewModel(buildState({ phaseLifecycle: "running" }), true)
+    const card = vm.actionCards.find((c) => c.id === "pause")
+
+    expect(card?.disabled).toBe(false)
+  })
+
+  test("phaseLifecycle が idle_ready のとき中断不可でフェーズ実行中でない理由を返す（H-2 非 running 境界）", () => {
+    // H-2: phaseLifecycle ∉ RUNNING_PHASE → canPause=false、pauseBlockedReason=「フェーズが実行中ではありません。」
+    const vm = presenter.toViewModel(buildState({ phaseLifecycle: "idle_ready" }), true)
+    const card = vm.actionCards.find((c) => c.id === "pause")
+
+    expect(card?.disabled).toBe(true)
+    expect(card?.blockedReason).toBe("フェーズが実行中ではありません。")
+  })
+})
+
+describe("deriveTermActionEnablement — H-3 resume 境界値（RAEF-UNIT-006）", () => {
+  const presenter = new TermTranslationPhasePresenter()
+
+  function buildState(projectionOverrides: Partial<TermTranslationPhaseSummaryResponse["projection"]> = {}) {
+    const baseProjection = {
+      phaseLifecycle: "idle_ready",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: true,
+      aiTargetCount: 5,
+      confirmedCount: 0,
+      ...projectionOverrides
+    }
+    return {
+      jobId: 7,
+      phase: "ready" as const,
+      summary: {
+        jobId: 7,
+        currentPhase: "term_translation",
+        phaseState: "idle_ready",
+        progress: { percent: 0, processedCount: 0, totalCount: 10, aiTargetCount: 5, currentStep: "idle_ready" },
+        totalTermCount: 10,
+        dictionaryHitCount: 0,
+        aiTargetCount: 5,
+        projection: baseProjection
+      },
+      nextPhaseReadiness: null as TermTranslationNextPhaseReadinessResponse | null,
+      errorMessage: "",
+      pendingAction: null,
+      hasLoaded: true,
+      initialFetchDone: true
+    }
+  }
+
+  // RAEF-UNIT-006: paused のとき canResume=true、errorKind=recoverable のとき canResume=true、両条件非該当のとき canResume=false
+  test("phaseLifecycle が paused のとき再開可になる（H-3 PAUSED_PHASE 境界）", () => {
+    // H-3: phaseLifecycle ∈ PAUSED_PHASE → canResume=true
+    const vm = presenter.toViewModel(buildState({ phaseLifecycle: "paused" }), true)
+    const card = vm.actionCards.find((c) => c.id === "resume")
+
+    expect(card?.disabled).toBe(false)
+  })
+
+  test("errorKind=recoverable のとき再開可になる（H-3 errorKind=recoverable 境界）", () => {
+    // H-3: errorKind = recoverable → canResume=true（phaseLifecycle が RECOVERABLE_FAILED_PHASE 外でも）
+    const vm = presenter.toViewModel(
+      buildState({ phaseLifecycle: "idle_ready", errorKind: "recoverable" }),
+      true
+    )
+    const card = vm.actionCards.find((c) => c.id === "resume")
+
+    expect(card?.disabled).toBe(false)
+  })
+
+  test("paused でも recoverableFailed でもないとき再開不可でフェーズ再開可能でない理由を返す（H-3 両条件非該当境界）", () => {
+    // H-3: phaseLifecycle ∉ PAUSED_PHASE ∧ phaseLifecycle ∉ RECOVERABLE_FAILED_PHASE ∧ errorKind ≠ recoverable → canResume=false
+    const vm = presenter.toViewModel(buildState({ phaseLifecycle: "running", errorKind: "none" }), true)
+    const card = vm.actionCards.find((c) => c.id === "resume")
+
+    expect(card?.disabled).toBe(true)
+    expect(card?.blockedReason).toBe("フェーズが再開可能な状態ではありません。")
+  })
+})
+
+describe("deriveTermActionEnablement — H-4 retry 境界値（RAEF-UNIT-007）", () => {
+  const presenter = new TermTranslationPhasePresenter()
+
+  function buildState(projectionOverrides: Partial<TermTranslationPhaseSummaryResponse["projection"]> = {}) {
+    const baseProjection = {
+      phaseLifecycle: "idle_ready",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: true,
+      aiTargetCount: 5,
+      confirmedCount: 0,
+      ...projectionOverrides
+    }
+    return {
+      jobId: 7,
+      phase: "ready" as const,
+      summary: {
+        jobId: 7,
+        currentPhase: "term_translation",
+        phaseState: "idle_ready",
+        progress: { percent: 0, processedCount: 0, totalCount: 10, aiTargetCount: 5, currentStep: "idle_ready" },
+        totalTermCount: 10,
+        dictionaryHitCount: 0,
+        aiTargetCount: 5,
+        projection: baseProjection
+      },
+      nextPhaseReadiness: null as TermTranslationNextPhaseReadinessResponse | null,
+      errorMessage: "",
+      pendingAction: null,
+      hasLoaded: true,
+      initialFetchDone: true
+    }
+  }
+
+  // RAEF-UNIT-007: RECOVERABLE_FAILED_PHASE のとき canRetry=true、非該当のとき canRetry=false かつ retryBlockedReason を返す
+  test("phaseLifecycle が recoverable_failed のとき再試行可になる（H-4 RECOVERABLE_FAILED_PHASE 境界）", () => {
+    // H-4: phaseLifecycle ∈ RECOVERABLE_FAILED_PHASE → canRetry=true
+    const vm = presenter.toViewModel(buildState({ phaseLifecycle: "recoverable_failed" }), true)
+    const card = vm.actionCards.find((c) => c.id === "retry")
+
+    expect(card?.disabled).toBe(false)
+  })
+
+  test("phaseLifecycle ∉ RECOVERABLE_FAILED_PHASE かつ errorKind ≠ recoverable のとき再試行不可で理由を返す（H-4 非 recoverableFailed 境界）", () => {
+    // H-4: phaseLifecycle ∉ RECOVERABLE_FAILED_PHASE ∧ errorKind ≠ recoverable → canRetry=false、retryBlockedReason 返す
+    const vm = presenter.toViewModel(buildState({ phaseLifecycle: "paused", errorKind: "none" }), true)
+    const card = vm.actionCards.find((c) => c.id === "retry")
+
+    expect(card?.disabled).toBe(true)
+    expect(card?.blockedReason).toBe("フェーズが再試行可能な状態ではありません。")
+  })
+})
+
+describe("deriveCanStartNextPhase — H-5 境界値（RAEF-UNIT-008〜009）", () => {
+  const presenter = new TermTranslationPhasePresenter()
+
+  function buildState(projectionOverrides: Partial<TermTranslationPhaseSummaryResponse["projection"]> = {}) {
+    const baseProjection = {
+      phaseLifecycle: "completed",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: true,
+      aiTargetCount: 5,
+      confirmedCount: 5,
+      ...projectionOverrides
+    }
+    return {
+      jobId: 7,
+      phase: "ready" as const,
+      summary: {
+        jobId: 7,
+        currentPhase: "term_translation",
+        phaseState: "completed",
+        progress: { percent: 100, processedCount: 5, totalCount: 10, aiTargetCount: 5, currentStep: "completed" },
+        totalTermCount: 10,
+        dictionaryHitCount: 0,
+        aiTargetCount: 5,
+        projection: baseProjection
+      },
+      nextPhaseReadiness: null as TermTranslationNextPhaseReadinessResponse | null,
+      errorMessage: "",
+      pendingAction: null,
+      hasLoaded: true,
+      initialFetchDone: true
+    }
+  }
+
+  // RAEF-UNIT-008: COMPLETED_PHASE かつ confirmedCount >= aiTargetCount のとき canStartNextPhase=true
+  test("phaseLifecycle が completed かつ confirmedCount >= aiTargetCount のとき次段階開始可（H-5 正常パス）", () => {
+    // H-5: phaseLifecycle ∈ COMPLETED_PHASE ∧ confirmedCount ≥ aiTargetCount → canStartNextPhase=true
+    const vm = presenter.toViewModel(
+      buildState({ phaseLifecycle: "completed", confirmedCount: 5, aiTargetCount: 5 }),
+      true
+    )
+    const card = vm.actionCards.find((c) => c.id === "next-phase")
+
+    expect(card?.disabled).toBe(false)
+    expect(card?.blockedReason).toBe("")
+  })
+
+  // RAEF-UNIT-009: confirmedCount < aiTargetCount のとき canStartNextPhase=false かつ aiTargetSatisfied=false 理由を返す
+  test("confirmedCount が aiTargetCount-1 のとき次段階開始不可で確定件数不足理由を返す（H-5 aiTargetSatisfied=false 境界値）", () => {
+    // H-5: confirmedCount < aiTargetCount → canStartNextPhase=false、BlockedReason=「確定件数が AI 対象件数に達していないため次段階を開始できません。」
+    // confirmedCount=4、aiTargetCount=5 の境界値（aiTargetCount-1）を使う
+    const vm = presenter.toViewModel(
+      buildState({ phaseLifecycle: "completed", confirmedCount: 4, aiTargetCount: 5 }),
+      true
+    )
+    const card = vm.actionCards.find((c) => c.id === "next-phase")
+
+    expect(card?.disabled).toBe(true)
+    expect(card?.blockedReason).toBe("確定件数が AI 対象件数に達していないため次段階を開始できません。")
+  })
+})
+
 // U-PRES-002/003/004: execution field 不在時の presenter 判定（単語翻訳）
 // 根拠: term-translation-phase-REQ-002「execution field 不在で isExecutionConfigured=false」
 describe("TermTranslationPhasePresenter - execution field 不在判定（U-PRES-002/003/004）", () => {
@@ -784,11 +1091,9 @@ describe("TermTranslationPhasePresenter - execution field 不在判定（U-PRES-
       dictionaryHitCount: 5,
       aiTargetCount: 5,
       // execution field を意図的に含めない（不在で「未設定」を表す仕様）
-      actionEnablement: {
-        canStart: false,
-        canPause: false,
-        canResume: false,
-        canRetry: false
+      projection: {
+        ...defaultProjection,
+        aiSettingsConfigured: false
       }
     }
   }

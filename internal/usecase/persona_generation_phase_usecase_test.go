@@ -55,10 +55,11 @@ func TestPersonaGenerationPhaseUsecase_MapsSummaryDTO(t *testing.T) {
 	}}
 	uc := NewPersonaGenerationPhaseUsecase(port)
 
-	result, err := uc.GetPersonaGenerationPhaseSummary(context.Background(), GetPersonaGenerationPhaseSummaryRequest{JobID: 1})
+	fetchResult, err := uc.GetPersonaGenerationPhaseSummary(context.Background(), GetPersonaGenerationPhaseSummaryRequest{JobID: 1})
 	if err != nil {
 		t.Fatalf("expected summary success: %v", err)
 	}
+	result := fetchResult.Summary
 	if result.PhaseRunID == nil || *result.PhaseRunID != 9 {
 		t.Fatalf("expected phase run id mapping, got %#v", result.PhaseRunID)
 	}
@@ -92,6 +93,58 @@ func TestPersonaGenerationPhaseUsecase_CommandAndBodyReadinessErrorWrapping(t *t
 	_, readinessErr := uc.GetPersonaGenerationBodyReadiness(context.Background(), GetPersonaGenerationBodyReadinessRequest{JobID: 1})
 	if readinessErr == nil {
 		t.Fatalf("expected readiness error wrapping, got nil err")
+	}
+}
+
+// RAEF-UNIT-027: PersonaGenerationPhaseProjection 組み立て論理の境界値証明
+// 根拠: design-diff.md G-5-b
+
+// RAEF-UNIT-027: PreviousPhaseLifecycle が直前 term phase run の lifecycle 値を正しく返す。term phase run 未生成時は空文字
+func TestPersonaGenerationPhaseProjection_PreviousPhaseLifecycleBoundary(t *testing.T) {
+	// G-5-b: PreviousPhaseLifecycle は直前 term JOB_PHASE_RUN の lifecycle 値。phase run 未生成時は空文字。
+
+	// term phase run 存在時は lifecycle 値を返す
+	portWithPreviousPhase := &fakePersonaGenerationPhaseServicePort{
+		summary: service.PersonaGenerationPhaseSummaryReadModel{
+			JobID:                  1,
+			JobState:               "running",
+			CurrentPhase:           "persona_generation",
+			PhaseState:             "idle_ready",
+			PreviousPhaseLifecycle: "completed", // term phase run が completed
+			TargetSummary:          service.PersonaGenerationTargetSummaryReadModel{TargetCount: 5},
+		},
+	}
+	ucWithPrevious := NewPersonaGenerationPhaseUsecase(portWithPreviousPhase)
+
+	resultWithPrevious, err := ucWithPrevious.GetPersonaGenerationPhaseSummary(context.Background(), GetPersonaGenerationPhaseSummaryRequest{JobID: 1})
+	if err != nil {
+		t.Fatalf("expected success, got %v", err)
+	}
+	// term phase run の lifecycle 値 "completed" が PreviousPhaseLifecycle に入ることを証明する
+	if resultWithPrevious.Projection.PreviousPhaseLifecycle != "completed" {
+		t.Fatalf("expected PreviousPhaseLifecycle=completed when term run exists, got %q", resultWithPrevious.Projection.PreviousPhaseLifecycle)
+	}
+
+	// term phase run 未生成時は空文字を返す
+	portWithoutPreviousPhase := &fakePersonaGenerationPhaseServicePort{
+		summary: service.PersonaGenerationPhaseSummaryReadModel{
+			JobID:                  1,
+			JobState:               "running",
+			CurrentPhase:           "persona_generation",
+			PhaseState:             "idle_ready",
+			PreviousPhaseLifecycle: "", // term phase run 未生成
+			TargetSummary:          service.PersonaGenerationTargetSummaryReadModel{TargetCount: 5},
+		},
+	}
+	ucWithoutPrevious := NewPersonaGenerationPhaseUsecase(portWithoutPreviousPhase)
+
+	resultWithoutPrevious, err := ucWithoutPrevious.GetPersonaGenerationPhaseSummary(context.Background(), GetPersonaGenerationPhaseSummaryRequest{JobID: 1})
+	if err != nil {
+		t.Fatalf("expected success, got %v", err)
+	}
+	// term phase run 未生成時は PreviousPhaseLifecycle が空文字になることを証明する
+	if resultWithoutPrevious.Projection.PreviousPhaseLifecycle != "" {
+		t.Fatalf("expected PreviousPhaseLifecycle=empty string when term run not generated, got %q", resultWithoutPrevious.Projection.PreviousPhaseLifecycle)
 	}
 }
 

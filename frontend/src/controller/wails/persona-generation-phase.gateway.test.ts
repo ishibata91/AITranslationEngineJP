@@ -9,7 +9,7 @@ import type {
   PausePersonaGenerationPhaseRequest,
   PersonaGenerationBodyReadinessResponse,
   PersonaGenerationPhaseCommandResponse,
-  PersonaGenerationPhaseSummaryResponse,
+  PersonaGenerationPhaseFetchResponse,
   ResumePersonaGenerationPhaseRequest,
   RetryPersonaGenerationPhaseRequest,
   StartPersonaGenerationPhaseRequest
@@ -66,7 +66,7 @@ afterEach(() => {
 describe("createPersonaGenerationPhaseGateway", () => {
   test("gateway dto aliases stay aligned with gateway contract", () => {
     expectTypeOf<GetPersonaGenerationPhaseSummaryRequestDto>().toEqualTypeOf<GetPersonaGenerationPhaseSummaryRequest>()
-    expectTypeOf<GetPersonaGenerationPhaseSummaryResponseDto>().toEqualTypeOf<PersonaGenerationPhaseSummaryResponse>()
+    expectTypeOf<GetPersonaGenerationPhaseSummaryResponseDto>().toEqualTypeOf<PersonaGenerationPhaseFetchResponse>()
     expectTypeOf<StartPersonaGenerationPhaseRequestDto>().toEqualTypeOf<StartPersonaGenerationPhaseRequest>()
     expectTypeOf<StartPersonaGenerationPhaseResponseDto>().toEqualTypeOf<PersonaGenerationPhaseCommandResponse>()
     expectTypeOf<PausePersonaGenerationPhaseRequestDto>().toEqualTypeOf<PausePersonaGenerationPhaseRequest>()
@@ -315,5 +315,46 @@ describe("createPersonaGenerationPhaseGateway", () => {
     expect(serialized).not.toContain("secret")
     expect(serialized).not.toContain("apiKey")
     expect(serialized).not.toContain("credentialRef")
+  })
+
+  // RAEF-UNIT-022: assertPersonaProjectionShape — previousPhaseLifecycle が存在しない場合は検証失敗する
+  // 根拠: design-diff.md G-4-b
+
+  // RAEF-UNIT-022: previousPhaseLifecycle が存在しない場合は GatewayResponseShapeError を返す
+  test("projection の previousPhaseLifecycle が存在しない場合は GatewayResponseShapeError を返す（G-4-b projection 必須 field 不足）", async () => {
+    // G-4-b: projection.previousPhaseLifecycle が存在しない → 必須 field 不足で検証失敗
+    const getPersonaSummary = vi.fn(() =>
+      Promise.resolve({
+        projection: {
+          // previousPhaseLifecycle を意図的に除外する
+          phaseLifecycle: "idle_ready",
+          jobLifecycle: "running",
+          errorKind: "none",
+          aiSettingsConfigured: true,
+          targetCount: 5
+          // previousPhaseLifecycle が存在しない
+        },
+        summary: {
+          jobId: 8,
+          currentPhase: "persona_generation",
+          phaseState: "idle_ready"
+        }
+      })
+    )
+
+    installGo({
+      wails: {
+        PersonaGenerationPhaseController: {
+          GetPersonaGenerationPhaseSummary: getPersonaSummary
+        }
+      }
+    })
+
+    const gateway = createPersonaGenerationPhaseGateway()
+
+    await expect(gateway.getPersonaGenerationPhaseSummary({ jobId: 8 })).rejects.toMatchObject({
+      name: "GatewayResponseShapeError",
+      userFacingMessage: "Gateway response shape is invalid."
+    })
   })
 })

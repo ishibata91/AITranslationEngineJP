@@ -182,15 +182,17 @@ type PersonaGenerationPhaseAISettingsReadModel struct {
 
 // PersonaGenerationPhaseSummaryReadModel stores the Job Run summary payload.
 type PersonaGenerationPhaseSummaryReadModel struct {
-	JobID         int64
-	JobState      string
-	CurrentPhase  string
-	PhaseState    string
-	PhaseRunID    *int64
-	StartedAt     *time.Time
-	FinishedAt    *time.Time
-	Progress      PersonaGenerationPhaseProgressReadModel
-	TargetSummary PersonaGenerationTargetSummaryReadModel
+	JobID        int64
+	JobState     string
+	CurrentPhase string
+	PhaseState   string
+	PhaseRunID   *int64
+	StartedAt    *time.Time
+	FinishedAt   *time.Time
+	// PreviousPhaseLifecycle は直前 term phase の JOB_PHASE_RUN lifecycle 値。phase run 未生成時は空文字。
+	PreviousPhaseLifecycle string
+	Progress               PersonaGenerationPhaseProgressReadModel
+	TargetSummary          PersonaGenerationTargetSummaryReadModel
 	// AISettings は JOB_PHASE_AI_SETTINGS record が存在する場合だけ設定する。nil は未設定を意味する。
 	AISettings *PersonaGenerationPhaseAISettingsReadModel
 	// Execution は JOB_PHASE_RUN が存在する場合だけ設定する。nil は未開始を意味する。
@@ -349,14 +351,15 @@ func (service *PersonaGenerationPhaseService) ReadSummary(
 	// JOB_PHASE_AI_SETTINGS record が存在する場合だけ aiSettings field を設定する。
 	aiSettings := service.loadPersonaGenerationPhaseAISettings(ctx)
 	return PersonaGenerationPhaseSummaryReadModel{
-		JobID:        job.ID,
-		JobState:     job.State,
-		CurrentPhase: personaGenerationCurrentPhase,
-		PhaseState:   state,
-		PhaseRunID:   clonePersonaInt64Pointer(phaseRunID),
-		StartedAt:    startedAt,
-		FinishedAt:   finishedAt,
-		Progress:     progress,
+		JobID:                  job.ID,
+		JobState:               job.State,
+		CurrentPhase:           personaGenerationCurrentPhase,
+		PhaseState:             state,
+		PhaseRunID:             clonePersonaInt64Pointer(phaseRunID),
+		StartedAt:              startedAt,
+		FinishedAt:             finishedAt,
+		PreviousPhaseLifecycle: termRun.State,
+		Progress:               progress,
 		TargetSummary: PersonaGenerationTargetSummaryReadModel{
 			TargetCount:            snapshot.targetCount,
 			CommonPersonaHitCount:  snapshot.commonHits,

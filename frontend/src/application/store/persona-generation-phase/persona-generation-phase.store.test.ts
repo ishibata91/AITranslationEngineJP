@@ -55,13 +55,6 @@ function createSummary(): PersonaGenerationPhaseSummaryResponse {
       retryable: true,
       isRedacted: true
     },
-    actionEnablement: {
-      canStart: false,
-      canPause: true,
-      canResume: false,
-      canRetry: true,
-      canCancel: true
-    }
   }
 }
 
@@ -127,7 +120,6 @@ describe("PersonaGenerationPhaseStore", () => {
     }
     snapshot.summary!.resultSummary!.generatedCount = 0
     snapshot.summary!.errorSummary!.reason = "changed"
-    snapshot.summary!.actionEnablement.canPause = false
     snapshot.bodyReadiness!.inputSummary.evidenceRefs[0] = "changed"
 
     const nextSnapshot = store.snapshot()
@@ -138,7 +130,6 @@ describe("PersonaGenerationPhaseStore", () => {
     expect(nextSnapshot.summary?.execution?.evidenceRefs[0]).toBe("evidence")
     expect(nextSnapshot.summary?.resultSummary?.generatedCount).toBe(4)
     expect(nextSnapshot.summary?.errorSummary?.reason).toBe("reason")
-    expect(nextSnapshot.summary?.actionEnablement.canPause).toBe(true)
     expect(nextSnapshot.bodyReadiness?.inputSummary.evidenceRefs[0]).toBe(
       "evidence"
     )

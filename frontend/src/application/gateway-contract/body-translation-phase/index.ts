@@ -1,7 +1,6 @@
 export type {
   BodyTranslationOutputReadinessResponse,
   BodyTranslationOutputReadinessSummary,
-  BodyTranslationPhaseActionEnablement,
   BodyTranslationPhaseAISettingsRequest,
   BodyTranslationPhaseAISettingsResponse,
   BodyTranslationPhaseCommandResponse,
@@ -13,6 +12,7 @@ export type {
   BodyTranslationPhaseGatewayContract,
   BodyTranslationPhaseInputSummary,
   BodyTranslationPhaseProgressSummary,
+  BodyTranslationPhaseProjection,
   BodyTranslationPhaseRequestSummary,
   BodyTranslationPhaseSummaryResponse,
   CancelBodyTranslationPhaseRequest,

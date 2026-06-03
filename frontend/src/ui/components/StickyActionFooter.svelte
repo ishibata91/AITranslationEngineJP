@@ -13,6 +13,7 @@
     primaryDisabled?: boolean
     onPrimary: () => void
     dataTestId?: string
+    primaryTestId?: string
     children?: Snippet
   }
 
@@ -26,6 +27,7 @@
     primaryDisabled = false,
     onPrimary,
     dataTestId = undefined,
+    primaryTestId = undefined,
     children
   }: Props = $props()
 
@@ -66,6 +68,7 @@
   <div class="footer-actions">
     <button
       class="button-primary"
+      data-testid={primaryTestId}
       disabled={primaryDisabled}
       onclick={onPrimary}
       type="button"

@@ -89,7 +89,7 @@ export const bodyTranslationPhasePanelFixture: BodyTranslationPhaseScreenViewMod
       canCheckOutputReadiness: false
     },
     lastErrorSummary: null,
-    actionEnablement: null,
+    projection: null,
     latestProgressSummary: null,
     latestInputSummary: null,
     latestRequestSummary: null,

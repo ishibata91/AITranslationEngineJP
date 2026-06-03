@@ -400,28 +400,40 @@ function isErrorSummary(value: unknown, path: string): boolean {
   )
 }
 
-function isActionEnablement(value: unknown, path: string): boolean {
+function isPersonaBodyReadiness(value: unknown, path: string): boolean {
   if (!isRecord(value)) {
     return invalid(path, "object")
   }
 
   return (
-    (isBoolean(value["canStart"]) || invalid(`${path}.canStart`, "boolean")) &&
-    (isOptionalString(value["startBlockedReason"]) ||
-      invalid(`${path}.startBlockedReason`, "string or undefined")) &&
-    (isBoolean(value["canPause"]) || invalid(`${path}.canPause`, "boolean")) &&
-    (isOptionalString(value["pauseBlockedReason"]) ||
-      invalid(`${path}.pauseBlockedReason`, "string or undefined")) &&
-    (isBoolean(value["canResume"]) ||
-      invalid(`${path}.canResume`, "boolean")) &&
-    (isOptionalString(value["resumeBlockedReason"]) ||
-      invalid(`${path}.resumeBlockedReason`, "string or undefined")) &&
-    (isBoolean(value["canRetry"]) || invalid(`${path}.canRetry`, "boolean")) &&
-    (isOptionalString(value["retryBlockedReason"]) ||
-      invalid(`${path}.retryBlockedReason`, "string or undefined")) &&
-    (isBoolean(value["canCancel"]) || invalid(`${path}.canCancel`, "boolean")) &&
-    (isOptionalString(value["cancelBlockedReason"]) ||
-      invalid(`${path}.cancelBlockedReason`, "string or undefined"))
+    (isBoolean(value["bodyReadiness"]) ||
+      invalid(`${path}.bodyReadiness`, "boolean")) &&
+    (isString(value["snapshotReferenceStatus"]) ||
+      invalid(`${path}.snapshotReferenceStatus`, "string"))
+  )
+}
+
+function isProjection(value: unknown, path: string): boolean {
+  if (!isRecord(value)) {
+    return invalid(path, "object")
+  }
+
+  return (
+    (isString(value["phaseLifecycle"]) ||
+      invalid(`${path}.phaseLifecycle`, "string")) &&
+    (isString(value["jobLifecycle"]) ||
+      invalid(`${path}.jobLifecycle`, "string")) &&
+    (isString(value["errorKind"]) || invalid(`${path}.errorKind`, "string")) &&
+    (isBoolean(value["aiSettingsConfigured"]) ||
+      invalid(`${path}.aiSettingsConfigured`, "boolean")) &&
+    (isNumber(value["targetCount"]) ||
+      invalid(`${path}.targetCount`, "number")) &&
+    (isString(value["previousPhaseLifecycle"]) ||
+      invalid(`${path}.previousPhaseLifecycle`, "string")) &&
+    isPersonaBodyReadiness(
+      value["personaBodyReadiness"],
+      `${path}.personaBodyReadiness`
+    )
   )
 }
 
@@ -476,7 +488,7 @@ function isBodyTranslationPhaseSummaryResponseDto(
   return (
     hasBodyPhaseBase(value) &&
     isErrorSummary(value["errorSummary"], "$.errorSummary") &&
-    isActionEnablement(value["actionEnablement"], "$.actionEnablement")
+    isProjection(value["projection"], "$.projection")
   )
 }
 

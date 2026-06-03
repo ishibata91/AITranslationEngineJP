@@ -81,10 +81,11 @@ func TestTermTranslationPhaseUsecaseGetSummaryMapsPointersAndNormalizesErrorKind
 		},
 	})
 
-	result, err := usecase.GetTermTranslationPhaseSummary(context.Background(), GetTermTranslationPhaseSummaryRequest{JobID: 20})
+	fetchResult, err := usecase.GetTermTranslationPhaseSummary(context.Background(), GetTermTranslationPhaseSummaryRequest{JobID: 20})
 	if err != nil {
 		t.Fatalf("expected success, got %v", err)
 	}
+	result := fetchResult.Summary
 	if result.Execution.SnapshotDigest == nil || *result.Execution.SnapshotDigest != "digest-v1" {
 		t.Fatalf("expected snapshot digest mapping, got %#v", result.Execution)
 	}
@@ -139,6 +140,127 @@ func TestTermTranslationPhaseUsecaseStartWrapsServiceError(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "start term translation phase") {
 		t.Fatalf("expected wrapped error, got %v", err)
+	}
+}
+
+// RAEF-UNIT-024〜026: TermTranslationPhaseProjection 組み立て論理の境界値証明
+// 根拠: design-diff.md G-5-a
+
+// RAEF-UNIT-024: term phase run 未生成時に PhaseLifecycle が空文字になる
+func TestTermTranslationPhaseProjection_PhaseLifecycleIsEmptyWhenRunNotGenerated(t *testing.T) {
+	// G-5-a: PhaseLifecycle は term phase run の lifecycle 値。phase run 未生成時は空文字。
+	usecase := NewTermTranslationPhaseUsecase(fakeTermTranslationPhaseService{
+		readSummaryFunc: func(context.Context, int64) (service.TermTranslationPhaseSummaryReadModel, error) {
+			return service.TermTranslationPhaseSummaryReadModel{
+				// PhaseState が空文字で phase run 未生成を表す
+				PhaseState: "",
+				JobState:   "running",
+			}, nil
+		},
+	})
+
+	fetchResult, err := usecase.GetTermTranslationPhaseSummary(context.Background(), GetTermTranslationPhaseSummaryRequest{JobID: 1})
+	if err != nil {
+		t.Fatalf("expected success, got %v", err)
+	}
+
+	// phase run 未生成時は PhaseLifecycle が空文字になることを証明する
+	if fetchResult.Projection.PhaseLifecycle != "" {
+		t.Fatalf("expected PhaseLifecycle to be empty string when run not generated, got %q", fetchResult.Projection.PhaseLifecycle)
+	}
+}
+
+// RAEF-UNIT-025: AI 設定 entity が provider / model / executionMode を全て満たす場合は AISettingsConfigured=true、いずれか欠落時は false
+func TestTermTranslationPhaseProjection_AISettingsConfiguredBoundary(t *testing.T) {
+	// G-5-a: AISettingsConfigured = AI 設定 entity が provider / model / executionMode を満たすかの真偽。
+
+	// 全て満たす場合は true
+	usecaseConfigured := NewTermTranslationPhaseUsecase(fakeTermTranslationPhaseService{
+		readSummaryFunc: func(context.Context, int64) (service.TermTranslationPhaseSummaryReadModel, error) {
+			return service.TermTranslationPhaseSummaryReadModel{
+				PhaseState: "idle_ready",
+				JobState:   "running",
+				AISettings: &service.TermTranslationPhaseAISettingsReadModel{
+					Provider:      "openai-compatible",
+					Model:         "gpt-4.1-mini",
+					ExecutionMode: "batch",
+				},
+			}, nil
+		},
+	})
+
+	fetchResult, err := usecaseConfigured.GetTermTranslationPhaseSummary(context.Background(), GetTermTranslationPhaseSummaryRequest{JobID: 1})
+	if err != nil {
+		t.Fatalf("expected success, got %v", err)
+	}
+	if !fetchResult.Projection.AISettingsConfigured {
+		t.Fatal("expected AISettingsConfigured=true when provider/model/executionMode are all set")
+	}
+
+	// Provider が欠落した場合は false
+	usecaseUnconfigured := NewTermTranslationPhaseUsecase(fakeTermTranslationPhaseService{
+		readSummaryFunc: func(context.Context, int64) (service.TermTranslationPhaseSummaryReadModel, error) {
+			return service.TermTranslationPhaseSummaryReadModel{
+				PhaseState: "idle_ready",
+				JobState:   "running",
+				AISettings: &service.TermTranslationPhaseAISettingsReadModel{
+					Provider:      "", // Provider 欠落
+					Model:         "gpt-4.1-mini",
+					ExecutionMode: "batch",
+				},
+			}, nil
+		},
+	})
+
+	fetchResultUnconfigured, err := usecaseUnconfigured.GetTermTranslationPhaseSummary(context.Background(), GetTermTranslationPhaseSummaryRequest{JobID: 1})
+	if err != nil {
+		t.Fatalf("expected success, got %v", err)
+	}
+	if fetchResultUnconfigured.Projection.AISettingsConfigured {
+		t.Fatal("expected AISettingsConfigured=false when provider is missing")
+	}
+}
+
+// RAEF-UNIT-026: AITargetCount=0 の場合と AITargetCount=1 の場合の両境界でフィールド値が正しい
+func TestTermTranslationPhaseProjection_AITargetCountBoundary(t *testing.T) {
+	// G-5-a: AITargetCount は AI 対象件数。
+
+	// AITargetCount=0 の場合
+	usecaseZero := NewTermTranslationPhaseUsecase(fakeTermTranslationPhaseService{
+		readSummaryFunc: func(context.Context, int64) (service.TermTranslationPhaseSummaryReadModel, error) {
+			return service.TermTranslationPhaseSummaryReadModel{
+				PhaseState: "idle_ready",
+				JobState:   "running",
+				Progress:   service.TermTranslationPhaseProgressReadModel{AITargetCount: 0},
+			}, nil
+		},
+	})
+
+	resultZero, err := usecaseZero.GetTermTranslationPhaseSummary(context.Background(), GetTermTranslationPhaseSummaryRequest{JobID: 1})
+	if err != nil {
+		t.Fatalf("expected success, got %v", err)
+	}
+	if resultZero.Projection.AITargetCount != 0 {
+		t.Fatalf("expected AITargetCount=0, got %d", resultZero.Projection.AITargetCount)
+	}
+
+	// AITargetCount=1 の場合（最小正値境界値）
+	usecaseOne := NewTermTranslationPhaseUsecase(fakeTermTranslationPhaseService{
+		readSummaryFunc: func(context.Context, int64) (service.TermTranslationPhaseSummaryReadModel, error) {
+			return service.TermTranslationPhaseSummaryReadModel{
+				PhaseState: "idle_ready",
+				JobState:   "running",
+				Progress:   service.TermTranslationPhaseProgressReadModel{AITargetCount: 1},
+			}, nil
+		},
+	})
+
+	resultOne, err := usecaseOne.GetTermTranslationPhaseSummary(context.Background(), GetTermTranslationPhaseSummaryRequest{JobID: 1})
+	if err != nil {
+		t.Fatalf("expected success, got %v", err)
+	}
+	if resultOne.Projection.AITargetCount != 1 {
+		t.Fatalf("expected AITargetCount=1, got %d", resultOne.Projection.AITargetCount)
 	}
 }
 

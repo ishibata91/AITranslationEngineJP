@@ -45,7 +45,6 @@ export const ProcessingTargetWithItems: Story = {
           metadata: [{ label: "訳語", value: "古代都市マルカルス" }]
         }
       ],
-      metadata: [],
       page: 1,
       pageSize: 50,
       totalCount: 1,
@@ -64,7 +63,6 @@ export const ProcessingTargetEmpty: Story = {
     initialFetchDone: true,
     processingTargetPageState: {
       items: [],
-      metadata: [],
       page: 1,
       pageSize: 50,
       totalCount: 0,

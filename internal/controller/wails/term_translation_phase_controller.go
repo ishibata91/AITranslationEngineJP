@@ -10,7 +10,7 @@ import (
 
 // TermTranslationPhaseUsecasePort defines the frozen term translation phase usecase seam.
 type TermTranslationPhaseUsecasePort interface {
-	GetTermTranslationPhaseSummary(ctx context.Context, request usecase.GetTermTranslationPhaseSummaryRequest) (usecase.TermTranslationPhaseSummaryResult, error)
+	GetTermTranslationPhaseSummary(ctx context.Context, request usecase.GetTermTranslationPhaseSummaryRequest) (usecase.TermTranslationPhaseFetchResult, error)
 	StartTermTranslationPhase(ctx context.Context, request usecase.StartTermTranslationPhaseRequest) (usecase.TermTranslationPhaseCommandResult, error)
 	PauseTermTranslationPhase(ctx context.Context, request usecase.PauseTermTranslationPhaseRequest) (usecase.TermTranslationPhaseCommandResult, error)
 	ResumeTermTranslationPhase(ctx context.Context, request usecase.ResumeTermTranslationPhaseRequest) (usecase.TermTranslationPhaseCommandResult, error)
@@ -125,16 +125,22 @@ type TermTranslationPhaseErrorSummaryDTO struct {
 	IsRedacted bool   `json:"isRedacted"`
 }
 
-// TermTranslationPhaseActionEnablementDTO summarizes Job Run operation button state.
-type TermTranslationPhaseActionEnablementDTO struct {
-	CanStart            bool    `json:"canStart"`
-	StartBlockedReason  *string `json:"startBlockedReason,omitempty"`
-	CanPause            bool    `json:"canPause"`
-	PauseBlockedReason  *string `json:"pauseBlockedReason,omitempty"`
-	CanResume           bool    `json:"canResume"`
-	ResumeBlockedReason *string `json:"resumeBlockedReason,omitempty"`
-	CanRetry            bool    `json:"canRetry"`
-	RetryBlockedReason  *string `json:"retryBlockedReason,omitempty"`
+// TermTranslationPhaseProjectionDTO carries the domain state fields used for UX transition derivation.
+// Frontend action enablement logic reads only this field group; Summary is for display purposes.
+type TermTranslationPhaseProjectionDTO struct {
+	PhaseLifecycle       string `json:"phaseLifecycle"`
+	JobLifecycle         string `json:"jobLifecycle"`
+	ErrorKind            string `json:"errorKind"`
+	AISettingsConfigured bool   `json:"aiSettingsConfigured"`
+	AITargetCount        int    `json:"aiTargetCount"`
+	ConfirmedCount       int    `json:"confirmedCount"`
+}
+
+// TermTranslationPhaseFetchResponseDTO returns the frozen Job Run fetch shape
+// with projection and summary as parallel field groups.
+type TermTranslationPhaseFetchResponseDTO struct {
+	Projection TermTranslationPhaseProjectionDTO      `json:"projection"`
+	Summary    TermTranslationPhaseSummaryResponseDTO `json:"summary"`
 }
 
 // TermTranslationPhaseSummaryResponseDTO returns the frozen Job Run summary shape.
@@ -152,10 +158,9 @@ type TermTranslationPhaseSummaryResponseDTO struct {
 	// AISettings は JOB_PHASE_AI_SETTINGS record が存在する場合だけ含める。nil は omit される。
 	AISettings *TermTranslationPhaseAISettingsDTO `json:"aiSettings,omitempty"`
 	// Execution は JOB_PHASE_RUN が存在する場合だけ含める。nil は omit される。
-	Execution        *TermTranslationExecutionConfigSummaryDTO `json:"execution,omitempty"`
-	ResultSummary    *TermTranslationPhaseResultSummaryDTO     `json:"resultSummary,omitempty"`
-	ErrorSummary     *TermTranslationPhaseErrorSummaryDTO      `json:"errorSummary,omitempty"`
-	ActionEnablement TermTranslationPhaseActionEnablementDTO   `json:"actionEnablement"`
+	Execution     *TermTranslationExecutionConfigSummaryDTO `json:"execution,omitempty"`
+	ResultSummary *TermTranslationPhaseResultSummaryDTO     `json:"resultSummary,omitempty"`
+	ErrorSummary  *TermTranslationPhaseErrorSummaryDTO      `json:"errorSummary,omitempty"`
 }
 
 // TermTranslationPhaseCommandResponseDTO returns the frozen write-seam response shape.
@@ -187,18 +192,18 @@ func NewTermTranslationPhaseController(usecase TermTranslationPhaseUsecasePort) 
 	return &TermTranslationPhaseController{termTranslationPhaseUsecase: usecase}
 }
 
-// GetTermTranslationPhaseSummary returns the frozen Job Run summary contract.
+// GetTermTranslationPhaseSummary returns the frozen Job Run fetch contract with projection and summary.
 func (controller *TermTranslationPhaseController) GetTermTranslationPhaseSummary(
 	request GetTermTranslationPhaseSummaryRequestDTO,
-) (TermTranslationPhaseSummaryResponseDTO, error) {
+) (TermTranslationPhaseFetchResponseDTO, error) {
 	result, err := controller.termTranslationPhaseUsecase.GetTermTranslationPhaseSummary(
 		context.Background(),
 		usecase.GetTermTranslationPhaseSummaryRequest{JobID: request.JobID},
 	)
 	if err != nil {
-		return TermTranslationPhaseSummaryResponseDTO{}, fmt.Errorf("get term translation phase summary: %w", err)
+		return TermTranslationPhaseFetchResponseDTO{}, fmt.Errorf("get term translation phase summary: %w", err)
 	}
-	return toTermTranslationPhaseSummaryResponseDTO(result), nil
+	return toTermTranslationPhaseFetchResponseDTO(result), nil
 }
 
 // StartTermTranslationPhase starts one term translation phase run or returns a rejected result.
@@ -309,6 +314,28 @@ func (controller *TermTranslationPhaseController) SaveTermTranslationPhaseAISett
 	}, nil
 }
 
+func toTermTranslationPhaseFetchResponseDTO(
+	result usecase.TermTranslationPhaseFetchResult,
+) TermTranslationPhaseFetchResponseDTO {
+	return TermTranslationPhaseFetchResponseDTO{
+		Projection: toTermTranslationPhaseProjectionDTO(result.Projection),
+		Summary:    toTermTranslationPhaseSummaryResponseDTO(result.Summary),
+	}
+}
+
+func toTermTranslationPhaseProjectionDTO(
+	projection usecase.TermTranslationPhaseProjectionResult,
+) TermTranslationPhaseProjectionDTO {
+	return TermTranslationPhaseProjectionDTO{
+		PhaseLifecycle:       projection.PhaseLifecycle,
+		JobLifecycle:         projection.JobLifecycle,
+		ErrorKind:            projection.ErrorKind,
+		AISettingsConfigured: projection.AISettingsConfigured,
+		AITargetCount:        projection.AITargetCount,
+		ConfirmedCount:       projection.ConfirmedCount,
+	}
+}
+
 func toTermTranslationPhaseSummaryResponseDTO(
 	result usecase.TermTranslationPhaseSummaryResult,
 ) TermTranslationPhaseSummaryResponseDTO {
@@ -327,7 +354,6 @@ func toTermTranslationPhaseSummaryResponseDTO(
 		Execution:          toOptionalTermTranslationExecutionConfigSummaryDTO(result.Execution),
 		ResultSummary:      toOptionalTermTranslationPhaseResultSummaryDTO(result.ResultSummary),
 		ErrorSummary:       toOptionalTermTranslationPhaseErrorSummaryDTO(result.ErrorSummary),
-		ActionEnablement:   toTermTranslationPhaseActionEnablementDTO(result.ActionEnablement),
 	}
 }
 
@@ -429,21 +455,6 @@ func toOptionalTermTranslationPhaseErrorSummaryDTO(
 		Reason:     summary.Reason,
 		Retryable:  summary.Retryable,
 		IsRedacted: summary.IsRedacted,
-	}
-}
-
-func toTermTranslationPhaseActionEnablementDTO(
-	enablement usecase.TermTranslationPhaseActionEnablement,
-) TermTranslationPhaseActionEnablementDTO {
-	return TermTranslationPhaseActionEnablementDTO{
-		CanStart:            enablement.CanStart,
-		StartBlockedReason:  cloneOptionalString(enablement.StartBlockedReason),
-		CanPause:            enablement.CanPause,
-		PauseBlockedReason:  cloneOptionalString(enablement.PauseBlockedReason),
-		CanResume:           enablement.CanResume,
-		ResumeBlockedReason: cloneOptionalString(enablement.ResumeBlockedReason),
-		CanRetry:            enablement.CanRetry,
-		RetryBlockedReason:  cloneOptionalString(enablement.RetryBlockedReason),
 	}
 }
 

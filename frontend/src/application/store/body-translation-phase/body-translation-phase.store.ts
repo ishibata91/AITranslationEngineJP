@@ -71,7 +71,10 @@ function cloneSummary(
     errorSummary: summary.errorSummary
       ? { ...summary.errorSummary }
       : undefined,
-    actionEnablement: { ...summary.actionEnablement },
+    projection: {
+      ...summary.projection,
+      personaBodyReadiness: { ...summary.projection.personaBodyReadiness }
+    },
     outputReadiness: { ...summary.outputReadiness }
   }
 }

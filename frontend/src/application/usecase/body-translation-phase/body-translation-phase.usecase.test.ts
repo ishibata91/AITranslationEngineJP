@@ -73,12 +73,17 @@ function createSummary(
       requestUnitCount: 20,
       outputCount: 8
     },
-    actionEnablement: {
-      canStart: false,
-      canPause: true,
-      canResume: false,
-      canRetry: false,
-      canCancel: true
+    projection: {
+      phaseLifecycle: "running",
+      jobLifecycle: "running",
+      errorKind: "none",
+      aiSettingsConfigured: true,
+      targetCount: 20,
+      previousPhaseLifecycle: "completed",
+      personaBodyReadiness: {
+        bodyReadiness: true,
+        snapshotReferenceStatus: "available"
+      }
     },
     outputReadiness: {
       completedFieldCount: 8,
@@ -616,13 +621,10 @@ describe("BodyTranslationPhaseUseCase", () => {
     await useCase.startPhase()
 
     expect(spies.startBodyTranslationPhase).toHaveBeenCalledWith({ jobId: 9 })
-    expect(store.getState().summary).toMatchObject({
-      phaseState: "running",
-      phaseRunId: command.phaseRunId,
-      actionEnablement: {
-        canRetry: false
-      }
-    })
+    const summary = store.getState().summary
+    expect(summary?.phaseState).toBe("running")
+    expect(summary?.phaseRunId).toBe(command.phaseRunId)
+    expect(typeof summary?.projection.phaseLifecycle).toBe("string")
     expect(store.getState().outputReadiness).toBeNull()
   })
 

@@ -9,7 +9,7 @@ import (
 
 // PersonaGenerationPhaseUsecasePort defines the frozen persona generation phase usecase seam.
 type PersonaGenerationPhaseUsecasePort interface {
-	GetPersonaGenerationPhaseSummary(ctx context.Context, request usecase.GetPersonaGenerationPhaseSummaryRequest) (usecase.PersonaGenerationPhaseSummaryResult, error)
+	GetPersonaGenerationPhaseSummary(ctx context.Context, request usecase.GetPersonaGenerationPhaseSummaryRequest) (usecase.GetPersonaGenerationPhaseFetchResult, error)
 	StartPersonaGenerationPhase(ctx context.Context, request usecase.StartPersonaGenerationPhaseRequest) (usecase.PersonaGenerationPhaseCommandResult, error)
 	PausePersonaGenerationPhase(ctx context.Context, request usecase.PausePersonaGenerationPhaseRequest) (usecase.PersonaGenerationPhaseCommandResult, error)
 	ResumePersonaGenerationPhase(ctx context.Context, request usecase.ResumePersonaGenerationPhaseRequest) (usecase.PersonaGenerationPhaseCommandResult, error)
@@ -146,18 +146,14 @@ type PersonaGenerationPhaseErrorSummaryDTO struct {
 	IsRedacted bool   `json:"isRedacted"`
 }
 
-// PersonaGenerationPhaseActionEnablementDTO summarizes Job Run operation button state.
-type PersonaGenerationPhaseActionEnablementDTO struct {
-	CanStart            bool    `json:"canStart"`
-	StartBlockedReason  *string `json:"startBlockedReason,omitempty"`
-	CanPause            bool    `json:"canPause"`
-	PauseBlockedReason  *string `json:"pauseBlockedReason,omitempty"`
-	CanResume           bool    `json:"canResume"`
-	ResumeBlockedReason *string `json:"resumeBlockedReason,omitempty"`
-	CanRetry            bool    `json:"canRetry"`
-	RetryBlockedReason  *string `json:"retryBlockedReason,omitempty"`
-	CanCancel           bool    `json:"canCancel"`
-	CancelBlockedReason *string `json:"cancelBlockedReason,omitempty"`
+// PersonaGenerationPhaseProjectionDTO carries the domain state projection for UX transition derivation.
+type PersonaGenerationPhaseProjectionDTO struct {
+	PhaseLifecycle         string `json:"phaseLifecycle"`
+	JobLifecycle           string `json:"jobLifecycle"`
+	ErrorKind              string `json:"errorKind"`
+	AISettingsConfigured   bool   `json:"aiSettingsConfigured"`
+	TargetCount            int    `json:"targetCount"`
+	PreviousPhaseLifecycle string `json:"previousPhaseLifecycle"`
 }
 
 // PersonaGenerationPhaseSummaryResponseDTO returns the frozen summary response shape.
@@ -173,10 +169,15 @@ type PersonaGenerationPhaseSummaryResponseDTO struct {
 	// AISettings は JOB_PHASE_AI_SETTINGS record が存在する場合だけ含める。nil は omit される。
 	AISettings *PersonaGenerationPhaseAISettingsDTO `json:"aiSettings,omitempty"`
 	// Execution は JOB_PHASE_RUN が存在する場合だけ含める。nil は omit される。
-	Execution        *PersonaGenerationExecutionSummaryDTO     `json:"execution,omitempty"`
-	ResultSummary    *PersonaGenerationPhaseResultSummaryDTO   `json:"resultSummary,omitempty"`
-	ErrorSummary     *PersonaGenerationPhaseErrorSummaryDTO    `json:"errorSummary,omitempty"`
-	ActionEnablement PersonaGenerationPhaseActionEnablementDTO `json:"actionEnablement"`
+	Execution     *PersonaGenerationExecutionSummaryDTO   `json:"execution,omitempty"`
+	ResultSummary *PersonaGenerationPhaseResultSummaryDTO `json:"resultSummary,omitempty"`
+	ErrorSummary  *PersonaGenerationPhaseErrorSummaryDTO  `json:"errorSummary,omitempty"`
+}
+
+// PersonaGenerationPhaseFetchResponseDTO bundles summary and projection for the fetch response.
+type PersonaGenerationPhaseFetchResponseDTO struct {
+	Summary    PersonaGenerationPhaseSummaryResponseDTO `json:"summary"`
+	Projection PersonaGenerationPhaseProjectionDTO      `json:"projection"`
 }
 
 // PersonaGenerationPhaseCommandResponseDTO returns the frozen write-seam response shape.
@@ -219,18 +220,18 @@ func NewPersonaGenerationPhaseController(usecase PersonaGenerationPhaseUsecasePo
 	return &PersonaGenerationPhaseController{personaGenerationPhaseUsecase: usecase}
 }
 
-// GetPersonaGenerationPhaseSummary returns the frozen Job Run summary contract.
+// GetPersonaGenerationPhaseSummary returns the Job Run summary and domain state projection.
 func (controller *PersonaGenerationPhaseController) GetPersonaGenerationPhaseSummary(
 	request GetPersonaGenerationPhaseSummaryRequestDTO,
-) (PersonaGenerationPhaseSummaryResponseDTO, error) {
+) (PersonaGenerationPhaseFetchResponseDTO, error) {
 	result, err := controller.personaGenerationPhaseUsecase.GetPersonaGenerationPhaseSummary(
 		context.Background(),
 		usecase.GetPersonaGenerationPhaseSummaryRequest{JobID: request.JobID},
 	)
 	if err != nil {
-		return PersonaGenerationPhaseSummaryResponseDTO{}, fmt.Errorf("get persona generation phase summary: %w", err)
+		return PersonaGenerationPhaseFetchResponseDTO{}, fmt.Errorf("get persona generation phase summary: %w", err)
 	}
-	return toPersonaGenerationPhaseSummaryResponseDTO(result), nil
+	return toPersonaGenerationPhaseFetchResponseDTO(result), nil
 }
 
 // StartPersonaGenerationPhase starts one persona generation phase run or returns a rejected result.
@@ -346,23 +347,44 @@ func (controller *PersonaGenerationPhaseController) SavePersonaGenerationPhaseAI
 	}, nil
 }
 
+func toPersonaGenerationPhaseFetchResponseDTO(
+	result usecase.GetPersonaGenerationPhaseFetchResult,
+) PersonaGenerationPhaseFetchResponseDTO {
+	return PersonaGenerationPhaseFetchResponseDTO{
+		Summary:    toPersonaGenerationPhaseSummaryResponseDTO(result.Summary),
+		Projection: toPersonaGenerationPhaseProjectionDTO(result.Projection),
+	}
+}
+
 func toPersonaGenerationPhaseSummaryResponseDTO(
 	result usecase.PersonaGenerationPhaseSummaryResult,
 ) PersonaGenerationPhaseSummaryResponseDTO {
 	return PersonaGenerationPhaseSummaryResponseDTO{
-		JobID:            result.JobID,
-		CurrentPhase:     result.CurrentPhase,
-		PhaseState:       result.PhaseState,
-		PhaseRunID:       cloneOptionalInt64(result.PhaseRunID),
-		StartedAt:        formatOptionalTime(result.StartedAt),
-		FinishedAt:       formatOptionalTime(result.FinishedAt),
-		Progress:         toPersonaGenerationPhaseProgressSummaryDTO(result.Progress),
-		TargetSummary:    toPersonaGenerationTargetSummaryDTO(result.TargetSummary),
-		AISettings:       toPersonaGenerationPhaseAISettingsDTO(result.AISettings),
-		Execution:        toOptionalPersonaGenerationExecutionSummaryDTO(result.Execution),
-		ResultSummary:    toOptionalPersonaGenerationPhaseResultSummaryDTO(result.ResultSummary),
-		ErrorSummary:     toOptionalPersonaGenerationPhaseErrorSummaryDTO(result.ErrorSummary),
-		ActionEnablement: toPersonaGenerationPhaseActionEnablementDTO(result.ActionEnablement),
+		JobID:         result.JobID,
+		CurrentPhase:  result.CurrentPhase,
+		PhaseState:    result.PhaseState,
+		PhaseRunID:    cloneOptionalInt64(result.PhaseRunID),
+		StartedAt:     formatOptionalTime(result.StartedAt),
+		FinishedAt:    formatOptionalTime(result.FinishedAt),
+		Progress:      toPersonaGenerationPhaseProgressSummaryDTO(result.Progress),
+		TargetSummary: toPersonaGenerationTargetSummaryDTO(result.TargetSummary),
+		AISettings:    toPersonaGenerationPhaseAISettingsDTO(result.AISettings),
+		Execution:     toOptionalPersonaGenerationExecutionSummaryDTO(result.Execution),
+		ResultSummary: toOptionalPersonaGenerationPhaseResultSummaryDTO(result.ResultSummary),
+		ErrorSummary:  toOptionalPersonaGenerationPhaseErrorSummaryDTO(result.ErrorSummary),
+	}
+}
+
+func toPersonaGenerationPhaseProjectionDTO(
+	projection usecase.PersonaGenerationPhaseProjectionResult,
+) PersonaGenerationPhaseProjectionDTO {
+	return PersonaGenerationPhaseProjectionDTO{
+		PhaseLifecycle:         projection.PhaseLifecycle,
+		JobLifecycle:           projection.JobLifecycle,
+		ErrorKind:              projection.ErrorKind,
+		AISettingsConfigured:   projection.AISettingsConfigured,
+		TargetCount:            projection.TargetCount,
+		PreviousPhaseLifecycle: projection.PreviousPhaseLifecycle,
 	}
 }
 
@@ -504,22 +526,5 @@ func toOptionalPersonaGenerationPhaseErrorSummaryDTO(
 		Reason:     summary.Reason,
 		Retryable:  summary.Retryable,
 		IsRedacted: summary.IsRedacted,
-	}
-}
-
-func toPersonaGenerationPhaseActionEnablementDTO(
-	enablement usecase.PersonaGenerationPhaseActionEnablement,
-) PersonaGenerationPhaseActionEnablementDTO {
-	return PersonaGenerationPhaseActionEnablementDTO{
-		CanStart:            enablement.CanStart,
-		StartBlockedReason:  cloneOptionalString(enablement.StartBlockedReason),
-		CanPause:            enablement.CanPause,
-		PauseBlockedReason:  cloneOptionalString(enablement.PauseBlockedReason),
-		CanResume:           enablement.CanResume,
-		ResumeBlockedReason: cloneOptionalString(enablement.ResumeBlockedReason),
-		CanRetry:            enablement.CanRetry,
-		RetryBlockedReason:  cloneOptionalString(enablement.RetryBlockedReason),
-		CanCancel:           enablement.CanCancel,
-		CancelBlockedReason: cloneOptionalString(enablement.CancelBlockedReason),
 	}
 }

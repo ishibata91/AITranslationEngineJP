@@ -277,19 +277,18 @@ func TestSCN_TJSR_001_ReadyJobSummaryDoesNotCreateBodyPhaseRunAndStartCreatesNon
 	}
 }
 
-func TestSCN_TJSR_002_BodyPhaseActionEnablementUsesCommonStateRules(t *testing.T) {
+func TestSCN_TJSR_002_BodyPhaseProjectionExposesLifecycleForFrontendDerivation(t *testing.T) {
+	// backend は UX 遷移可否 flag を返さない（責務 4 分割）。
+	// projection に jobLifecycle / phaseLifecycle が露出していることだけを検証し、
+	// 可否導出は frontend presenter 側の単体テスト（RAEF-UNIT-015〜018）でカバーする。
 	testCases := []struct {
 		name       string
 		jobState   string
 		phaseState string
-		canPause   bool
-		canResume  bool
-		canRetry   bool
-		canCancel  bool
 	}{
-		{name: "running", jobState: "running", phaseState: "running", canPause: true},
-		{name: "paused", jobState: "paused", phaseState: "paused", canResume: true, canCancel: true},
-		{name: "recoverable failed", jobState: "recoverable_failed", phaseState: "recoverable_failed", canRetry: true},
+		{name: "running", jobState: "running", phaseState: "running"},
+		{name: "paused", jobState: "paused", phaseState: "paused"},
+		{name: "recoverable failed", jobState: "recoverable_failed", phaseState: "recoverable_failed"},
 		{name: "terminal job", jobState: "completed", phaseState: "paused"},
 	}
 	for _, testCase := range testCases {
@@ -300,18 +299,18 @@ func TestSCN_TJSR_002_BodyPhaseActionEnablementUsesCommonStateRules(t *testing.T
 			})
 			controller := fixture.controller()
 
-			summary, err := controller.GetBodyTranslationPhaseSummary(
+			fetch, err := controller.GetBodyTranslationPhaseSummary(
 				controllerwails.GetBodyTranslationPhaseSummaryRequestDTO{JobID: fixture.job.ID},
 			)
 			if err != nil {
 				t.Fatalf("SCN-TJSR-002 public summary returned error: %v", err)
 			}
-			action := summary.ActionEnablement
-			if action.CanPause != testCase.canPause ||
-				action.CanResume != testCase.canResume ||
-				action.CanRetry != testCase.canRetry ||
-				action.CanCancel != testCase.canCancel {
-				t.Fatalf("SCN-TJSR-002 expected common action rules for %s, got %#v", testCase.name, action)
+			projection := fetch.Projection
+			if projection.JobLifecycle != testCase.jobState {
+				t.Fatalf("SCN-TJSR-002 expected jobLifecycle=%q, got %q", testCase.jobState, projection.JobLifecycle)
+			}
+			if projection.PhaseLifecycle != testCase.phaseState {
+				t.Fatalf("SCN-TJSR-002 expected phaseLifecycle=%q, got %q", testCase.phaseState, projection.PhaseLifecycle)
 			}
 		})
 	}

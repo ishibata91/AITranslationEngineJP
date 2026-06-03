@@ -57,11 +57,13 @@ describe("TermTranslationPhaseStore", () => {
           model: "gpt-4.1-mini",
           executionMode: "batch"
         },
-        actionEnablement: {
-          canStart: false,
-          canPause: true,
-          canResume: false,
-          canRetry: false
+        projection: {
+          phaseLifecycle: "running",
+          jobLifecycle: "running",
+          errorKind: "none",
+          aiSettingsConfigured: true,
+          aiTargetCount: 6,
+          confirmedCount: 0
         }
       }
     })

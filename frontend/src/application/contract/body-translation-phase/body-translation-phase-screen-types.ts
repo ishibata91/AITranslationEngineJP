@@ -5,7 +5,6 @@ import type {
 
 import type {
   BodyTranslationOutputReadinessSummary,
-  BodyTranslationPhaseActionEnablement,
   BodyTranslationPhaseErrorKind,
   BodyTranslationPhaseErrorSummary,
   BodyTranslationPhaseExecutionSummary,
@@ -13,6 +12,7 @@ import type {
   BodyTranslationPhaseFieldResultSummary,
   BodyTranslationPhaseInputSummary,
   BodyTranslationPhaseProgressSummary,
+  BodyTranslationPhaseProjection,
   BodyTranslationPhaseRequestSummary,
   BodyTranslationPhaseSummaryResponse,
   CancelBodyTranslationPhaseRequest,
@@ -142,7 +142,7 @@ export interface BodyTranslationPhaseScreenViewModel extends BodyTranslationPhas
   actionCards: BodyTranslationPhaseActionCard[]
   screenActionEnablement: BodyTranslationPhaseScreenActionEnablement
   lastErrorSummary: BodyTranslationPhaseErrorSummary | null
-  actionEnablement: BodyTranslationPhaseActionEnablement | null
+  projection: BodyTranslationPhaseProjection | null
   latestProgressSummary: BodyTranslationPhaseProgressSummary | null
   latestInputSummary: BodyTranslationPhaseInputSummary | null
   latestRequestSummary: BodyTranslationPhaseRequestSummary | null

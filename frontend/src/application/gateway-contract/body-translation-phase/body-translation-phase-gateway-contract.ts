@@ -141,17 +141,19 @@ export interface BodyTranslationPhaseErrorSummary {
   isRedacted: boolean
 }
 
-export interface BodyTranslationPhaseActionEnablement {
-  canStart: boolean
-  startBlockedReason?: string
-  canPause: boolean
-  pauseBlockedReason?: string
-  canResume: boolean
-  resumeBlockedReason?: string
-  canRetry: boolean
-  retryBlockedReason?: string
-  canCancel: boolean
-  cancelBlockedReason?: string
+export interface PersonaBodyReadiness {
+  bodyReadiness: boolean
+  snapshotReferenceStatus: string
+}
+
+export interface BodyTranslationPhaseProjection {
+  phaseLifecycle: string
+  jobLifecycle: string
+  errorKind: string
+  aiSettingsConfigured: boolean
+  targetCount: number
+  previousPhaseLifecycle: string
+  personaBodyReadiness: PersonaBodyReadiness
 }
 
 export interface BodyTranslationOutputReadinessSummary {
@@ -175,7 +177,7 @@ export interface BodyTranslationPhaseSummaryResponse {
   fieldResults?: BodyTranslationPhaseFieldResultItem[]
   resultSummary?: BodyTranslationPhaseFieldResultSummary
   errorSummary?: BodyTranslationPhaseErrorSummary
-  actionEnablement: BodyTranslationPhaseActionEnablement
+  projection: BodyTranslationPhaseProjection
   outputReadiness: BodyTranslationOutputReadinessSummary
 }
 

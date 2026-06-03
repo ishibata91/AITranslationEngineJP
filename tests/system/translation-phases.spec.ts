@@ -40,13 +40,13 @@ async function openPhase(
 test("E2E-UC-051 term translation keeps not-started state when AI settings are incomplete", async ({
   page,
 }) => {
-  // AI 設定不足の開始操作で、単語翻訳段階が未開始状態を維持することを証明する。
-  // 単語翻訳段階の presenter は configured チェックを持ち、AI 設定未完了のとき canStart=false にする。
-  // disabled な開始ボタンは利用者が操作できないため、未開始状態が維持される。
+  // AI 設定不足のとき、単語翻訳段階の開始ボタンが disabled になることを証明する。
+  // 新設計では presenter が projection.aiSettingsConfigured=false から canStart=false を導出し、
+  // start ボタンを disabled にする。disabled なボタンは利用者が操作できないため、未開始状態が維持される。
   const phase = new TermTranslationPhasePage(page);
   await openPhase(page, "system-test-term", phase);
 
-  // 開始操作が disabled で阻止されていることを確認する（設定未完了の証拠）。
+  // 開始操作が disabled で阻止されていることを確認する（AI 設定未完了の証拠）。
   await expect(phase.startButton).toBeDisabled();
   await expect(phase.aiModelSelection).toContainText(/設定未完了|認証状態/);
   await expect(phase.statusPanel).toContainText(/未開始|開始待ち/);
@@ -56,14 +56,14 @@ test("E2E-UC-051 term translation keeps not-started state when AI settings are i
 test("E2E-UC-052 persona generation keeps not-started state when AI settings are incomplete", async ({
   page,
 }) => {
-  // AI 設定不足の開始操作で、NPC ペルソナ生成段階が未開始状態を維持することを証明する。
-  // NPC ペルソナ生成段階の presenter は configured チェックを持たないが、AI 設定未完了のまま
-  // start 操作が実行されても状態が「未開始」のままで維持されることを証明する。
+  // AI 設定不足のとき、NPC ペルソナ生成段階の開始ボタンが disabled になることを証明する。
+  // 新設計では presenter が projection.aiSettingsConfigured=false から canStart=false を導出し、
+  // start ボタンを disabled にする。disabled なボタンは利用者が操作できないため、未開始状態が維持される。
   const phase = new PersonaGenerationPhasePage(page);
   await openPhase(page, "system-test-persona", phase);
 
-  // start を試みる。mock は AI 設定未完了の summary を返すため状態は変化しない。
-  await phase.start();
+  // 開始操作が disabled で阻止されていることを確認する（AI 設定未完了の証拠）。
+  await expect(phase.startButton).toBeDisabled();
   await expect(phase.aiModelSelection).toContainText(/設定未完了|認証状態/);
   await expect(phase.statusPanel).toContainText(/未開始|開始待ち/);
   await expect(phase.progress).toContainText(/0/);
@@ -72,14 +72,14 @@ test("E2E-UC-052 persona generation keeps not-started state when AI settings are
 test("E2E-UC-053 body translation keeps not-started state when AI settings are incomplete", async ({
   page,
 }) => {
-  // AI 設定不足の開始操作で、本文翻訳段階が未開始状態を維持することを証明する。
-  // 本文翻訳段階の presenter は configured チェックを持たないが、AI 設定未完了のまま
-  // start 操作が実行されても状態が「未開始」のままで維持されることを証明する。
+  // AI 設定不足のとき、本文翻訳段階の開始ボタンが disabled になることを証明する。
+  // 新設計では presenter が projection.aiSettingsConfigured=false から canStart=false を導出し、
+  // start ボタンを disabled にする。disabled なボタンは利用者が操作できないため、未開始状態が維持される。
   const phase = new BodyTranslationPhasePage(page);
   await openPhase(page, "system-test-body-pending", phase);
 
-  // start を試みる。mock は AI 設定未完了の summary を返すため状態は変化しない。
-  await phase.start();
+  // 開始操作が disabled で阻止されていることを確認する（AI 設定未完了の証拠）。
+  await expect(phase.startButton).toBeDisabled();
   await expect(phase.aiModelSelection).toContainText(/設定未完了|認証状態/);
   await expect(phase.statusPanel).toContainText(/未開始|開始待ち|失敗/);
   await expect(phase.progress).toContainText(/0/);

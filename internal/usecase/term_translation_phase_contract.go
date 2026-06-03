@@ -138,16 +138,15 @@ type TermTranslationPhaseErrorSummary struct {
 	IsRedacted bool
 }
 
-// TermTranslationPhaseActionEnablement summarizes Job Run button state.
-type TermTranslationPhaseActionEnablement struct {
-	CanStart            bool
-	StartBlockedReason  *string
-	CanPause            bool
-	PauseBlockedReason  *string
-	CanResume           bool
-	ResumeBlockedReason *string
-	CanRetry            bool
-	RetryBlockedReason  *string
+// TermTranslationPhaseProjectionResult carries the domain state fields needed for UX transition derivation.
+// This is the sole input for frontend action enablement logic. Entity collections are not included.
+type TermTranslationPhaseProjectionResult struct {
+	PhaseLifecycle       string
+	JobLifecycle         string
+	ErrorKind            string
+	AISettingsConfigured bool
+	AITargetCount        int
+	ConfirmedCount       int
 }
 
 // TermTranslationPhaseSummaryResult is the frozen Job Run summary contract.
@@ -165,10 +164,16 @@ type TermTranslationPhaseSummaryResult struct {
 	// AISettings は JOB_PHASE_AI_SETTINGS record が存在する場合だけ設定する。nil は未設定を意味する。
 	AISettings *TermTranslationPhaseAISettings
 	// Execution は JOB_PHASE_RUN が存在し AI 設定転写済みの場合だけ設定する。nil は未開始を意味する。
-	Execution        *TermTranslationExecutionConfigSummary
-	ResultSummary    *TermTranslationPhaseResultSummary
-	ErrorSummary     *TermTranslationPhaseErrorSummary
-	ActionEnablement TermTranslationPhaseActionEnablement
+	Execution     *TermTranslationExecutionConfigSummary
+	ResultSummary *TermTranslationPhaseResultSummary
+	ErrorSummary  *TermTranslationPhaseErrorSummary
+}
+
+// TermTranslationPhaseFetchResult holds both the domain state projection and the display summary
+// returned by the fetch usecase. The two field groups serve distinct purposes and must not be mixed.
+type TermTranslationPhaseFetchResult struct {
+	Projection TermTranslationPhaseProjectionResult
+	Summary    TermTranslationPhaseSummaryResult
 }
 
 // TermTranslationPhaseCommandResult is the frozen write-seam response contract.
@@ -207,8 +212,8 @@ type TermTranslationPhaseContractStub struct{}
 func (TermTranslationPhaseContractStub) GetTermTranslationPhaseSummary(
 	context.Context,
 	GetTermTranslationPhaseSummaryRequest,
-) (TermTranslationPhaseSummaryResult, error) {
-	return TermTranslationPhaseSummaryResult{}, errTermTranslationPhaseNotImplemented
+) (TermTranslationPhaseFetchResult, error) {
+	return TermTranslationPhaseFetchResult{}, errTermTranslationPhaseNotImplemented
 }
 
 // StartTermTranslationPhase returns a not-implemented error for the frozen contract seam.
