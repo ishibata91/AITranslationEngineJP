@@ -39,6 +39,12 @@ motivating bug: 単語翻訳フェーズで「開始」押下時に「単語翻�
 - 実装範囲: 要。
 - テスト設計: 要。
 
+### finalization-module 記録
+
+- 正本化判断: 不要（仕様変更 N、外部仕様を変えない内部契約リファクタ）。
+- 詳細仕様正本反映: 不要（人間承認済み恒久仕様なし）。
+- 作業 commit: `ca5f8480`（77 files changed, +4975 / -1197）。
+
 ### 最終検証結果
 
 - `python3 scripts/harness/run.py --suite backend-local`: 通過（apitest / bootstrap / controller wails / service / usecase 等 13 パッケージ）。
