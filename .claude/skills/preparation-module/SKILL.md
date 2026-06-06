@@ -25,7 +25,7 @@ description: "プロダクト変更を伴う task の入口で、作業 branch �
 
 - 作業 branch が `claude/<task-id>` として local に存在する。
 - active plan folder `docs/exec-plans/active/<task-id>/` が存在する。
-- `plan.md` に依頼要約と分岐元 branch が記録されている。
+- `plan.md` に依頼要約と分岐元 branch、軽 / 重判定結果が記録されている。
 
 ## 担当 artifact
 
@@ -33,6 +33,21 @@ description: "プロダクト変更を伴う task の入口で、作業 branch �
 | --- | --- | --- | --- |
 | `branch 準備` | 呼び出し元 agent | `[]` | なし |
 | `plan.md 初期化` | 呼び出し元 agent | `branch 準備` | なし |
+| `軽 / 重判定` | 呼び出し元 agent | `plan.md 初期化` | なし |
+
+## 軽 / 重判定
+
+`plan.md` に依頼要約を書いた直後、次の 2 軸で task の重さを判定する。判定結果と根拠を `plan.md` に 1 行ずつ記録する。
+
+- 画面が動くか（layout、文言、style、表示構造、svelte 表示コンポーネント、props、story、fixture のいずれかを変える）
+- `docs/architecture.md` への反映が要るか（層構成、依存方向、Bootstrap、Wails 境界、強い制約のいずれかを変える）
+
+判定結果による後続モジュール:
+
+- 両方 N → 軽 task。`design-module` と `storybook-module` を bypass。`preparation-module` → `implementation-module` → `finalization-module`
+- 片方でも Y → 重 task。`design-module` 経由。画面が動く場合は `storybook-module` も経由。`preparation-module` → `design-module` →（画面が動くなら `storybook-module`）→ `implementation-module` → `finalization-module`
+
+修正系 task（バグ修正、refactor）は通常 軽 task。`investigation-module` 経由の場合は、`investigation-module` の入口で重さを再評価する。
 
 ## branch 準備
 

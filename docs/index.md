@@ -23,10 +23,8 @@
 13. Relevant file under [`screen-design/`](./screen-design/README.md)
 14. Relevant file under [`e2e-test-design/`](./e2e-test-design/README.md)
 15. Relevant file under [`scenario-tests/`](./scenario-tests/README.md)
-16. Relevant file under [`detail-specs/`](./detail-specs/README.md)
-17. Relevant file under [`usecases/`](./usecases/README.md)
-18. Relevant file under [`exec-plans/`](./exec-plans/)
-19. Relevant file under [`references/`](./references/)
+16. Relevant file under [`exec-plans/`](./exec-plans/)
+17. Relevant file under [`references/`](./references/)
 
 ## Directory Contract
 
@@ -52,8 +50,6 @@
 - [`screen-design/`](./screen-design/README.md): 画面構成と visual design の正本
 - [`e2e-test-design/`](./e2e-test-design/README.md): UI 人間操作 E2E テスト観点表の正本
 - [`scenario-tests/`](./scenario-tests/README.md): Scenario テスト一覧の正本
-- [`detail-specs/`](./detail-specs/README.md): 詳細仕様正本
-- [`usecases/`](./usecases/README.md): 画面操作から見える利用者目的の UC 図と UC 記述の正本
 - [`diagrams/er/`](./diagrams/er/): ER 図の PlantUML source of truth
 - [`references/`](./references/index.md): 外部仕様と参照方針
 - [`references/vendor-api/`](./references/vendor-api/README.md): vendor API 参照ファイルと取得元
@@ -72,9 +68,8 @@
 - UX 標準が変わった場合: [`UX-standard.md`](./UX-standard.md) を更新する
 - Lint / static check ownership changed: update [`lint-policy.md`](./lint-policy.md)
 - Screen map or visual design changed: update the relevant file under [`screen-design/`](./screen-design/README.md)
-- UI 要件が変わった場合: 関連する `screen-design/` と `detail-specs/` を更新する
+- UI 要件が変わった場合: 関連する `screen-design/` を更新する
 - Scenario test source of truth changed: update the relevant file under [`scenario-tests/`](./scenario-tests/README.md)
-- 詳細仕様が変わった場合: [`detail-specs/`](./detail-specs/README.md) の該当ファイルを更新する
 - Data model or entity relationship changed: update [`er.md`](./er.md) and relevant file under [`diagrams/er/`](./diagrams/er/)
 - Conceptual perspective changed: update the relevant file under [`diagrams/conceptual/`](./diagrams/conceptual/)
 - Backend structure changed: update the relevant file under [`diagrams/backend/`](./diagrams/backend/)
