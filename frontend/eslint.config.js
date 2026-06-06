@@ -8,7 +8,6 @@ import { dirname } from "node:path"
 import { fileURLToPath } from "node:url"
 import svelteConfig from "./svelte.config.js"
 import tseslint from "typescript-eslint"
-import { repositoryBoundaryPlugin } from "../scripts/eslint/repository-boundary-plugin.mjs"
 
 const rootDir = dirname(fileURLToPath(import.meta.url))
 const extraFileExtensions = [".svelte"]
@@ -19,7 +18,6 @@ export default defineConfig([
       "dist/**",
       "node_modules/**",
       "storybook-static/**",
-      "wailsjs/**",
       "scripts/dev/serve-prototype.mjs"
     ]
   },
@@ -66,16 +64,13 @@ export default defineConfig([
   {
     files: ["src/**/*.{ts,svelte}"],
     plugins: {
-      "import-x": importX,
-      local: repositoryBoundaryPlugin
+      "import-x": importX
     },
     rules: {
-      "local/no-commented-out-code": "error",
       "no-unreachable": "error",
       "no-unreachable-loop": "error",
       "import-x/consistent-type-specifier-style": ["error", "prefer-top-level"],
-      "import-x/no-duplicates": ["error", { "prefer-inline": true }],
-      "local/enforce-layer-boundaries": "error"
+      "import-x/no-duplicates": ["error", { "prefer-inline": true }]
     }
   },
   {

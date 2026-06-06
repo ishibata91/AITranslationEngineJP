@@ -1,1 +1,0 @@
-export { createTranslationInputScreenControllerFactory } from "./translation-input-screen-controller-factory"
