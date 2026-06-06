@@ -1,8 +1,0 @@
-name = "test_designer"
-description = "Codex テスト設計 agent。作業計画フォルダ内の入力成果物から、指定されたテスト設計成果物を固定する。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/test-design/SKILL.md を読む。"
-
-model = "gpt-5.5"
-model_reasoning_effort = "medium"
-sandbox_mode = "workspace-write"
-
-developer_instructions = "詳細な実行境界は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/test_designer.md を読む。"

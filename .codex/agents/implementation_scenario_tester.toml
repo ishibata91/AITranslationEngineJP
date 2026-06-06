@@ -1,8 +1,0 @@
-name = "implementation_scenario_tester"
-description = "Codex シナリオテスト agent。承認済み詳細仕様差分をプロダクトテストへ反映する。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/tests-scenario/SKILL.md を読む。"
-
-model = "gpt-5.5"
-model_reasoning_effort = "medium"
-sandbox_mode = "workspace-write"
-
-developer_instructions = "詳細な実行境界は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_scenario_tester.md を読む。"

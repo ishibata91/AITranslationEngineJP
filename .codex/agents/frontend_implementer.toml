@@ -1,8 +1,0 @@
-name = "frontend_implementer"
-description = "Codex frontend プロダクト実装 agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/implement-frontend/SKILL.md を読む。"
-
-model = "gpt-5.5"
-model_reasoning_effort = "low"
-sandbox_mode = "workspace-write"
-
-developer_instructions = "詳細な実行境界は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/frontend_implementer.md を読む。"

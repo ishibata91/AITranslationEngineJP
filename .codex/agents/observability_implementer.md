@@ -1,1 +1,0 @@
-../../.claude/agents/observability_implementer.md

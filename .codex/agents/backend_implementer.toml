@@ -1,8 +1,0 @@
-name = "backend_implementer"
-description = "Codex backend プロダクト実装 agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/implement-backend/SKILL.md を読む。"
-
-model = "gpt-5.5"
-model_reasoning_effort = "low"
-sandbox_mode = "workspace-write"
-
-developer_instructions = "詳細な実行境界は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/backend_implementer.md を読む。"

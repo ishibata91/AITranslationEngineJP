@@ -1,8 +1,0 @@
-name = "designer"
-description = "Codex 設計成果物 agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/design-bundle/SKILL.md を読む。"
-
-model = "gpt-5.5"
-model_reasoning_effort = "high"
-sandbox_mode = "workspace-write"
-
-developer_instructions = "詳細な実行境界は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/designer.md を読む。"

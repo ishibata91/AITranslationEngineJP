@@ -1,8 +1,0 @@
-name = "fix_decider"
-description = "Codex 修正方針判断 agent。観測記録から確定原因、修正方針、禁止修正を固定する。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/fix-decision/SKILL.md を読む。"
-
-model = "gpt-5.5"
-model_reasoning_effort = "high"
-sandbox_mode = "workspace-write"
-
-developer_instructions = "詳細な実行境界は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/fix_decider.md を読む。"

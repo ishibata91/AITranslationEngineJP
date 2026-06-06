@@ -1,8 +1,0 @@
-name = "merge_lane"
-description = "Codex マージレーン進行役。active plan ごとの local merge、conflict 解消、merge 後検証、completed 移動、merge 結果 commit を管理する。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/merge-lane/SKILL.md を読む。"
-
-model = "gpt-5.5"
-model_reasoning_effort = "high"
-sandbox_mode = "workspace-write"
-
-developer_instructions = "詳細な実行境界は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/merge_lane.md を読む。"

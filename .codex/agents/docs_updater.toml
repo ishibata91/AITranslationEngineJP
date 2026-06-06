@@ -1,8 +1,0 @@
-name = "docs_updater"
-description = "updating-docs skill の primary agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/updating-docs/SKILL.md を読む。"
-
-model = "gpt-5.5"
-model_reasoning_effort = "medium"
-sandbox_mode = "workspace-write"
-
-developer_instructions = "詳細な実行境界は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.md を読む。"

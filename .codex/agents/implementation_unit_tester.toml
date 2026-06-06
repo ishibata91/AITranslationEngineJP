@@ -1,8 +1,0 @@
-name = "implementation_unit_tester"
-description = "Codex 単体テスト agent。実装済み責務を単体テストで証明する。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/tests-unit/SKILL.md を読む。"
-
-model = "gpt-5.3-codex"
-model_reasoning_effort = "medium"
-sandbox_mode = "workspace-write"
-
-developer_instructions = "詳細な実行境界は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_unit_tester.md を読む。"

@@ -1,1 +1,0 @@
-../../.claude/agents/implementation_scenario_tester.md
