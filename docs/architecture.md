@@ -50,27 +50,41 @@
 
 ## 4. Wails 境界
 
-- frontend の query / command は frontend の gateway から generated `wailsjs` を呼ぶ。
+- frontend の query / command は frontend の gateway 経由で generated bindings を呼ぶ。
 - backend の Bind 公開面は backend の controller 層が担当する。
 - backend から frontend への push は実行側から transport adapter 経由で送る。
 - runtime の concrete handle は bootstrap と adapter に閉じ込める。
 - query / command の主経路は Bind call とし、event は push 通知専用に使う。
 
+具体的な gateway 配置と generated bindings の path は新 architecture 確定後に固定する。
+
 ## 5. ディレクトリ正本（骨格）
 
-具体的な path は backend greenfield reset 後に確定する。次は方向性として残す。
+具体的な path は新 architecture 確定後に固定する。次は方向性として残す。
 
-- frontend: `frontend/src/` 配下に View、UI Component、screen local な controller / usecase / presenter / store
-- frontend: `frontend/src/controller/wails/` に gateway、DTO、generated binding wrapper
-- frontend: `frontend/wailsjs/` に generated bindings（hand-edit しない）
-- backend: `internal/bootstrap/` に composition root（greenfield 後に再構築）
-- backend: `internal/` 配下に層別 package（greenfield 後に再構築）
+- frontend: `frontend/src/ui/` 配下に View、UI Component、Screens（svelte 表示資産）
+- frontend: `frontend/src/application/diagnostic/` に logger（generic、greenfield 後の残存）
+- backend: composition root と層別 package は新 architecture で再構築
 
 ## 6. 現在の状態（2026-06-06）
 
-backend は `greenfield-reset` task で削減済み。残存:
+backend は `greenfield-reset` task（2026-06-06）で削減済み。残存:
 
 - `internal/repository/provider_settings_keyring_secret_store.go`（汎用 keyring wrapper、再利用素材）
 - `internal/repository/master_persona_keyring_secret_store.go`（同上、`keyringOpenFunc` type 定義を含む）
+
+frontend は `frontend-greenfield` task（2026-06-06）で配線層を削減済み。残存:
+
+- `frontend/src/ui/`（svelte 表示資産: screens、components、views、stores、storybook stories と fixtures）
+- `frontend/src/application/diagnostic/`（generic logger）
+- `frontend/src/test/setup.ts`（test infra）
+
+削除済み:
+
+- `frontend/src/controller/`（gateway、screen-controller の domain key 全て、runtime adapter）
+- `frontend/src/application/{contract,usecase,store,presenter,gateway-contract}/`
+- `frontend/src/bootstrap/`、`frontend/src/main.ts`、`frontend/wailsjs/`
+
+`ui/` 内の svelte と test は配線層への import が解決できず TypeScript / test は fail する。次 task で新 architecture に合わせて配線を再構築する。
 
 新 architecture は次 task で議論しながら確定し、本書に書き加える。

@@ -89,17 +89,7 @@
       "interface": true,
       "variable": true
     },
-    "ignoreIssues": {
-      "src/application/contract/translation-job-setup/translation-job-setup-screen-contract.ts": [
-        "exports"
-      ],
-      "src/application/presenter/translation-job-setup/index.ts": [
-        "exports"
-      ],
-      "src/application/presenter/translation-job-setup/translation-job-setup.presenter.ts": [
-        "exports"
-      ]
-    },
+    "ignoreIssues": {},
     "ignoreMembers": [
       "createTranslationJobSetupRuntimeKey",
       "VALIDATION_LABELS",

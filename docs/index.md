@@ -33,8 +33,6 @@ backend は `greenfield-reset` task（2026-06-06）で削減済み。新 archite
 - [`coding-guidelines-tests.md`](./coding-guidelines-tests.md): backend / frontend のテスト実装規約
 - [`UX-standard.md`](./UX-standard.md): UI 設計で参照する UX プラクティスの正本
 - [`lint-policy.md`](./lint-policy.md): lint と static checks の責務分担
-- [`diagrams/frontend/`](./diagrams/frontend/): frontend 構造図の PlantUML source of truth
-- [`diagrams/components/frontend/`](./diagrams/components/frontend/): frontend component detail 図の正本
 - [`screen-design/`](./screen-design/README.md): 画面構成と visual design の正本
 - [`references/`](./references/index.md): 外部仕様と参照方針
 - [`references/vendor-api/`](./references/vendor-api/README.md): vendor API 参照ファイルと取得元
@@ -52,7 +50,6 @@ backend は `greenfield-reset` task（2026-06-06）で削減済み。新 archite
 - Lint / static check ownership changed: update [`lint-policy.md`](./lint-policy.md)
 - Screen map or visual design changed: update the relevant file under [`screen-design/`](./screen-design/README.md)
 - UI 要件が変わった場合: 関連する `screen-design/` を更新する
-- Frontend structure changed: update the relevant file under [`diagrams/frontend/`](./diagrams/frontend/)
 - External references or vendor specs changed: update [`references/`](./references/index.md)
 - Work is non-trivial and not yet finished: create a plan in [`exec-plans/active/`](./exec-plans/active/README.md)
 - Work is locally ready: keep the plan in [`exec-plans/active/`](./exec-plans/active/README.md)

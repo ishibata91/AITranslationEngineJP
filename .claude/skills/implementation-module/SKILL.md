@@ -30,7 +30,7 @@ backend / frontend / 統合境界 / テスト / 観測を別 agent に分割せ�
 
 - 呼び出し元: 人間、または上位モジュール skill。
 - 返却先: 呼び出し元。
-- モジュールが呼ぶ skill: `implement`（Claude 本体が Skill ツールで読んで適用する）。
+- モジュールが呼ぶ skill: `coding-protocol`（Claude 本体が Skill ツールで読んで適用する）。
 - モジュールが呼ぶ agent: なし（既定）。実装は Claude 本体が直接行う。
 
 ## 入口条件
@@ -57,25 +57,25 @@ backend / frontend / 統合境界 / テスト / 観測を別 agent に分割せ�
 
 ## 実装フロー
 
-`implement` skill を Skill ツールで読み、その手順に従って Claude 本体が直接実装する。
+`coding-protocol` skill を Skill ツールで読み、その手順に従って Claude 本体が直接実装する。
 
-1. `implement` skill を読む（「着替える先」として、現フェーズが実装であることを明示）
+1. `coding-protocol` skill を読む（「着替える先」として、現フェーズが実装であることを明示）
 2. 実装対象（backend、frontend ロジック、統合境界）を 1 文脈で順に書く。並列の別 agent に渡さない
 3. テストは実装と同じ文脈で書く。書く対象は `design-module` の `テスト設計` または論点 6 の範囲に限定（単体テスト守備範囲）
-4. 観測ログは `implement` skill の観測ログ section に従って追加
+4. 観測ログは `coding-protocol` skill の観測ログ section に従って追加
 5. 最終検証を実行
 
 ## 各 artifact の詳細
 
 ### 実装
 
-- Claude 本体が `implement` skill を読み、対象に応じて backend section / frontend section / 統合境界 section を順に適用する。
+- Claude 本体が `coding-protocol` skill を読み、対象に応じて backend section / frontend section / 統合境界 section を順に適用する。
 - 同一 task の文脈を持ったまま縦通しで書く。
 - 表示範囲（svelte 表示コンポーネント、props、style、story、fixture）を触る必要が出た場合は、本モジュールで進めず `storybook-module` の再実行または人間返却を固定する。
 
 ### テスト
 
-- Claude 本体が `implement` skill のテスト section に従って書く。
+- Claude 本体が `coding-protocol` skill のテスト section に従って書く。
 - 単体テストの守備範囲は次に限定:
     - AI サービスの key 保存系
     - プロンプト構築 logic
@@ -87,7 +87,7 @@ backend / frontend / 統合境界 / テスト / 観測を別 agent に分割せ�
 
 ### 観測ログ追加
 
-- Claude 本体が `implement` skill の観測ログ section に従って追加。
+- Claude 本体が `coding-protocol` skill の観測ログ section に従って追加。
 - 実行時にしか確定しない値、または原因分離が要る分岐があるときに追加する。
 - 一時的なデバッグログは `最終検証` 前に削除する。
 

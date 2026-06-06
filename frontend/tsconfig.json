@@ -24,7 +24,6 @@
     "src/**/*.test.ts",
     "vite.config.ts",
     "vitest.boundary.config.ts",
-    "vitest.config.ts",
-    "wailsjs/**/*.ts"
+    "vitest.config.ts"
   ]
 }
