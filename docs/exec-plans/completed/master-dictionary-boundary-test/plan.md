@@ -113,6 +113,15 @@ MasterDictionary は直近 commit `ca5f8480`（domain state projection を backe
 - 暫定運用（`シナリオテスト` 寄せ）の妥当性確認
 - 6 観察項目（test-design 入力フォーマット不足 / decision table 追加工程 / 既存 skill 文言衝突 / golden 更新手順独立性 / 閾値判断 / 片側書き換え検出自動化）
 
+### finalization-module 実行記録（2026-06-06）
+
+- **作業 commit**: `c0136e84`（`feat: 境界結合テスト pilot として MasterDictionary を実証、種別仕様を正本化`、35 file changed、3844 insertions、2245 deletions）
+- **local merge commit**: `c20442f7`（`Merge claude/master-dictionary-boundary-test into master`、`git merge --no-ff`、conflict なし）
+- **merge 後検証**:
+  - Execution harness（lint:backend / lint:frontend / test:backend / test:frontend / docs structure）: PASS
+  - System test harness: 未実行（残存 Wails dev server による skip）。本 task の最終検証時点で 9 件 fail を確認済み、いずれも `ca5f8480 refactor: derive action enablement on frontend` 由来で本 task の変更経路外（user 承認 2026-06-05、別 task 扱い）
+- **remote 変更**: 行わない（push なし、tag push なし、remote branch delete なし）
+
 ### finalization-module 正本化判断（2026-06-06）
 
 - **仕様追加対象**: 「境界結合テスト」テスト種別の定義、責務分離、構成要素、既存テスト種別との境界
