@@ -51,6 +51,11 @@ workflow 全体を本質から問い直し、軽量化する。
 - `python3 scripts/harness/run.py --suite frontend-local`: PASS（lint:frontend、test:frontend 54 file / 636 test 通過）
 - `python3 scripts/harness/run.py --suite structure`: PASS（docs index 整合通過）
 
+## commit / merge 記録
+
+- work commit: `6b806a8e refactor: workflow を軽量化、agent 分割を廃止、docs 階層を縮小`（56 files、+453 / -5517）
+- merge commit: `994c249a Merge claude/workflow-lightweight-rework into master`（`git merge --no-ff`、conflict なし）
+
 ## 実施内容（2026-06-06）
 
 ### Phase A: rollout 親 task 破棄
