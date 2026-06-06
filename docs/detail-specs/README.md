@@ -43,6 +43,7 @@ active exec-plan で承認された恒久仕様は、close 前にここへ製本
 
 - [`ai-provider-settings-management.md`](./ai-provider-settings-management.md)
 - [`body-translation-phase.md`](./body-translation-phase.md)
+- [`boundary-integration-test.md`](./boundary-integration-test.md)
 - [`master-dictionary.md`](./master-dictionary.md)
 - [`persona-generation-phase.md`](./persona-generation-phase.md)
 - [`template.md`](./template.md)

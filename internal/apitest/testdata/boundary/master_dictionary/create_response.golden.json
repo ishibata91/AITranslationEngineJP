@@ -1,0 +1,27 @@
+{
+  "input": {
+    "description": "CreateMasterDictionaryEntry - 状態遷移: 作成直後の応答エントリ",
+    "method": "CreateMasterDictionaryEntry",
+    "case": "create",
+    "request": {
+      "payload": {
+        "source": "Whiterun",
+        "translation": "ホワイトラン",
+        "category": "地名",
+        "origin": "手動登録"
+      }
+    }
+  },
+  "expected": {
+    "entry": {
+      "id": "1",
+      "source": "Whiterun",
+      "translation": "ホワイトラン",
+      "category": "地名",
+      "origin": "手動登録",
+      "updatedAt": "2026-01-01T00:00:00Z",
+      "note": "マスター辞書エントリ"
+    },
+    "refreshTargetId": "1"
+  }
+}

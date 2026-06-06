@@ -27,11 +27,6 @@ components:
     in: infra/runtime/**
   infra_sqlite:
     in: infra/sqlite/**
-  # integration test 専用ディレクトリ。
-  # 複数コンポーネントをまたぐ SQLite integration test だけを置く場所。
-  # production code を置いてはいけない。
-  integrationtest:
-    in: integrationtest/**
   # 単語翻訳対象 REC の共通 config。外部 IO を持たない純粋な判定 package。
   # service と repository の両方から参照される共有 config として最下位に位置付ける。
   recclassification:
@@ -90,11 +85,5 @@ deps:
     deepScan: false
     mayDependOn:
       - notification
-  # integration test 専用コンポーネント。
-  # infra_sqlite (dbinit) と repository の両方への依存をここだけに許可する。
-  integrationtest:
-    mayDependOn:
-      - infra_sqlite
-      - repository
 allow:
   depOnAnyVendor: true
