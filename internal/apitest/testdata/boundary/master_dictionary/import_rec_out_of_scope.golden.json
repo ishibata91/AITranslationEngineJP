@@ -1,0 +1,18 @@
+{
+  "input": {
+    "description": "ImportMasterDictionaryXml - REC取捨: 13種別外RECのみを含むXMLの取り込み応答（importedCount = 0, skippedCount > 0）",
+    "method": "ImportMasterDictionaryXml",
+    "case": "rec_out_of_scope",
+    "request": {
+      "filePath": "/tmp/test_out_of_scope.xml"
+    }
+  },
+  "expected": {
+    "accepted": true,
+    "summary": {
+      "importedCount": 0,
+      "updatedCount": 0,
+      "skippedCount": 1
+    }
+  }
+}
