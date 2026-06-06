@@ -1,6 +1,6 @@
 ---
 name: finalization-module
-description: "正本化判断、詳細仕様正本反映、作業 commit、local merge、merge 後検証、completed 移動、merge 結果 commit を固定する出口モジュール。TRIGGER when: 実装モジュールの最終検証が通過し、正本化判断と作業 branch の統合先 branch への取り込みを固定する必要がある。SKIP when: 最終検証通過前、または作業 branch が固定されていない。"
+description: "正本化判断、正本反映、作業 commit、local merge、merge 後検証、completed 移動、merge 結果 commit を固定する出口モジュール。正本反映対象は docs/architecture.md と docs/screen-design/ に限定。TRIGGER when: 実装モジュールの最終検証が通過し、正本化判断と作業 branch の統合先 branch への取り込みを固定する必要がある。SKIP when: 最終検証通過前、または作業 branch が固定されていない。"
 ---
 # Finalization Module
 
@@ -9,6 +9,13 @@ description: "正本化判断、詳細仕様正本反映、作業 commit、local
 `finalization-module` は、実装モジュールの最終検証通過後に、仕様正本化、作業 commit、作業 branch の統合先 branch への local merge、completed 移動、merge 結果 commit を固定するモジュール skill である。
 人間承認済みの恒久仕様だけを正本へ反映し、remote repository の変更は行わない。
 conflict 発生時だけ `conflict_resolver` agent を起動して conflict 解消を任せる。
+
+正本反映対象は次の 2 つに限定する:
+
+- `docs/architecture.md`（層構成、依存方向、強い制約、Wails 境界の正本）
+- `docs/screen-design/` 配下（画面構成と visual design の正本）
+
+`docs/detail-specs/` と `docs/usecases/` は廃止済み（workflow-lightweight-rework 由来）のため正本反映対象に含まれない。
 
 ## 呼び出し関係
 
@@ -38,7 +45,7 @@ conflict 発生時だけ `conflict_resolver` agent を起動して conflict 解�
 | 成果物ID | 担当 | 依存対象 | 起動先 |
 | --- | --- | --- | --- |
 | `正本化判断` | Claude 本体 | `最終検証` | なし |
-| `詳細仕様正本反映` | Claude 本体 | `正本化判断` | なし |
+| `正本反映` | Claude 本体 | `正本化判断` | なし |
 | `作業 commit` | Claude 本体 | 全完了または停止済み成果物 | なし |
 | `local merge` | Claude 本体 | `作業 commit` | なし |
 | `conflict 解消` | `conflict_resolver` | `local merge`（conflict 発生時のみ） | `conflict_resolver` |
@@ -50,29 +57,30 @@ conflict 発生時だけ `conflict_resolver` agent を起動して conflict 解�
 
 複数想定が同時に Y なら、各行で「要」になった artifact を全部作る。
 
-| 想定 | 正本化判断 | 詳細仕様正本反映 |
+| 想定 | 正本化判断 | 正本反映 |
 | --- | --- | --- |
-| 仕様変更または仕様追加がある | 要 | - |
+| `docs/architecture.md` または `docs/screen-design/` への反映が要る | 要 | - |
 | 人間承認済みの恒久仕様がある | - | 要 |
 
-「人間承認済みの恒久仕様がある」は、`正本化判断` 後に人間が恒久仕様として承認した場合だけ Y になる。設計モジュールの `想定 Y/N 評価` で N でも、`正本化判断` 後に Y へ変わる可能性があり、その場合は `plan.md` の評価結果を更新する。
+「人間承認済みの恒久仕様がある」は、`正本化判断` 後に人間が恒久仕様として承認した場合だけ Y になる。
 
 ## 各 artifact の詳細
 
 ### 正本化判断
 
-- 呼び出し元 agent が固定する。
+- Claude 本体が固定する。
 - 次を `plan.md` に記録する。
-    - 仕様変更または仕様追加の対象（影響範囲、対象 docs パス候補）。
+    - 反映対象（`docs/architecture.md` または `docs/screen-design/` のうちどの正本）、影響範囲、対象 docs パス候補。
     - 恒久仕様として承認するか、後続課題に切り出すか、廃案にするかの判断。
     - 人間承認状態（承認済み、保留、差し戻し）。
 - 人間承認なしに「恒久仕様として承認」を確定しない。
-- 人間承認を依頼する直前に、active plan folder に `summary.md` を一時作成し、承認終了後に削除する。固定セクションは「概要」と「図」の 2 つ。「概要」は今回の承認で判断したい論点を 1〜数文で書く。「図」は Mermaid（シーケンス図、ロバストネス図、コンポーネント図、フロー図など）または表のうち、その時々の論点に合うものを選んで貼る。
-- 承認済みなら `詳細仕様正本反映` の起動入力（対象 docs パス、反映する変更要点、根拠 active plan）を固定する。
+- 人間承認を依頼する直前に、active plan folder に `summary.md` を一時作成し、承認終了後に削除する。固定セクションは「概要」と「図」の 2 つ。
+- 承認済みなら `正本反映` の起動入力（対象 docs パス、反映する変更要点、根拠 active plan）を固定する。
 
-### 詳細仕様正本反映
+### 正本反映
 
-- Claude 本体が `updating-docs` skill に従い、`docs/detail-specs/` 配下の正本へ承認済み変更だけを反映する。
+- Claude 本体が `updating-docs` skill を読んで適用し、人間承認済みの恒久仕様だけを正本へ反映する。
+- 反映対象は `docs/architecture.md` と `docs/screen-design/` 配下に限定する。
 - 人間承認なしの本文変更は行わない。
 
 ### 作業 commit
@@ -120,8 +128,9 @@ conflict 発生時だけ `conflict_resolver` agent を起動して conflict 解�
 ## 不変条件
 
 - 人間承認なしの docs 正本本文を変更しない。
-- `正本化判断` を経ずに `詳細仕様正本反映` へ進めない。
-- 仕様変更または仕様追加があるのに `正本化判断` を固定できない場合は停止する。恒久仕様承認があるのに `詳細仕様正本反映` を固定できない場合も停止する。
+- `正本化判断` を経ずに `正本反映` へ進めない。
+- 正本反映の対象は `docs/architecture.md` と `docs/screen-design/` 配下に限定する。
+- `docs/architecture.md` または `docs/screen-design/` への反映が要るのに `正本化判断` を固定できない場合は停止する。恒久仕様承認があるのに `正本反映` を固定できない場合も停止する。
 - remote repository の変更は行わない（push、tag push、remote branch delete）。
 - `git reset --hard`、`git checkout --`、`git clean` など destructive command を実行しない。
 - 作業 commit を作らずに `local merge` へ進めない。
@@ -129,8 +138,8 @@ conflict 発生時だけ `conflict_resolver` agent を起動して conflict 解�
 
 ## 返す成果物
 
-- 正本化判断: 仕様変更対象、判断結果、人間承認状態。
-- 詳細仕様正本反映: 反映 docs パス、変更要点。
+- 正本化判断: 反映対象、判断結果、人間承認状態。
+- 正本反映: 反映 docs パス、変更要点。
 - 作業 commit: commit hash、変更ファイル一覧、検証結果、残留リスク。
 - local merge: merge command、対象 branch、merge 結果、conflict 有無。
 - conflict 解消: conflict file、採用判断、根拠参照、解消結果（conflict 発生時のみ）。
@@ -142,8 +151,8 @@ conflict 発生時だけ `conflict_resolver` agent を起動して conflict 解�
 ## 作業を止める条件
 
 - `最終検証` が通過していない、かつ停止理由も固定されていない。
-- 仕様変更または仕様追加があるのに `正本化判断` を固定できない。
-- 恒久仕様承認があるのに `詳細仕様正本反映` を固定できない。
+- `docs/architecture.md` または `docs/screen-design/` への反映が要るのに `正本化判断` を固定できない。
+- 恒久仕様承認があるのに `正本反映` を固定できない。
 - 作業 branch が `claude/<task-id>` として存在しない、または local commit を作れない。
 - source branch と作業 commit hash が対応しない、または target branch が人間指定なしで `master` 以外。
 - conflict 解消が仕様判断、設計変更、レーン外の再実装を必要とする（`conflict_resolver` の停止理由を受けて呼び出し元へ戻す）。

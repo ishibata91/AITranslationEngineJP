@@ -1,6 +1,6 @@
 # 単語翻訳フェーズの単語対象レコード候補
 
-関連文書: [`./index.md`](./index.md), [`../detail-specs/term-translation-phase.md`](../detail-specs/term-translation-phase.md)
+関連文書: [`./index.md`](./index.md), [`../architecture.md`](../architecture.md)
 
 この文書は、単語翻訳フェーズの単語対象レコードと周辺候補を整理する。
 単語対象は、過去プロジェクト由来の一覧を根拠に固定する。

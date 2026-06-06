@@ -83,8 +83,7 @@
       "src/ui/screens/translation-job-setup/PhaseSettingsPanel.svelte",
       "src/ui/screens/translation-job-setup/PhaseSettingsSummaryPanel.svelte",
       "src/ui/screens/translation-job-setup/job-setup-panel-props.ts",
-      "src/ui/**/__fixtures__/*.ts",
-      "src/controller/wails/boundary-golden-loader.ts"
+      "src/ui/**/__fixtures__/*.ts"
     ],
     "ignoreExportsUsedInFile": {
       "interface": true,
