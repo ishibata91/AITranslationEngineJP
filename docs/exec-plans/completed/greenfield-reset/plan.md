@@ -90,6 +90,11 @@ haiku model で `internal/aiprovider/` を調査した結果:
 - `python3 scripts/harness/run.py --suite structure`: PASS（docs index 整合通過）
 - backend suite は廃止（論点 9、backend code 削除に伴う）
 
+## commit / merge 記録
+
+- work commit: `6444de0a refactor: backend greenfield reset、workflow を更に痩せる`（286 files、+268 / -78777）
+- merge commit: `62f0b1ca Merge claude/greenfield-reset into master`（`git merge --no-ff`、conflict なし）
+
 ## 実施内容（2026-06-06）
 
 ### Phase 1: branch + plan 初期化
