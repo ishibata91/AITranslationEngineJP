@@ -1,19 +1,18 @@
 ---
 name: fix-decision
-description: "`investigation-module` 内で `fix_decider` agent が使う作業プロトコル。観測記録から仮説、観測ログ検証、確定原因、修正方針、禁止修正を固定する。"
+description: "Claude 本体が読む修正方針判断プロトコル。観測記録から仮説、観測ログ検証、確定原因、修正方針、禁止修正を固定する判断基準。TRIGGER when: 不具合、レビュー非通過、検証失敗の観測記録から修正方針を固定する時。SKIP when: 仕様変更や機能追加が必要な場合は design-module へ。"
 ---
 # Fix Decision
 
 ## 目的
 
 `fix-decision` は、人間が確認した不具合、レビュー非通過、検証失敗の観測記録から、恒久修正へ渡せる修正方針判断へ変換する作業プロトコルである。
-`fix_decider` が複数の原因仮説、観測ログによる仮説検証、確定原因、採用する修正方針、禁止する対症療法を task 内成果物として固定する時に使う。
+Claude 本体が複数の原因仮説、観測ログによる仮説検証、確定原因、採用する修正方針、禁止する対症療法を task 内成果物として固定する時に使う。
 
 ## 対応ロール
 
-- `fix_decider` が使う。
-- 呼び出し元は `investigation-module`、または `fix_decider` agent を Task ツールで起動した上位 agent とする。
-- 返却先は呼び出し元とする。
+- Claude 本体が task 文脈を持ったまま読んで適用する。
+- 呼び出し元は `investigation-module`、または修正方針判断が要る他の場面とする。
 - 担当成果物は `修正方針判断` とする。
 
 ## 呼び出し元から渡される情報
@@ -24,11 +23,9 @@ description: "`investigation-module` 内で `fix_decider` agent が使う作業�
 
 ## 作業前に読む正本
 
-- エージェント実行定義と実行境界は [fix_decider.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/agents/fix_decider.md) に従う。
 - 修正モジュールの進行境界は [investigation-module](/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/investigation-module/SKILL.md) に従う。
 - 修正方針判断の報告形式は [fix-decision-report-template.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/fix-decision/fix-decision-report-template.md) に従う。
 - 画面設計書正本は [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) に従う。
-- ユースケース正本は [usecases](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/usecases/README.md) に従う。
 - 観測ログ仕様は [observability-logging.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/observability-logging.md) に従う。
 - ブラウザ操作は `chrome-devtools` MCP ツール群（`mcp__plugin_chrome-devtools-mcp_chrome-devtools__*`）を MCP ツールとして実行する。
 - 外部成果物が不足または衝突する場合は停止し、衝突箇所を返す。

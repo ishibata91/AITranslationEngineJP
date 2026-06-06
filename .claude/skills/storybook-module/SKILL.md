@@ -31,7 +31,7 @@ frontend ロジック層（state、API、Wails bridge、ルーティング、副
 
 - 呼び出し元: 人間、または上位モジュール skill。
 - 返却先: 呼び出し元。
-- モジュールが呼ぶ下位 skill: `design-bundle`（画面仕様差し戻し時の `screen-design-diff.<screen-id>.md` 更新）。
+- モジュールが呼ぶ下位 skill: なし。画面設計差分の更新は `design-module` の画面設計差分 section と同じ手順で Claude 本体が書く。
 - モジュールが呼ぶ下位 agent: なし（既定）。表示実装と画面仕様差し戻しは Claude 本体が task 文脈を持ったまま実行する。
 
 ## 入口条件
@@ -91,7 +91,7 @@ frontend ロジック層（state、API、Wails bridge、ルーティング、副
 ### Storybook 後画面設計差分整合
 
 - Storybook レビューで UI 表示、画面文言、layout、style、承認済み画面設計根拠を越える変更が確定した場合に固定する。
-- Claude 本体が `design-bundle` skill を読み、その手順に従って `screen-design-diff.<screen-id>.md` を直接更新する。agent には渡さない。
+- Claude 本体が `design-module` の画面設計差分 section に従い、`screen-design-diff.<screen-id>.md` を直接更新する。agent には渡さない。
 - 本モジュール skill 内で固定する情報は、画面ID、対象要素、変更前、変更後、根拠コメント、変更ファイル、更新要否。
 - 更新済みの `screen-design-diff.<screen-id>.md` を反映して `Storybook 表示実装` を続けるかどうかは、画面仕様の差分内容で判断する。
 
@@ -129,7 +129,7 @@ frontend ロジック層（state、API、Wails bridge、ルーティング、副
 - backend 実装、frontend ロジック実装、統合境界実装は本モジュールでは扱わない。これらは `implementation-module` で扱う。
 - backend 接続点とロジック層は、fixture またはモック props で代替する。
 - プロダクトテスト変更、test helper 変更、docs 正本本文変更は本モジュールでは行わない。
-- 画面設計差分は本モジュール skill が直接編集せず、`designer` を経由する。
+- 画面設計差分は Claude 本体が `design-module` の画面設計差分 section に従って直接編集する。agent には渡さない。
 
 ## 返す成果物
 

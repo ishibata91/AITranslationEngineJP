@@ -13,8 +13,8 @@ description: "重 task の設計成果物（画面設計差分、設計差分図
 
 - 呼び出し元: 人間、または上位モジュール skill。
 - 返却先: 呼び出し元。
-- モジュールが呼ぶ下位 skill: `design-bundle`、`diagramming`、`implementation-scope`、`test-design`（参照のみ。Claude 本体が読んで適用する）。
-- モジュールが呼ぶ下位 agent: なし（既定）。`designer`、`test_designer` agent は残るが、本モジュールの既定 flow では起動しない。Claude 本体が task 文脈を持ったまま各 artifact を書く。
+- モジュールが呼ぶ下位 skill: `diagramming`（参照のみ。Claude 本体が読んで適用する）。画面設計差分、実装範囲、テスト設計は本 SKILL.md 内の手順で Claude 本体が直接書く。
+- モジュールが呼ぶ下位 agent: なし。Claude 本体が task 文脈を持ったまま各 artifact を書く。
 
 ## 入口条件
 
@@ -54,9 +54,9 @@ description: "重 task の設計成果物（画面設計差分、設計差分図
 
 ### 画面設計差分
 
-- 下位 skill: `design-bundle`（画面設計差分パート）を Claude 本体が読んで適用する。
 - 対象画面ごとに `screen-design-diff.<screen-id>.md` を作る。
 - 既存画面設計正本（`docs/screen-design/`）との差分だけを扱う。
+- 差分形式: 画面ID、対象要素、変更前、変更後、根拠コメント、変更ファイル、更新要否を 1 行ずつ書く。
 
 ### 設計差分図
 
@@ -72,13 +72,12 @@ description: "重 task の設計成果物（画面設計差分、設計差分図
 
 ### 実装範囲
 
-- 下位 skill: `implementation-scope` を Claude 本体が読んで適用する。
-- 承認済み設計成果物から、実装モジュールが受け取れる「scope の境界、依存、検証単位」を固定する。
+- 承認済み設計成果物から、`implementation-module` へ渡せる「scope の境界、依存、検証単位」を固定する。
 - agent 引き継ぎ用途で詳細な仕様列挙はしない。Claude 本体が文脈を保つので scope の境界と依存だけで足りる。
+- `plan.md` または別 file（`implementation-scope.md`）に短く記録する。
 
 ### テスト設計
 
-- 下位 skill: `test-design` を Claude 本体が読んで適用する。
 - 単体テストで書く対象は次に限定する（論点 6、workflow-lightweight-rework 由来）:
     - AI サービスの key 保存系（OS keychain 連携、平文漏洩防止）
     - プロンプト構築 logic（LLM 出力品質に直結）
