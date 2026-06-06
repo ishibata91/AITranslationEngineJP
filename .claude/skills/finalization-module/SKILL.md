@@ -21,7 +21,7 @@ conflict 発生時だけ `conflict_resolver` agent を起動して conflict 解�
 
 - 呼び出し元: 人間、または上位モジュール skill。
 - 返却先: 呼び出し元。
-- モジュールが呼ぶ下位 skill: `updating-docs`、`conflict-resolver`（merge 時に conflict が発生した時のみ）。
+- モジュールが呼ぶ下位 skill: `conflict-resolver`（merge 時に conflict が発生した時のみ）。正本反映は本 SKILL.md 内の手順で Claude 本体が直接行う。
 - モジュールが呼ぶ下位 agent: `conflict_resolver`（merge 時に conflict が発生した時のみ）。
 - `詳細仕様正本反映`、`local merge`、`merge 後検証`、`completed 移動`、`merge 結果 commit` は Claude 本体が直接実行する。
 
@@ -79,7 +79,7 @@ conflict 発生時だけ `conflict_resolver` agent を起動して conflict 解�
 
 ### 正本反映
 
-- Claude 本体が `updating-docs` skill を読んで適用し、人間承認済みの恒久仕様だけを正本へ反映する。
+- Claude 本体が人間承認済みの恒久仕様だけを正本へ反映する。反映時は、変更前 / 変更後 / 根拠 active plan を `plan.md` に記録する。
 - 反映対象は `docs/architecture.md` と `docs/screen-design/` 配下に限定する。
 - 人間承認なしの本文変更は行わない。
 

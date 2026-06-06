@@ -58,6 +58,13 @@ backend、frontend ロジック、統合境界、テスト、観測を別 agent 
 
 理由: agent 分割は文脈分散の原因。コードの意図を理解しない人間（agent）が書くのは、組織的事情の対症療法であり、ローカル単体のプロダクトには見合わない。
 
+## subagent の model 既定
+
+subagent（`Explore`、`conflict_resolver`、その他必要時に追加する agent）の model 既定は **haiku または sonnet** とする。
+opus を subagent で使わない。
+
+理由: subagent は単純な調査、走査、構造化判断の固定処理に限定する。判断の難しい仕事は Claude 本体が opus で行う。subagent に opus を当てるとコストが見合わない。
+
 ## 目的
 
 AITranslationEngineJp は Skyrim Mod 向け翻訳エンジンです。

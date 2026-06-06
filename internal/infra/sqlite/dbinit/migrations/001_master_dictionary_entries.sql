@@ -1,4 +1,0 @@
--- 001_master_dictionary_entries.sql
--- Legacy DROP was applied once during schema-legacy-cutover.
--- Table is now managed by 004_master_dictionary_canonical.sql.
--- This file is intentionally a no-op to preserve data across reopens.

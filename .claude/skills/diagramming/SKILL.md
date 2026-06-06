@@ -1,12 +1,12 @@
 ---
 name: diagramming
-description: "`design-module` 内で `designer` agent が使う図成果物プロトコル。モジュール判断に必要な Mermaid 図、説明、根拠、検証を固定する。"
+description: "Claude 本体が読む図成果物プロトコル。Mermaid 図、説明、根拠、検証を固定する判断基準。TRIGGER when: design-module 内で設計差分図を作る、または task 中で図化が判断補助に要る時。SKIP when: 図を作らずに判断できる時。"
 ---
 # Diagramming
 
 ## 目的
 
-`diagramming` は、`designer` がモジュール判断に必要な図成果物を作る時の作業プロトコルである。
+`diagramming` は、Claude 本体がモジュール判断に必要な図成果物を作る時の作業プロトコルである。
 図は仕様正本ではなく、task 内の判断補助成果物として扱う。
 
 この skill は、設計差分図、人間が明示した補助図だけを扱う。
@@ -14,9 +14,8 @@ description: "`design-module` 内で `designer` agent が使う図成果物プ�
 
 ## 対応ロール
 
-- `designer` が使う。
-- 呼び出し元は `design-module`、または `designer` agent を起動した上位 agent とする。
-- 返却先は呼び出し元とする。
+- Claude 本体が task 文脈を持ったまま読んで適用する。
+- 呼び出し元は `design-module`、または図化が要る他の場面とする。
 - 担当成果物は `設計差分図`、明示された補助図とする。
 
 ## 呼び出し元から渡される情報
@@ -34,9 +33,8 @@ description: "`design-module` 内で `designer` agent が使う図成果物プ�
 
 ## 作業前に読む正本
 
-- エージェント実行定義と実行境界は [designer.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/agents/designer.md) に従う。
 - Mermaid を含む Markdown を図成果物の正本とする。
-- 図成果物の置き場所は呼び出し元が指定した作業計画フォルダとする。
+- 図成果物の置き場所は active plan folder（`docs/exec-plans/active/<task-id>/`）とする。
 - 差分図の雛形を使う場合は [review-diff-template.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/diagramming/references/templates/review-diff-template.md) を参照する。
 - 外部成果物が不足または衝突する場合は停止し、衝突箇所を返す。
 
