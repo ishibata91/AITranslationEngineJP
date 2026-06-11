@@ -12,7 +12,8 @@
      - cross-file traversal: 参照解決時に Ensure* 経由で master record を自動取り込み
    速度修正は v1 検証で採用したものを全て継承:
      - dialDataMap.Sorted := True（dial lookup を O(log N) 化）
-     - EscapeJSONString を SetLength + index 代入で O(N) 化
+     - EscapeJSONString を run 単位の Copy 追記で実用上 O(N) 化（JvInterpreter は
+       WideChar 型と文字列の index 書き込みを受け付けないため index 代入は使わない）
      - response 行に id/pid を prefix 保持し JSON 再 parse を撤廃
      - Finalize の出力構築を TStringList 行追加 + SaveToFile で O(N) 化
      - 各 Extract* で EDID / source を local キャッシュ
@@ -29,12 +30,14 @@ var
   factionList: TStringList;        // Faction
   questList: TStringList;          // Quest（embedded stages/objectives）
   locationList: TStringList;       // Location（CELL/LCTN/WRLD）
-  itemList: TStringList;           // Item（KEYM/MISC/LIGH/CONT/SLGM/DOOR/FLOR/FURN）
+  itemList: TStringList;           // Item（KEYM/MISC/LIGH/CONT/SLGM/DOOR/FURN）
+  activatorList: TStringList;      // Activator（ACTI/FLOR/TREE、起動・採取可能オブジェクト）
   equipmentList: TStringList;      // Equipment（WEAP/ARMO/AMMO、+enchantment_id）
   consumableList: TStringList;     // Consumable（SCRL/ALCH/INGR、+magic_effect_ids）
   magicList: TStringList;          // Magic（SPEL、+magic_effect_ids）
   enchantmentList: TStringList;    // Enchantment（ENCH、+magic_effect_ids）
   magicEffectList: TStringList;    // MagicEffect（MGEF）
+  voiceTypeList: TStringList;      // VoiceType（VTYP、v18 で独立 class 化）
   shoutList: TStringList;          // Shout（SHOU、embedded words）
   bookList: TStringList;           // Book（BOOK、本文を body field で保持）
   messageList: TStringList;        // Message
@@ -75,49 +78,54 @@ begin
     Result := GetElementEditValues(elem, path);
 end;
 
-// JSON 文字列 escape を O(N) で実行する。
-// SetLength で worst case 容量を確保し、index 代入で書き込む。
+// JSON 文字列 escape を実行する。
+// 文字コードの取得は v1（extractData.pas）で実績のある経路に合わせる。
+// JvInterpreter は s[i] の戻り値（1 文字 string）を直接 Ord に渡すと Type mismatch に
+// なる。Copy(s,i,1) で 1 文字 string を取り、その [1] を Char 変数へ代入してから Ord を
+// 呼ぶと、Char として扱われ Ord が通る。WideChar 型と文字列の index 書き込みは使わない。
+// 非 ASCII は \uXXXX へ escape し、出力は純 ASCII を維持する（v1 出力と同じ契約。
+// app 側が読む既存 dictionaries は BOM 無し純 ASCII のため encoding を変えない）。
+// escape 不要文字の連続区間は Copy で切り出してまとめて追記し、per-char 連結を避ける。
 function EscapeJSONString(const s: string): string;
 var
-  i, n, len: Integer;
-  ch: WideChar;
-  c: Integer;
-  hex: string;
+  i, len, runStart, c: Integer;
+  ch: Char;
+  chStr: string;
 begin
+  Result := '';
   len := Length(s);
-  if len = 0 then begin
-    Result := '';
-    Exit;
-  end;
-  SetLength(Result, len * 6 + 2);
-  n := 0;
+  if len = 0 then Exit;
+  runStart := 1;
   for i := 1 to len do begin
-    ch := s[i];
-    c := Ord(ch);
-    case c of
-      34: begin Inc(n); Result[n] := '\'; Inc(n); Result[n] := '"'; end;
-      92: begin Inc(n); Result[n] := '\'; Inc(n); Result[n] := '\'; end;
-      47: begin Inc(n); Result[n] := '\'; Inc(n); Result[n] := '/'; end;
-       8: begin Inc(n); Result[n] := '\'; Inc(n); Result[n] := 'b'; end;
-       9: begin Inc(n); Result[n] := '\'; Inc(n); Result[n] := 't'; end;
-      10: begin Inc(n); Result[n] := '\'; Inc(n); Result[n] := 'n'; end;
-      12: begin Inc(n); Result[n] := '\'; Inc(n); Result[n] := 'f'; end;
-      13: begin Inc(n); Result[n] := '\'; Inc(n); Result[n] := 'r'; end;
-    else
-      if (c < 32) or (c > 127) then begin
-        hex := IntToHex(c, 4);
-        Inc(n); Result[n] := '\';
-        Inc(n); Result[n] := 'u';
-        Inc(n); Result[n] := hex[1];
-        Inc(n); Result[n] := hex[2];
-        Inc(n); Result[n] := hex[3];
-        Inc(n); Result[n] := hex[4];
-      end else begin
-        Inc(n); Result[n] := ch;
+    chStr := Copy(s, i, 1);
+    if Length(chStr) > 0 then begin
+      ch := chStr[1];
+      c := Ord(ch);
+    end else
+      c := 0;
+    // escape が要る文字: " (34)、\ (92)、/ (47)、制御文字 (<32)、非 ASCII (>127)。
+    if (c = 34) or (c = 92) or (c = 47) or (c < 32) or (c > 127) then begin
+      // 直前までの安全区間をまとめて追記する。
+      if i > runStart then
+        Result := Result + Copy(s, runStart, i - runStart);
+      case c of
+        34: Result := Result + '\"';
+        92: Result := Result + '\\';
+        47: Result := Result + '\/';
+         8: Result := Result + '\b';
+         9: Result := Result + '\t';
+        10: Result := Result + '\n';
+        12: Result := Result + '\f';
+        13: Result := Result + '\r';
+      else
+        Result := Result + '\u' + IntToHex(c, 4);
       end;
+      runStart := i + 1;
     end;
   end;
-  SetLength(Result, n);
+  // 末尾の安全区間を追記する。
+  if runStart <= len then
+    Result := Result + Copy(s, runStart, len - runStart + 1);
 end;
 
 function JsonString(s: string): string;
@@ -177,30 +185,33 @@ begin
   processedIds.Add(id);
 end;
 
-// Extract* の forward declarations はせず、EnsureRecord は record signature ごとに
-// 最下端で dispatch する（Pascal の定義順制約に従い、Finalize 直前で実装する）。
-procedure EnsureRecord(e: IInterface); forward;
+// EnsureRecord は record signature ごとの dispatch を最下端（Finalize 直前）で実装する。
+// JvInterpreter は procedure 呼び出し時に名前を解決するため、定義より前で呼んでも
+// forward 宣言は要らない。forward 指令自体を解釈せず parse error になるため使わない。
 
 // ===== Race =====
 
 procedure ExtractRace(race: IInterface);
 var
-  raceID, raceName, source, edid, entry: string;
+  raceID, raceName, raceDesc, source, edid, entry: string;
 begin
   raceID := HexFormID(race);
   if IsProcessed(raceID) then Exit;
   MarkProcessed(raceID);
   raceName := GetElementValue(race, 'FULL');
-  if raceName = '' then Exit;
+  raceDesc := GetElementValue(race, 'DESC');
+  if (raceName = '') and (raceDesc = '') then Exit;
   source := GetMasterFileName(race);
   edid := GetCachedEdid(race);
 
+  // primary type = "RACE FULL"。description は "RACE DESC" mapping（character creation 表示）。
   entry := '  {' + #13#10 +
            JsonField('id', JsonString(raceID)) + ',' + #13#10 +
            JsonField('editor_id', JsonString(edid)) + ',' + #13#10 +
            JsonField('type', JsonString('RACE FULL')) + ',' + #13#10 +
            JsonField('source', JsonString(source)) + ',' + #13#10 +
-           JsonField('name', JsonString(raceName)) + #13#10 +
+           JsonField('name', JsonString(raceName)) + ',' + #13#10 +
+           JsonField('description', JsonString(raceDesc)) + #13#10 +
            '  }';
   raceList.Add(entry);
 end;
@@ -229,70 +240,145 @@ begin
   factionList.Add(entry);
 end;
 
-// ===== Person (NPC_) =====
+// ===== Speaker (NPC_ / TACT) =====
+// v18: 発話主体（しゃべる人・もの）を 1 class に統合する。NPC_（固有 / 形態 / プール /
+// 声型代表）と TACT（喋るオブジェクト）を種別 attribute で束ね、名前空でも emit する。
 
-procedure ExtractPerson(npc: IInterface);
+// ペルソナ名を解決する。FULL → TPLT 連鎖の本体 FULL → EditorID 役割名 の優先順。
+function ResolvePersonaName(actor: IInterface): string;
 var
-  personID, personName, shortName, voice, sex, classID, source, edid: string;
-  raceID: string;
-  raceRec: IInterface;
-  factions, factionEntry, factionRef: IInterface;
-  factionIdsJson: string;
-  i: integer;
-  factionFormID: string;
-  entry: string;
+  cur: IInterface;
+  depth: Integer;
+  f: string;
 begin
-  personID := HexFormID(npc);
-  if IsProcessed(personID) then Exit;
-  MarkProcessed(personID);
+  cur := actor;
+  depth := 0;
+  while Assigned(cur) and (depth < 12) do begin
+    f := GetElementValue(cur, 'FULL');
+    if f <> '' then begin Result := f; Exit; end;
+    if not ElementExists(cur, 'TPLT - Template') then Break;
+    cur := LinksTo(ElementByName(cur, 'TPLT - Template'));
+    Inc(depth);
+  end;
+  // FULL に届かない場合は EditorID（役割名）をペルソナ名にする。
+  Result := GetCachedEdid(actor);
+end;
 
-  personName := GetElementValue(npc, 'FULL');
-  shortName := GetElementValue(npc, 'SHRT');
-  voice := GetElementValue(npc, 'VTCK');
-  classID := GetElementValue(npc, 'CNAM');
-  source := GetMasterFileName(npc);
-  edid := GetCachedEdid(npc);
-  if (GetElementNativeValues(npc, 'ACBS\Flags') and 1) <> 0 then
-    sex := 'Female' else sex := 'Male';
+// Speaker.種別を判定する。
+function ClassifySpeakerKind(actor: IInterface): string;
+var
+  cur: IInterface;
+  depth: Integer;
+  sig: string;
+begin
+  if Signature(actor) = 'TACT' then begin Result := '喋るオブジェクト'; Exit; end;
+  if GetElementValue(actor, 'FULL') <> '' then begin Result := '固有'; Exit; end;
+  cur := actor;
+  depth := 0;
+  while Assigned(cur) and (depth < 12) do begin
+    sig := Signature(cur);
+    if sig = 'LVLN' then begin Result := 'プール'; Exit; end;
+    if (sig = 'NPC_') and (GetElementValue(cur, 'FULL') <> '') then begin Result := '形態'; Exit; end;
+    if not ElementExists(cur, 'TPLT - Template') then Break;
+    cur := LinksTo(ElementByName(cur, 'TPLT - Template'));
+    Inc(depth);
+  end;
+  if ElementExists(actor, 'VTCK - Voice') then Result := '声型代表'
+  else Result := '役割のみ';
+end;
 
-  // r3 Race の解決と Ensure
-  raceRec := LinksTo(ElementByName(npc, 'RNAM - Race'));
-  if Assigned(raceRec) then begin
-    raceID := HexFormID(raceRec);
-    EnsureRecord(raceRec);
-  end else
-    raceID := '';
-
-  // r4 Faction list の解決と Ensure
+procedure ExtractSpeaker(actor: IInterface);
+var
+  spkID, fullName, shortName, voiceId, sex, classID, source, edid: string;
+  raceID, baseSpeakerID, personaName, kind, sig: string;
+  raceRec, vtypRec, tplRec: IInterface;
+  factions, factionEntry, factionRef: IInterface;
+  factionIdsJson, entry: string;
+  i: integer;
+begin
+  spkID := HexFormID(actor);
+  if IsProcessed(spkID) then Exit;
+  MarkProcessed(spkID);
+  sig := Signature(actor);
+  source := GetMasterFileName(actor);
+  edid := GetCachedEdid(actor);
+  fullName := GetElementValue(actor, 'FULL');
+  shortName := '';
+  sex := '';
+  classID := '';
+  raceID := '';
+  baseSpeakerID := '';
+  voiceId := '';
   factionIdsJson := '';
-  factions := ElementByName(npc, 'Factions');
-  if Assigned(factions) then begin
-    for i := 0 to ElementCount(factions) - 1 do begin
-      factionEntry := ElementByIndex(factions, i);
-      factionRef := LinksTo(ElementByName(factionEntry, 'Faction'));
-      if not Assigned(factionRef) then Continue;
-      factionFormID := HexFormID(factionRef);
-      EnsureRecord(factionRef);
-      if factionIdsJson <> '' then factionIdsJson := factionIdsJson + ', ';
-      factionIdsJson := factionIdsJson + JsonString(factionFormID);
+
+  if sig = 'TACT' then begin
+    // 喋るオブジェクト。声型は VNAM。
+    vtypRec := LinksTo(ElementByName(actor, 'VNAM - Voice Type'));
+    if Assigned(vtypRec) then begin
+      voiceId := HexFormID(vtypRec);
+      EnsureRecord(vtypRec);
     end;
+    personaName := fullName;
+    if personaName = '' then personaName := edid;
+    kind := '喋るオブジェクト';
+  end else begin
+    // NPC_
+    shortName := GetElementValue(actor, 'SHRT');
+    classID := GetElementValue(actor, 'CNAM');
+    if (GetElementNativeValues(actor, 'ACBS\Flags') and 1) <> 0 then
+      sex := 'Female' else sex := 'Male';
+
+    raceRec := LinksTo(ElementByName(actor, 'RNAM - Race'));
+    if Assigned(raceRec) then begin
+      raceID := HexFormID(raceRec);
+      EnsureRecord(raceRec);
+    end;
+
+    // rV: VTCK が指す VoiceType
+    vtypRec := LinksTo(ElementByName(actor, 'VTCK - Voice'));
+    if Assigned(vtypRec) then begin
+      voiceId := HexFormID(vtypRec);
+      EnsureRecord(vtypRec);
+    end;
+
+    // rT: TPLT が指す本体 Speaker（形態 record の本体参照）
+    tplRec := LinksTo(ElementByName(actor, 'TPLT - Template'));
+    if Assigned(tplRec) and (Signature(tplRec) = 'NPC_') then begin
+      baseSpeakerID := HexFormID(tplRec);
+      EnsureRecord(tplRec);
+    end;
+
+    // r4: Faction list
+    factions := ElementByName(actor, 'Factions');
+    if Assigned(factions) then
+      for i := 0 to ElementCount(factions) - 1 do begin
+        factionEntry := ElementByIndex(factions, i);
+        factionRef := LinksTo(ElementByName(factionEntry, 'Faction'));
+        if not Assigned(factionRef) then Continue;
+        EnsureRecord(factionRef);
+        if factionIdsJson <> '' then factionIdsJson := factionIdsJson + ', ';
+        factionIdsJson := factionIdsJson + JsonString(HexFormID(factionRef));
+      end;
+
+    personaName := ResolvePersonaName(actor);
+    kind := ClassifySpeakerKind(actor);
   end;
 
-  if (personName = '') and (shortName = '') then Exit;
-
-  // Person は primary type = "NPC_ FULL"。短名は "NPC_ SHRT" として xTranslator 側で
-  // short_name field をマップする convention で扱う。
-  entry := '  "' + personID + '": {' + #13#10 +
-           '    "id": ' + JsonString(personID) + ',' + #13#10 +
+  // v18: 名前空でも emit する（ペルソナ名が必ず解決できるため）。
+  entry := '  "' + spkID + '": {' + #13#10 +
+           '    "id": ' + JsonString(spkID) + ',' + #13#10 +
            '    "editor_id": ' + JsonString(edid) + ',' + #13#10 +
-           '    "type": "NPC_ FULL",' + #13#10 +
+           '    "type": ' + JsonString(sig + ' FULL') + ',' + #13#10 +
            '    "source": ' + JsonString(source) + ',' + #13#10 +
-           '    "name": ' + JsonString(personName) + ',' + #13#10 +
+           '    "name": ' + JsonString(fullName) + ',' + #13#10 +
+           '    "persona_name": ' + JsonString(personaName) + ',' + #13#10 +
+           '    "kind": ' + JsonString(kind) + ',' + #13#10 +
            '    "short_name": ' + JsonString(shortName) + ',' + #13#10 +
            '    "sex": ' + JsonString(sex) + ',' + #13#10 +
-           '    "voice_type_id": ' + JsonString(voice) + ',' + #13#10 +
+           '    "voice_type_id": ' + JsonString(voiceId) + ',' + #13#10 +
            '    "class_id": ' + JsonString(classID) + ',' + #13#10 +
            '    "race_id": ' + JsonString(raceID) + ',' + #13#10 +
+           '    "base_speaker_id": ' + JsonString(baseSpeakerID) + ',' + #13#10 +
            '    "faction_ids": [' + factionIdsJson + ']' + #13#10 +
            '  }';
   personList.Add(entry);
@@ -300,10 +386,8 @@ end;
 
 // ===== Voice resolution（v1 から流用） =====
 
-procedure GetRecordVoiceTypes2(e: IInterface; lstVoice: TStringList); forward;
-procedure GetConditionsVoiceTypes(Conditions: IInterface; lstVoice: TStringList); forward;
-procedure GetAliasVoiceTypes(Quest: IInterface; aAlias: integer; lstVoice: TStringList); forward;
-
+// GetRecordVoiceTypes2 / GetConditionsVoiceTypes / GetAliasVoiceTypes / InfoVoiceTypes は
+// 相互に呼び合う。JvInterpreter は実行時に名前解決するため、定義順だけ整え forward は使わない。
 procedure GetRecordVoiceTypes2(e: IInterface; lstVoice: TStringList);
 var
   sig: string;
@@ -695,9 +779,65 @@ begin
   end;
 end;
 
+// REFR / ACHR を base record（NPC_ 等）へ解決する（alias の forced reference 用）。
+function ResolveActorBase(e: IInterface): IInterface;
+var sig: string;
+begin
+  Result := e;
+  if not Assigned(e) then Exit;
+  sig := Signature(e);
+  if (sig = 'REFR') or (sig = 'ACHR') then
+    Result := WinningOverride(BaseRecord(e));
+end;
+
+// INFO が属する Quest を辿る（INFO -> Topic(DIAL) -> QNAM）。
+function QuestOfInfo(info: IInterface): IInterface;
+var topic, q: IInterface;
+begin
+  Result := nil;
+  topic := LinksTo(ElementByName(info, 'Topic'));
+  if not Assigned(topic) then Exit;
+  q := LinksTo(ElementByName(topic, 'QNAM - Quest'));
+  if not Assigned(q) then q := LinksTo(ElementByName(topic, 'QNAM'));
+  Result := q;
+end;
+
+// quest alias index から forced reference / unique actor を解決し actor record を返す。
+// external / conditions ベースの alias は解決せず nil を返す。
+function ResolveAliasActor(quest: IInterface; aliasIdx: Integer): IInterface;
+var aliases, al, ref: IInterface; i: Integer;
+begin
+  Result := nil;
+  if not Assigned(quest) then Exit;
+  aliases := ElementByName(quest, 'Aliases');
+  if not Assigned(aliases) then Exit;
+  for i := 0 to ElementCount(aliases) - 1 do begin
+    al := ElementByIndex(aliases, i);
+    if GetNativeValue(ElementByIndex(al, 0)) <> aliasIdx then Continue;
+    if ElementExists(al, 'ALFR - Forced Reference') then
+      ref := LinksTo(ElementByName(al, 'ALFR - Forced Reference'))
+    else if ElementExists(al, 'ALUA - Unique Actor') then
+      ref := LinksTo(ElementByName(al, 'ALUA - Unique Actor'))
+    else ref := nil;
+    Result := ResolveActorBase(ref);
+    Break;
+  end;
+end;
+
+// JSON 配列文字列に id を追記する。空 id は無視する。
+procedure AppendIdJson(var arr: string; id: string);
+begin
+  if id = '' then Exit;
+  if arr <> '' then arr := arr + ', ';
+  arr := arr + JsonString(id);
+end;
+
+// v18: 話者関連は r2a（名指し Speaker）/ r2b（Faction）/ r2c（Race）/ r2d（VoiceType）の
+// 4 配列で表す。voice_types は Speaker→VoiceType の集約による導出属性として残す。
 function BuildResponseJson(
     infoID, edid, source, infoText, prompt, topicText, menuDisplayText,
-    speakerKind, speakerID, voiceTypesJson, previousID, conditionsJson,
+    speakerIdsJson, factionIdsJson, raceIdsJson, voiceTypeIdsJson,
+    voiceTypesJson, previousID, conditionsJson,
     nextIdsJson, responseNum: string;
     order: integer): string;
 begin
@@ -711,8 +851,10 @@ begin
             '      "prompt": ' + JsonString(prompt) + ',' + #13#10 +
             '      "topic_text": ' + JsonString(topicText) + ',' + #13#10 +
             '      "menu_display_text": ' + JsonString(menuDisplayText) + ',' + #13#10 +
-            '      "speaker_kind": ' + JsonString(speakerKind) + ',' + #13#10 +
-            '      "speaker_id": ' + JsonString(speakerID) + ',' + #13#10 +
+            '      "speaker_ids": [' + speakerIdsJson + '],' + #13#10 +
+            '      "faction_ids": [' + factionIdsJson + '],' + #13#10 +
+            '      "race_ids": [' + raceIdsJson + '],' + #13#10 +
+            '      "voice_type_ids": [' + voiceTypeIdsJson + '],' + #13#10 +
             '      "voice_types": [' + voiceTypesJson + '],' + #13#10;
   if responseNum <> '' then
     Result := Result + '      "response_number": ' + responseNum + ',' + #13#10;
@@ -729,7 +871,9 @@ end;
 
 procedure ExtractInfo(info: IInterface);
 var
-  infoID, infoText, speakerID, speakerKind, previousID, source, edid: string;
+  infoID, infoText, previousID, source, edid: string;
+  speakerIdsJson, factionIdsJson, raceIdsJson, voiceTypeIdsJson, fnName: string;
+  condsRec, condItem, refRec, spkQuest, anamRec: IInterface;
   dialID, prompt, topicText, menuDisplay: string;
   parentRec, questRec, questConditions, responses, responseEntry: IInterface;
   lst, lstVoice: TStringList;
@@ -779,11 +923,7 @@ begin
 
   InfoVoiceTypes(info, lstVoice, questConditions);
 
-  speakerID := InfoSPEAKER;
-  if speakerID = '' then speakerID := InfoNPCID;
-  if speakerID <> '' then speakerKind := 'specific' else speakerKind := 'generic';
-
-  // voice_types は文字列配列の JSON として組み立てる。
+  // voice_types（導出）は文字列配列の JSON として組み立てる。
   voiceTypesJson := '';
   for i := 0 to lstVoice.Count - 1 do begin
     if voiceTypesJson <> '' then voiceTypesJson := voiceTypesJson + ', ';
@@ -791,7 +931,65 @@ begin
   end;
   lstVoice.Free;
 
-  previousID := GetElementValue(info, 'PNAM');
+  // r2a-d: 話者関連を ANAM と conditions（CTDA）から収集する（v18）。
+  // 名指し（r2a）は ANAM / GetIsID(NPC_/TACT) / GetIsAliasRef、集合は GetInFaction(r2b) /
+  // GetIsRace(r2c) / GetIsVoiceType(r2d)。voice 解決経由のテンプレ拾いはしない。
+  spkQuest := QuestOfInfo(info);
+  speakerIdsJson := '';
+  factionIdsJson := '';
+  raceIdsJson := '';
+  voiceTypeIdsJson := '';
+  anamRec := LinksTo(ElementByName(info, 'ANAM - Speaker'));
+  if Assigned(anamRec) then begin
+    EnsureRecord(anamRec);
+    AppendIdJson(speakerIdsJson, HexFormID(anamRec));
+  end;
+  condsRec := ElementByName(info, 'Conditions');
+  if Assigned(condsRec) then
+    for i := 0 to ElementCount(condsRec) - 1 do begin
+      condItem := ElementByIndex(condsRec, i);
+      fnName := GetElementEditValues(condItem, 'CTDA\Function');
+      if fnName = 'GetIsID' then begin
+        refRec := LinksTo(ElementByPath(condItem, 'CTDA\Base Object'));
+        if Assigned(refRec) and ((Signature(refRec) = 'NPC_') or (Signature(refRec) = 'TACT')) then begin
+          EnsureRecord(refRec);
+          AppendIdJson(speakerIdsJson, HexFormID(refRec));
+        end;
+      end
+      else if fnName = 'GetIsAliasRef' then begin
+        refRec := ResolveAliasActor(spkQuest, GetElementNativeValues(condItem, 'CTDA\Alias'));
+        if Assigned(refRec) and (Signature(refRec) = 'NPC_') then begin
+          EnsureRecord(refRec);
+          AppendIdJson(speakerIdsJson, HexFormID(refRec));
+        end;
+      end
+      else if fnName = 'GetInFaction' then begin
+        refRec := LinksTo(ElementByPath(condItem, 'CTDA\Faction'));
+        if Assigned(refRec) then begin
+          EnsureRecord(refRec);
+          AppendIdJson(factionIdsJson, HexFormID(refRec));
+        end;
+      end
+      else if fnName = 'GetIsRace' then begin
+        refRec := LinksTo(ElementByPath(condItem, 'CTDA\Race'));
+        if Assigned(refRec) then begin
+          EnsureRecord(refRec);
+          AppendIdJson(raceIdsJson, HexFormID(refRec));
+        end;
+      end
+      else if fnName = 'GetIsVoiceType' then begin
+        refRec := LinksTo(ElementByPath(condItem, 'CTDA\Voice Type'));
+        if Assigned(refRec) and (Signature(refRec) = 'VTYP') then begin
+          EnsureRecord(refRec);
+          AppendIdJson(voiceTypeIdsJson, HexFormID(refRec));
+        end;
+      end;
+    end;
+
+  // PNAM（previous INFO）は参照を解決して FormID で持つ。EditValue（冗長な表示
+  // 文字列）を取ると ApplyInfoSorting の chain 照合も JSON の previous_id も壊れる。
+  // 参照が無い root INFO は HexFormID(nil) = '00000000' になる。
+  previousID := HexFormID(LinksTo(ElementByName(info, 'PNAM - Previous INFO')));
   conditionsJson := BuildConditionsJson(info);
   nextIdsJson := BuildNextIdsJson(info);
   lst := GetOrCreateDialList(dialID);
@@ -806,19 +1004,24 @@ begin
       if ElementExists(responseEntry, 'TRDT') then
         responseNum := GetElementEditValues(responseEntry, 'TRDT\Response number');
 
-      if (infoText <> '') or (speakerID <> '') then begin
+      // prompt（RNAM）だけを持つ INFO（プレイヤー選択肢のみで NPC 応答が無い）も出す。
+      if (infoText <> '') or (prompt <> '') or (speakerIdsJson <> '') or (factionIdsJson <> '')
+       or (raceIdsJson <> '') or (voiceTypeIdsJson <> '') then begin
         built := BuildResponseJson(infoID, edid, source, infoText, prompt,
-            topicText, menuDisplay, speakerKind, speakerID, voiceTypesJson,
-            previousID, conditionsJson, nextIdsJson, responseNum, i);
+            topicText, menuDisplay, speakerIdsJson, factionIdsJson, raceIdsJson,
+            voiceTypeIdsJson, voiceTypesJson, previousID, conditionsJson,
+            nextIdsJson, responseNum, i);
         lst.Add(infoID + SEP_CHAR + previousID + SEP_CHAR + built);
       end;
     end;
   end else begin
     infoText := GetElementValue(info, 'NAM1');
-    if (infoText <> '') or (speakerID <> '') then begin
+    if (infoText <> '') or (prompt <> '') or (speakerIdsJson <> '') or (factionIdsJson <> '')
+       or (raceIdsJson <> '') or (voiceTypeIdsJson <> '') then begin
       built := BuildResponseJson(infoID, edid, source, infoText, prompt,
-          topicText, menuDisplay, speakerKind, speakerID, voiceTypesJson,
-          previousID, conditionsJson, nextIdsJson, '', 0);
+          topicText, menuDisplay, speakerIdsJson, factionIdsJson, raceIdsJson,
+          voiceTypeIdsJson, voiceTypesJson, previousID, conditionsJson,
+          nextIdsJson, '', 0);
       lst.Add(infoID + SEP_CHAR + previousID + SEP_CHAR + built);
     end;
   end;
@@ -906,7 +1109,8 @@ begin
     end;
   end;
 
-  if questName = '' then Exit;
+  // 名前が無くても stage / objective を持つ quest（NNAM / CNAM のみ）は出力する。
+  if (questName = '') and (stagesJson = '') and (objectivesJson = '') then Exit;
 
   questEntry := '  {' + #13#10 +
                 JsonField('id', JsonString(questID)) + ',' + #13#10 +
@@ -927,6 +1131,40 @@ begin
     questEntry := questEntry + ']';
   questEntry := questEntry + #13#10 + '  }';
   questList.Add(questEntry);
+end;
+
+// ===== VoiceType (VTYP) =====
+// v18 で独立 class 化。VTYP は FULL を持たず、EditorID が識別子兼ペルソナ手掛かり。
+
+// EditorID 規約から声型カテゴリを判定する。
+function VoiceCategory(edid: string): string;
+begin
+  if Copy(edid, 1, 2) = 'Cr' then Result := '生物'
+  else if Pos('Unique', edid) > 0 then Result := 'キャラ専用'
+  else Result := '汎用人間';
+end;
+
+procedure ExtractVoiceType(vtyp: IInterface);
+var
+  vID, edid, source, entry: string;
+begin
+  vID := HexFormID(vtyp);
+  if IsProcessed(vID) then Exit;
+  MarkProcessed(vID);
+  edid := GetCachedEdid(vtyp);
+  if edid = '' then Exit;
+  source := GetMasterFileName(vtyp);
+
+  // VTYP は翻訳対象テキストを持たない。identifier は EditorID。
+  entry := '  {' + #13#10 +
+           JsonField('id', JsonString(vID)) + ',' + #13#10 +
+           JsonField('editor_id', JsonString(edid)) + ',' + #13#10 +
+           JsonField('type', JsonString('VTYP EDID')) + ',' + #13#10 +
+           JsonField('source', JsonString(source)) + ',' + #13#10 +
+           JsonField('identifier', JsonString(edid)) + ',' + #13#10 +
+           JsonField('category', JsonString(VoiceCategory(edid))) + #13#10 +
+           '  }';
+  voiceTypeList.Add(entry);
 end;
 
 // ===== MagicEffect =====
@@ -1107,7 +1345,7 @@ begin
 end;
 
 // ===== Item =====
-// KEYM / MISC / LIGH / CONT / SLGM / DOOR / FLOR / FURN
+// KEYM / MISC / LIGH / CONT / SLGM / DOOR / FURN
 procedure ExtractItem(i: IInterface);
 var
   iID, iName, sig, source, edid, entry: string;
@@ -1132,29 +1370,61 @@ begin
   itemList.Add(entry);
 end;
 
+// ===== Activator =====
+// ACTI / FLOR / TREE。起動・採取可能なオブジェクト（item ではない）。
+// FULL = クロスヘア表示名、RNAM = 起動動作テキスト（"開ける"/"採取"等）。種別は signature。
+procedure ExtractActivator(a: IInterface);
+var
+  aID, aName, aAction, sig, source, edid, entry: string;
+begin
+  aID := HexFormID(a);
+  if IsProcessed(aID) then Exit;
+  MarkProcessed(aID);
+  sig := Signature(a);
+  aName := GetElementValue(a, 'FULL');
+  aAction := GetElementValue(a, 'RNAM');
+  if (aName = '') and (aAction = '') then Exit;
+  source := GetMasterFileName(a);
+  edid := GetCachedEdid(a);
+
+  // primary type = "<SIG> FULL"。activate_action は "<SIG> RNAM" mapping。
+  entry := '  {' + #13#10 +
+           JsonField('id', JsonString(aID)) + ',' + #13#10 +
+           JsonField('editor_id', JsonString(edid)) + ',' + #13#10 +
+           JsonField('type', JsonString(sig + ' FULL')) + ',' + #13#10 +
+           JsonField('source', JsonString(source)) + ',' + #13#10 +
+           JsonField('name', JsonString(aName)) + ',' + #13#10 +
+           JsonField('activate_action', JsonString(aAction)) + ',' + #13#10 +
+           JsonField('kind', JsonString(sig)) + #13#10 +
+           '  }';
+  activatorList.Add(entry);
+end;
+
 // ===== Book =====
 
 procedure ExtractBook(book: IInterface);
 var
-  bookID, title, body, source, edid, entry: string;
+  bookID, title, body, author, source, edid, entry: string;
 begin
   bookID := HexFormID(book);
   if IsProcessed(bookID) then Exit;
   MarkProcessed(bookID);
   title := GetElementValue(book, 'FULL');
   body := GetElementValue(book, 'DESC');
+  author := GetElementValue(book, 'CNAM');
   if (title = '') and (body = '') then Exit;
   source := GetMasterFileName(book);
   edid := GetCachedEdid(book);
 
-  // primary type = "BOOK FULL"。body は "BOOK DESC" mapping。
+  // primary type = "BOOK FULL"。body は "BOOK DESC"、author は "BOOK CNAM" mapping。
   entry := '  {' + #13#10 +
            JsonField('id', JsonString(bookID)) + ',' + #13#10 +
            JsonField('editor_id', JsonString(edid)) + ',' + #13#10 +
            JsonField('type', JsonString('BOOK FULL')) + ',' + #13#10 +
            JsonField('source', JsonString(source)) + ',' + #13#10 +
            JsonField('title', JsonString(title)) + ',' + #13#10 +
-           JsonField('body', JsonString(body)) + #13#10 +
+           JsonField('body', JsonString(body)) + ',' + #13#10 +
+           JsonField('author', JsonString(author)) + #13#10 +
            '  }';
   bookList.Add(entry);
 end;
@@ -1168,31 +1438,33 @@ function BuildShoutWordsJson(shou: IInterface): string;
 var
   words, wordEntry, woopRec: IInterface;
   i: integer;
-  woopID, wordName, dragonText, source, edid, entry: string;
+  woopID, dragonSpelling, meaning, source, edid, entry: string;
 begin
   Result := '';
-  words := ElementByName(shou, 'Words');
+  words := ElementByName(shou, 'Words of Power');  // SSEEdit の配列名（'Words' ではない）
   if not Assigned(words) then Exit;
+  // 配列要素は SNAM。各要素の 'Word' field が WOOP への link（'WNAM' では取れない）。
   for i := 0 to ElementCount(words) - 1 do begin
     wordEntry := ElementByIndex(words, i);
-    woopRec := LinksTo(ElementByName(wordEntry, 'WNAM'));
+    woopRec := LinksTo(ElementByName(wordEntry, 'Word'));
     if not Assigned(woopRec) then Continue;
 
     woopID := HexFormID(woopRec);
-    wordName := GetElementValue(woopRec, 'FULL');
-    dragonText := GetElementValue(woopRec, 'TNAM');
+    dragonSpelling := GetElementValue(woopRec, 'FULL');  // 龍語綴り、翻訳禁止
+    meaning := GetElementValue(woopRec, 'TNAM');          // 意味の訳、翻訳対象
     source := GetMasterFileName(woopRec);
     edid := GetCachedEdid(woopRec);
     MarkProcessed(woopID);
 
-    // Word primary type = "WOOP FULL"。dragon_text は "WOOP TNAM" mapping。
+    // Word の primary translation target = "WOOP TNAM"（意味の訳）。
+    // dragon_spelling（WOOP FULL）は龍文字表示用で翻訳禁止のため field は出すが対象にしない。
     entry := '      {' + #13#10 +
              '        "id": ' + JsonString(woopID) + ',' + #13#10 +
              '        "editor_id": ' + JsonString(edid) + ',' + #13#10 +
-             '        "type": "WOOP FULL",' + #13#10 +
+             '        "type": "WOOP TNAM",' + #13#10 +
              '        "source": ' + JsonString(source) + ',' + #13#10 +
-             '        "name": ' + JsonString(wordName) + ',' + #13#10 +
-             '        "dragon_text": ' + JsonString(dragonText) + #13#10 +
+             '        "dragon_spelling": ' + JsonString(dragonSpelling) + ',' + #13#10 +
+             '        "translation": ' + JsonString(meaning) + #13#10 +
              '      }';
     if Result <> '' then Result := Result + ',' + #13#10;
     Result := Result + entry;
@@ -1265,14 +1537,14 @@ end;
 
 procedure ExtractMessage(msg: IInterface);
 var
-  msgID, title, body, questID, source, edid, entry: string;
-  questRec: IInterface;
+  msgID, title, body, questID, source, edid, entry, buttonsJson, btnText: string;
+  questRec, buttons, btnItem: IInterface;
+  i: integer;
 begin
   msgID := HexFormID(msg);
   if IsProcessed(msgID) then Exit;
   MarkProcessed(msgID);
   body := GetElementValue(msg, 'DESC');
-  if body = '' then Exit;
   title := GetElementValue(msg, 'FULL');
   source := GetMasterFileName(msg);
   edid := GetCachedEdid(msg);
@@ -1283,6 +1555,27 @@ begin
   end else
     questID := GetElementValue(msg, 'QNAM');
 
+  // 選択肢ボタン（ITXT）。各 button は独立に書き戻し可能（type = "MESG ITXT"）。
+  buttonsJson := '';
+  if ElementExists(msg, 'Menu Buttons') then begin
+    buttons := ElementByName(msg, 'Menu Buttons');
+    for i := 0 to ElementCount(buttons) - 1 do begin
+      btnItem := ElementByIndex(buttons, i);
+      btnText := GetElementValue(btnItem, 'ITXT');
+      if btnText = '' then Continue;
+      if buttonsJson <> '' then buttonsJson := buttonsJson + ',' + #13#10;
+      buttonsJson := buttonsJson +
+                     '      {' + #13#10 +
+                     '        "button_index": ' + IntToStr(i) + ',' + #13#10 +
+                     '        "type": "MESG ITXT",' + #13#10 +
+                     '        "text": ' + JsonString(btnText) + #13#10 +
+                     '      }';
+    end;
+  end;
+
+  // 翻訳対象テキスト（本文 / 題名 / 選択肢）が全て無ければ出力しない。
+  if (body = '') and (title = '') and (buttonsJson = '') then Exit;
+
   // primary type = "MESG DESC"（v1 互換、body が主翻訳対象）。title は "MESG FULL" mapping。
   entry := '  {' + #13#10 +
            JsonField('id', JsonString(msgID)) + ',' + #13#10 +
@@ -1291,8 +1584,13 @@ begin
            JsonField('source', JsonString(source)) + ',' + #13#10 +
            JsonField('title', JsonString(title)) + ',' + #13#10 +
            JsonField('body', JsonString(body)) + ',' + #13#10 +
-           JsonField('quest_id', JsonString(questID)) + #13#10 +
-           '  }';
+           JsonField('quest_id', JsonString(questID)) + ',' + #13#10 +
+           '    "buttons": [';
+  if buttonsJson <> '' then
+    entry := entry + #13#10 + buttonsJson + #13#10 + '    ]'
+  else
+    entry := entry + ']';
+  entry := entry + #13#10 + '  }';
   messageList.Add(entry);
 end;
 
@@ -1330,8 +1628,9 @@ begin
   if IsProcessed(perkID) then Exit;
   MarkProcessed(perkID);
   perkName := GetElementValue(perk, 'FULL');
-  if perkName = '' then Exit;
   perkDesc := GetElementValue(perk, 'DESC');
+  // 名前が無くても説明（DESC）を持つ perk は出力する。
+  if (perkName = '') and (perkDesc = '') then Exit;
   source := GetMasterFileName(perk);
   edid := GetCachedEdid(perk);
 
@@ -1356,10 +1655,15 @@ var
   sig: string;
 begin
   if not Assigned(e) then Exit;
+  // 対象 plugin が新規追加 / 上書き していない参照先 record（純 master）は翻訳対象外。
+  // GetMasterFileName は GetFile ベースで、override 要素なら対象 plugin を返す。
+  // 参照先が対象 plugin の外にしか存在しない場合（vanilla 定義そのまま）は出力しない。
+  // ID 参照（speaker_ids 等）は文字列として残り、翻訳時に元 plugin の辞書で解決する。
+  if GetMasterFileName(e) <> targetFileName then Exit;
   if IsProcessed(HexFormID(e)) then Exit;
   sig := Signature(e);
 
-  if sig = 'NPC_' then ExtractPerson(e)
+  if sig = 'NPC_' then ExtractSpeaker(e)
   else if sig = 'RACE' then ExtractRace(e)
   else if sig = 'FACT' then ExtractFaction(e)
   else if sig = 'QUST' then ExtractQuest(e)
@@ -1371,11 +1675,14 @@ begin
   else if (sig = 'WEAP') or (sig = 'ARMO') or (sig = 'AMMO') then ExtractEquipment(e)
   else if sig = 'BOOK' then ExtractBook(e)
   else if (sig = 'KEYM') or (sig = 'MISC') or (sig = 'LIGH') or (sig = 'CONT') or
-          (sig = 'SLGM') or (sig = 'DOOR') or (sig = 'FLOR') or (sig = 'FURN') then ExtractItem(e)
+          (sig = 'SLGM') or (sig = 'DOOR') or (sig = 'FURN') then ExtractItem(e)
+  else if (sig = 'ACTI') or (sig = 'FLOR') or (sig = 'TREE') then ExtractActivator(e)
   else if (sig = 'CELL') or (sig = 'LCTN') or (sig = 'WRLD') then ExtractLocation(e)
   else if sig = 'MESG' then ExtractMessage(e)
   else if sig = 'LSCR' then ExtractLoadingScreen(e)
-  else if sig = 'PERK' then ExtractPerk(e);
+  else if sig = 'PERK' then ExtractPerk(e)
+  else if sig = 'VTYP' then ExtractVoiceType(e)
+  else if sig = 'TACT' then ExtractSpeaker(e);
   // DIAL / INFO は file iteration で必ず到達するため Ensure 経路には乗せない。
 end;
 
@@ -1390,6 +1697,7 @@ begin
   questList := TStringList.Create;
   locationList := TStringList.Create;
   itemList := TStringList.Create;
+  activatorList := TStringList.Create;
   equipmentList := TStringList.Create;
   consumableList := TStringList.Create;
   magicList := TStringList.Create;
@@ -1400,6 +1708,7 @@ begin
   messageList := TStringList.Create;
   loadingScreenList := TStringList.Create;
   perkList := TStringList.Create;
+  voiceTypeList := TStringList.Create;
 
   dialDataMap := TStringList.Create;
   dialDataMap.Sorted := True;
@@ -1425,7 +1734,7 @@ begin
   sig := Signature(e);
   if sig = 'DIAL' then ExtractDialogue(e)
   else if sig = 'INFO' then ExtractInfo(e)
-  else if sig = 'NPC_' then ExtractPerson(e)
+  else if sig = 'NPC_' then ExtractSpeaker(e)
   else if sig = 'RACE' then ExtractRace(e)
   else if sig = 'FACT' then ExtractFaction(e)
   else if sig = 'QUST' then ExtractQuest(e)
@@ -1437,131 +1746,120 @@ begin
   else if (sig = 'WEAP') or (sig = 'ARMO') or (sig = 'AMMO') then ExtractEquipment(e)
   else if sig = 'BOOK' then ExtractBook(e)
   else if (sig = 'KEYM') or (sig = 'MISC') or (sig = 'LIGH') or (sig = 'CONT') or
-          (sig = 'SLGM') or (sig = 'DOOR') or (sig = 'FLOR') or (sig = 'FURN') then ExtractItem(e)
+          (sig = 'SLGM') or (sig = 'DOOR') or (sig = 'FURN') then ExtractItem(e)
+  else if (sig = 'ACTI') or (sig = 'FLOR') or (sig = 'TREE') then ExtractActivator(e)
   else if (sig = 'CELL') or (sig = 'LCTN') or (sig = 'WRLD') then ExtractLocation(e)
   else if sig = 'MESG' then ExtractMessage(e)
   else if sig = 'LSCR' then ExtractLoadingScreen(e)
-  else if sig = 'PERK' then ExtractPerk(e);
+  else if sig = 'PERK' then ExtractPerk(e)
+  else if sig = 'VTYP' then ExtractVoiceType(e)
+  else if sig = 'TACT' then ExtractSpeaker(e);
 
   Result := 0;
 end;
 
-// PNAM chain で response をソート。id/pid は行 prefix から直接 parse（JSON 再 parse 不要）。
+// PNAM chain で response をソートする。id/pid は行 prefix から取り JSON 再 parse はしない。
+// 格納は TStringList ベース（v1 実績）。JvInterpreter で未実証の TList / Pointer cast は使わない。
+// children/queue には prefix 付きの行そのものを入れる。Finalize 側で prefix を剥がすため整合する。
 procedure ApplyInfoSorting(var respList: TStringList);
 var
   i, j, k, p1, p2: Integer;
   pidMap: TStringList;
-  sortedIndices, queue, children: TList;
-  visited: TStringList;
-  curIdx: Integer;
-  curId, curPid, curLine: string;
-  rebuilt: TStringList;
+  sortedList, queue, children, visited, expandedInfo: TStringList;
+  curLine, curId, curPid, rest: string;
 begin
   if respList.Count <= 2 then Exit;
 
   pidMap := TStringList.Create;
   pidMap.Sorted := True;
   pidMap.Duplicates := dupIgnore;
-  try
-    for i := 1 to respList.Count - 1 do begin
-      curLine := respList[i];
-      p1 := Pos(SEP_CHAR, curLine);
-      if p1 <= 0 then Continue;
-      p2 := Pos(SEP_CHAR, Copy(curLine, p1 + 1, Length(curLine)));
-      if p2 <= 0 then Continue;
-      curPid := Copy(curLine, p1 + 1, p2 - 1);
 
-      j := pidMap.IndexOf(curPid);
-      if j < 0 then begin
-        children := TList.Create;
-        pidMap.AddObject(curPid, children);
-      end else
-        children := TList(pidMap.Objects[j]);
-      children.Add(Pointer(i));
-    end;
+  // previous_id -> その pid を先行に持つ response 行（prefix 付き）の list を作る。
+  for i := 1 to respList.Count - 1 do begin
+    curLine := respList[i];
+    p1 := Pos(SEP_CHAR, curLine);
+    if p1 <= 0 then Continue;
+    rest := Copy(curLine, p1 + 1, Length(curLine));
+    p2 := Pos(SEP_CHAR, rest);
+    if p2 <= 0 then Continue;
+    curPid := Copy(rest, 1, p2 - 1);
 
-    sortedIndices := TList.Create;
-    queue := TList.Create;
-    visited := TStringList.Create;
-    visited.Sorted := True;
-    visited.Duplicates := dupIgnore;
-    try
-      j := pidMap.IndexOf('');
-      if j >= 0 then begin
-        children := TList(pidMap.Objects[j]);
-        for k := 0 to children.Count - 1 do
-          queue.Add(children[k]);
-      end;
-      j := pidMap.IndexOf('00000000');
-      if j >= 0 then begin
-        children := TList(pidMap.Objects[j]);
-        for k := 0 to children.Count - 1 do
-          queue.Add(children[k]);
-      end;
+    j := pidMap.IndexOf(curPid);
+    if j < 0 then begin
+      children := TStringList.Create;
+      pidMap.AddObject(curPid, children);
+    end else
+      children := TStringList(pidMap.Objects[j]);
+    children.Add(curLine);
+  end;
 
-      i := 0;
-      while i < queue.Count do begin
-        curIdx := Integer(queue[i]);
-        sortedIndices.Add(Pointer(curIdx));
-        curLine := respList[curIdx];
-        p1 := Pos(SEP_CHAR, curLine);
-        if p1 > 0 then begin
-          curId := Copy(curLine, 1, p1 - 1);
-          visited.Add(curId);
+  sortedList := TStringList.Create;
+  sortedList.Add(respList[0]);  // header を保持する。
+
+  queue := TStringList.Create;
+  visited := TStringList.Create;
+  visited.Sorted := True;
+  visited.Duplicates := dupIgnore;
+  // 後続展開を INFO（infoID）単位で 1 回に抑えるための集合。
+  expandedInfo := TStringList.Create;
+  expandedInfo.Sorted := True;
+  expandedInfo.Duplicates := dupIgnore;
+
+  // root = previous_id が空、または 00000000 の response。
+  j := pidMap.IndexOf('');
+  if j >= 0 then queue.AddStrings(TStringList(pidMap.Objects[j]));
+  j := pidMap.IndexOf('00000000');
+  if j >= 0 then queue.AddStrings(TStringList(pidMap.Objects[j]));
+
+  // BFS で chain を辿る。visited で循環と二重追加を防ぐ。
+  i := 0;
+  while i < queue.Count do begin
+    curLine := queue[i];
+    p1 := Pos(SEP_CHAR, curLine);
+    if p1 > 0 then begin
+      curId := Copy(curLine, 1, p1 - 1);
+      // visited は行全体で判定する。同一 INFO の複数 NAM1（response）は order が違い
+      // 行が異なるため、すべて残す。infoID 単位で判定すると 2 つ目以降を落とす。
+      if visited.IndexOf(curLine) < 0 then begin
+        sortedList.Add(curLine);
+        visited.Add(curLine);
+        // 後続展開（PNAM chain）は INFO 単位で 1 回だけ行う。
+        if expandedInfo.IndexOf(curId) < 0 then begin
+          expandedInfo.Add(curId);
           j := pidMap.IndexOf(curId);
           if j >= 0 then begin
-            children := TList(pidMap.Objects[j]);
+            children := TStringList(pidMap.Objects[j]);
             for k := 0 to children.Count - 1 do
               queue.Add(children[k]);
           end;
         end;
-        Inc(i);
       end;
-
-      if sortedIndices.Count < respList.Count - 1 then
-        for i := 1 to respList.Count - 1 do begin
-          curLine := respList[i];
-          p1 := Pos(SEP_CHAR, curLine);
-          if p1 <= 0 then Continue;
-          curId := Copy(curLine, 1, p1 - 1);
-          if visited.IndexOf(curId) < 0 then begin
-            sortedIndices.Add(Pointer(i));
-            visited.Add(curId);
-          end;
-        end;
-
-      i := 0;
-      j := sortedIndices.Count - 1;
-      while i < j do begin
-        curIdx := Integer(sortedIndices[i]);
-        sortedIndices[i] := sortedIndices[j];
-        sortedIndices[j] := Pointer(curIdx);
-        Inc(i);
-        Dec(j);
-      end;
-
-      rebuilt := TStringList.Create;
-      try
-        rebuilt.Add(respList[0]);
-        for i := 0 to sortedIndices.Count - 1 do begin
-          curIdx := Integer(sortedIndices[i]);
-          rebuilt.Add(respList[curIdx]);
-        end;
-        respList.Assign(rebuilt);
-      finally
-        rebuilt.Free;
-      end;
-    finally
-      visited.Free;
-      queue.Free;
-      sortedIndices.Free;
     end;
-  finally
-    for i := 0 to pidMap.Count - 1 do
-      if pidMap.Objects[i] <> nil then
-        TList(pidMap.Objects[i]).Free;
-    pidMap.Free;
+    Inc(i);
   end;
+
+  // chain に未接続の response を元順で末尾に足す。
+  if sortedList.Count < respList.Count then
+    for i := 1 to respList.Count - 1 do begin
+      curLine := respList[i];
+      if visited.IndexOf(curLine) < 0 then begin
+        sortedList.Add(curLine);
+        visited.Add(curLine);
+      end;
+    end;
+
+  // 反転はしない。BFS が root（PNAM 空）→ 後続の自然順で積み、同一 INFO 内の
+  // 複数 NAM1 も order 昇順で並ぶため、そのまま採用する。
+  respList.Assign(sortedList);
+
+  queue.Free;
+  visited.Free;
+  expandedInfo.Free;
+  sortedList.Free;
+  for i := 0 to pidMap.Count - 1 do
+    if pidMap.Objects[i] <> nil then
+      TStringList(pidMap.Objects[i]).Free;
+  pidMap.Free;
 end;
 
 procedure EmitArrayInto(target, source: TStringList);
@@ -1668,6 +1966,10 @@ begin
     EmitArrayInto(outputFile, itemList);
     outputFile.Add('  ],');
 
+    outputFile.Add('  "activators": [');
+    EmitArrayInto(outputFile, activatorList);
+    outputFile.Add('  ],');
+
     outputFile.Add('  "equipment": [');
     EmitArrayInto(outputFile, equipmentList);
     outputFile.Add('  ],');
@@ -1712,7 +2014,11 @@ begin
     EmitArrayInto(outputFile, perkList);
     outputFile.Add('  ],');
 
-    outputFile.Add('  "persons": {');
+    outputFile.Add('  "voice_types": [');
+    EmitArrayInto(outputFile, voiceTypeList);
+    outputFile.Add('  ],');
+
+    outputFile.Add('  "speakers": {');
     EmitArrayInto(outputFile, personList);
     outputFile.Add('  }');
 
@@ -1733,6 +2039,7 @@ begin
     questList.Free;
     locationList.Free;
     itemList.Free;
+    activatorList.Free;
     equipmentList.Free;
     consumableList.Free;
     magicList.Free;
@@ -1743,6 +2050,7 @@ begin
     messageList.Free;
     loadingScreenList.Free;
     perkList.Free;
+    voiceTypeList.Free;
     processedIds.Free;
     lstRecursion.Free;
   end;

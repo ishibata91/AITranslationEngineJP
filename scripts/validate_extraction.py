@@ -14,12 +14,17 @@ xTranslator 書き戻し用 type field の convention:
   - 各 entry の "type" field は "<SIG> <PRIMARY_SUBRECORD>" 形式（例: "WEAP FULL", "BOOK FULL"）。
   - 同一 entry の additional 翻訳対象 field の subrecord 対応は下記 convention：
       books[*].body          → BOOK DESC
+      books[*].author        → BOOK CNAM
       messages[*].title      → MESG FULL
+      messages[*].buttons[*].text → MESG ITXT
       persons[*].short_name  → NPC_ SHRT
+      races[*].description   → RACE DESC
+      activators[*].activate_action → "<kind> RNAM"
       equipment[*].description / consumables[*].description → "<kind> DESC"
       magic[*].description / enchantments[*].description / shouts[*].description → "<SIG> DESC"
       magic_effects[*].description → MGEF DNAM
-      shouts[*].words[*].dragon_text → WOOP TNAM
+      shouts[*].words[*].translation → WOOP TNAM（意味の訳、翻訳対象）
+      shouts[*].words[*].dragon_spelling → WOOP FULL（龍語綴り、翻訳禁止）
       perks[*].description → PERK DESC
   - 上記以外の field は xTranslator 書き戻し対象ではない（id、source、edge ref 等）。
 """
@@ -40,6 +45,7 @@ ARRAY_KEYS_V2 = (
     "factions",
     "locations",
     "items",
+    "activators",
     "equipment",
     "consumables",
     "magic",
@@ -50,8 +56,9 @@ ARRAY_KEYS_V2 = (
     "messages",
     "loading_screens",
     "perks",
+    "voice_types",
 )
-DICT_KEYS_V2 = ("persons",)
+DICT_KEYS_V2 = ("speakers",)
 SCALAR_KEYS_V2 = ("target_plugin",)
 
 # 各 type 文字列ごとの必須 field（primary type のみ enforced。secondary translatable
@@ -62,15 +69,19 @@ REQUIRED_FIELDS: dict[str, set[str]] = {
                   "services_type", "quest_id", "responses"},
     "INFO NAM1": {"id", "editor_id", "type", "source", "order", "text",
                   "prompt", "topic_text", "menu_display_text",
-                  "speaker_kind", "speaker_id", "voice_types",
-                  "previous_id", "next_ids", "conditions"},
+                  "speaker_ids", "faction_ids", "race_ids", "voice_type_ids",
+                  "voice_types", "previous_id", "next_ids", "conditions"},
     "QUST FULL": {"id", "editor_id", "type", "source", "name",
                   "quest_type", "stages", "objectives"},
     "QUST CNAM": {"log_index", "type", "text"},
     "QUST NNAM": {"objective_index", "type", "display_text"},
-    "NPC_ FULL": {"id", "editor_id", "type", "source", "name", "short_name",
-                  "sex", "voice_type_id", "class_id", "race_id", "faction_ids"},
-    "RACE FULL": {"id", "editor_id", "type", "source", "name"},
+    "NPC_ FULL": {"id", "editor_id", "type", "source", "name", "persona_name",
+                  "kind", "short_name", "sex", "voice_type_id", "class_id",
+                  "race_id", "base_speaker_id", "faction_ids"},
+    "TACT FULL": {"id", "editor_id", "type", "source", "name", "persona_name",
+                  "kind", "voice_type_id"},
+    "VTYP EDID": {"id", "editor_id", "type", "source", "identifier", "category"},
+    "RACE FULL": {"id", "editor_id", "type", "source", "name", "description"},
     "FACT FULL": {"id", "editor_id", "type", "source", "name"},
     "MGEF FULL": {"id", "editor_id", "type", "source", "name", "description"},
     "SPEL FULL": {"id", "editor_id", "type", "source", "name", "description",
@@ -79,15 +90,17 @@ REQUIRED_FIELDS: dict[str, set[str]] = {
                   "magic_effect_ids"},
     "SHOU FULL": {"id", "editor_id", "type", "source", "name", "description",
                   "words"},
-    "WOOP FULL": {"id", "editor_id", "type", "source", "name", "dragon_text"},
-    "BOOK FULL": {"id", "editor_id", "type", "source", "title", "body"},
-    "MESG DESC": {"id", "editor_id", "type", "source", "title", "body", "quest_id"},
+    "WOOP TNAM": {"id", "editor_id", "type", "source", "dragon_spelling", "translation"},
+    "BOOK FULL": {"id", "editor_id", "type", "source", "title", "body", "author"},
+    "MESG DESC": {"id", "editor_id", "type", "source", "title", "body",
+                  "quest_id", "buttons"},
     "LSCR DESC": {"id", "editor_id", "type", "source", "body"},
     "PERK FULL": {"id", "editor_id", "type", "source", "name", "description"},
 }
 
 # 装備・消耗・所持品・場所は kind ごとに type 文字列が変わる
-ITEM_TYPE_KINDS = {"KEYM", "MISC", "LIGH", "CONT", "SLGM", "DOOR", "FLOR", "FURN"}
+ITEM_TYPE_KINDS = {"KEYM", "MISC", "LIGH", "CONT", "SLGM", "DOOR", "FURN"}
+ACTIVATOR_KINDS = {"ACTI", "FLOR", "TREE"}
 EQUIPMENT_KINDS = {"WEAP", "ARMO", "AMMO"}
 CONSUMABLE_KINDS = {"SCRL", "ALCH", "INGR"}
 LOCATION_KINDS = {"CELL", "LCTN", "WRLD"}
@@ -108,6 +121,8 @@ def required_fields_for(entry: dict[str, Any]) -> set[str] | None:
             return base | {"description", "kind", "magic_effect_ids"}
         if sig in ITEM_TYPE_KINDS:
             return base | {"kind"}
+        if sig in ACTIVATOR_KINDS:
+            return base | {"activate_action", "kind"}
         if sig in LOCATION_KINDS:
             return base | {"kind", "parent_id"}
     return None
@@ -205,14 +220,14 @@ def validate_entries_v2(data: dict[str, Any], report: Report) -> None:
                     if isinstance(w, dict):
                         validate_entry(f"shouts[{i}].words", j, w, report)
 
-    # persons dict
-    for pid, p in (data.get("persons") or {}).items():
+    # speakers dict
+    for pid, p in (data.get("speakers") or {}).items():
         if not isinstance(p, dict):
-            report.err(f"persons[{pid}] not object")
+            report.err(f"speakers[{pid}] not object")
             continue
         if p.get("id") != pid:
-            report.warn(f"persons[{pid}].id ({p.get('id')!r}) differs from key")
-        validate_entry(f"persons[{pid}]", 0, p, report)
+            report.warn(f"speakers[{pid}].id ({p.get('id')!r}) differs from key")
+        validate_entry(f"speakers[{pid}]", 0, p, report)
 
 
 def detect_suspicious(data: dict[str, Any], report: Report) -> None:
@@ -222,26 +237,37 @@ def detect_suspicious(data: dict[str, Any], report: Report) -> None:
         report.note(f"dialogues with 0 responses: {len(empty)}/{len(dg)} "
                     f"(first 5: {empty[:5]})")
 
-    persons = data.get("persons") or {}
-    person_ids = set(persons.keys())
+    speakers = data.get("speakers") or {}
+    speaker_ids = set(speakers.keys())
+    voice_type_ids = {v.get("id") for v in (data.get("voice_types") or [])
+                      if isinstance(v, dict)}
     dangling: list[tuple[str, str]] = []
+    dangling_vt = 0
     blank_resp = 0
     total_resp = 0
     for d in dg:
         for r in d.get("responses", []) or []:
             total_resp += 1
-            sid = r.get("speaker_id", "")
-            if not (r.get("text") or "") and not sid:
+            sids = r.get("speaker_ids") or []
+            hint = sids or r.get("faction_ids") or r.get("race_ids") \
+                or r.get("voice_type_ids")
+            if not (r.get("text") or "") and not hint:
                 blank_resp += 1
-            if sid and sid not in person_ids:
-                dangling.append((r.get("id", "?"), sid))
+            for sid in sids:
+                if sid not in speaker_ids:
+                    dangling.append((r.get("id", "?"), sid))
+            for vt in r.get("voice_type_ids") or []:
+                if vt not in voice_type_ids:
+                    dangling_vt += 1
     report.note(f"responses total: {total_resp}")
     if blank_resp:
-        report.warn(f"responses with empty text AND no speaker: {blank_resp}")
+        report.warn(f"responses with empty text AND no speaker hint: {blank_resp}")
     if dangling:
-        report.warn(f"responses referring to speaker_id not in persons: "
-                    f"{len(dangling)} (master plugin 未取り込み候補、"
-                    f"first 5: {dangling[:5]})")
+        report.warn(f"responses referring to speaker_ids not in speakers: "
+                    f"{len(dangling)} (first 5: {dangling[:5]})")
+    if dangling_vt:
+        report.warn(f"responses referring to voice_type_ids not in voice_types: "
+                    f"{dangling_vt}")
 
     # MagicEffect 参照の dangling 検出
     mgef_ids = {e.get("id") for e in (data.get("magic_effects") or [])
@@ -281,7 +307,9 @@ def detect_suspicious(data: dict[str, Any], report: Report) -> None:
 
     dangling_race = 0
     dangling_faction = 0
-    for p in persons.values():
+    dangling_base = 0
+    dangling_spk_vt = 0
+    for p in speakers.values():
         if isinstance(p, dict):
             rid = p.get("race_id")
             if rid and rid not in race_ids:
@@ -289,10 +317,20 @@ def detect_suspicious(data: dict[str, Any], report: Report) -> None:
             for fid in p.get("faction_ids", []) or []:
                 if fid and fid not in faction_ids:
                     dangling_faction += 1
+            bid = p.get("base_speaker_id")
+            if bid and bid not in speaker_ids:
+                dangling_base += 1
+            vt = p.get("voice_type_id")
+            if vt and vt not in voice_type_ids:
+                dangling_spk_vt += 1
     if dangling_race:
-        report.warn(f"persons → race_id dangling: {dangling_race}")
+        report.warn(f"speakers → race_id dangling: {dangling_race}")
     if dangling_faction:
-        report.warn(f"persons → faction_id dangling: {dangling_faction}")
+        report.warn(f"speakers → faction_id dangling: {dangling_faction}")
+    if dangling_base:
+        report.warn(f"speakers → base_speaker_id dangling: {dangling_base}")
+    if dangling_spk_vt:
+        report.warn(f"speakers → voice_type_id dangling: {dangling_spk_vt}")
 
 
 def show_coverage(data: dict[str, Any]) -> None:
@@ -321,7 +359,13 @@ def show_coverage(data: dict[str, Any]) -> None:
     resp_total = sum(len(d.get("responses", []) or []) for d in dg)
     print(f"  dialogues detail: with_responses={with_resp}, "
           f"total_responses={resp_total}")
-    print(f"  persons: total={len(data.get('persons') or {})}")
+    speakers = data.get("speakers") or {}
+    kc = Counter(p.get("kind", "?") for p in speakers.values()
+                 if isinstance(p, dict))
+    print(f"  speakers: total={len(speakers)} kinds={dict(kc)}")
+    vcat = Counter(v.get("category", "?") for v in (data.get("voice_types") or [])
+                   if isinstance(v, dict))
+    print(f"  voice_types categories: {dict(vcat)}")
     print()
 
 
@@ -357,11 +401,11 @@ def diff_against_baseline(new: dict[str, Any], baseline: dict[str, Any],
         report.err(f"dialogues: {len(regression)} response counts shrunk "
                    f"(first 5: {regression[:5]})")
 
-    base_persons = set((baseline.get("persons") or {}).keys())
-    new_persons = set((new.get("persons") or {}).keys())
-    dropped = base_persons - new_persons
+    base_speakers = set((baseline.get("speakers") or {}).keys())
+    new_speakers = set((new.get("speakers") or {}).keys())
+    dropped = base_speakers - new_speakers
     if dropped:
-        report.err(f"persons: {len(dropped)} ids dropped vs baseline "
+        report.err(f"speakers: {len(dropped)} ids dropped vs baseline "
                    f"(first 5: {list(dropped)[:5]})")
 
 
