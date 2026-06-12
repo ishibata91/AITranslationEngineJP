@@ -136,10 +136,8 @@ public sealed class WordOfPowerEntry : RecordEntry
     public required string Translation { get; init; }    // TNAM（意味の訳、翻訳対象）
 }
 
-public sealed class VoiceTypeEntry : RecordEntry
-{
-    public required string Identifier { get; init; } // EditorID
-}
+// VTYP は翻訳テキストを持たない。EditorId がそのまま識別子になる。
+public sealed class VoiceTypeEntry : RecordEntry;
 
 public sealed class RegionEntry : RecordEntry
 {

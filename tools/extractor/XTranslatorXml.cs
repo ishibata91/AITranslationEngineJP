@@ -78,9 +78,12 @@ public static class XTranslatorXml
     }
 
     // 非抽出対象を除外した比較対象だけ返す。
-    public static SortedDictionary<string, int> CountInScope(string xmlPath)
+    public static SortedDictionary<string, int> CountInScope(string xmlPath) => InScope(CountAll(xmlPath));
+
+    // CountAll の結果から非抽出対象を除外する（全件と比較対象の両方が要る時は
+    // CountAll → InScope の順で呼び、XML の再 parse を避ける）。
+    public static SortedDictionary<string, int> InScope(SortedDictionary<string, int> all)
     {
-        var all = CountAll(xmlPath);
         var inScope = new SortedDictionary<string, int>(StringComparer.Ordinal);
         foreach (var (rf, n) in all)
             if (!IsNonTarget(rf))

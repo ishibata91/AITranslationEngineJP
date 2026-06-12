@@ -83,7 +83,7 @@ if (xmlPath == null) return 0;
 
 var extracted = TranslationCounts.Flatten(result);
 var xmlAll = XTranslatorXml.CountAll(xmlPath);
-var xmlInScope = XTranslatorXml.CountInScope(xmlPath);
+var xmlInScope = XTranslatorXml.InScope(xmlAll);
 var excluded = xmlAll.Values.Sum() - xmlInScope.Values.Sum();
 var comparison = CountComparison.Build(extracted, xmlInScope, excluded);
 
