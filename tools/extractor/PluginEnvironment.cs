@@ -37,14 +37,19 @@ public sealed class PluginEnvironment : IDisposable
         var own = _dataIndexes[TargetMod.ModKey].Normalize(rec.FormKey);
         if (own == null) return true;
 
-        // どれかの master 版と一致すれば stub（HearthFires が Update と同一の INFO を
-        // 運ぶ場合など、winning 版に限らず一致した時点で「変更なし」とみなす）。
+        // 存在する全 master 版と一致する時だけ stub とする（包含側に倒す）。
+        // ある master と一致しても別の master と異なる場合（HearthFires が Update と同一の
+        // INFO を運ぶ・Dawnguard が Update の変更を Skyrim 版へ戻す等）は、load order 上で
+        // 見える text を変えうるため翻訳対象として残す。
+        var foundAny = false;
         for (var i = LoadOrder.Count - 2; i >= 0; i--)
         {
             var master = _dataIndexes[LoadOrder[i].ModKey].Normalize(rec.FormKey);
-            if (master != null && own.AsSpan().SequenceEqual(master)) return false;
+            if (master == null) continue;
+            foundAny = true;
+            if (!own.AsSpan().SequenceEqual(master)) return true; // どれかと差分 → 所有
         }
-        return true; // どの master 版とも一致しない（または master に無い）→ 所有
+        return !foundAny; // 全 master 版と一致 → stub。master に無い → 所有
     }
 
     // 抽出（翻訳元テキストの解決）は英語を既定にする。翻訳エンジンの入力は英語 mod であり、

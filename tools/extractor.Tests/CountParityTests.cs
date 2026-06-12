@@ -32,12 +32,11 @@ public class CountParityTests
         [("Update.esm", "WEAP:FULL")] = +1,
         [("Update.esm", "WEAP:DESC")] = +1,
         [("Update.esm", "CELL:FULL")] = -2, // ThalmorEmbassy04 / WinterholdCollege 系
-        // Dawnguard.esm: Breezehome / SanuarachMine（子 REFR の navmesh link 変更のみ、辞書側 ****）、
-        // ARMO 1 件（master 一致 stub と判定したが辞書側は採用）。
+        // Dawnguard.esm: Breezehome / SanuarachMine（子 REFR の navmesh link 変更のみ、辞書側 ****）。
         [("Dawnguard.esm", "CELL:FULL")] = +2,
-        [("Dawnguard.esm", "ARMO:FULL")] = -1,
-        // HearthFires.esm: Update 版と同一内容の INFO 6 件と FURN 1 件、CELL 5 件（辞書側は採用）。
-        [("HearthFires.esm", "INFO:NAM1")] = -6,
+        // HearthFires.esm: record・子・text すべて master と完全同一の cell 5 件と FURN 1 件を
+        // 辞書側だけが採用している（同セッションの Dawnguard では同型を非対象にしており揺れ）。
+        // record 自体は stub として抽出済みで、翻訳は master 辞書側で解決できる。
         [("HearthFires.esm", "CELL:FULL")] = -5,
         [("HearthFires.esm", "FURN:FULL")] = -1,
         // Dragonborn.esm: DA04（script + 条件 + 再 string、辞書側 ****）、CELL 1 件。

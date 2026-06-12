@@ -95,3 +95,22 @@
 - 検証: dotnet test tools/extractor.Tests → 11/11 通過（件数比較 6 + 意味検証 5）。
 - 残留リスク: 既知差分 65 strings は xTranslator 辞書側の帰属揺れ。抽出を変えた場合は
   KnownDeltas 表の検証が fail して検知される。
+
+## 追補（2026-06-12、人間指摘による改善）
+
+指摘: 「翻訳が違うのは許容できるが、record が出せないのは問題」。
+
+対応:
+1. stub 判定を「存在する全 master 版と一致する時だけ stub」へ緩和した。
+   ある master と一致しても別の master と異なる record（HearthFires が Update と同一の INFO を
+   運ぶ、Dawnguard が Update の変更を Skyrim 版へ戻す等）は所有として扱う。
+   これで不足 16 strings 中 7 strings（INFO 6 + ARMO 1）が解消した。
+2. CELL の container 規則に navmesh / 地形（NAVM / LAND）の所有子も含めた。
+3. record と翻訳所有を分離した。stub（master と同一内容の override）も全 record を
+   モデルへ出力し、`IdenticalToMaster` フラグで翻訳対象から除外する。
+   「レコードが出せない」状態は構造的に存在しなくなった。
+
+残る既知差分は 58 strings。うち件数不足側は 9 strings（HearthFires の cell 5 + 家具 1、
+Update の cell 3）で、いずれも record・子・text が master と完全同一の運搬用 copy。
+record は stub として抽出済みで、text は master の辞書で解決できるため、翻訳の取りこぼしは無い。
+検証: dotnet test 12/12 通過（stub 不変条件テストを追加）。

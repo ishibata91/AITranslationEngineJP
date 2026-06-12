@@ -57,6 +57,20 @@ public class ModelInvariantTests
     }
 
     [Fact]
+    public void stubのrecordはモデルに出るが翻訳対象に数えない()
+    {
+        var r = Dawnguard;
+        // DialogueFollowerWaitTopic は Skyrim と同一内容の運搬用 override（stub）。
+        // record としては出す（レコードが出せない状態を作らない）が、翻訳対象には数えない。
+        var stub = r.Dialogues.FirstOrDefault(d => d.EditorId == "DialogueFollowerWaitTopic");
+        Assert.NotNull(stub);
+        Assert.True(stub!.IdenticalToMaster);
+        Assert.True(stub.Name.Length > 0);
+        Assert.DoesNotContain(TranslationCounts.Enumerate(r),
+            s => s.RecField == "DIAL:FULL" && s.EditorId == "DialogueFollowerWaitTopic");
+    }
+
+    [Fact]
     public void 龍語綴りは翻訳対象に数えない()
     {
         var counts = TranslationCounts.Flatten(Dawnguard);
