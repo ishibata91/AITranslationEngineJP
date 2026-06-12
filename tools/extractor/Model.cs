@@ -47,6 +47,13 @@ public abstract class RecordEntry
     // master と同一内容の override（参照用 stub）。record としては出すが、
     // 翻訳所有は master 側にあるため、この plugin の翻訳対象には数えない。
     public bool IdenticalToMaster { get; init; }
+    // プレイヤーに表示されないと推定される text を持つ record の hint。
+    // 対象: journal 文（CNAM/NNAM）を持たないクエスト名（script / scene 制御用）、
+    // HideInUI flag の MGEF、NonPlayable flag の装備（WEAP/ARMO/AMMO）。
+    // xTranslator 辞書はこれらも翻訳対象に数えるため件数比較には影響させず、
+    // 読み込み側（翻訳エンジン）が翻訳要否の判断に使う。QUST は構造からの推定で
+    // あり確定情報ではないため、除外ではなく hint として持つ。
+    public bool NotPlayerFacing { get; init; }
 }
 
 // FULL のみ持つ record（item / location / SNCT / EYES）。

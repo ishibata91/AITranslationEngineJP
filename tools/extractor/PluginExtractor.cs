@@ -215,6 +215,9 @@ public static class PluginExtractor
                 Stages = stages,
                 Objectives = objectives,
                 IdenticalToMaster = !env.OwnsRecord(quest),
+                // journal 文（log entry / objective）が無いクエストの FULL は画面に出ない
+                //（journal 表示には CNAM か NNAM が必要）。script / scene 制御用と推定する。
+                NotPlayerFacing = stages.Count == 0 && objectives.Count == 0,
             });
         }
 
@@ -274,15 +277,19 @@ public static class PluginExtractor
         foreach (var a in mod.Trees)
             AddActivator(result, a.FormKey, Edid(a), "TREE", S(a.Name), "", !env.OwnsRecord(a));
 
-        // Equipment（FULL + DESC + EITM）: WEAP/ARMO/AMMO
+        // Equipment（FULL + DESC + EITM）: WEAP/ARMO/AMMO。
+        // NonPlayable flag の装備は inventory に出ない（NPC 専用 skin 等）。
         foreach (var w in mod.Weapons)
             AddDescribed(result.Equipment, w.FormKey, Edid(w), "WEAP", S(w.Name), S(w.Description), !env.OwnsRecord(w),
-                enchantmentId: w.ObjectEffect.IsNull ? null : w.ObjectEffect.FormKey);
+                enchantmentId: w.ObjectEffect.IsNull ? null : w.ObjectEffect.FormKey,
+                notPlayerFacing: w.MajorFlags.HasFlag(Weapon.MajorFlag.NonPlayable));
         foreach (var a in mod.Armors)
             AddDescribed(result.Equipment, a.FormKey, Edid(a), "ARMO", S(a.Name), S(a.Description), !env.OwnsRecord(a),
-                enchantmentId: a.ObjectEffect.IsNull ? null : a.ObjectEffect.FormKey);
+                enchantmentId: a.ObjectEffect.IsNull ? null : a.ObjectEffect.FormKey,
+                notPlayerFacing: a.MajorFlags.HasFlag(Armor.MajorFlag.NonPlayable));
         foreach (var a in mod.Ammunitions)
-            AddDescribed(result.Equipment, a.FormKey, Edid(a), "AMMO", S(a.Name), S(a.Description), !env.OwnsRecord(a));
+            AddDescribed(result.Equipment, a.FormKey, Edid(a), "AMMO", S(a.Name), S(a.Description), !env.OwnsRecord(a),
+                notPlayerFacing: a.Flags.HasFlag(Ammunition.Flag.NonPlayable));
 
         // 参照所有: 所有された SPEL / ENCH / 消耗品の Effects が参照する MGEF は
         // record 不変でも対象になる（xTranslator の実測挙動。AbFXDwarvenSpider で確認）。
@@ -333,8 +340,10 @@ public static class PluginExtractor
                 IdenticalToMaster = !owned,
             });
         }
+        // HideInUI flag の MGEF は effect 名も説明も UI に出ない。
         foreach (var m in mod.MagicEffects)
-            AddDescribed(result.MagicEffects, m.FormKey, Edid(m), "MGEF", S(m.Name), S(m.Description), !env.OwnsRecord(m));
+            AddDescribed(result.MagicEffects, m.FormKey, Edid(m), "MGEF", S(m.Name), S(m.Description), !env.OwnsRecord(m),
+                notPlayerFacing: m.Flags.HasFlag(MagicEffect.Flag.HideInUI));
 
         // Shout + Word of Power
         foreach (var sh in mod.Shouts)
@@ -502,14 +511,15 @@ public static class PluginExtractor
     }
 
     private static void AddDescribed(List<DescribedEntry> list, FormKey id, string edid, string kind,
-        string name, string desc, bool identicalToMaster, List<FormKey>? effects = null, FormKey? enchantmentId = null)
+        string name, string desc, bool identicalToMaster, List<FormKey>? effects = null, FormKey? enchantmentId = null,
+        bool notPlayerFacing = false)
     {
         if (!Any(name, desc)) return;
         list.Add(new DescribedEntry
         {
             Id = id, EditorId = edid, Kind = kind, Name = name, Description = desc,
             MagicEffectIds = effects ?? [], EnchantmentId = enchantmentId,
-            IdenticalToMaster = identicalToMaster,
+            IdenticalToMaster = identicalToMaster, NotPlayerFacing = notPlayerFacing,
         });
     }
 
