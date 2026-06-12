@@ -1,3 +1,0 @@
-{"category":"transcript","source":"transcript_refs.json","finding":"会話ログ実体の参照先を特定できず、transcript_refs.json を missing にした","action":"next_prompt"}
-{"category":"validation","source":"implementation-progress.md","finding":"coverage 再実行で Sonar maintainability HIGH issue を解消する影響範囲修正が必要だった","action":"next_prompt"}
-{"category":"boundary","source":"reviewback.responsibility-boundary.yaml","finding":"provider settings service に横断 provider log helper と persona generation 固有変換の同居が minor として残った","action":"next_prompt"}

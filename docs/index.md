@@ -9,7 +9,7 @@ backend は `greenfield-reset` task（2026-06-06）で削減済み。新 archite
 
 1. [`core-beliefs.md`](./core-beliefs.md)
 2. [`spec.md`](./spec.md)
-3. [`conceptual-model.md`](./conceptual-model.md)
+3. [`skyrim-structure-model.md`](./skyrim-structure-model.md)
 4. [`architecture.md`](./architecture.md)
 5. [`tech-selection.md`](./tech-selection.md)
 6. [`coding-guidelines.md`](./coding-guidelines.md)
@@ -25,7 +25,7 @@ backend は `greenfield-reset` task（2026-06-06）で削減済み。新 archite
 
 - [`core-beliefs.md`](./core-beliefs.md): repo の長期原則と記録方針
 - [`spec.md`](./spec.md): 恒久要件と用語集
-- [`conceptual-model.md`](./conceptual-model.md): Skyrim 世界を翻訳判定 context で再分類した概念モデル
+- [`skyrim-structure-model.md`](./skyrim-structure-model.md): Skyrim 世界を翻訳判定 context で再分類した Skyrim 構造体モデル
 - [`architecture.md`](./architecture.md): 層構成、transport boundary、依存方向の骨格
 - [`tech-selection.md`](./tech-selection.md): 採用技術と品質基盤
 - [`coding-guidelines.md`](./coding-guidelines.md): 実装規約の入口
@@ -44,7 +44,7 @@ backend は `greenfield-reset` task（2026-06-06）で削減済み。新 archite
 ## Choose The Right Record
 
 - Requirement or product boundary changed: update [`spec.md`](./spec.md)
-- 概念モデル（class、関連、関連端）が変わった場合: [`conceptual-model.md`](./conceptual-model.md) を更新する
+- Skyrim 構造体モデル（class、関連、関連端）が変わった場合: [`skyrim-structure-model.md`](./skyrim-structure-model.md) を更新する
 - Dependency rule or layering changed: update [`architecture.md`](./architecture.md)
 - Technology decision changed: update [`tech-selection.md`](./tech-selection.md)
 - 実装規約が変わった場合: [`coding-guidelines.md`](./coding-guidelines.md) と対応する分割文書を更新する

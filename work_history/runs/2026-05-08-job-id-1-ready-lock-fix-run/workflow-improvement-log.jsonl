@@ -1,1 +1,0 @@
-{"task_id":"2026-05-08-job-id-1-ready-lock-fix","category":"workflow","severity":"medium","finding":"agent thread limit と既存 dev server port 衝突が作業中の改善候補になった","next_action":"run 開始時に dev server の占有状況と thread 上限を先に確認する","evidence":"human-observation.md / regression-test-evidence.md / browser-confirmation-result.md"}

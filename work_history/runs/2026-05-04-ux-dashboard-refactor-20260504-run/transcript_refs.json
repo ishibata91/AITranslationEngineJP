@@ -1,6 +1,0 @@
-{
-  "status": "missing",
-  "reason": "transcript path が未提供のため、参照元会話ログを特定できない。",
-  "transcript_path": null,
-  "runtime": null
-}

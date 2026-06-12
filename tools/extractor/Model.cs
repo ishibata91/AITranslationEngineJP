@@ -2,7 +2,7 @@ using Mutagen.Bethesda.Plugins;
 
 namespace Extractor;
 
-// 概念モデル v19（docs/conceptual-model.md）に対応する抽出結果モデル。
+// Skyrim 構造体モデル v19（docs/skyrim-structure-model.md）に対応する抽出結果モデル。
 // plugin 単位列挙のため、全 entry の source は target plugin になる（field としては持たない）。
 // 参照は FormKey で保持し、参照先本体が target plugin に無い場合は ID のみ残る（dangling 許容）。
 

@@ -4,12 +4,12 @@
 
 この文書は、単語翻訳フェーズの単語対象レコードと周辺候補を整理する。
 単語対象は、過去プロジェクト由来の一覧を根拠に固定する。
-辞書項目数と現行抽出有無は、`dictionaries/dawnguard_english_japanese.xml` と `extractData.pas` を根拠にする。
+辞書項目数と現行抽出有無は、`dictionaries/dawnguard_english_japanese.xml` と `tools/extractor` を根拠にする。
 
 ## 調査対象
 
 - `dictionaries/dawnguard_english_japanese.xml` は、`REC` に辞書側のレコード種別とフィールド名を持つ。
-- `extractData.pas` は、出力 JSON の `type` に抽出側のレコード種別とフィールド名を持つ。
+- `tools/extractor` は、出力 JSON の `type` に抽出側のレコード種別とフィールド名を持つ。
 - 辞書側の `REC` は `NPC_:FULL` の形式で表す。
 - 抽出側の `type` は `NPC_ FULL` の形式で出力されるが、この文書では比較のため `NPC_:FULL` の形式へ読み替える。
 
@@ -44,8 +44,8 @@ XML 辞書取り込みでも同様に対象外である。
 
 ## 現行抽出上の翻訳対象
 
-`extractData.pas` に出力処理があり、単語対象 13 種別に含まれない種別は翻訳対象とする。
-`SLGM:FULL` は `extractData.pas` に出力処理があるが、`dictionaries/dawnguard_english_japanese.xml` には実例がない。
+`tools/extractor` に出力処理があり、単語対象 13 種別に含まれない種別は翻訳対象とする。
+`SLGM:FULL` は `tools/extractor` に出力処理があるが、`dictionaries/dawnguard_english_japanese.xml` には実例がない。
 
 | `REC` | 抽出元 | 扱い |
 | --- | --- | --- |
@@ -86,7 +86,7 @@ XML 辞書取り込みでも同様に対象外である。
 - 過去プロジェクト由来の一覧から、辞書にする価値がある 13 種別を単語対象とする。
 - `NPC_:SHRT` と `RACE:FULL` は、名称の再利用価値があるため単語対象とする。
 - `DOOR:FULL`、`FLOR:FULL`、`FURN:FULL` は、単語翻訳フェーズと XML 辞書取り込みの対象外とする。翻訳入力に出現する場合は後続の本文翻訳フェーズの対象範囲に委ねる。
-- `extractData.pas` に出力処理があり、単語対象 13 種別に含まれない種別は翻訳対象とする。
+- `tools/extractor` に出力処理があり、単語対象 13 種別に含まれない種別は翻訳対象とする。
 - `FULL` は、表示名、場所名、アイテム名、種族名、シャウト名を含む場合でも、単語対象一覧にない種別は単語対象外とする。
 - `SHRT` は、`NPC_:SHRT` だけを単語対象とする。
 - `DESC`、`NAM1`、`CNAM`、`NNAM` は、説明文、会話本文、クエスト本文を含むため本文対象候補とする。
@@ -167,13 +167,13 @@ XML 辞書取り込みでも同様に対象外である。
 
 ## 現行抽出から見える不足候補
 
-`extractData.pas` は、単語対象 13 種別を現行出力に含める。
+`tools/extractor` は、単語対象 13 種別を現行出力に含める。
 追加 5 種別のうち、`NPC_:SHRT` と `RACE:FULL` は単語対象として現行出力に含める。
-追加 5 種別のうち、`DOOR:FULL`、`FLOR:FULL`、`FURN:FULL` は `extractData.pas` が出力に含めるが、単語翻訳フェーズと XML 辞書取り込みの対象外である。
+追加 5 種別のうち、`DOOR:FULL`、`FLOR:FULL`、`FURN:FULL` は `tools/extractor` が出力に含めるが、単語翻訳フェーズと XML 辞書取り込みの対象外である。
 
 ## 実装判断で確認すること
 
 - 単語翻訳フェーズは、単語対象 13 種別だけを対象にする。
-- `extractData.pas` に出力処理があり、単語対象 13 種別に含まれない種別は翻訳対象へ寄せる。
-- `NPC_:SHRT` と `RACE:FULL` は単語対象として `extractData.pas` に追加済みである。
-- `DOOR:FULL`、`FLOR:FULL`、`FURN:FULL` は翻訳対象として `extractData.pas` に追加済みである。
+- `tools/extractor` に出力処理があり、単語対象 13 種別に含まれない種別は翻訳対象へ寄せる。
+- `NPC_:SHRT` と `RACE:FULL` は単語対象として `tools/extractor` に追加済みである。
+- `DOOR:FULL`、`FLOR:FULL`、`FURN:FULL` は翻訳対象として `tools/extractor` に追加済みである。

@@ -1,7 +1,0 @@
-{
-  "status": "missing",
-  "reason": "親セッションから transcript を自動抽出できなかったため、会話参照を採取できない。",
-  "runtime": "codex",
-  "session_scope": "unknown",
-  "transcript_path": null
-}

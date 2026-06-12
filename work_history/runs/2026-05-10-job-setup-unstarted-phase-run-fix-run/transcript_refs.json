@@ -1,9 +1,0 @@
-{
-  "task_id": "2026-05-10-job-setup-unstarted-phase-run-fix",
-  "status": "missing",
-  "reason": "run 内で固定された transcript_refs.json は見つからなかったため、参照元は task-local artifact と review/back evidence に限定した。",
-  "notes": [
-    "会話ログ参照の正本は未作成。",
-    "改善ログ jsonl も run 内に未作成。"
-  ]
-}

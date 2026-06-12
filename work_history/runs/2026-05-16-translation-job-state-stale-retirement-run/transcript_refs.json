@@ -1,9 +1,0 @@
-{
-  "status": "partial",
-  "runtime": "codex",
-  "transcript_path": "current Codex thread",
-  "notes": [
-    "Exported transcript file was not available during this run.",
-    "Relevant human feedback is recorded in workflow-improvement-log.jsonl."
-  ]
-}

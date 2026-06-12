@@ -1,2 +1,0 @@
-{"task_id":"2026-05-08-translation-flow-navigation-overhaul","category":"validation","severity":"medium","finding":"coverage gate が Sonar reliability 1 件で一度失敗した","next_action":"backend 修正後に coverage を再実行し、失敗理由と再実行結果を run report に残す","evidence":"test-results/coverage-manifest.json"}
-{"task_id":"2026-05-08-translation-flow-navigation-overhaul","category":"workflow","severity":"low","finding":"初回 browser 確認で stale dev server の影響が疑われた","next_action":"browser 確認前に dev server の鮮度と再接続条件を先に固定する","evidence":"tmp/agent-browser/translation-management-direct-link.snapshot.txt"}

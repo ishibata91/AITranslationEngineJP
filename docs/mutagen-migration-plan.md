@@ -25,7 +25,7 @@
 1. **plugin 単位列挙**: `env.LoadOrder[targetModKey].Mod.<Records>` で、対象 plugin がそのファイルに書いた版（新規 + override）を出す。**`WinningOverrides()` は使わない**。xTranslator は plugin 単位で翻訳するため、load order 全体で勝った版ではなく、その plugin が書いた版が要る。
 2. **source = その plugin**: plugin 単位列挙そのものが source の意味になる。純 master（対象 plugin が触っていない record）は `Mod.<Records>` に現れないので自然に除外される（Pascal 版の EnsureガードA と同じ効果）。
 3. **参照解決**: FormLink は `env.LinkCache` で解決する。ただし出力するのは ID（FormID、版非依存）と、対象 plugin が含む本体のみ。参照先が純 master なら ID だけ残し、本体は出さない（翻訳時に元 plugin の辞書で解決する想定）。
-4. **概念モデル v19 に従う**: 正本は [conceptual-model.md](conceptual-model.md)。会話は Dialogue → InfoNode（INFO）→ ResponseLine（NAM1）の 2 階層。Player は固定モデルで抽出対象外（ペルソナはユーザーが翻訳設定として与える）。話者は InfoNode 単位で解決する。
+4. **Skyrim 構造体モデル v19 に従う**: 正本は [skyrim-structure-model.md](skyrim-structure-model.md)。会話は Dialogue → InfoNode（INFO）→ ResponseLine（NAM1）の 2 階層。Player は固定モデルで抽出対象外（ペルソナはユーザーが翻訳設定として与える）。話者は InfoNode 単位で解決する。
 5. **JSON schema**: `scripts/validate_extraction.py` が schema を、`scripts/compare_counts.py` が件数を検証する。**まず現行 schema 互換で移植し、compare で Dawnguard +0 を再現**してから、v19 の 2 階層化（InfoNode / ResponseLine 分離）に進む。現行 Pascal 版は INFO 単位属性を NAM1 行に複製しているので、互換移植の次に 2 階層へ直す。
 6. **翻訳対象 / 非対象** は §6・§7 のとおり。
 
@@ -119,7 +119,7 @@ Speaker（NPC_/TACT）のペルソナ名解決順: (1) 自身の FULL、(2) TPLT
 
 ## 10. 参照ファイル
 
-- [conceptual-model.md](conceptual-model.md): v19 概念モデル（抽出仕様の正本）。
+- [skyrim-structure-model.md](skyrim-structure-model.md): v19 Skyrim 構造体モデル（抽出仕様の正本）。
 - `extractData.v2.pas`: xEdit Pascal 版。移植元ロジック（話者解決・条件・emit 条件・FULL 空対応の実装が全部入っている）。
 - `scripts/compare_counts.py`: JSON vs xTranslator XML の件数比較（翻訳対象・非対象・source フィルタ・ユニーク化の正）。
 - `scripts/validate_extraction.py`: JSON schema 検証（REQUIRED_FIELDS の正）。

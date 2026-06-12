@@ -1,6 +1,0 @@
-{
-  "status": "missing",
-  "reason": "この実行環境では transcript path を特定できなかったため、会話ログ参照一覧は未作成。",
-  "task_id": "2026-05-06-job-setup-input-cards",
-  "run_folder": "work_history/runs/2026-05-06-job-setup-input-cards-run/"
-}

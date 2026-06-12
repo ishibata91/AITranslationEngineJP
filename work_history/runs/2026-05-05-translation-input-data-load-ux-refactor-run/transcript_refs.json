@@ -1,7 +1,0 @@
-{
-  "status": "missing",
-  "reason": "親セッションから transcript を自動抽出できなかったため、会話ログ参照の正本を作成できない。",
-  "runtime": "unknown",
-  "session_scope": "unknown",
-  "transcript_path": null
-}

@@ -1,8 +1,0 @@
-{
-  "schema_version": 1,
-  "task_id": "translation-output-artifact",
-  "runtime": "codex",
-  "status": "missing",
-  "sessions": [],
-  "missing_reason": "Current run transcript path was not available from the execution environment at closeout."
-}
