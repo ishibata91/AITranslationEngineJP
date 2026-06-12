@@ -22,8 +22,12 @@ public static class TranslationCounts
     {
         var list = new List<TranslationString>();
 
-        void Add(string recField, RecordEntry entry, string text) =>
+        void Add(string recField, RecordEntry entry, string text)
+        {
+            // stub（master と同一内容の override）は record として出すが翻訳対象に数えない。
+            if (entry.IdenticalToMaster) return;
             AddRaw(recField, entry.Id, entry.EditorId, text);
+        }
 
         void AddRaw(string recField, FormKey id, string editorId, string text)
         {
@@ -36,10 +40,10 @@ public static class TranslationCounts
 
         foreach (var dlg in r.Dialogues)
         {
-            // ITM の topic は INFO の container として残るだけで、FULL は master 側の翻訳対象。
-            if (!dlg.IdenticalToMaster) Add("DIAL:FULL", dlg, dlg.Name);
+            Add("DIAL:FULL", dlg, dlg.Name);
             foreach (var info in dlg.Infos)
             {
+                if (info.IdenticalToMaster) continue; // stub INFO は数えない
                 AddRaw("INFO:RNAM", info.Id, info.EditorId, info.Prompt);
                 foreach (var resp in info.Responses)
                     AddRaw("INFO:NAM1", info.Id, info.EditorId, resp.Text);

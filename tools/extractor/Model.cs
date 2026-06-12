@@ -44,6 +44,9 @@ public abstract class RecordEntry
     public required string EditorId { get; init; }
     // REC base（"WEAP" 等）。flatten 時の REC:FIELD 構築に使う。
     public required string Kind { get; init; }
+    // master と同一内容の override（参照用 stub）。record としては出すが、
+    // 翻訳所有は master 側にあるため、この plugin の翻訳対象には数えない。
+    public bool IdenticalToMaster { get; init; }
 }
 
 // FULL のみ持つ record（item / location / SNCT / EYES）。
@@ -156,9 +159,6 @@ public sealed class DialogueTopic : RecordEntry
     public required string Category { get; init; }
     public required string Subtype { get; init; }
     public FormKey? QuestId { get; init; }
-    // topic record 自体が master と同一内容（ITM override）。INFO の container として残すが、
-    // FULL はこの plugin の翻訳対象に数えない（master 側の辞書が持つ）。
-    public bool IdenticalToMaster { get; init; }
     public List<InfoNode> Infos { get; init; } = [];
 }
 
@@ -166,6 +166,8 @@ public sealed class InfoNode
 {
     public required FormKey Id { get; init; }
     public required string EditorId { get; init; }
+    // master と同一内容の override（stub）。翻訳対象に数えない。
+    public bool IdenticalToMaster { get; init; }
     public required string Prompt { get; init; }      // RNAM（プレイヤー選択肢の条件別上書き）
     public List<ResponseLine> Responses { get; init; } = [];
     // 話者解決（r2a〜d）: 名指し / 派閥 / 種族 / 声型。
