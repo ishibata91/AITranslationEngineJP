@@ -79,7 +79,53 @@ public static class PluginExtractor
 
     private static InfoNode ExtractInfoNode(PluginEnvironment env, IDialogTopicGetter topic, IDialogResponsesGetter info)
     {
-        var node = new InfoNode
+        // r2a: 名指し話者。ANAM、GetIsID（NPC_/TACT）、GetIsAliasRef（quest alias の ALFR/ALUA）。
+        var speakerIds = new List<FormKey>();
+        var factionIds = new List<FormKey>();
+        var raceIds = new List<FormKey>();
+        var voiceTypeIds = new List<FormKey>();
+
+        if (!info.Speaker.IsNull)
+            speakerIds.Add(info.Speaker.FormKey);
+
+        foreach (var cond in info.Conditions)
+        {
+            // 否定形（GetIsID X == 0 等）は「X ではない」の主張なので話者解決に採用しない。
+            if (!AssertsTrue(cond)) continue;
+            switch (cond.Data)
+            {
+                case IGetIsIDConditionDataGetter d:
+                {
+                    var key = d.Object.Link.FormKey;
+                    if (env.LinkCache.TryResolve<INpcGetter>(key, out _) ||
+                        env.LinkCache.TryResolve<ITalkingActivatorGetter>(key, out _))
+                        speakerIds.Add(key);
+                    break;
+                }
+                case IGetIsAliasRefConditionDataGetter d:
+                {
+                    var actor = ResolveAliasActor(env, topic, d.ReferenceAliasIndex);
+                    if (actor != null) speakerIds.Add(actor.Value);
+                    break;
+                }
+                case IGetInFactionConditionDataGetter d:
+                    factionIds.Add(d.Faction.Link.FormKey);
+                    break;
+                case IGetIsRaceConditionDataGetter d:
+                    raceIds.Add(d.Race.Link.FormKey);
+                    break;
+                case IGetIsVoiceTypeConditionDataGetter d:
+                {
+                    // VTYP 直指定だけ採用する（FLST 指定はプール扱いで対象外、Pascal 版と同じ）。
+                    var key = d.VoiceTypeOrList.Link.FormKey;
+                    if (env.LinkCache.TryResolve<IVoiceTypeGetter>(key, out _))
+                        voiceTypeIds.Add(key);
+                    break;
+                }
+            }
+        }
+
+        return new InfoNode
         {
             Id = info.FormKey,
             EditorId = Edid(info),
@@ -89,51 +135,32 @@ public static class PluginExtractor
                 .Select(r => new ResponseLine(r.ResponseNumber, S(r.Text)))
                 .Where(r => r.Text.Length > 0)
                 .ToList(),
+            // 同じ対象が ANAM と条件の両方から来ても 1 回だけ持つ（重複排除）。
+            SpeakerIds = speakerIds.Distinct().ToList(),
+            FactionIds = factionIds.Distinct().ToList(),
+            RaceIds = raceIds.Distinct().ToList(),
+            VoiceTypeIds = voiceTypeIds.Distinct().ToList(),
             PreviousId = info.PreviousDialog.IsNull ? null : info.PreviousDialog.FormKey,
             NextIds = info.LinkTo.Where(l => !l.IsNull).Select(l => l.FormKey).ToList(),
             Conditions = info.Conditions.Select(BuildCondition).ToList(),
         };
+    }
 
-        // r2a: 名指し話者。ANAM、GetIsID（NPC_/TACT）、GetIsAliasRef（quest alias の ALFR/ALUA）。
-        if (!info.Speaker.IsNull)
-            node.SpeakerIds.Add(info.Speaker.FormKey);
-
-        foreach (var cond in info.Conditions)
+    // 条件が「関数が真（=1）」を主張しているか。boolean 関数の否定は比較値で表現される
+    //（GetIsID X == 0 は「X ではない」）。global 値との比較は静的に評価できないため
+    // 真の主張として扱う（従来挙動の維持）。
+    private static bool AssertsTrue(IConditionGetter cond)
+    {
+        if (cond is not IConditionFloatGetter f) return true;
+        return cond.CompareOperator switch
         {
-            switch (cond.Data)
-            {
-                case IGetIsIDConditionDataGetter d:
-                {
-                    var key = d.Object.Link.FormKey;
-                    if (env.LinkCache.TryResolve<INpcGetter>(key, out _) ||
-                        env.LinkCache.TryResolve<ITalkingActivatorGetter>(key, out _))
-                        node.SpeakerIds.Add(key);
-                    break;
-                }
-                case IGetIsAliasRefConditionDataGetter d:
-                {
-                    var actor = ResolveAliasActor(env, topic, d.ReferenceAliasIndex);
-                    if (actor != null) node.SpeakerIds.Add(actor.Value);
-                    break;
-                }
-                case IGetInFactionConditionDataGetter d:
-                    node.FactionIds.Add(d.Faction.Link.FormKey);
-                    break;
-                case IGetIsRaceConditionDataGetter d:
-                    node.RaceIds.Add(d.Race.Link.FormKey);
-                    break;
-                case IGetIsVoiceTypeConditionDataGetter d:
-                {
-                    // VTYP 直指定だけ採用する（FLST 指定はプール扱いで対象外、Pascal 版と同じ）。
-                    var key = d.VoiceTypeOrList.Link.FormKey;
-                    if (env.LinkCache.TryResolve<IVoiceTypeGetter>(key, out _))
-                        node.VoiceTypeIds.Add(key);
-                    break;
-                }
-            }
-        }
-
-        return node;
+            CompareOperator.EqualTo => f.ComparisonValue != 0,
+            CompareOperator.NotEqualTo => f.ComparisonValue == 0,
+            CompareOperator.GreaterThan => f.ComparisonValue is >= 0 and < 1,
+            CompareOperator.GreaterThanOrEqualTo => f.ComparisonValue is > 0 and <= 1,
+            // LessThan / LessThanOrEqualTo は「真の時だけ通る」形にならない。
+            _ => false,
+        };
     }
 
     // quest alias index から ALFR（forced reference → base NPC）/ ALUA（unique actor）を解決する。
@@ -170,7 +197,8 @@ public static class PluginExtractor
         };
         var value = cond switch
         {
-            IConditionFloatGetter f => f.ComparisonValue.ToString("0.######"),
+            // locale の小数点記号に依存しない表記に固定する。
+            IConditionFloatGetter f => f.ComparisonValue.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture),
             IConditionGlobalGetter g => g.ComparisonValue.FormKey.ToString(),
             _ => "",
         };

@@ -1,4 +1,5 @@
 using Extractor;
+using Mutagen.Bethesda.Plugins;
 using Xunit;
 
 namespace Extractor.Tests;
@@ -53,7 +54,29 @@ public class ModelInvariantTests
             Assert.All(info.FactionIds, k => Assert.False(k.IsNull));
             Assert.All(info.RaceIds, k => Assert.False(k.IsNull));
             Assert.All(info.VoiceTypeIds, k => Assert.False(k.IsNull));
+            // 解決された ID list に重複を持たない（ANAM と条件が同じ対象を指す場合も 1 回）。
+            Assert.Equal(info.SpeakerIds.Count, info.SpeakerIds.Distinct().Count());
+            Assert.Equal(info.FactionIds.Count, info.FactionIds.Distinct().Count());
         }
+    }
+
+    [Fact]
+    public void 話者解決は否定条件を採用しない()
+    {
+        var r = Dawnguard;
+        // DLC1LD_KatriaHit は「GetIsID Player == 0（Player ではない）」条件を持つ。
+        // 否定形は話者の主張ではないため、Player が SpeakerIds に混入しないこと。
+        // 実話者 Katria は引き続き解決されること。
+        var player = FormKey.Factory("000007:Skyrim.esm");
+        var katria = FormKey.Factory("004D0C:Dawnguard.esm");
+        var katriaHit = Assert.Single(r.Dialogues, d => d.EditorId == "DLC1LD_KatriaHit");
+        Assert.All(katriaHit.Infos, i => Assert.DoesNotContain(player, i.SpeakerIds));
+        Assert.Contains(katriaHit.Infos, i => i.SpeakerIds.Contains(katria));
+
+        // 正例: GetIsID == 1 の名指し（DA04 の Urag gro-Shub）は引き続き解決される。
+        var urag = FormKey.Factory("01C193:Skyrim.esm");
+        var lorekeeper = Assert.Single(r.Dialogues, d => d.EditorId == "DA04LorekeeperGoGetBooks");
+        Assert.Contains(lorekeeper.Infos, i => i.SpeakerIds.Contains(urag));
     }
 
     [Fact]
