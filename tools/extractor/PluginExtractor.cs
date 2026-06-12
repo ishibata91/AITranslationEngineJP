@@ -291,52 +291,29 @@ public static class PluginExtractor
             AddDescribed(result.Equipment, a.FormKey, Edid(a), "AMMO", S(a.Name), S(a.Description), !env.OwnsRecord(a),
                 notPlayerFacing: a.Flags.HasFlag(Ammunition.Flag.NonPlayable));
 
-        // 参照所有: 所有された SPEL / ENCH / 消耗品の Effects が参照する MGEF は
-        // record 不変でも対象になる（xTranslator の実測挙動。AbFXDwarvenSpider で確認）。
-        var ownedMgefs = new HashSet<FormKey>();
-
-        // Consumable（FULL + DESC + Effects）: ALCH/SCRL/INGR
+        // Consumable（FULL + DESC + Effects）: ALCH/SCRL/INGR。
+        // Effects は翻訳エンジン側の参照グラフ用。MGEF の翻訳所有は record data の
+        // 正規化比較（OwnsRecord）だけで件数一致が成立し、参照経由の特別扱いは不要
+        //（KnownDeltas 表が監視している）。
         foreach (var c in mod.Ingestibles)
-        {
-            var owned = env.OwnsRecord(c);
-            var effects = Effects(c.Effects);
-            if (owned) ownedMgefs.UnionWith(effects);
-            AddDescribed(result.Consumables, c.FormKey, Edid(c), "ALCH", S(c.Name), S(c.Description), !owned, effects);
-        }
+            AddDescribed(result.Consumables, c.FormKey, Edid(c), "ALCH", S(c.Name), S(c.Description), !env.OwnsRecord(c), Effects(c.Effects));
         foreach (var c in mod.Scrolls)
-        {
-            var owned = env.OwnsRecord(c);
-            var effects = Effects(c.Effects);
-            if (owned) ownedMgefs.UnionWith(effects);
-            AddDescribed(result.Consumables, c.FormKey, Edid(c), "SCRL", S(c.Name), S(c.Description), !owned, effects);
-        }
+            AddDescribed(result.Consumables, c.FormKey, Edid(c), "SCRL", S(c.Name), S(c.Description), !env.OwnsRecord(c), Effects(c.Effects));
         foreach (var c in mod.Ingredients)
-        {
-            var owned = env.OwnsRecord(c);
-            var effects = Effects(c.Effects);
-            if (owned) ownedMgefs.UnionWith(effects);
-            AddDescribed(result.Consumables, c.FormKey, Edid(c), "INGR", S(c.Name), "", !owned, effects);
-        }
+            AddDescribed(result.Consumables, c.FormKey, Edid(c), "INGR", S(c.Name), "", !env.OwnsRecord(c), Effects(c.Effects));
 
         // Magic / Enchantment / MagicEffect
         foreach (var s in mod.Spells)
-        {
-            var owned = env.OwnsRecord(s);
-            var effects = Effects(s.Effects);
-            if (owned) ownedMgefs.UnionWith(effects);
-            AddDescribed(result.Magic, s.FormKey, Edid(s), "SPEL", S(s.Name), S(s.Description), !owned, effects);
-        }
+            AddDescribed(result.Magic, s.FormKey, Edid(s), "SPEL", S(s.Name), S(s.Description), !env.OwnsRecord(s), Effects(s.Effects));
         foreach (var e in mod.ObjectEffects)
         {
             var owned = env.OwnsRecord(e);
-            var effects = Effects(e.Effects);
-            if (owned) ownedMgefs.UnionWith(effects);
             // 所有 ENCH は名前空でも emit する（装備品付与で意味を持つ。Pascal 版と同じ）。
             if (!owned && S(e.Name).Length == 0) continue;
             result.Enchantments.Add(new DescribedEntry
             {
                 Id = e.FormKey, EditorId = Edid(e), Kind = "ENCH",
-                Name = S(e.Name), Description = "", MagicEffectIds = effects,
+                Name = S(e.Name), Description = "", MagicEffectIds = Effects(e.Effects),
                 IdenticalToMaster = !owned,
             });
         }
@@ -463,7 +440,7 @@ public static class PluginExtractor
             if (edid.Length == 0) continue;
             result.VoiceTypes.Add(new VoiceTypeEntry
             {
-                Id = v.FormKey, EditorId = edid, Kind = "VTYP", Identifier = edid,
+                Id = v.FormKey, EditorId = edid, Kind = "VTYP",
                 IdenticalToMaster = !env.OwnsRecord(v),
             });
         }
@@ -541,14 +518,15 @@ public static class PluginExtractor
             if (npc.FormKey.ModKey != mod.ModKey && !Any(name, shortName)) continue;
 
             var isFemale = npc.Configuration.Flags.HasFlag(NpcConfiguration.Flag.Female);
+            var (personaName, speakerKind) = ResolvePersona(env, npc);
             result.Speakers.Add(new SpeakerEntry
             {
                 Id = npc.FormKey,
                 EditorId = Edid(npc),
                 Kind = "NPC_",
                 Name = name,
-                PersonaName = ResolvePersonaName(env, npc),
-                SpeakerKind = ClassifySpeakerKind(env, npc),
+                PersonaName = personaName,
+                SpeakerKind = speakerKind,
                 ShortName = shortName,
                 Sex = isFemale ? "Female" : "Male",
                 VoiceTypeId = npc.Voice.IsNull ? null : npc.Voice.FormKey,
@@ -579,39 +557,26 @@ public static class PluginExtractor
         }
     }
 
-    // ペルソナ名の解決順: 自身の FULL → TPLT 連鎖の本体 FULL → EditorID（役割名）。
-    private static string ResolvePersonaName(PluginEnvironment env, INpcGetter npc)
+    // ペルソナ名と Speaker 種別を TPLT 連鎖の 1 回の走査で解決する
+    //（Pascal 版 ClassifySpeakerKind の移植 + 名前解決の統合）。
+    // 名前の解決順: 自身の FULL → TPLT 連鎖の本体 FULL → EditorID（役割名）。
+    // 種別: 固有（自身に FULL）/ 形態（連鎖先に FULL）/ プール（連鎖が LVLN）/
+    //       声型代表（FULL 無しで声型あり）/ 役割のみ（FULL も声型も無し）。
+    private static (string PersonaName, string SpeakerKind) ResolvePersona(PluginEnvironment env, INpcGetter npc)
     {
-        INpcGetter? cur = npc;
-        for (var depth = 0; cur != null && depth < 12; depth++)
-        {
-            var full = S(cur.Name);
-            if (full.Length > 0) return full;
-            cur = ResolveTemplateNpc(env, cur);
-        }
-        return Edid(npc);
-    }
-
-    // Speaker 種別判定（Pascal 版 ClassifySpeakerKind の移植）。
-    private static string ClassifySpeakerKind(PluginEnvironment env, INpcGetter npc)
-    {
-        if (S(npc.Name).Length > 0) return "固有";
+        var own = S(npc.Name);
+        if (own.Length > 0) return (own, "固有");
 
         var curKey = npc.Template.IsNull ? (FormKey?)null : npc.Template.FormKey;
         for (var depth = 0; curKey != null && depth < 12; depth++)
         {
-            if (env.LinkCache.TryResolve<ILeveledNpcGetter>(curKey.Value, out _)) return "プール";
+            if (env.LinkCache.TryResolve<ILeveledNpcGetter>(curKey.Value, out _)) return (Edid(npc), "プール");
             if (!env.LinkCache.TryResolve<INpcGetter>(curKey.Value, out var cur)) break;
-            if (S(cur.Name).Length > 0) return "形態";
+            var full = S(cur.Name);
+            if (full.Length > 0) return (full, "形態");
             curKey = cur.Template.IsNull ? null : cur.Template.FormKey;
         }
 
-        return npc.Voice.IsNull ? "役割のみ" : "声型代表";
-    }
-
-    private static INpcGetter? ResolveTemplateNpc(PluginEnvironment env, INpcGetter npc)
-    {
-        if (npc.Template.IsNull) return null;
-        return env.LinkCache.TryResolve<INpcGetter>(npc.Template.FormKey, out var resolved) ? resolved : null;
+        return (Edid(npc), npc.Voice.IsNull ? "役割のみ" : "声型代表");
     }
 }
