@@ -71,6 +71,34 @@ public class ModelInvariantTests
     }
 
     [Fact]
+    public void 表示されないテキストはNotPlayerFacingで振り分けられる()
+    {
+        var update = CountParityTests.ExtractCached("Update.esm");
+        // WI は radiant event の制御クエスト。FULL（Master WI quest）はあるが
+        // journal 文（CNAM/NNAM）が無く、名前が画面に出ない。
+        var wi = Assert.Single(update.Quests, q => q.EditorId == "WI");
+        Assert.True(wi.NotPlayerFacing);
+        // MQ201 は journal に載る本編クエスト。
+        var mq201 = Assert.Single(update.Quests, q => q.EditorId == "MQ201");
+        Assert.False(mq201.NotPlayerFacing);
+
+        var dg = Dawnguard;
+        // HideInUI flag の MGEF と NonPlayable flag の装備が hint を持つこと。
+        Assert.Contains(dg.MagicEffects, m => m.NotPlayerFacing);
+        Assert.Contains(dg.Equipment, e => e.NotPlayerFacing);
+    }
+
+    [Fact]
+    public void NotPlayerFacingは翻訳対象の件数に影響しない()
+    {
+        // hint であり除外ではない。xTranslator 辞書はこれらも翻訳対象に数えるため、
+        // 件数比較（CountParityTests）の入力からは除外されないこと。
+        var update = CountParityTests.ExtractCached("Update.esm");
+        Assert.Contains(TranslationCounts.Enumerate(update),
+            s => s.RecField == "QUST:FULL" && s.EditorId == "WI");
+    }
+
+    [Fact]
     public void 龍語綴りは翻訳対象に数えない()
     {
         var counts = TranslationCounts.Flatten(Dawnguard);

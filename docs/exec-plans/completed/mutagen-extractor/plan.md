@@ -114,3 +114,20 @@
 Update の cell 3）で、いずれも record・子・text が master と完全同一の運搬用 copy。
 record は stub として抽出済みで、text は master の辞書で解決できるため、翻訳の取りこぼしは無い。
 検証: dotnet test 12/12 通過（stub 不変条件テストを追加）。
+
+## 追補 2（2026-06-12、表示されないテキストの振り分け）
+
+指摘: 「script 用クエスト等、明らかに翻訳対象でないものを振り分けられないか」→ flag 方式で対応
+（読み込み側＝翻訳エンジン側ではじく。抽出・件数比較からは除外しない）。
+
+`RecordEntry.NotPlayerFacing` hint を追加した。立てる条件:
+1. QUST: FULL はあるが journal 文（CNAM の log entry / NNAM の objective）を一切持たない。
+   journal 表示には CNAM か NNAM が必要なため、名前が画面に出ない script / scene 制御用と推定する。
+   実測: Skyrim.esm の FULL 持ち 1,286 件中 947 件（74%）が該当。CreatureDialogue 系、
+   街 scene 制御、WE/WI radiant 系で、journal に出るクエストの紛れ込みは点検で見つからなかった。
+2. MGEF: `MagicEffect.Flag.HideInUI`（effect 名と説明が UI に出ない）。
+3. WEAP/ARMO/AMMO: NonPlayable flag（inventory に出ない。WEAP/ARMO は MajorFlag、AMMO は DATA flag）。
+
+QUST の判定は構造からの推定で確定情報ではないため、除外ではなく hint として持つ。
+xTranslator 辞書はこれらも翻訳対象に数えるため、件数比較は不変（KnownDeltas 表も不変）。
+検証: dotnet test 14/14 通過（NotPlayerFacing の振り分けと件数非影響のテスト 2 件を追加）。
