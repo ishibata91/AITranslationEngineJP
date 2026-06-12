@@ -86,3 +86,12 @@
   公式 5 esm の XML（2026-02 生成）と USSEP の XML（2026-06 生成）でセッション・設定も異なる。
 - 旧 python 検証（scripts/compare_counts.py / validate_extraction.py）は C# テストが置き換えた。
   JSON 中間出力は作らない（人間指示）。
+
+## finalization
+
+- 正本化判断: docs/architecture.md と docs/screen-design/ への反映対象なし。
+  抽出基盤は Wails 本体と別プロセスの CLI / library で、層構成・依存方向・画面を変えない。
+- 作業 commit: d3bea2a6（13 files、tools/extractor + tools/extractor.Tests + 本 plan）。
+- 検証: dotnet test tools/extractor.Tests → 11/11 通過（件数比較 6 + 意味検証 5）。
+- 残留リスク: 既知差分 65 strings は xTranslator 辞書側の帰属揺れ。抽出を変えた場合は
+  KnownDeltas 表の検証が fail して検知される。
