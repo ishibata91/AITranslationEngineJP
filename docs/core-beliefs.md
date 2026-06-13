@@ -1,6 +1,6 @@
 # Core Beliefs
 
-関連文書: [`index.md`](./index.md), [`spec.md`](./spec.md), [`architecture.md`](./architecture.md), [`tech-selection.md`](./tech-selection.md)
+関連文書: [`index.md`](./index.md), [`requirements.md`](./requirements.md), [`system_requirements.md`](./system_requirements.md), [`architecture.md`](./architecture.md), [`tech-selection.md`](./tech-selection.md)
 
 本プロジェクトは `agent-first` を強く採用するが、人間の責務は消えない。
 人間は主に方針、受け入れ条件、境界、記録、ハーネス改善を担う。
@@ -21,7 +21,7 @@
 
 ## 2. 記録システムの扱い
 
-- 永続要件は `spec.md` に記録する
+- 業務要件は `requirements.md`、システム要件は `system_requirements.md` に記録する
 - 内部境界と依存方向は `architecture.md` に記録する
 - 実装技術の選択は `tech-selection.md` に記録する
 - 実装規約の入口は `coding-guidelines.md` に記録し、frontend、backend、test の詳細は分割文書に記録する

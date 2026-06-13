@@ -1,6 +1,6 @@
 # アーキテクチャ仕様
 
-関連文書: [`index.md`](./index.md), [`spec.md`](./spec.md), [`core-beliefs.md`](./core-beliefs.md), [`tech-selection.md`](./tech-selection.md)
+関連文書: [`index.md`](./index.md), [`requirements.md`](./requirements.md), [`system_requirements.md`](./system_requirements.md), [`core-beliefs.md`](./core-beliefs.md), [`tech-selection.md`](./tech-selection.md)
 
 本書は、システムの内部境界、依存方向、手動 DI の一般原則を定義する。
 本書では `Wails + Go + Svelte` 前提の一般メタ原則だけを扱い、具体的な feature 構造、画面遷移、DTO 項目、DB schema は扱わない。

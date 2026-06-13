@@ -1,6 +1,6 @@
 ---
 name: design-module
-description: "重 task の設計成果物（画面設計差分、設計差分図、人間設計レビュー、実装範囲、テスト設計）を取捨選択する設計モジュール。Claude 本体が task 全体の文脈を持ったまま書く。TRIGGER when: preparation-module で重 task と判定された（画面が動く、または docs/architecture.md 反映が要る）。SKIP when: 軽 task。"
+description: "重 task の設計成果物（設計差分図、人間設計レビュー、実装範囲、テスト設計）を取捨選択する設計モジュール。画面表示の設計は storybook-module が Storybook の story とコンポーネントで扱う。Claude 本体が task 全体の文脈を持ったまま書く。TRIGGER when: preparation-module で重 task と判定された（画面が動く、または docs/architecture.md 反映が要る）。SKIP when: 軽 task。"
 ---
 # Design Module
 
@@ -13,7 +13,7 @@ description: "重 task の設計成果物（画面設計差分、設計差分図
 
 - 呼び出し元: 人間、または上位モジュール skill。
 - 返却先: 呼び出し元。
-- モジュールが呼ぶ下位 skill: `diagramming`（参照のみ。Claude 本体が読んで適用する）。画面設計差分、実装範囲、テスト設計は本 SKILL.md 内の手順で Claude 本体が直接書く。
+- モジュールが呼ぶ下位 skill: `diagramming`（参照のみ。Claude 本体が読んで適用する）。実装範囲、テスト設計は本 SKILL.md 内の手順で Claude 本体が直接書く。画面表示の設計は storybook-module が Storybook の story とコンポーネントで扱う。
 - モジュールが呼ぶ下位 agent: なし。Claude 本体が task 文脈を持ったまま各 artifact を書く。
 
 ## 入口条件
@@ -23,7 +23,6 @@ description: "重 task の設計成果物（画面設計差分、設計差分図
 
 ## 出口条件
 
-- `画面設計差分` が必要なら固定されている。
 - `設計差分図` が必要なら固定されている。
 - `人間設計レビュー` 承認済み。
 - `実装範囲` が固定されている。
@@ -33,9 +32,8 @@ description: "重 task の設計成果物（画面設計差分、設計差分図
 
 | 成果物ID | 担当 | 依存対象 | 起動先 |
 | --- | --- | --- | --- |
-| `画面設計差分` | Claude 本体 | 入口条件 | なし |
 | `設計差分図` | Claude 本体 | 入口条件 | なし |
-| `人間設計レビュー` | 人間 | `画面設計差分?`, `設計差分図?` | 人間 |
+| `人間設計レビュー` | 人間 | `設計差分図?` | 人間 |
 | `実装範囲` | Claude 本体 | `人間設計レビュー` | なし |
 | `テスト設計` | Claude 本体 | `人間設計レビュー` | なし |
 
@@ -43,20 +41,20 @@ description: "重 task の設計成果物（画面設計差分、設計差分図
 
 `preparation-module` の軽 / 重判定で取得した軸を再利用する。
 
-| 入口判定 | 画面設計差分 | 設計差分図 |
-| --- | --- | --- |
-| 画面が動く | 要 | - |
-| `docs/architecture.md` 反映が要る | - | 要 |
+| 入口判定 | 設計差分図 |
+| --- | --- |
+| 画面が動く | - |
+| `docs/architecture.md` 反映が要る | 要 |
 
+画面が動く場合の画面表示の設計は、storybook-module が Storybook の story とコンポーネントで扱う。
 `人間設計レビュー`、`実装範囲`、`テスト設計` は重 task では常に要。
 
 ## 各 artifact の詳細
 
-### 画面設計差分
+### 画面表示の設計
 
-- 対象画面ごとに `screen-design-diff.<screen-id>.md` を作る。
-- 既存画面設計正本（`docs/screen-design/`）との差分だけを扱う。
-- 差分形式: 画面ID、対象要素、変更前、変更後、根拠コメント、変更ファイル、更新要否を 1 行ずつ書く。
+- 画面表示の設計は `storybook-module` が Storybook の story と svelte コンポーネントで直接行う。
+- 本モジュールでは画面設計の doc 成果物を作らない。承認済みの story と svelte コンポーネントが画面の正本になる。
 
 ### 設計差分図
 
@@ -66,7 +64,7 @@ description: "重 task の設計成果物（画面設計差分、設計差分図
 
 ### 人間設計レビュー
 
-- 画面設計差分、設計差分図のうち「要」になった成果物が揃った時点で人間へ返す。
+- 設計差分図のうち「要」になった成果物が揃った時点で人間へ返す。画面表示の視覚レビューは storybook-module の Storybook 人間レビューループで行う。
 - 人間レビューを依頼する直前に、active plan folder に `summary.md` を一時作成し、レビュー終了後に削除する。固定セクションは「概要」と「図」の 2 つ。
 - 差し戻しまたは追加質問の場合は、Claude 本体が同じ文脈で書き直す。
 
@@ -97,7 +95,7 @@ description: "重 task の設計成果物（画面設計差分、設計差分図
 
 ## 返す成果物
 
-- decision table 結果: 画面設計差分・設計差分図の要不要、省略理由（あれば）。
+- decision table 結果: 設計差分図の要不要、省略理由（あれば）。
 - 設計成果物の参照: 作成済み artifact のファイルパス、人間承認状態。
 - 差し戻し記録: 差し戻し対象、戻し結果、戻せない場合の停止理由。
 - 後続モジュールへの引き継ぎ: `実装範囲`、`テスト設計` のパス、画面変更想定の Y/N、`storybook-module` へ進むかどうか。

@@ -25,7 +25,7 @@ Claude 本体が複数の原因仮説、観測ログによる仮説検証、確�
 
 - 修正モジュールの進行境界は [investigation-module](/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/investigation-module/SKILL.md) に従う。
 - 修正方針判断の報告形式は [fix-decision-report-template.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/fix-decision/fix-decision-report-template.md) に従う。
-- 画面設計書正本は [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) に従う。
+- 画面の正本は Storybook（story と svelte コンポーネント）に従う。実装済みコンポーネントの `data-testid` を含む。
 - 観測ログ仕様は [observability-logging.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/observability-logging.md) に従う。
 - ブラウザ操作は `chrome-devtools` MCP ツール群（`mcp__plugin_chrome-devtools-mcp_chrome-devtools__*`）を MCP ツールとして実行する。
 - 外部成果物が不足または衝突する場合は停止し、衝突箇所を返す。
@@ -37,7 +37,7 @@ Claude 本体が複数の原因仮説、観測ログによる仮説検証、確�
 | 観点 | 拘束する判断 |
 | --- | --- |
 | `観測済み問題` | 人間観測記録から確認できる問題だけを固定する。 |
-| `画面再現確認` | 画面設計のセレクタに従い、人間観測記録のユーザー操作を `chrome-devtools` MCP ツールで再現する。 |
+| `画面再現確認` | 実装済み画面の `data-testid` またはセレクタに従い、人間観測記録のユーザー操作を `chrome-devtools` MCP ツールで再現する。 |
 | `原因仮説` | 画面操作結果、DB 状態、ログの観測事実から複数の原因候補を立て、検証する順序と根拠を固定する。 |
 | `観測ログ検証` | 仮説を否定または支持するために追加した一時ログ、観測結果、削除確認を固定する。 |
 | `確定原因` | 観測で確定した原因だけを固定する。 |
@@ -49,7 +49,7 @@ Claude 本体が複数の原因仮説、観測ログによる仮説検証、確�
 - 観測事実と仮説を分ける。
 - 人間観測記録の画面操作は、原因仮説を固定する前に `chrome-devtools` MCP ツールで再現確認する。
 - 画面再現確認では、呼び出し元から渡された Wails process または接続先へアクセスする。
-- 画面再現確認では、画面設計書の selector または `data-testid` に従ってユーザー操作を再現する。
+- 画面再現確認では、実装済み画面の `data-testid` またはセレクタに従ってユーザー操作を再現する。
 - 画面再現確認では、`chrome-devtools` MCP ツール群を MCP ツールとして実行する。
 - 画面操作結果、DB 状態、ログを観測事実として分けて整理する。
 - 画面操作結果、DB 状態、ログの差分から、どの層で期待と実際が分かれたかを特定する。
@@ -93,7 +93,7 @@ Claude 本体が複数の原因仮説、観測ログによる仮説検証、確�
 
 - 人間観測記録が不足する場合は停止する。
 - Wails 接続対象が渡されていない場合は停止する。
-- 画面設計の selector に従ったユーザー操作を `chrome-devtools` MCP ツールで再現確認できない場合は停止する。
+- 実装済み画面の `data-testid` またはセレクタに従ったユーザー操作を `chrome-devtools` MCP ツールで再現確認できない場合は停止する。
 - `chrome-devtools` MCP ツールが利用できない場合は停止する。
 - 観測ログを追加または確認できず、仮説を検証できない場合は停止する。
 - 追加した一時観測ログを削除できない場合は停止する。

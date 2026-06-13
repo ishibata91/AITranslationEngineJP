@@ -1,6 +1,6 @@
 # 技術選定仕様
 
-関連文書: [`index.md`](./index.md), [`spec.md`](./spec.md), [`architecture.md`](./architecture.md), [`core-beliefs.md`](./core-beliefs.md)
+関連文書: [`index.md`](./index.md), [`requirements.md`](./requirements.md), [`system_requirements.md`](./system_requirements.md), [`architecture.md`](./architecture.md), [`core-beliefs.md`](./core-beliefs.md)
 
 本書は、システム実装のために採用する技術と、その適用対象を定義する。
 この repo は `Wails + Go + Svelte` を基盤とする。
@@ -18,7 +18,9 @@
 - UI 実装言語は `TypeScript` を採用する
 - frontend build tool は `Vite` を採用する
 - frontend package root は `frontend/` を採用する
-- 初期スタイリングは repo-local CSS を採用し、CSS framework は初期必須要件に含めない
+- CSS framework は `Tailwind CSS` を採用する
+- UI コンポーネントライブラリは `daisyUI`（`Tailwind CSS` プラグイン）を採用する
+- UI コンポーネントのカタログと表示確認は `Storybook` を採用する
 - frontend 観測ログは `pino` の browser console 出力を採用する
 
 ## 3. バックエンド基盤
@@ -74,6 +76,12 @@
   [`Svelte 5`](https://svelte.dev/docs/svelte/overview),
   [`TypeScript`](https://svelte.dev/docs/svelte/typescript),
   [`Migration Guide`](https://svelte.dev/docs/svelte/v5-migration-guide)
+- Storybook official docs:
+  [`Documentation`](https://storybook.js.org/docs)
+- Tailwind CSS official docs:
+  [`Documentation`](https://tailwindcss.com/docs)
+- daisyUI official docs:
+  [`Documentation`](https://daisyui.com/docs/install/)
 - Vite official docs:
   [`Guide`](https://vite.dev/guide/),
   [`Build`](https://vite.dev/guide/build),

@@ -8,7 +8,6 @@
 - `task-folder/README.md`
 - `task-folder/plan.md`
 - `task-folder/detail-spec-diff.md`
-- `task-folder/screen-design-diff.<screen-id>.md`
 - `task-folder/implementation-scope.md`
 
 ## Lane Local Assets

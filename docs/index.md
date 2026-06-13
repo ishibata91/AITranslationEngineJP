@@ -8,23 +8,25 @@ backend は `greenfield-reset` task（2026-06-06）で削減済み。新 archite
 ## Read Order
 
 1. [`core-beliefs.md`](./core-beliefs.md)
-2. [`spec.md`](./spec.md)
-3. [`skyrim-structure-model.md`](./skyrim-structure-model.md)
-4. [`architecture.md`](./architecture.md)
-5. [`tech-selection.md`](./tech-selection.md)
-6. [`coding-guidelines.md`](./coding-guidelines.md)
-7. 変更対象に対応する実装規約: [`coding-guidelines-frontend.md`](./coding-guidelines-frontend.md), [`coding-guidelines-backend.md`](./coding-guidelines-backend.md), [`coding-guidelines-tests.md`](./coding-guidelines-tests.md)
-8. 観測ログを変更する場合: [`observability-logging.md`](./observability-logging.md)
-9. [`UX-standard.md`](./UX-standard.md)
-10. [`lint-policy.md`](./lint-policy.md)
-11. Relevant file under [`screen-design/`](./screen-design/README.md)
+2. [`requirements.md`](./requirements.md)
+3. [`system_requirements.md`](./system_requirements.md)
+4. [`skyrim-structure-model.md`](./skyrim-structure-model.md)
+5. [`architecture.md`](./architecture.md)
+6. [`tech-selection.md`](./tech-selection.md)
+7. [`coding-guidelines.md`](./coding-guidelines.md)
+8. 変更対象に対応する実装規約: [`coding-guidelines-frontend.md`](./coding-guidelines-frontend.md), [`coding-guidelines-backend.md`](./coding-guidelines-backend.md), [`coding-guidelines-tests.md`](./coding-guidelines-tests.md)
+9. 観測ログを変更する場合: [`observability-logging.md`](./observability-logging.md)
+10. [`UX-standard.md`](./UX-standard.md)
+11. [`lint-policy.md`](./lint-policy.md)
 12. Relevant file under [`exec-plans/`](./exec-plans/)
 13. Relevant file under [`references/`](./references/)
 
 ## Directory Contract
 
 - [`core-beliefs.md`](./core-beliefs.md): repo の長期原則と記録方針
-- [`spec.md`](./spec.md): 恒久要件と用語集
+- [`requirements.md`](./requirements.md): 業務要件（何をしたいか）。システム要件は含めない
+- [`system_requirements.md`](./system_requirements.md): システム要件（業務要件をどう達成するか）。業務要件番号に対応させる
+- [`changelog.md`](./changelog.md): 変更・判断履歴。正本に残さない判断の経緯を記録する
 - [`skyrim-structure-model.md`](./skyrim-structure-model.md): Skyrim 世界を翻訳判定 context で再分類した Skyrim 構造体モデル
 - [`architecture.md`](./architecture.md): 層構成、transport boundary、依存方向の骨格
 - [`tech-selection.md`](./tech-selection.md): 採用技術と品質基盤
@@ -35,7 +37,6 @@ backend は `greenfield-reset` task（2026-06-06）で削減済み。新 archite
 - [`coding-guidelines-tests.md`](./coding-guidelines-tests.md): backend / frontend のテスト実装規約
 - [`UX-standard.md`](./UX-standard.md): UI 設計で参照する UX プラクティスの正本
 - [`lint-policy.md`](./lint-policy.md): lint と static checks の責務分担
-- [`screen-design/`](./screen-design/README.md): 画面構成と visual design の正本
 - [`references/`](./references/index.md): 外部仕様と参照方針
 - [`references/vendor-api/`](./references/vendor-api/README.md): vendor API 参照ファイルと取得元
 - [`exec-plans/active/`](./exec-plans/active/README.md): 未完了の plan
@@ -43,7 +44,9 @@ backend は `greenfield-reset` task（2026-06-06）で削減済み。新 archite
 
 ## Choose The Right Record
 
-- Requirement or product boundary changed: update [`spec.md`](./spec.md)
+- 業務要件（何をしたいか）が変わった場合: [`requirements.md`](./requirements.md) を更新する
+- システム要件（どう達成するか）が変わった場合: [`system_requirements.md`](./system_requirements.md) を更新する
+- 正本を変更した、または判断の経緯（なぜ変えたか、何を落としたか、残課題）を残す場合: [`changelog.md`](./changelog.md) に entry を追記する
 - Skyrim 構造体モデル（class、関連、関連端）が変わった場合: [`skyrim-structure-model.md`](./skyrim-structure-model.md) を更新する
 - Dependency rule or layering changed: update [`architecture.md`](./architecture.md)
 - Technology decision changed: update [`tech-selection.md`](./tech-selection.md)
@@ -51,8 +54,7 @@ backend は `greenfield-reset` task（2026-06-06）で削減済み。新 archite
 - 観測ログの出力先、payload、禁止事項が変わった場合: [`observability-logging.md`](./observability-logging.md) を更新する
 - UX 標準が変わった場合: [`UX-standard.md`](./UX-standard.md) を更新する
 - Lint / static check ownership changed: update [`lint-policy.md`](./lint-policy.md)
-- Screen map or visual design changed: update the relevant file under [`screen-design/`](./screen-design/README.md)
-- UI 要件が変わった場合: 関連する `screen-design/` を更新する
+- 画面・表示の設計が変わった場合: Storybook の story と svelte コンポーネント（`frontend/`）を更新する。画面の正本は Storybook であり docs には置かない
 - External references or vendor specs changed: update [`references/`](./references/index.md)
 - Work is non-trivial and not yet finished: create a plan in [`exec-plans/active/`](./exec-plans/active/README.md)
 - Work is locally ready: keep the plan in [`exec-plans/active/`](./exec-plans/active/README.md)

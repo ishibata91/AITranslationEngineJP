@@ -120,7 +120,7 @@ backend / frontend / 統合境界 / テスト / 観測を別 agent に分割せ�
 
 ### 安全境界
 
-- 本モジュール skill と Claude 本体は、人間承認なしの docs 正本を直接変更しない（`docs/architecture.md`、`docs/screen-design/` などの正本反映は `finalization-module` で扱う）。
+- 本モジュール skill と Claude 本体は、人間承認なしの docs 正本を直接変更しない（`docs/architecture.md` などの正本反映は `finalization-module` で扱う）。
 
 ## 返す成果物
 

@@ -1,6 +1,6 @@
 ---
 name: finalization-module
-description: "正本化判断、正本反映、作業 commit、local merge、merge 後検証、completed 移動、merge 結果 commit を固定する出口モジュール。正本反映対象は docs/architecture.md と docs/screen-design/ に限定。TRIGGER when: 実装モジュールの最終検証が通過し、正本化判断と作業 branch の統合先 branch への取り込みを固定する必要がある。SKIP when: 最終検証通過前、または作業 branch が固定されていない。"
+description: "正本化判断、正本反映、作業 commit、local merge、merge 後検証、completed 移動、merge 結果 commit を固定する出口モジュール。正本反映対象は docs/architecture.md に限定。TRIGGER when: 実装モジュールの最終検証が通過し、正本化判断と作業 branch の統合先 branch への取り込みを固定する必要がある。SKIP when: 最終検証通過前、または作業 branch が固定されていない。"
 ---
 # Finalization Module
 
@@ -10,12 +10,12 @@ description: "正本化判断、正本反映、作業 commit、local merge、mer
 人間承認済みの恒久仕様だけを正本へ反映し、remote repository の変更は行わない。
 conflict 発生時だけ `conflict_resolver` agent を起動して conflict 解消を任せる。
 
-正本反映対象は次の 2 つに限定する:
+正本反映対象は次に限定する:
 
 - `docs/architecture.md`（層構成、依存方向、強い制約、Wails 境界の正本）
-- `docs/screen-design/` 配下（画面構成と visual design の正本）
 
-`docs/detail-specs/` と `docs/usecases/` は廃止済み（workflow-lightweight-rework 由来）のため正本反映対象に含まれない。
+画面の正本は Storybook（story と svelte コンポーネント）であり、frontend source として作業 commit に含める。docs 正本反映の対象にはしない。
+`docs/detail-specs/`、`docs/usecases/`、`docs/screen-design/` は廃止済みのため正本反映対象に含まれない。
 
 ## 呼び出し関係
 
@@ -59,7 +59,7 @@ conflict 発生時だけ `conflict_resolver` agent を起動して conflict 解�
 
 | 想定 | 正本化判断 | 正本反映 |
 | --- | --- | --- |
-| `docs/architecture.md` または `docs/screen-design/` への反映が要る | 要 | - |
+| `docs/architecture.md` への反映が要る | 要 | - |
 | 人間承認済みの恒久仕様がある | - | 要 |
 
 「人間承認済みの恒久仕様がある」は、`正本化判断` 後に人間が恒久仕様として承認した場合だけ Y になる。
@@ -70,7 +70,7 @@ conflict 発生時だけ `conflict_resolver` agent を起動して conflict 解�
 
 - Claude 本体が固定する。
 - 次を `plan.md` に記録する。
-    - 反映対象（`docs/architecture.md` または `docs/screen-design/` のうちどの正本）、影響範囲、対象 docs パス候補。
+    - 反映対象（`docs/architecture.md`）、影響範囲、対象 docs パス候補。
     - 恒久仕様として承認するか、後続課題に切り出すか、廃案にするかの判断。
     - 人間承認状態（承認済み、保留、差し戻し）。
 - 人間承認なしに「恒久仕様として承認」を確定しない。
@@ -80,7 +80,7 @@ conflict 発生時だけ `conflict_resolver` agent を起動して conflict 解�
 ### 正本反映
 
 - Claude 本体が人間承認済みの恒久仕様だけを正本へ反映する。反映時は、変更前 / 変更後 / 根拠 active plan を `plan.md` に記録する。
-- 反映対象は `docs/architecture.md` と `docs/screen-design/` 配下に限定する。
+- 反映対象は `docs/architecture.md` に限定する。
 - 人間承認なしの本文変更は行わない。
 
 ### 作業 commit
@@ -129,8 +129,8 @@ conflict 発生時だけ `conflict_resolver` agent を起動して conflict 解�
 
 - 人間承認なしの docs 正本本文を変更しない。
 - `正本化判断` を経ずに `正本反映` へ進めない。
-- 正本反映の対象は `docs/architecture.md` と `docs/screen-design/` 配下に限定する。
-- `docs/architecture.md` または `docs/screen-design/` への反映が要るのに `正本化判断` を固定できない場合は停止する。恒久仕様承認があるのに `正本反映` を固定できない場合も停止する。
+- 正本反映の対象は `docs/architecture.md` に限定する。
+- `docs/architecture.md` への反映が要るのに `正本化判断` を固定できない場合は停止する。恒久仕様承認があるのに `正本反映` を固定できない場合も停止する。
 - remote repository の変更は行わない（push、tag push、remote branch delete）。
 - `git reset --hard`、`git checkout --`、`git clean` など destructive command を実行しない。
 - 作業 commit を作らずに `local merge` へ進めない。
@@ -151,7 +151,7 @@ conflict 発生時だけ `conflict_resolver` agent を起動して conflict 解�
 ## 作業を止める条件
 
 - `最終検証` が通過していない、かつ停止理由も固定されていない。
-- `docs/architecture.md` または `docs/screen-design/` への反映が要るのに `正本化判断` を固定できない。
+- `docs/architecture.md` への反映が要るのに `正本化判断` を固定できない。
 - 恒久仕様承認があるのに `正本反映` を固定できない。
 - 作業 branch が `claude/<task-id>` として存在しない、または local commit を作れない。
 - source branch と作業 commit hash が対応しない、または target branch が人間指定なしで `master` 以外。

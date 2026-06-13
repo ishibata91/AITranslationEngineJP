@@ -34,7 +34,8 @@ backend、frontend ロジック、統合境界、テスト、観測ログを別 
 - テスト規約: `docs/coding-guidelines-tests.md`
 - lint 規約: `docs/lint-policy.md`
 - 観測ログ規約: `docs/observability-logging.md`（観測ログ追加時）
-- システム要件: `docs/spec.md`
+- 業務要件: `docs/requirements.md`
+- システム要件: `docs/system_requirements.md`
 
 新 architecture 未確定の現状では、`docs/architecture.md` は骨格のみで、具体的 layer 名、path、依存方向は次 task で固定する。
 
@@ -114,7 +115,7 @@ backend、frontend ロジック、統合境界、テスト、観測ログを別 
 - 公開境界（DTO、API、Wails Bind、Repository Port、UseCase Port）を勝手に拡張しない。
 - svelte 表示コンポーネント、props、style、story、fixture を本 skill では変更しない。
 - secret、trust boundary、API / DTO / DB / schema の意味拡張が必要になる場合は停止する。
-- docs 正本（`docs/architecture.md`、`docs/screen-design/`、`docs/spec.md` など）を本 skill では変更しない。`finalization-module` で扱う。
+- docs 正本（`docs/architecture.md`、`docs/requirements.md`、`docs/system_requirements.md` など）を本 skill では変更しない。`finalization-module` で扱う。
 
 ## 作業を完了できる条件
 

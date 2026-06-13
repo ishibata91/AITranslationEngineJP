@@ -4,7 +4,6 @@
 - `status`: draft / ready-for-human-review / approved / stopped-for-human-answer
 - `source_plan`: `./plan.md`
 - `detail_spec_target`: `docs/detail-specs/<detail-spec-id>.md`
-- `screen_design_diff`: `./screen-design-diff.<screen-id>.md` または `N/A`
 - `component_diagram`: `<component diagram path>` または `N/A`
 
 ## 詳細仕様差分
