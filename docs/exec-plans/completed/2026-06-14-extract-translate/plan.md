@@ -99,3 +99,25 @@
 
 - `docs/architecture.md` 反映: **不要（正本反映 N）**。T1 は §1〜§7（層構成・依存方向・強い制約・Wails 境界）に**従って実装**しただけで、構造仕様を変えていない。新規の恒久仕様は生じていないため正本反映の対象なし。
 - 注: §8「現在の状態と移行」は T1 前の greenfield 状態（"backend 削減済み・writer 未実装" 等）のままで、骨格実装後は古い。ただし §8 は正本反映対象（§1〜§7 の構造仕様）ではなく、`architecture.md` 本文変更は人間承認を要するため、本 finalization では変更しない。§8 の現状追従は後続で扱う。
+- 正本反映: 実施なし（対象なし）。
+
+### 作業 commit
+
+- commit: `652642f0`（feat: 抽出→翻訳→DB→画面の縦切り（T1）を実装）。docs commit `ffe6db3b` も branch に含む。
+- 変更: 60 ファイル（+3045/-153）。生成物（dist/wailsjs/storybook-static）と `.DS_Store`・dev sqlite は gitignore で除外。
+- 検証: Go test 緑、backend lint（format/vet/static/arch/module）0 issues、frontend lint（eslint/tsc/knip/boundaries）緑、C# 17 テスト緑。
+- 残留リスク: 大量同期翻訳の進捗 UI なし、書物本文の HTML 様タグ未整理、フォント CDN（`docs/changelog.md` の残課題参照）。
+
+### local merge
+
+- command: `git merge --no-ff claude/2026-06-14-extract-translate`（source `claude/2026-06-14-extract-translate` → target `master`）。
+- 結果: merge commit `0c85500e`。conflict なし。
+- remote 操作なし（push / tag / remote delete 未実施）。
+
+### merge 後検証
+
+- master 上で Go test 緑、backend lint 0 issues、frontend lint 緑。
+
+### completed 移動
+
+- `docs/exec-plans/active/2026-06-14-extract-translate/` → `docs/exec-plans/completed/2026-06-14-extract-translate/`。
