@@ -29,10 +29,10 @@ components:
     in: internal/provider
   store:
     in: internal/store
+  secret:
+    in: internal/store/secret
   model:
     in: internal/model
-  repository:
-    in: internal/repository
   migrations:
     in: db
 

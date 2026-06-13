@@ -1,5 +1,5 @@
-// Package repository は OS の資格情報マネージャー（keyring）への secret 保存アクセスを持つ。
-package repository
+// Package secret は OS の資格情報マネージャー（keyring）への secret 保存アクセスを持つ。store の secret 子。
+package secret
 
 import (
 	"context"
