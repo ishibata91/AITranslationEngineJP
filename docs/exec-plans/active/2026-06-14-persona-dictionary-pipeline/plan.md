@@ -26,7 +26,7 @@
 
 ## 依存
 
-- T1（`2026-06-14-minimal-extract-translate`）の翻訳手続きが存在すること。
+- T1（`2026-06-14-extract-translate`）の翻訳手続きが存在すること。
 
 ## Routing Notes
 

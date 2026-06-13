@@ -18,6 +18,7 @@ export default defineConfig([
       "dist/**",
       "node_modules/**",
       "storybook-static/**",
+      "wailsjs/**",
       "scripts/dev/serve-prototype.mjs"
     ]
   },

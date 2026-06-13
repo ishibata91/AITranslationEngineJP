@@ -1,0 +1,61 @@
+version: 3
+workdir: .
+
+# architecture.md §4 の依存方向（import 方向）を固定する。
+# deepScan は composition root での値受け渡し（bootstrap が store 値を engine.New へ渡す等）を
+# 依存と誤帰属するため無効化し、import レベルで判定する。
+allow:
+  depOnAnyVendor: true
+  deepScan: false
+
+# Go module 外のディレクトリと、本骨格に属さない leftover を除外する。
+exclude:
+  - scripts
+  - tmp
+  - build
+  - frontend
+  - node_modules
+
+components:
+  main:
+    in: .
+  bootstrap:
+    in: internal/bootstrap
+  api:
+    in: internal/api
+  engine:
+    in: internal/engine
+  provider:
+    in: internal/provider
+  store:
+    in: internal/store
+  model:
+    in: internal/model
+  repository:
+    in: internal/repository
+  migrations:
+    in: db
+
+deps:
+  main:
+    mayDependOn:
+      - bootstrap
+  bootstrap:
+    mayDependOn:
+      - api
+      - engine
+      - provider
+      - store
+  api:
+    mayDependOn:
+      - model
+      - provider
+      - engine
+  engine:
+    mayDependOn:
+      - model
+      - provider
+  store:
+    mayDependOn:
+      - model
+      - migrations

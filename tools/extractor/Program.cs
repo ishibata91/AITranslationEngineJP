@@ -10,7 +10,7 @@ using Mutagen.Bethesda.Strings;
 //   dotnet run --project tools/extractor -- --data dictionaries/Data --plugin Dawnguard.esm \
 //       --xml dictionaries/xTranslatorXMLs/Dawnguard_english_japanese.xml
 
-string? dataFolder = null, plugin = null, xmlPath = null, dumpRecField = null;
+string? dataFolder = null, plugin = null, xmlPath = null, dumpRecField = null, sqlitePath = null, schemaDir = null;
 var language = Language.English;
 
 for (var i = 0; i < args.Length; i++)
@@ -21,6 +21,8 @@ for (var i = 0; i < args.Length; i++)
         case "--plugin": plugin = Next(ref i); break;
         case "--xml": xmlPath = Next(ref i); break;
         case "--dump": dumpRecField = Next(ref i).ToUpperInvariant(); break;
+        case "--sqlite": sqlitePath = Next(ref i); break;
+        case "--schema": schemaDir = Next(ref i); break;
         case "--language": language = Enum.Parse<Language>(Next(ref i), ignoreCase: true); break;
         case "--help" or "-h": PrintUsage(); return 0;
         default:
@@ -43,6 +45,19 @@ Console.WriteLine($"[load] {env.LoadOrder.Count} plugins（master 連鎖込み�
 
 var result = PluginExtractor.Extract(env);
 Console.WriteLine($"[extract] {plugin} を {sw.ElapsedMilliseconds} ms で抽出");
+
+if (sqlitePath != null)
+{
+    // 中心 DB（SQLite）へ叙述文を書く。schema は db/migrations の SQL を ensure する（C#↔Go 契約 1 本）。
+    var dir = schemaDir ?? FindSchemaDir();
+    var schemaSql = string.Join("\n",
+        Directory.GetFiles(dir, "*.sql").OrderBy(p => p, StringComparer.Ordinal).Select(File.ReadAllText));
+    // T1 の叙述文 1 種。種類を増やすときはここへ足す（writer ではなく呼び出し側が分類を持つ）。
+    var narrationRecFields = new HashSet<string> { "BOOK:DESC" };
+    var written = NarrationSqliteWriter.Write(sqlitePath, schemaSql, result, narrationRecFields);
+    Console.WriteLine($"[sqlite] narration {written} 件を {sqlitePath} へ書き込み（{sw.ElapsedMilliseconds} ms）");
+    return 0;
+}
 
 if (dumpRecField != null)
 {
@@ -98,14 +113,26 @@ string Next(ref int i)
     return args[++i];
 }
 
+// db/migrations を、作業ディレクトリから repo root（go.mod がある所）まで遡って探す。
+static string FindSchemaDir()
+{
+    var dir = new DirectoryInfo(Directory.GetCurrentDirectory());
+    while (dir != null && !File.Exists(Path.Combine(dir.FullName, "go.mod")))
+        dir = dir.Parent;
+    if (dir == null) throw new InvalidOperationException("repo root（go.mod）が見つからない。--schema で migrations ディレクトリを指定してください。");
+    return Path.Combine(dir.FullName, "db", "migrations");
+}
+
 static void Print(string label, int count) => Console.WriteLine($"- {label}: {count}");
 
 static void PrintUsage()
 {
     Console.WriteLine("""
-        使い方: extractor --data <DataFolder> --plugin <name.esp> [--xml <xTranslator XML>] [--language Japanese]
+        使い方: extractor --data <DataFolder> --plugin <name.esp> [--sqlite <db>] [--xml <xTranslator XML>] [--language Japanese]
           --data      Skyrim の Data 相当フォルダ（esm/esp/esl + Strings/）
           --plugin    抽出対象 plugin ファイル名（master は同フォルダから自動解決）
+          --sqlite    中心 DB（SQLite）へ叙述文（BOOK:DESC）を書き込む。書込後に終了する
+          --schema    --sqlite 用の migrations ディレクトリ（既定 repo の db/migrations を自動探索）
           --xml       xTranslator 辞書 XML と REC:FIELD 件数比較を行う（不一致なら exit 2）
           --language  localized strings の言語（既定 English。翻訳元テキストを解決する）
         """);

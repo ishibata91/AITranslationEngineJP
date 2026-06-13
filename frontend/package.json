@@ -26,6 +26,7 @@
     "@playwright/test": "^1.51.0",
     "@storybook/svelte-vite": "^10.4.0",
     "@sveltejs/vite-plugin-svelte": "^4.0.4",
+    "@tailwindcss/vite": "^4.3.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/svelte": "^5.2.8",
     "@testing-library/user-event": "^14.6.1",
@@ -33,6 +34,7 @@
     "@types/node": "^24.6.1",
     "@types/react": "^19.2.14",
     "@vitest/coverage-v8": "^4.1.4",
+    "daisyui": "^5.5.23",
     "eslint": "^10.2.0",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import-x": "^4.16.2",
@@ -45,6 +47,7 @@
     "storybook": "^10.4.0",
     "svelte": "^5.37.0",
     "svelte-check": "^4.3.1",
+    "tailwindcss": "^4.3.1",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.58.1",
     "vite": "^5.4.21",
@@ -83,7 +86,14 @@
       "src/ui/screens/translation-job-setup/PhaseSettingsPanel.svelte",
       "src/ui/screens/translation-job-setup/PhaseSettingsSummaryPanel.svelte",
       "src/ui/screens/translation-job-setup/job-setup-panel-props.ts",
+      "src/ui/screens/translation-run/translation-run.fixtures.ts",
+      "src/application/diagnostic/frontend-diagnostic-logger.ts",
+      "src/application/diagnostic/index.ts",
+      "src/ui/stores/shell-state.ts",
       "src/ui/**/__fixtures__/*.ts"
+    ],
+    "ignoreDependencies": [
+      "pino"
     ],
     "ignoreExportsUsedInFile": {
       "interface": true,
@@ -95,7 +105,8 @@
       "VALIDATION_LABELS",
       "TranslationJobSetupPhaseCardViewModel",
       "TranslationJobSetupSummaryPhaseViewModel",
-      "TranslationJobSetupExtendedViewModel"
+      "TranslationJobSetupExtendedViewModel",
+      "MinimalTranslationRunViewModel"
     ]
   },
   "dependencies": {

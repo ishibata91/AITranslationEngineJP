@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <PackageReference Include="Mutagen.Bethesda.Skyrim" Version="0.53.1" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.0" />
   </ItemGroup>
 
 </Project>
