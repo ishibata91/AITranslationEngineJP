@@ -13,11 +13,12 @@ dictionaries
 .zed
 tmp
 .trash
-db/master-dictionary.sqlite3
-db/master-dictionary.sqlite3-shm
-db/master-dictionary.sqlite3-wal
 .env
-db
+
+# 中心 DB の sqlite 実体は無視し、db/ の source（migrations/*.sql・migrations.go）は追跡する。
+db/*.sqlite3
+db/*.sqlite3-shm
+db/*.sqlite3-wal
 
 # C# 抽出ツール（Mutagen）のビルド成果物
 tools/**/bin

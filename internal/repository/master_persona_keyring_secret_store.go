@@ -1,3 +1,4 @@
+// Package repository は OS の資格情報マネージャー（keyring）への secret 保存アクセスを持つ。
 package repository
 
 import (

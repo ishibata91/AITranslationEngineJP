@@ -4,6 +4,6 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: true,
-    include: ["repository-boundary-plugin.test.mjs"]
+    include: ["wails-boundary.test.mjs"]
   }
 })

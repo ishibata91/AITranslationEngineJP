@@ -1,9 +1,9 @@
 import type { Preview } from "@storybook/svelte-vite"
-import "./preview.css"
+import "../src/ui/styles/app.css"
 
 const preview: Preview = {
   parameters: {
-    layout: "centered"
+    layout: "fullscreen"
   }
 }
 
