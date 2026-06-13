@@ -3,7 +3,7 @@
 関連文書: [`index.md`](./index.md), [`requirements.md`](./requirements.md), [`system_requirements.md`](./system_requirements.md), [`architecture.md`](./architecture.md), [`core-beliefs.md`](./core-beliefs.md)
 
 本書は、システム実装のために採用する技術と、その適用対象を定義する。
-この repo は `Wails + Go + Svelte` を基盤とする。
+この repo は `Wails + Go + Svelte` を基盤とし、翻訳対象の抽出は別プロセスの `C#/.NET + Mutagen` を用いる。
 
 ## 1. アプリケーション基盤
 
@@ -21,7 +21,7 @@
 - CSS framework は `Tailwind CSS` を採用する
 - UI コンポーネントライブラリは `daisyUI`（`Tailwind CSS` プラグイン）を採用する
 - UI コンポーネントのカタログと表示確認は `Storybook` を採用する
-- frontend 観測ログは `pino` の browser console 出力を採用する
+- frontend 観測ログは `pino` を採用する
 
 ## 3. バックエンド基盤
 
@@ -31,17 +31,13 @@
 - JSON シリアライズは `encoding/json` を標準とする
 - XML 出力は `encoding/xml` を第一候補とする
 - ログ計測は `log/slog` を採用する
-- backend 観測ログは `slog` JSON を `stderr` へ出す
 
 ## 4. 永続化
 
 - ローカルデータベースは `SQLite` を採用する
 - DB access の抽象は `sqlx` を基準にし、query builder language は導入しない
 - schema の変更管理は repo-owned SQL migration を採用する
-- migration の適用は app 起動時の専用初期化責務へ集約する
-- xEdit 抽出 JSON はファイルシステム上の正本として保持する
-- `SQLite` は入力データ、基盤マスター、翻訳ジョブの実行キャッシュとして使う
-- DB driver の concrete choice は implementation plan で固定するが、上位層へ driver 固有 API を漏らさない
+- DB driver の concrete choice は implementation plan で固定する
 
 ## 5. DI と品質基盤
 
@@ -65,8 +61,15 @@
 - system test の実行対象は、初期段階では `wails dev -browser` または frontend dev server で公開した browser surface を正本とする
 - Wails の native window 固有挙動は `Playwright` の primary scope に含めず、必要になるまで manual verification または別途専用手段で補う
 - `Playwright` の test runner、fixture、web-first assertion を system test の標準入口とする
+- 抽出ツール（C#/.NET）の unit test は `xUnit` を採用する
+- 抽出の正しさは件数照合（`CountParityTests`）と型で表せない意味不変条件（`ModelInvariantTests`）で担保する
 
-## 7. 公式参照
+## 7. 翻訳対象抽出基盤
+
+- 翻訳対象テキストの抽出は `C#/.NET` と `Mutagen`（`Mutagen.Bethesda.Skyrim`）を採用する
+- 抽出ツールの実行環境は `.NET 8`（プロジェクトは net8.0）とする
+
+## 8. 公式参照
 
 - Wails official docs:
   [`Getting Started`](https://wails.io/docs/gettingstarted/firstproject),
@@ -90,3 +93,6 @@
   [`Getting Started`](https://playwright.dev/docs/intro),
   [`Test Runner`](https://playwright.dev/docs/test-intro),
   [`Assertions`](https://playwright.dev/docs/test-assertions)
+- Mutagen official docs:
+  [`Wiki`](https://github.com/mutagen-modding/mutagen/wiki),
+  [`Environment Construction`](https://github.com/mutagen-modding/mutagen/wiki/Environment-Construction)

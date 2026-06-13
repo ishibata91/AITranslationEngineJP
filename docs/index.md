@@ -11,15 +11,17 @@ backend は `greenfield-reset` task（2026-06-06）で削減済み。新 archite
 2. [`requirements.md`](./requirements.md)
 3. [`system_requirements.md`](./system_requirements.md)
 4. [`skyrim-structure-model.md`](./skyrim-structure-model.md)
-5. [`architecture.md`](./architecture.md)
-6. [`tech-selection.md`](./tech-selection.md)
-7. [`coding-guidelines.md`](./coding-guidelines.md)
-8. 変更対象に対応する実装規約: [`coding-guidelines-frontend.md`](./coding-guidelines-frontend.md), [`coding-guidelines-backend.md`](./coding-guidelines-backend.md), [`coding-guidelines-tests.md`](./coding-guidelines-tests.md)
-9. 観測ログを変更する場合: [`observability-logging.md`](./observability-logging.md)
-10. [`UX-standard.md`](./UX-standard.md)
-11. [`lint-policy.md`](./lint-policy.md)
-12. Relevant file under [`exec-plans/`](./exec-plans/)
-13. Relevant file under [`references/`](./references/)
+5. [`concept-model.md`](./concept-model.md)
+6. [`architecture.md`](./architecture.md)
+7. [`er.md`](./er.md)
+8. [`tech-selection.md`](./tech-selection.md)
+9. [`coding-guidelines.md`](./coding-guidelines.md)
+10. 変更対象に対応する実装規約: [`coding-guidelines-frontend.md`](./coding-guidelines-frontend.md), [`coding-guidelines-backend.md`](./coding-guidelines-backend.md), [`coding-guidelines-tests.md`](./coding-guidelines-tests.md)
+11. 観測ログを変更する場合: [`observability-logging.md`](./observability-logging.md)
+12. [`UX-standard.md`](./UX-standard.md)
+13. [`lint-policy.md`](./lint-policy.md)
+14. Relevant file under [`exec-plans/`](./exec-plans/)
+15. Relevant file under [`references/`](./references/)
 
 ## Directory Contract
 
@@ -28,7 +30,9 @@ backend は `greenfield-reset` task（2026-06-06）で削減済み。新 archite
 - [`system_requirements.md`](./system_requirements.md): システム要件（業務要件をどう達成するか）。業務要件番号に対応させる
 - [`changelog.md`](./changelog.md): 変更・判断履歴。正本に残さない判断の経緯を記録する
 - [`skyrim-structure-model.md`](./skyrim-structure-model.md): Skyrim 世界を翻訳判定 context で再分類した Skyrim 構造体モデル
+- [`concept-model.md`](./concept-model.md): 翻訳という営みに登場する概念（訳の単位・配置・話者など）の概念モデル。`skyrim-structure-model.md` を入力にする
 - [`architecture.md`](./architecture.md): 層構成、transport boundary、依存方向の骨格
+- [`er.md`](./er.md): データモデルの ER 設計（抽出入力のテーブル定義・関係）。実 SQL DDL は `db/` migration が正本
 - [`tech-selection.md`](./tech-selection.md): 採用技術と品質基盤
 - [`coding-guidelines.md`](./coding-guidelines.md): 実装規約の入口
 - [`coding-guidelines-frontend.md`](./coding-guidelines-frontend.md): TypeScript / Svelte / Wails gateway の frontend 実装規約
@@ -48,7 +52,9 @@ backend は `greenfield-reset` task（2026-06-06）で削減済み。新 archite
 - システム要件（どう達成するか）が変わった場合: [`system_requirements.md`](./system_requirements.md) を更新する
 - 正本を変更した、または判断の経緯（なぜ変えたか、何を落としたか、残課題）を残す場合: [`changelog.md`](./changelog.md) に entry を追記する
 - Skyrim 構造体モデル（class、関連、関連端）が変わった場合: [`skyrim-structure-model.md`](./skyrim-structure-model.md) を更新する
+- 翻訳の概念モデル（訳の単位・配置・話者などの class、関連）が変わった場合: [`concept-model.md`](./concept-model.md) を更新する
 - Dependency rule or layering changed: update [`architecture.md`](./architecture.md)
+- データモデル / ER（テーブル設計）が変わった場合: [`er.md`](./er.md) を更新する
 - Technology decision changed: update [`tech-selection.md`](./tech-selection.md)
 - 実装規約が変わった場合: [`coding-guidelines.md`](./coding-guidelines.md) と対応する分割文書を更新する
 - 観測ログの出力先、payload、禁止事項が変わった場合: [`observability-logging.md`](./observability-logging.md) を更新する
