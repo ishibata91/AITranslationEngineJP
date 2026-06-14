@@ -4,6 +4,30 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-06-14 T2 ペルソナ口調 pipeline（台詞抽出→話者解決→口調注入翻訳→進捗・口調差を画面で観測）
+
+### 変更
+
+- extractor（C#）に台詞（INFO:NAM1）と話者属性（speaker / race / faction / voice_type）の SQLite 書込を追加。INFO の話者 FormKey を LinkCache で NPC へ解決し、種族・声型・所属勢力の EditorID を書く（`LineSpeakerSqliteWriter`）。
+- engine（Go）に台詞翻訳とペルソナ口調生成を追加。話者の声型/種族/勢力 EditorID から口調 traits を引く最小ルール（`persona_rule.go`）と、口調指示文を組む `buildPersonaDirective`／チップ用 `buildPersonaLabel`。provider の `Translate` に directive 引数を足し system prompt の base 指示後段へ注入。`Run` に本文翻訳の進捗 callback。
+- api に本文翻訳の進捗 runtime events（extract / translate）と、結果へ口調指示文・口調要約を載せる `ResultView`／`ListResults` を追加。
+- frontend に本文翻訳の進捗バー（`TranslationProgress`）と結果行のコンパクト化（口調チップ＋展開）、進捗 event 購読を追加。db migration `0002`（line / speaker / race / faction / voice_type / line_speaker / speaker_faction）。
+- `architecture.md` §8「現在の状態」を現状へ更新（extractor が台詞・話者も書く、engine が台詞翻訳・ペルソナ・進捗を持つ）。
+
+### 判断
+
+- task の完了定義を「縦切り（観測可能な成果）」へ置き直した。当初の「翻訳プロンプトへ差込点を 1 本通す（単体テストで確認）」は seam 層を完了と呼ぶ弱い条件で、実 mod で観測できる成果が無かった。実 mod `Innocence Lost - Quest Expansion.esp` を実行画面から流し、台詞抽出・口調差・進捗・翻訳を実画面で観測することを完了条件にした。
+- 固有名（辞書）解決は本 task から外し、マスター辞書 task（T3）へ移送。T3 の依存「T2 の辞書解決の差込点」は無効化（T3 が自身で差込点を作る）。
+- 責務分担: 事実の抽出は extractor（C#）、口調などの解釈は engine（Go）。extractor は識別子・事実（EditorID）だけ書き、口調 traits は engine の最小ルールで与える。ルールの永続化と編集 UI は T4（対象外）。
+- 結果行 UI は数万件・ページングに耐えるコンパクト 1 行＋口調チップ（展開で全文）にした（Storybook 人間レビュー承認）。口調差は一覧のままチップで観測。
+- architecture 構造（§1〜7）は変えていない。engine 責務（辞書解決・ペルソナ生成）と runtime events は §3・§5 に既記載で、追加スキーマは `er.md` に既定義。§8 の現状記述だけ人間承認のうえ更新。
+
+### 残課題
+
+- 固有名解決・マスター辞書（proper_noun 抽出、line_mention e5、name 関連 e8/e13/e14）は T3。ルール・プロンプト編集 UI は T4。
+- ペルソナ口調ルールは engine 内の固定最小 1 系統。声型 EditorID の網羅と気質テキストの精緻化、結果一覧の仮想スクロール／ページングは後続で扱う。
+- AI 翻訳の本番実行は利用者の OpenAI 互換 provider で行う。本 task の検証はローカル stub で pipeline 全体を通した。
+
 ## 2026-06-14 T1 後の architecture.md との構造差異を整合
 
 ### 変更

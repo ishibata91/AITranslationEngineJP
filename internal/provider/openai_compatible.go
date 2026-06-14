@@ -17,8 +17,9 @@ type Connection struct {
 }
 
 // Translator は AI 翻訳クライアントの port。engine と api がこの interface に依存する。
+// directive は engine が組む口調指示の差込文で、本文翻訳プロンプトへ注入する。空なら base 指示だけで訳す。
 type Translator interface {
-	Translate(ctx context.Context, conn Connection, model, source string) (string, error)
+	Translate(ctx context.Context, conn Connection, model, source, directive string) (string, error)
 	ListModels(ctx context.Context, conn Connection) ([]string, error)
 }
 
@@ -96,12 +97,12 @@ func (c *OpenAICompatible) ListModels(ctx context.Context, conn Connection) ([]s
 	return models, nil
 }
 
-// Translate は原文を Japanese へ翻訳して返す。
-func (c *OpenAICompatible) Translate(ctx context.Context, conn Connection, model, source string) (string, error) {
+// Translate は原文を Japanese へ翻訳して返す。directive があれば base 指示文の後ろへ注入する。
+func (c *OpenAICompatible) Translate(ctx context.Context, conn Connection, model, source, directive string) (string, error) {
 	payload := chatRequest{
 		Model: model,
 		Messages: []chatMessage{
-			{Role: "system", Content: translationDirective},
+			{Role: "system", Content: systemPrompt(directive)},
 			{Role: "user", Content: source},
 		},
 	}
@@ -147,7 +148,16 @@ type chatMessage struct {
 	Content string `json:"content"`
 }
 
-// translationDirective は本文翻訳の指示。Skyrim の英文を自然な日本語へ訳す。
+// translationDirective は本文翻訳の base 指示。Skyrim の英文を自然な日本語へ訳す。
 const translationDirective = "あなたは Skyrim Mod の翻訳者です。" +
 	"与えられた英語の本文を、原文の意味と語調を保った自然な日本語へ翻訳してください。" +
 	"訳文だけを出力し、説明や注釈は加えないでください。"
+
+// systemPrompt は base 指示文へ engine の差込文（directive）を続けた system メッセージを組む。
+// directive が空なら base 指示だけを返す。
+func systemPrompt(directive string) string {
+	if strings.TrimSpace(directive) == "" {
+		return translationDirective
+	}
+	return translationDirective + "\n\n" + directive
+}

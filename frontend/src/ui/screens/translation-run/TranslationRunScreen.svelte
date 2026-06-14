@@ -6,12 +6,14 @@
   import SelectField from "@ui/components/SelectField.svelte"
   import FileSelectField from "@ui/components/FileSelectField.svelte"
   import ResultsPanel from "./ResultsPanel.svelte"
+  import TranslationProgress from "./TranslationProgress.svelte"
   import { PROVIDER_FIELDS, PHASE_PRESENTATION } from "./translation-run-presentation"
   import type {
     TranslationRunForm,
     TranslationRunFormField,
     NarrationResultRow,
-    RunPhase
+    RunPhase,
+    RunProgress
   } from "./translation-run-view"
 
   interface Props {
@@ -22,6 +24,8 @@
     modelsLoading: boolean
     results: NarrationResultRow[]
     errorMessage: string
+    // 実行中の進捗。phase==="running" のときだけ表示する。未指定なら進捗バーを出さない。
+    progress?: RunProgress
     onFieldInput: (field: TranslationRunFormField, value: string) => void
     onSelectPlugin: () => void
     onLoadModels: () => void
@@ -36,6 +40,7 @@
     modelsLoading,
     results,
     errorMessage,
+    progress,
     onFieldInput,
     onSelectPlugin,
     onLoadModels,
@@ -140,6 +145,14 @@
         </div>
       </div>
     </div>
+
+    {#if phase === "running" && progress}
+      <TranslationProgress
+        stage={progress.stage}
+        done={progress.done}
+        total={progress.total}
+      />
+    {/if}
 
     <ResultsPanel {phase} {results} />
   </section>

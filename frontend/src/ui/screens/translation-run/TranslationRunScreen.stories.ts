@@ -4,8 +4,10 @@ import {
   EMPTY_STATE,
   MODELS_LOADING_STATE,
   READY_STATE,
-  RUNNING_STATE,
+  RUNNING_EXTRACT_STATE,
+  RUNNING_TRANSLATE_STATE,
   DONE_STATE,
+  DONE_PERSONA_STATE,
   ERROR_STATE
 } from "./translation-run.fixtures"
 
@@ -45,16 +47,28 @@ export const Ready: Story = {
   args: { ...READY_STATE }
 }
 
-// 抽出と翻訳を実行中。
-export const Running: Story = {
-  name: "実行中",
-  args: { ...RUNNING_STATE }
+// 実行中（台詞抽出）。不定の進捗バーが出る。
+export const RunningExtract: Story = {
+  name: "実行中（抽出）",
+  args: { ...RUNNING_EXTRACT_STATE }
 }
 
-// 完了し、原文と訳文が並ぶ。
+// 実行中（本文翻訳）。done/total の確定進捗バーが出る。
+export const RunningTranslate: Story = {
+  name: "実行中（本文翻訳）",
+  args: { ...RUNNING_TRANSLATE_STATE }
+}
+
+// 完了（叙述文）。原文と訳文が並ぶ。
 export const Done: Story = {
   name: "完了",
   args: { ...DONE_STATE }
+}
+
+// 完了（台詞）。訳文と口調指示が並び、話者ごとの口調差が観測できる。
+export const DonePersona: Story = {
+  name: "完了（口調差）",
+  args: { ...DONE_PERSONA_STATE }
 }
 
 // 実行に失敗した。

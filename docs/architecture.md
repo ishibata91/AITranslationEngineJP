@@ -158,5 +158,5 @@ flowchart TB
 
 - backend は `greenfield-reset` task（2026-06-06）で削減済み。残存は keyring 2 ファイルのみ。
 - frontend は `frontend-greenfield` task（2026-06-06）で削減済み。残存は `ui/stores/shell-state.ts` と diagnostic logger のみ。
-- `extractor` は in-memory の `ExtractionResult` を作り件数検証するところまで実装済み。SQLite writer は未実装。
+- `extractor` は `ExtractionResult` を作り、叙述文（narration）と台詞（line）・話者属性（speaker / race / faction / voice_type）を中心 DB へ書く。`engine` は叙述文と台詞を AI 翻訳し、台詞は話者属性からのペルソナ口調指示を注入する。本文翻訳の進捗は runtime events で frontend へ push する。
 - 本骨格への再構築は `docs/exec-plans/active/` の active plan で進める。

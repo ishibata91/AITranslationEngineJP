@@ -7,13 +7,15 @@
     TranslationRunForm,
     TranslationRunFormField,
     NarrationResultRow,
-    RunPhase
+    RunPhase,
+    RunProgress
   } from "./translation-run-view"
   import {
     selectPluginFile,
     fetchModels,
     runExtractAndTranslate,
-    listNarrations
+    listResults,
+    onRunProgress
   } from "../../../gateway/translation-gateway"
 
   let pluginPath = $state("")
@@ -24,6 +26,7 @@
   let modelsLoading = $state(false)
   let phase = $state<RunPhase>("idle")
   let results = $state<NarrationResultRow[]>([])
+  let progress = $state<RunProgress | undefined>(undefined)
   let errorMessage = $state("")
 
   const form: TranslationRunForm = $derived({ pluginPath, endpoint, apiKey, model })
@@ -65,13 +68,16 @@
     phase = "running"
     errorMessage = ""
     results = []
+    progress = { stage: "extract", done: 0, total: 0 }
     try {
       const outcome = await runExtractAndTranslate({ pluginPath, endpoint, apiKey, model })
-      results = outcome.narrations
+      results = outcome.results
       phase = "done"
     } catch (error) {
       errorMessage = messageOf(error)
       phase = "error"
+    } finally {
+      progress = undefined
     }
   }
 
@@ -81,13 +87,21 @@
     return "予期しないエラーが発生しました。"
   }
 
-  // 起動時に中心 DB の現状を読み込み、前回の結果を表示する。
-  onMount(async () => {
+  // 起動時に前回の結果を読み込み、本文翻訳の進捗 event を購読する。
+  async function loadPrevious() {
     try {
-      results = await listNarrations()
+      results = await listResults()
     } catch {
       // 起動時の読み込み失敗は致命的でないため、空のまま続行する。
     }
+  }
+
+  onMount(() => {
+    const unsubscribe = onRunProgress((p) => {
+      progress = p
+    })
+    void loadPrevious()
+    return unsubscribe
   })
 </script>
 
@@ -98,6 +112,7 @@
   {models}
   {modelsLoading}
   {results}
+  {progress}
   {errorMessage}
   {onFieldInput}
   {onSelectPlugin}
