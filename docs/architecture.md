@@ -109,8 +109,8 @@ flowchart TB
 
 - `bootstrap` だけが concrete 実装を new する。
 - 上位は下位を、`bootstrap` で wire された値経由で参照する。
-- interface は `provider` 1 つだけ。`engine` は `provider` interface に依存し、具体実装を直接参照しない。
-- `store` は concrete だが、上位（`engine`・`api`）へ SQLite driver 固有 API を漏らさない。
+- 多態の port（実装が複数に分かれる抽象）は `provider` 1 つだけ。`engine` は `provider` interface に依存し、具体実装を直接参照しない。
+- `store` は concrete を渡す。`engine`・`api` へ SQLite driver 固有 API を漏らさない。単体テストのため、`engine`・`api` は `store` の使う分だけを写した狭い interface（実装は `store` 1 つ）を consumer 側で宣言してよい。これは多態の port ではなく、テスト容易性のための切り離しとする。
 - frontend と backend は Wails 境界で接続する。
 
 ## 5. Wails 境界
@@ -119,7 +119,7 @@ flowchart TB
 - backend の Bind 公開面は `api` が担う。
 - 翻訳ジョブの進捗など backend から frontend への push は runtime events を使う。
 - query / command の主経路は Bind call とし、event は push 通知専用に使う。
-- runtime の concrete handle は `bootstrap` と adapter に閉じ込める。
+- runtime の concrete handle は `bootstrap` と `api`（Bind 公開面）に閉じ込める。`api` は runtime を進捗 push（events）とファイル選択ダイアログに使う。`engine`・`store`・`provider`・`model` へは漏らさない。
 
 ## 6. C#↔Go 境界（SQLite 契約）
 
@@ -138,10 +138,10 @@ flowchart TB
 - `internal/bootstrap`: composition root
 - `internal/api`: Wails Bind 公開面
 - `internal/engine`: 翻訳手続き pipeline
-- `internal/store`: SQLite アクセス（sqlx）。残存の keyring secret store を secret 子に置く
+- `internal/store`: SQLite アクセス（sqlx）。keyring secret store は secret 子（`internal/store/secret`）に置く
 - `internal/provider`: AI クライアント interface と 4 実装
 - `internal/model`: [`concept-model.md`](./concept-model.md) 対応のデータ構造
-- `db/`: SQL schema 正本（repo-owned migration）
+- `db/`: SQL schema 正本（repo-owned migration）と migration の適用（`db.Apply`）。`store` は起動時に `db.Apply` へ委譲する
 
 ### frontend（`frontend/src/` 配下）
 

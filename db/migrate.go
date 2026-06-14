@@ -18,7 +18,12 @@ func Apply(conn *sqlx.DB) error {
 	if err := conn.Get(&current, "PRAGMA user_version"); err != nil {
 		return fmt.Errorf("schema version の読み取り: %w", err)
 	}
-	if current >= len(migrations) {
+	// 読み込み時の version 検査（architecture.md §6）。DB がアプリの想定より新しければ、
+	// 未知の schema を壊さないよう適用せずエラーにする。
+	if current > len(migrations) {
+		return fmt.Errorf("DB schema version %d がアプリの想定 %d より新しい", current, len(migrations))
+	}
+	if current == len(migrations) {
 		return nil
 	}
 	for _, m := range migrations[current:] {
