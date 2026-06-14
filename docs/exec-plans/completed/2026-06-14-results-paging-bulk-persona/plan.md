@@ -1,7 +1,7 @@
 # Task Plan: 2026-06-14-results-paging-bulk-persona
 
 - `workflow`: work
-- `status`: 着手中（preparation-module 完了。重 task のため design-module へ）
+- `status`: 完了（finalization-module 済み。master へ merge、completed へ移動）
 - `task_id`: 2026-06-14-results-paging-bulk-persona
 - `task_mode`: 重 task（画面が動く＝結果一覧へページャ UI を追加するため。preparation-module の軽/重判定で確定）
 - `request_summary`: 翻訳結果一覧が台詞数に比例した DB クエリ（N+1）を出さないよう話者属性を一括取得し、数万件でも一覧をページングで扱えるようにする。T2 の `/simplify` で記録した効率課題の恒久対応。
@@ -131,4 +131,9 @@ storybook-module で人間レビュー承認した画面表示。implementation-
   - 完了定義 観測: (1) N+1 廃止＝単体テストで話者取得が台詞数非依存（1 回）を確認。(2) 実画面（localhost:34115）で Innocence Lost（121 台詞）を local LLM stub＋page size 50 で流し、3 ページ（50/50/21）を 次へ/前へ で跨ぎ、総件数バッジ 121・口調差（種族:ノルドの子供／声質:気難しい老女の声／幼い少年の声／幼い少女の声／若々しい女性の声）・端の無効化（先頭=前へ無効、末尾=次へ無効）を確認。console エラーなし。dev DB の stub 訳は gitignore 対象で commit されない。
   - 仕様変更・人間承認候補: なし（公開境界の意味拡張なし、docs 正本反映は finalization で判断）。次は finalization-module。
 - finalization-module（2026-06-15）。
-  - 正本化判断: `docs/architecture.md` への反映は不要。判断結果＝後続課題にも切り出さない（廃案でもなく、反映自体が不要）。根拠: §5 Wails 境界（Gateway→bindings→api Bind、進捗は runtime events）・§7 ディレクトリ正本（store/engine/api/gateway の責務）・§8 現在の状態（extractor が line/speaker を書き、engine が台詞翻訳＋ペルソナ＋進捗）は本 task で変えていない。keyset ページングと一括 persona は層内の内部精緻化、`ListResults`→`ListResultsPage` は既存 Bind 境界内のメソッド変更で、architecture の抽象度の記述を書き換えない。人間承認状態＝不要（恒久仕様追加なし）。
+  - 正本化判断: `docs/architecture.md` への反映は不要。判断結果＝後続課題にも切り出さない（廃案でもなく、反映自体が不要）。根拠: §5 Wails 境界（Gateway→bindings→api Bind、進捗は runtime events）・§7 ディレクトリ正本（store/engine/api/gateway の責務）・§8 現在の状態（extractor が line/speaker を書き、engine が台詞翻訳＋ペルソナ＋進捗）は本 task で変えていない。keyset ページングと一括 persona は層内の内部精緻化、`ListResults`→`ListResultsPage` は既存 Bind 境界内のメソッド変更で、architecture の抽象度の記述を書き換えない。人間承認状態＝不要（恒久仕様追加なし）。正本反映なし。
+  - 作業 commit: `f7263e6b`（branch `claude/2026-06-14-results-paging-bulk-persona`、分岐元 `ed88b638`）。変更 19 ファイル（backend 7・frontend 8・plan/review 2・新規 ResultsPager/query.go）。検証: backend lint・test 通過、frontend svelte-check/frontend-local/build-storybook 通過。残留リスク: dev DB の stub 訳（gitignore 対象、未 commit）。
+  - local merge: `git merge --no-ff` で master へ取り込み。merge commit `d177d7a7`。conflict なし。
+  - merge 後検証: `go build ./internal/...`・`go test ./internal/...` 通過（merge 後の master）。
+  - completed 移動: `docs/exec-plans/active/2026-06-14-results-paging-bulk-persona/` → `docs/exec-plans/completed/2026-06-14-results-paging-bulk-persona/`。
+  - remote 変更なし（push・tag・remote branch delete を実行していない）。
