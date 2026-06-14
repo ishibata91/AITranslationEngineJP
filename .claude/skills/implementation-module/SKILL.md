@@ -39,12 +39,13 @@ backend / frontend / 統合境界 / テスト / 観測を別 agent に分割せ�
     - 実装系 task 経路（`design-module` 通過）: `実装範囲`、`テスト設計`。
     - 修正系 task 経路（`investigation-module` 通過）: `修正方針判断`、`UC 差分候補`、`E2E テスト観点差分`（必要なら `実装範囲`、`テスト設計` も）。
 - 画面の表示変更がある場合は `storybook-module` の出口（`合意済み frontend 保護`）が固定されている。
-- 軽 task 経路（`design-module` を bypass）の場合は、`preparation-module` の出口だけが入口条件になる。
+- 軽 task 経路（`design-module` を bypass）の場合は、`preparation-module` の出口（`完了定義` を含む）だけが入口条件になる。
 
 ## 出口条件
 
 - 実装、テスト、観測ログの必要な artifact がすべて完了済みまたは停止理由付き。
 - `最終検証` が通過している、または成立条件不成立で停止理由が固定されている。
+- `完了定義` の振る舞いが観測点で確認されている、または成立条件不成立で停止理由が固定されている。
 
 ## 担当 artifact
 
@@ -97,6 +98,7 @@ backend / frontend / 統合境界 / テスト / 観測を別 agent に分割せ�
     - backend を触ったら `python3 scripts/harness/run.py --suite backend-local`
     - frontend を触ったら `--suite frontend-local`
     - 修正系 task で全体検証が要る場合だけ `--suite all`
+- `完了定義` の振る舞いを観測点で確認する。観測点が実画面・実データの場合、suite 通過だけで完了とせず、その振る舞いが実際に動くことを確かめる。観測できない場合は完了とせず停止理由を固定する。
 - 失敗時は Claude 本体が同じ文脈で原因を特定し、修正する。文脈を別 agent に渡さない。
 - 通過結果または停止理由を `plan.md` に記録する。
 

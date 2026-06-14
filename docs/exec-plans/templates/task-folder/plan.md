@@ -8,6 +8,7 @@
 - `request_summary`:
 - `goal`:
 - `constraints`:
+- `completion_definition`: システム上どこまで動かすか（観測できる振る舞い）と観測点（単体テスト／実画面／実データ）
 - `close_conditions`:
 - `worktree_path`:
 - `execution_branch`: `codex/<task-id>`
