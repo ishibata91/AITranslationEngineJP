@@ -4,6 +4,29 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-06-15 結果一覧の N+1 廃止＋keyset cursor ページング（T2 の効率課題の恒久対応）
+
+### 変更
+
+- store: 台詞ごとに話者を引く `LoadLineSpeaker`（1 台詞 2 クエリ）を、台詞 id 群を一括で引く `LoadLineSpeakers(lineIDs)→map`（IN 句・host parameter 上限回避の chunk）へ置換。keyset 範囲取得 `NarrationsAfter`／`LinesAfter`（`WHERE id > ? ORDER BY id LIMIT ?`）と `CountNarrations`／`CountLines`、共通 helper `query.go` を追加。未使用の `ListNarrations`／`ListLines` を削除。
+- engine: `LineStore` を一括取得へ差し替え、`LineDirective`／`linePersona`（per-line）を `LinePersonas(lineIDs)→map[int64]Persona` へ置換。`Run` はループ前に話者を 1 度だけ一括取得し、ループ内の個別 DB 問い合わせを廃止。
+- api: `ResultPage{Total,Results,NextCursor,HasMore}` と `ListResultsPage(cursor,limit)`、連結列のページ範囲を決める `pageRows`、cursor 解析（`""`／`n:<id>`／`l:<id>`）を追加。`buildResults`（全件）を廃し、ページ内台詞ぶんだけ口調を一括生成する形へ。`RunExtractAndTranslate` は全件 `Results` を返すのをやめ件数要約だけ返す。
+- frontend: gateway に `listResultsPage(cursor,limit)`、container に keyset state（cursor 履歴・ページ index・total・nextCursor・hasMore・ページサイズ 50）と前へ/次へ。ページャ表示 `ResultsPager`（順次送り・端で無効化・現在ページ番号）を追加し、件数バッジを総件数へ（Storybook 人間レビュー承認）。`TranslationResultRow` の表示形（コンパクト行・口調チップ・展開）は不変。
+
+### 判断
+
+- ページング方式は keyset（cursor）を採用し LIMIT/OFFSET を不採用にした（人間設計レビューで確定、ページサイズ 50）。結果一覧は閲覧中に行が増減しない静的集合だが、数万件の深い位置を `WHERE id > ?` の index 走査で取れる keyset を選んだ。仮想スクロールは全件を frontend へ載せ payload を増やすため不採用。
+- 話者一括取得は map 返し（`LoadLineSpeakers(lineIDs)→map`）にした。所属勢力が話者に対し 1 対多のため `ListLines` への JOIN は行が増殖し group_concat 等が要る。map なら所属勢力を `[]string` のまま保て、T2 の責務分担（store は識別子・事実、engine が口調へ解釈）を維持できる。同じ map を表示と翻訳で使い回す。
+- N+1 は per-line メソッドを削除して一括メソッドへ置換し、「N+1 を表現できない」形にした（特殊対応の追加でなく機構の置き換え）。
+- `RunExtractAndTranslate` は全件結果のインライン返却をやめた。数万件を実行応答に載せず、実行後・起動時・ページ送りを `ListResultsPage` の 1 経路に統一した。
+- `docs/architecture.md` への反映は不要と判断（§5 Wails 境界・§7 ディレクトリ正本・§8 現在の状態の構造を変えていない。keyset と一括 persona は層内の内部精緻化、`ListResults`→`ListResultsPage` は既存 Bind 境界内）。
+
+### 残課題
+
+- 固有名解決・マスター辞書は T3、口調ルールの精緻化・編集 UI は T4（いずれも対象外）。
+- 翻訳実行中（`engine.Run`）の話者一括取得は実装済みだが、翻訳は AI latency 支配のため最適化の主目的は表示経路（`buildResults`）にある。
+- 本 task の実画面検証はローカル LLM stub で pipeline 全体を通した（121 台詞・3 ページ）。AI 翻訳の本番実行は利用者の OpenAI 互換 provider で行う。
+
 ## 2026-06-14 T2 ペルソナ口調 pipeline（台詞抽出→話者解決→口調注入翻訳→進捗・口調差を画面で観測）
 
 ### 変更
