@@ -33,8 +33,9 @@
         {/if}
       </div>
     {:else}
-      <ul class="flex flex-col gap-4">
-        {#each results as row (row.edid + row.source)}
+      <ul class="flex flex-col gap-2">
+        <!-- 同一原文の台詞が重複しうるため、key は一意な並び順 index にする。一覧は毎回まるごと差し替えで順序は安定。 -->
+        {#each results as row, i (i)}
           <li>
             <TranslationResultRow {row} />
           </li>

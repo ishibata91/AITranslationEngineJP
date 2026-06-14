@@ -56,6 +56,10 @@ if (sqlitePath != null)
     var narrationRecFields = new HashSet<string> { "BOOK:DESC" };
     var written = NarrationSqliteWriter.Write(sqlitePath, schemaSql, result, narrationRecFields);
     Console.WriteLine($"[sqlite] narration {written} 件を {sqlitePath} へ書き込み（{sw.ElapsedMilliseconds} ms）");
+
+    // T2 の台詞（INFO:NAM1）と話者属性。話者は master 側 NPC を LinkCache で解決して書く。
+    var lineCount = LineSpeakerSqliteWriter.Write(sqlitePath, schemaSql, result, env.LinkCache);
+    Console.WriteLine($"[sqlite] line {lineCount} 件と話者属性を {sqlitePath} へ書き込み（{sw.ElapsedMilliseconds} ms）");
     return 0;
 }
 

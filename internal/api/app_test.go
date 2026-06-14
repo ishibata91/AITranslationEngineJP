@@ -24,13 +24,16 @@ func TestStatusLabel(t *testing.T) {
 	}
 }
 
-// narration を画面表示用 DTO へ写すこと。
-func TestToNarrationView(t *testing.T) {
-	v := toNarrationView(model.Narration{
+// narration を結果一覧の行へ写すこと。叙述文は口調指示を持たない。
+func TestNarrationResultView(t *testing.T) {
+	v := narrationResultView(model.Narration{
 		EDID: "DLC1BookSerana", Source: "halls", Dest: "広間", Status: 3,
 	})
 	if v.EDID != "DLC1BookSerana" || v.Source != "halls" || v.Dest != "広間" || v.StatusLabel != "仮訳" {
-		t.Errorf("toNarrationView = %+v", v)
+		t.Errorf("narrationResultView = %+v", v)
+	}
+	if v.Directive != "" || v.PersonaLabel != "" {
+		t.Errorf("叙述文に口調指示が付いた: %+v", v)
 	}
 }
 

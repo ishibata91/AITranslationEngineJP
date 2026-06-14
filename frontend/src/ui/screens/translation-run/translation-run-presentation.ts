@@ -1,6 +1,10 @@
 // 翻訳実行画面の表示用の値（入力欄メタ・段階表示・訳状態トーン）。型は translation-run-view.ts。
 import type { BadgeTone } from "@ui/components/status-badge"
-import type { FormFieldDescriptor, RunPhase } from "./translation-run-view"
+import type {
+  FormFieldDescriptor,
+  ProgressStage,
+  RunPhase
+} from "./translation-run-view"
 
 // plugin はファイル選択、model は取得した一覧からの選択で扱うため、テキスト入力欄は接続情報の 2 つだけ。
 export const PROVIDER_FIELDS: ReadonlyArray<FormFieldDescriptor> = [
@@ -29,6 +33,12 @@ export const PHASE_PRESENTATION: Record<
   running: { label: "実行中", tone: "primary" },
   done: { label: "完了", tone: "success" },
   error: { label: "失敗", tone: "danger" }
+}
+
+// 実行中の段階ごとの表示ラベル。進捗バーの見出しに使う。
+export const PROGRESS_STAGE_LABEL: Record<ProgressStage, string> = {
+  extract: "台詞を抽出しています",
+  translate: "本文を翻訳しています"
 }
 
 // 訳状態ラベルごとの意味トーン。未知ラベルは控えめな outline にする。
