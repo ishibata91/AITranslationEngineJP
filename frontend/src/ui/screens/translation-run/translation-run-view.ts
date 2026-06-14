@@ -50,6 +50,18 @@ export interface NarrationResultRow {
   personaLabel?: string
 }
 
+// 結果一覧の keyset ページャの表示値。results はページ分のみを持つため、総件数と現在ページ番号は別に渡す。
+export interface ResultsPaging {
+  // 結果全体の総件数（叙述文＋台詞）。ページ送りに依らない合計。件数バッジに出す。
+  total: number
+  // 現在ページ番号（1 始まり）。
+  pageNumber: number
+  // 前ページがあるか。先頭ページでは false。
+  canPrev: boolean
+  // 次ページがあるか。末尾ページでは false。
+  canNext: boolean
+}
+
 // テキスト入力欄の表示メタ。
 export interface FormFieldDescriptor {
   field: "endpoint" | "apiKey"

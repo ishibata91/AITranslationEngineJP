@@ -8,15 +8,19 @@
     TranslationRunFormField,
     NarrationResultRow,
     RunPhase,
-    RunProgress
+    RunProgress,
+    ResultsPaging
   } from "./translation-run-view"
   import {
     selectPluginFile,
     fetchModels,
     runExtractAndTranslate,
-    listResults,
+    listResultsPage,
     onRunProgress
   } from "../../../gateway/translation-gateway"
+
+  // 結果一覧は keyset cursor ページングで 1 ページずつ取得する。1 ページの件数。
+  const PAGE_SIZE = 50
 
   let pluginPath = $state("")
   let endpoint = $state("http://127.0.0.1:1234")
@@ -29,10 +33,66 @@
   let progress = $state<RunProgress | undefined>(undefined)
   let errorMessage = $state("")
 
+  // keyset ページング state。cursorStack[i] はページ i を取得した cursor（"" 始まり）。
+  // 順次送りのため、次へで nextCursor を積み、前へで履歴を 1 つ戻して再取得する。
+  let total = $state(0)
+  let cursorStack = $state<string[]>([""])
+  let pageIndex = $state(0)
+  let nextCursor = $state("")
+  let hasMore = $state(false)
+
   const form: TranslationRunForm = $derived({ pluginPath, endpoint, apiKey, model })
   const canRun = $derived(
     pluginPath.length > 0 && endpoint.length > 0 && model.length > 0
   )
+
+  const paging: ResultsPaging = $derived({
+    total,
+    pageNumber: pageIndex + 1,
+    canPrev: pageIndex > 0,
+    canNext: hasMore
+  })
+
+  // 指定 cursor のページを取得して現在ページへ反映する。
+  async function loadPage(cursor: string) {
+    const page = await listResultsPage(cursor, PAGE_SIZE)
+    results = page.results
+    total = page.total
+    nextCursor = page.nextCursor
+    hasMore = page.hasMore
+  }
+
+  // 先頭ページから読み直す（起動時・実行完了後）。
+  async function resetToFirstPage() {
+    cursorStack = [""]
+    pageIndex = 0
+    await loadPage("")
+  }
+
+  async function onPageNext() {
+    if (!hasMore) return
+    if (pageIndex === cursorStack.length - 1) {
+      cursorStack = [...cursorStack, nextCursor]
+    }
+    pageIndex += 1
+    try {
+      await loadPage(cursorStack[pageIndex])
+    } catch (error) {
+      errorMessage = messageOf(error)
+      phase = "error"
+    }
+  }
+
+  async function onPagePrev() {
+    if (pageIndex === 0) return
+    pageIndex -= 1
+    try {
+      await loadPage(cursorStack[pageIndex])
+    } catch (error) {
+      errorMessage = messageOf(error)
+      phase = "error"
+    }
+  }
 
   function onFieldInput(field: TranslationRunFormField, value: string) {
     if (field === "endpoint") endpoint = value
@@ -70,8 +130,8 @@
     results = []
     progress = { stage: "extract", done: 0, total: 0 }
     try {
-      const outcome = await runExtractAndTranslate({ pluginPath, endpoint, apiKey, model })
-      results = outcome.results
+      await runExtractAndTranslate({ pluginPath, endpoint, apiKey, model })
+      await resetToFirstPage()
       phase = "done"
     } catch (error) {
       errorMessage = messageOf(error)
@@ -87,10 +147,10 @@
     return "予期しないエラーが発生しました。"
   }
 
-  // 起動時に前回の結果を読み込み、本文翻訳の進捗 event を購読する。
+  // 起動時に前回の結果を先頭ページから読み込み、本文翻訳の進捗 event を購読する。
   async function loadPrevious() {
     try {
-      results = await listResults()
+      await resetToFirstPage()
     } catch {
       // 起動時の読み込み失敗は致命的でないため、空のまま続行する。
     }
@@ -113,9 +173,12 @@
   {modelsLoading}
   {results}
   {progress}
+  {paging}
   {errorMessage}
   {onFieldInput}
   {onSelectPlugin}
   {onLoadModels}
   {onRun}
+  {onPagePrev}
+  {onPageNext}
 />

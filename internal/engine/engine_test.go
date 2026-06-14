@@ -16,6 +16,8 @@ type fakeStore struct {
 	speakers     map[int64]model.SpeakerIdentity // lineID → 識別子（無ければ話者なし）
 	updates      []update
 	lineUpdates  []update
+	// loadSpeakersCalls は LoadLineSpeakers の呼び出し回数。話者取得が台詞数 N 非依存（N+1 廃止）の観測に使う。
+	loadSpeakersCalls int
 }
 
 type update struct {
@@ -37,9 +39,15 @@ func (f *fakeStore) ListUntranslatedLines(_ context.Context) ([]model.Line, erro
 	return f.lines, nil
 }
 
-func (f *fakeStore) LoadLineSpeaker(_ context.Context, lineID int64) (model.SpeakerIdentity, bool, error) {
-	id, ok := f.speakers[lineID]
-	return id, ok, nil
+func (f *fakeStore) LoadLineSpeakers(_ context.Context, lineIDs []int64) (map[int64]model.SpeakerIdentity, error) {
+	f.loadSpeakersCalls++
+	out := make(map[int64]model.SpeakerIdentity)
+	for _, id := range lineIDs {
+		if identity, ok := f.speakers[id]; ok {
+			out[id] = identity
+		}
+	}
+	return out, nil
 }
 
 func (f *fakeStore) UpdateLineDest(_ context.Context, id int64, dest string, status int) error {
@@ -147,6 +155,10 @@ func TestRunTranslatesLinesWithPersonaDirective(t *testing.T) {
 	if len(store.lineUpdates) != 1 || store.lineUpdates[0] != want[0] {
 		t.Errorf("lineUpdates = %v, want %v", store.lineUpdates, want)
 	}
+	// Run の台詞翻訳ループでも話者取得は一括 1 回（ループ内の個別問い合わせを廃止）。
+	if store.loadSpeakersCalls != 1 {
+		t.Errorf("Run の話者取得 = %d 回, want 1（台詞数に非依存）", store.loadSpeakersCalls)
+	}
 }
 
 // 話者を解決できない台詞は、口調指示を注入せず空 directive で訳すこと。
@@ -191,8 +203,8 @@ func TestRunReportsProgress(t *testing.T) {
 	}
 }
 
-// LineDirective は解決できた話者の口調指示と短い要約を返し、話者なしは両方空を返すこと。
-func TestLineDirective(t *testing.T) {
+// LinePersonas は解決できた話者の口調指示と短い要約を map で返し、話者なしの台詞は map に現れないこと。
+func TestLinePersonas(t *testing.T) {
 	store := &fakeStore{
 		speakers: map[int64]model.SpeakerIdentity{
 			10: {VoiceEDID: "FemaleOldGrumpy"},
@@ -200,22 +212,41 @@ func TestLineDirective(t *testing.T) {
 	}
 	eng := New(store, &fakeTranslator{})
 
-	directive, label, err := eng.LineDirective(context.Background(), 10)
+	personas, err := eng.LinePersonas(context.Background(), []int64{10, 99}) // 99 は話者なし
 	if err != nil {
-		t.Fatalf("LineDirective: %v", err)
+		t.Fatalf("LinePersonas: %v", err)
 	}
-	if !strings.Contains(directive, "気難しい老女の声") {
-		t.Errorf("directive = %q", directive)
+	p, ok := personas[10]
+	if !ok {
+		t.Fatalf("話者ありの台詞 10 が persona map に無い")
 	}
-	if label != "声質: 気難しい老女の声" {
-		t.Errorf("label = %q", label)
+	if !strings.Contains(p.Directive, "気難しい老女の声") {
+		t.Errorf("directive = %q", p.Directive)
 	}
+	if p.Label != "声質: 気難しい老女の声" {
+		t.Errorf("label = %q", p.Label)
+	}
+	if _, ok := personas[99]; ok {
+		t.Errorf("話者なしの台詞 99 が persona map に現れた")
+	}
+}
 
-	d2, l2, err := eng.LineDirective(context.Background(), 99) // 話者なし
-	if err != nil {
-		t.Fatalf("LineDirective(no speaker): %v", err)
-	}
-	if d2 != "" || l2 != "" {
-		t.Errorf("話者なしで directive=%q label=%q、空を期待", d2, l2)
+// 話者取得の DB 呼び出しが台詞数 N に依存せず一括（定数 1 回）であること（N+1 廃止の観測）。
+func TestLinePersonasBulkLoadsOnce(t *testing.T) {
+	for _, n := range []int{2, 50} {
+		store := &fakeStore{speakers: map[int64]model.SpeakerIdentity{}}
+		ids := make([]int64, n)
+		for i := range n {
+			id := int64(i + 1)
+			ids[i] = id
+			store.speakers[id] = model.SpeakerIdentity{VoiceEDID: "MaleChild"}
+		}
+		eng := New(store, &fakeTranslator{})
+		if _, err := eng.LinePersonas(context.Background(), ids); err != nil {
+			t.Fatalf("LinePersonas(N=%d): %v", n, err)
+		}
+		if store.loadSpeakersCalls != 1 {
+			t.Errorf("N=%d: LoadLineSpeakers 呼び出し = %d, want 1（台詞数に非依存）", n, store.loadSpeakersCalls)
+		}
 	}
 }

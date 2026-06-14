@@ -46,14 +46,20 @@ func (s *Store) ListUntranslatedNarrations(ctx context.Context) ([]model.Narrati
 	return s.queryNarrations(ctx, `SELECT `+narrationColumns+` FROM narration WHERE status = 0 ORDER BY id`)
 }
 
-// ListNarrations は全ての叙述文を id 昇順で返す（画面の結果一覧表示用）。
-func (s *Store) ListNarrations(ctx context.Context) ([]model.Narration, error) {
-	return s.queryNarrations(ctx, `SELECT `+narrationColumns+` FROM narration ORDER BY id`)
+// NarrationsAfter は id が afterID より大きい叙述文を id 昇順で最大 limit 件返す（keyset ページング用）。
+// afterID=0 で先頭から、最後に読んだ id を次回 afterID に渡して次ページを得る。
+func (s *Store) NarrationsAfter(ctx context.Context, afterID int64, limit int) ([]model.Narration, error) {
+	return s.queryNarrations(ctx, `SELECT `+narrationColumns+` FROM narration WHERE id > ? ORDER BY id LIMIT ?`, afterID, limit)
 }
 
-func (s *Store) queryNarrations(ctx context.Context, query string) ([]model.Narration, error) {
+// CountNarrations は叙述文の総件数を返す（ページャの総件数表示用）。
+func (s *Store) CountNarrations(ctx context.Context) (int, error) {
+	return s.count(ctx, `SELECT COUNT(*) FROM narration`)
+}
+
+func (s *Store) queryNarrations(ctx context.Context, query string, args ...any) ([]model.Narration, error) {
 	var rows []model.Narration
-	if err := s.db.SelectContext(ctx, &rows, query); err != nil {
+	if err := s.db.SelectContext(ctx, &rows, query, args...); err != nil {
 		return nil, fmt.Errorf("narration の取得: %w", err)
 	}
 	return rows, nil
