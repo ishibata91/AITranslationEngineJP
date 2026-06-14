@@ -1,7 +1,7 @@
 # Task Plan: 2026-06-14-persona-dictionary-pipeline
 
 - `workflow`: work
-- `status`: in_progress（implementation-module 完了。finalization-module へ）
+- `status`: completed（master へ merge `a9b4125e`、completed へ移動）
 - `task_id`: 2026-06-14-persona-dictionary-pipeline
 - `task_mode`: 重 task（preparation-module で確定）
 - `request_summary`: 実行画面から実 mod を抽出し、台詞を話者属性からのペルソナ口調つきで本文翻訳し、本文翻訳の進捗と口調差を画面で確認できる縦切りを 1 本通す。固有名（辞書）は本 task から外し、マスター辞書 task（T3）へ移す。
@@ -211,10 +211,27 @@ frontend ロジック（implementation-module 範囲）:
 - 変更後: 「extractor は ExtractionResult を作り、叙述文（narration）と台詞（line）・話者属性（speaker / race / faction / voice_type）を中心 DB へ書く。engine は叙述文と台詞を AI 翻訳し、台詞は話者属性からのペルソナ口調指示を注入する。本文翻訳の進捗は runtime events で frontend へ push する。」
 - 根拠 active plan: 本 plan の実装範囲・implementation-module 成果物。判断履歴は `docs/changelog.md` の T2 entry。
 
-### 作業 commit / local merge / merge 後検証 / completed 移動 / merge 結果 commit
+### 作業 commit
 
-- 後続の手順で記録する。
+- commit hash: `9980e8cb`。
+- 変更ファイル: backend（Go）engine/persona/persona_rule/store/line/api/provider＋テスト、extractor（C#）LineSpeakerSqliteWriter/Program＋テスト、frontend translation-run 表示・ロジック、migration 0002、docs（architecture.md・changelog.md・plan.md・design-diff.md・storybook-review-loop.md）。`.DS_Store`・gitignore の wailsjs／dev DB は対象外。
+- 残留リスク: AI 翻訳の本番は利用者 provider 依存（本検証は stub）。ペルソナ口調ルールは固定最小、結果一覧の仮想スクロールは後続。
+
+### local merge
+
+- command: `git merge --no-ff claude/2026-06-14-persona-dictionary-pipeline`（target `master`）。
+- 結果: master へ取り込み完了。merge commit `a9b4125e`。conflict 無し（master は merge-base `1b7ea778` のまま動いておらず clean merge）。
+
+### merge 後検証
+
+- Go: `gofmt -l` 出力なし、`go vet`／`go build`／`go test ./internal/... ./db/...` 通過。
+- frontend: `python3 scripts/harness/run.py --suite frontend-local` 通過。
+- C#: `dotnet test tools/extractor.Tests`（19 件）通過。
+
+### completed 移動 / merge 結果 commit
+
+- active plan folder を `docs/exec-plans/completed/2026-06-14-persona-dictionary-pipeline/` へ移動し、本 finalization 記録を含めて master へ local commit する。commit hash は移動後に記録する。
 
 ## Outcome
 
-- implementation-module 完了、finalization-module で §8 を人間承認のうえ反映。次は作業 commit → master へ local merge → merge 後検証 → completed 移動 → merge 結果 commit。
+- 完了。preparation→design→storybook→implementation→finalization を通し、固有名を T3 へ移してペルソナ口調に絞り、実 mod `Innocence Lost` を実画面で抽出→話者解決→口調差観測→進捗→翻訳（stub）まで通した。master へ merge（`a9b4125e`）、architecture.md §8 を人間承認のうえ更新、changelog に T2 entry。固有名解決は T3、AI 翻訳の本番実行は利用者 provider で行う。
