@@ -13,7 +13,7 @@
 
   let { row, defaultOpen = false }: Props = $props()
 
-  let hasPersona = $derived(!!row.directive && row.directive.length > 0)
+  let hasPersona = $derived(!!row.directive)
 </script>
 
 <details

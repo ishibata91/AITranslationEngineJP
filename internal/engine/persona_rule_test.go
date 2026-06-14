@@ -12,8 +12,8 @@ func TestVoiceNature(t *testing.T) {
 		edid string
 		want string
 	}{
-		{"MaleChild", "幼い少年の声"},         // 完全一致表
-		{"FemaleOldGrumpy", "気難しい老女の声"}, // 完全一致表
+		{"MaleChild", "幼い少年の声"},         // 推定（Child + Male）
+		{"FemaleOldGrumpy", "気難しい老女の声"}, // 推定（Old + Grumpy + Female）
 		{"FemaleChildEager", "幼い少女の声"},  // 推定（Child + Female）
 		{"MaleOldGrumpyA", "気難しい老人の声"},  // 推定（Old + Grumpy + Male）
 		{"FemaleEvenToned", "女性の声"},     // 推定（性別のみ）

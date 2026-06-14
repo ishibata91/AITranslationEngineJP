@@ -147,11 +147,7 @@
     </div>
 
     {#if phase === "running" && progress}
-      <TranslationProgress
-        stage={progress.stage}
-        done={progress.done}
-        total={progress.total}
-      />
+      <TranslationProgress {...progress} />
     {/if}
 
     <ResultsPanel {phase} {results} />
