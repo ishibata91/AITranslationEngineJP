@@ -19,10 +19,39 @@ const ROWS: NarrationResultRow[] = [
   }
 ]
 
+// ページャ確認用の 1 ページ分（話者ありの口調差を含む）。総件数 121 を別に渡してページングを表す。
+const PAGE_ROWS: NarrationResultRow[] = [
+  {
+    edid: "AventusAretinoInnocenceLost",
+    source: "Mother? Are you there? It's so cold without you.",
+    dest: "母さん？ そこにいるの？ あなたがいないと、こんなに寒いんだ。",
+    statusLabel: "仮訳",
+    personaLabel: "声質: 幼い少年の声",
+    directive:
+      "この台詞の話者の人物像:\n- 声質: 幼い少年の声\n- 種族の気質: ノルド（実直で粘り強い北方の気質）\nこの人物像に合う口調と人称で訳すこと。"
+  },
+  {
+    edid: "GrelodTheKindScold",
+    source: "You are all here to serve and honor your matron. Now off to bed, the lot of you!",
+    dest: "お前たちは院母に仕え、敬うためにここにいるんだよ。さあ、とっとと寝な、お前たち全員！",
+    statusLabel: "仮訳",
+    personaLabel: "声質: しわがれた老女の声",
+    directive:
+      "この台詞の話者の人物像:\n- 声質: しわがれた老女の声\n- 種族の気質: ノルド（実直で粘り強い北方の気質）\nこの人物像に合う口調と人称で訳すこと。"
+  },
+  {
+    edid: "HonorhallDoorActivate",
+    source: "The door is locked.",
+    dest: "扉には鍵がかかっている。",
+    statusLabel: "仮訳"
+  }
+]
+
 const meta = {
   title: "UI Components/ResultsPanel",
   component: ResultsPanel,
-  parameters: { layout: "padded" }
+  parameters: { layout: "padded" },
+  args: { onPrev: () => {}, onNext: () => {} }
 } satisfies Meta<typeof ResultsPanel>
 
 export default meta
@@ -39,6 +68,45 @@ export const EmptyRunning: Story = {
 }
 
 export const WithResults: Story = {
-  name: "結果あり",
+  name: "結果あり（単一ページ）",
   args: { phase: "done", results: ROWS }
+}
+
+// 複数ページの先頭。総件数 121、前へ無効・次へ有効。
+export const PagingFirst: Story = {
+  name: "複数ページ・先頭（前へ無効）",
+  args: {
+    phase: "done",
+    results: PAGE_ROWS,
+    total: 121,
+    pageNumber: 1,
+    canPrev: false,
+    canNext: true
+  }
+}
+
+// 複数ページの中間。前へ・次へとも有効。
+export const PagingMiddle: Story = {
+  name: "複数ページ・中間（両方有効）",
+  args: {
+    phase: "done",
+    results: PAGE_ROWS,
+    total: 121,
+    pageNumber: 2,
+    canPrev: true,
+    canNext: true
+  }
+}
+
+// 複数ページの末尾。次へ無効。
+export const PagingLast: Story = {
+  name: "複数ページ・末尾（次へ無効）",
+  args: {
+    phase: "done",
+    results: PAGE_ROWS,
+    total: 121,
+    pageNumber: 3,
+    canPrev: true,
+    canNext: false
+  }
 }

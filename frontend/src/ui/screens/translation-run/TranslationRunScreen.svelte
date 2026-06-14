@@ -13,7 +13,8 @@
     TranslationRunFormField,
     NarrationResultRow,
     RunPhase,
-    RunProgress
+    RunProgress,
+    ResultsPaging
   } from "./translation-run-view"
 
   interface Props {
@@ -22,14 +23,20 @@
     canRun: boolean
     models: string[]
     modelsLoading: boolean
+    // 現在ページの結果行。ページングするため全件ではない。
     results: NarrationResultRow[]
     errorMessage: string
     // 実行中の進捗。phase==="running" のときだけ表示する。未指定なら進捗バーを出さない。
     progress?: RunProgress
+    // 結果一覧のページング表示値。未指定なら単一ページ（前後無効）として扱う。
+    paging?: ResultsPaging
     onFieldInput: (field: TranslationRunFormField, value: string) => void
     onSelectPlugin: () => void
     onLoadModels: () => void
     onRun: () => void
+    // ページ送り操作。state は container が持つ。
+    onPagePrev?: () => void
+    onPageNext?: () => void
   }
 
   let {
@@ -41,10 +48,13 @@
     results,
     errorMessage,
     progress,
+    paging,
     onFieldInput,
     onSelectPlugin,
     onLoadModels,
-    onRun
+    onRun,
+    onPagePrev = () => {},
+    onPageNext = () => {}
   }: Props = $props()
 </script>
 
@@ -150,6 +160,15 @@
       <TranslationProgress {...progress} />
     {/if}
 
-    <ResultsPanel {phase} {results} />
+    <ResultsPanel
+      {phase}
+      {results}
+      total={paging?.total}
+      pageNumber={paging?.pageNumber}
+      canPrev={paging?.canPrev}
+      canNext={paging?.canNext}
+      onPrev={onPagePrev}
+      onNext={onPageNext}
+    />
   </section>
 </div>

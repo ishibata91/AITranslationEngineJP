@@ -1,6 +1,8 @@
 package api
 
 import (
+	"context"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -44,5 +46,188 @@ func TestBuildExtractorArgs(t *testing.T) {
 	want := "run --project tools/extractor -- --data /sky/Data --plugin Dawnguard.esm --sqlite db/c.sqlite3 --schema db/migrations"
 	if joined != want {
 		t.Errorf("args = %q, want %q", joined, want)
+	}
+}
+
+// fakePageStore は api.Store を満たす最小の fake。id 昇順の叙述文・台詞を保持し、keyset 範囲取得を模す。
+// DB を使わず、pageRows の cursor 境界ロジック（連結列の順次送り・区間跨ぎ・末尾）だけを確かめる。
+type fakePageStore struct {
+	narrations []model.Narration
+	lines      []model.Line
+}
+
+func (f *fakePageStore) CountNarrations(_ context.Context) (int, error) {
+	return len(f.narrations), nil
+}
+func (f *fakePageStore) CountLines(_ context.Context) (int, error) { return len(f.lines), nil }
+
+func (f *fakePageStore) NarrationsAfter(_ context.Context, afterID int64, limit int) ([]model.Narration, error) {
+	var out []model.Narration
+	for _, n := range f.narrations {
+		if n.ID > afterID {
+			out = append(out, n)
+			if len(out) == limit {
+				break
+			}
+		}
+	}
+	return out, nil
+}
+
+func (f *fakePageStore) LinesAfter(_ context.Context, afterID int64, limit int) ([]model.Line, error) {
+	var out []model.Line
+	for _, l := range f.lines {
+		if l.ID > afterID {
+			out = append(out, l)
+			if len(out) == limit {
+				break
+			}
+		}
+	}
+	return out, nil
+}
+
+func narrationsWithIDs(ids ...int64) []model.Narration {
+	rows := make([]model.Narration, len(ids))
+	for i, id := range ids {
+		rows[i] = model.Narration{ID: id}
+	}
+	return rows
+}
+
+func linesWithIDs(ids ...int64) []model.Line {
+	rows := make([]model.Line, len(ids))
+	for i, id := range ids {
+		rows[i] = model.Line{ID: id}
+	}
+	return rows
+}
+
+// rowKeys は叙述文・台詞を "n:<id>" / "l:<id>" で表し、ページ走査の順序確認に使う。
+func rowKeys(narrations []model.Narration, lines []model.Line) []string {
+	keys := make([]string, 0, len(narrations)+len(lines))
+	for _, n := range narrations {
+		keys = append(keys, "n:"+strconv.FormatInt(n.ID, 10))
+	}
+	for _, l := range lines {
+		keys = append(keys, "l:"+strconv.FormatInt(l.ID, 10))
+	}
+	return keys
+}
+
+// cursor "" から hasMore=false まで pageRows を辿り、連結列（叙述文→台詞、各 id 昇順）を
+// ページサイズ 2 で順に取り切ること。総件数が一定で、末尾でちょうど止まること。
+func TestPageRowsWalk(t *testing.T) {
+	app := &App{store: &fakePageStore{
+		narrations: narrationsWithIDs(1, 2, 3),
+		lines:      linesWithIDs(1, 2, 3, 4, 5),
+	}}
+
+	var got []string
+	cursor := ""
+	pages := 0
+	for {
+		narrations, lines, total, next, hasMore, err := app.pageRows(context.Background(), cursor, 2)
+		if err != nil {
+			t.Fatalf("pageRows: %v", err)
+		}
+		if total != 8 {
+			t.Errorf("total = %d, want 8", total)
+		}
+		got = append(got, rowKeys(narrations, lines)...)
+		pages++
+		if pages > 10 {
+			t.Fatalf("ページが終わらない（無限ループ）")
+		}
+		if !hasMore {
+			break
+		}
+		cursor = next
+	}
+
+	want := []string{"n:1", "n:2", "n:3", "l:1", "l:2", "l:3", "l:4", "l:5"}
+	if len(got) != len(want) {
+		t.Fatalf("走査結果 = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("走査[%d] = %s, want %s", i, got[i], want[i])
+		}
+	}
+	if pages != 4 {
+		t.Errorf("ページ数 = %d, want 4（8 件 ÷ 2）", pages)
+	}
+}
+
+// 叙述文区間から台詞区間へ跨ぐページで、叙述文の残り＋台詞の先頭を返し、次 cursor が台詞区間（l:<id>）になること。
+func TestPageRowsCrossBoundary(t *testing.T) {
+	app := &App{store: &fakePageStore{
+		narrations: narrationsWithIDs(1, 2, 3),
+		lines:      linesWithIDs(1, 2, 3, 4, 5),
+	}}
+
+	narrations, lines, _, next, hasMore, err := app.pageRows(context.Background(), "n:2", 2)
+	if err != nil {
+		t.Fatalf("pageRows: %v", err)
+	}
+	if len(narrations) != 1 || narrations[0].ID != 3 {
+		t.Errorf("叙述文 = %v, want [3]", narrations)
+	}
+	if len(lines) != 1 || lines[0].ID != 1 {
+		t.Errorf("台詞 = %v, want [1]", lines)
+	}
+	if next != "l:1" {
+		t.Errorf("next cursor = %q, want l:1", next)
+	}
+	if !hasMore {
+		t.Errorf("hasMore = false, want true")
+	}
+}
+
+// 叙述文がちょうどページを埋め、台詞が残る場合、次 cursor が台詞先頭（l:0）になり hasMore=true であること。
+func TestPageRowsNarrationsExactlyFill(t *testing.T) {
+	app := &App{store: &fakePageStore{
+		narrations: narrationsWithIDs(1, 2),
+		lines:      linesWithIDs(1, 2, 3),
+	}}
+
+	narrations, lines, total, next, hasMore, err := app.pageRows(context.Background(), "", 2)
+	if err != nil {
+		t.Fatalf("pageRows: %v", err)
+	}
+	if len(narrations) != 2 || len(lines) != 0 {
+		t.Errorf("叙述文=%v 台詞=%v, want 叙述文 2・台詞 0", narrations, lines)
+	}
+	if next != "l:0" {
+		t.Errorf("next cursor = %q, want l:0", next)
+	}
+	if !hasMore {
+		t.Errorf("hasMore = false, want true")
+	}
+	if total != 5 {
+		t.Errorf("total = %d, want 5", total)
+	}
+
+	// 続く l:0 から台詞先頭が取れること。
+	_, lines2, _, _, _, err := app.pageRows(context.Background(), next, 2)
+	if err != nil {
+		t.Fatalf("pageRows(l:0): %v", err)
+	}
+	if len(lines2) != 2 || lines2[0].ID != 1 {
+		t.Errorf("台詞先頭 = %v, want [1,2]", lines2)
+	}
+}
+
+// 結果が無いとき、総件数 0・hasMore=false・next 空であること。
+func TestPageRowsEmpty(t *testing.T) {
+	app := &App{store: &fakePageStore{}}
+
+	narrations, lines, total, next, hasMore, err := app.pageRows(context.Background(), "", 2)
+	if err != nil {
+		t.Fatalf("pageRows: %v", err)
+	}
+	if len(narrations) != 0 || len(lines) != 0 || total != 0 || hasMore || next != "" {
+		t.Errorf("空のはず: 叙述文=%v 台詞=%v total=%d hasMore=%v next=%q",
+			narrations, lines, total, hasMore, next)
 	}
 }

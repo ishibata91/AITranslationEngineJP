@@ -22,7 +22,9 @@ const meta = {
     onFieldInput: () => {},
     onSelectPlugin: () => {},
     onLoadModels: () => {},
-    onRun: () => {}
+    onRun: () => {},
+    onPagePrev: () => {},
+    onPageNext: () => {}
   }
 } satisfies Meta<typeof TranslationRunScreen>
 

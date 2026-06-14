@@ -2,7 +2,7 @@
 // View・Container からは本 gateway 経由で backend を呼ぶ。
 import {
   GetModels,
-  ListResults,
+  ListResultsPage,
   RunExtractAndTranslate,
   SelectPluginFile
 } from "../../wailsjs/go/api/App"
@@ -31,9 +31,17 @@ export interface ResultRow {
   personaLabel?: string
 }
 
+// 実行結果の要約。結果一覧は数万件になりうるため実行時には返さず、listResultsPage で取得する。
 export interface RunOutcome {
   translatedCount: number
+}
+
+// 結果一覧の keyset cursor ページ。total は総件数、nextCursor は次ページ取得用、hasMore は次ページの有無。
+export interface ResultPage {
+  total: number
   results: ResultRow[]
+  nextCursor: string
+  hasMore: boolean
 }
 
 // 本文翻訳の進捗。stage は extract（台詞抽出、不定）と translate（本文翻訳、done/total）。
@@ -56,19 +64,25 @@ export async function fetchModels(conn: Connection): Promise<string[]> {
   return GetModels(api.ConnRequest.createFrom(conn))
 }
 
-// plugin を抽出し未訳を翻訳して、結果一覧を返す。
+// plugin を抽出し未訳を翻訳して、翻訳件数の要約を返す。結果一覧は listResultsPage で取得する。
 export async function runExtractAndTranslate(input: RunInput): Promise<RunOutcome> {
   const result = await RunExtractAndTranslate(api.RunRequest.createFrom(input))
-  return {
-    translatedCount: result.translatedCount,
-    results: result.results.map(toResultRow)
-  }
+  return { translatedCount: result.translatedCount }
 }
 
-// 中心 DB の現在の叙述文と台詞を取得する（起動時に前回の結果を表示するため）。
-export async function listResults(): Promise<ResultRow[]> {
-  const rows = await ListResults()
-  return rows.map(toResultRow)
+// 中心 DB の叙述文と台詞を keyset cursor ページで取得する（起動時・ページ送り・実行後の取得を統一）。
+// cursor は ""（先頭）/ "n:<id>" / "l:<id>"。limit はページ件数。
+export async function listResultsPage(
+  cursor: string,
+  limit: number
+): Promise<ResultPage> {
+  const page = await ListResultsPage(cursor, limit)
+  return {
+    total: page.total,
+    results: page.results.map(toResultRow),
+    nextCursor: page.nextCursor,
+    hasMore: page.hasMore
+  }
 }
 
 // 本文翻訳の進捗 event を購読する。返り値の関数を呼ぶと購読を解除する。

@@ -4,7 +4,8 @@ import type {
   TranslationRunForm,
   NarrationResultRow,
   RunPhase,
-  RunProgress
+  RunProgress,
+  ResultsPaging
 } from "./translation-run-view"
 
 // 画面全体の表示状態。story の固定状態を組むための型。
@@ -18,6 +19,8 @@ interface TranslationRunViewModel {
   errorMessage: string
   // 実行中の進捗。phase==="running" のときだけ意味を持つ。
   progress?: RunProgress
+  // 結果一覧のページング表示値。完了状態でだけ意味を持つ。未指定なら単一ページ扱い。
+  paging?: ResultsPaging
 }
 
 const EMPTY_FORM: TranslationRunForm = {
@@ -148,7 +151,7 @@ export const READY_STATE: TranslationRunViewModel = {
   errorMessage: ""
 }
 
-// 完了し、原文と訳文が並ぶ。一部は未訳のまま残る場合もある。
+// 完了し、原文と訳文が並ぶ。一部は未訳のまま残る場合もある。全件が 1 ページに収まる単一ページ。
 export const DONE_STATE: TranslationRunViewModel = {
   form: FILLED_FORM,
   phase: "done",
@@ -156,7 +159,13 @@ export const DONE_STATE: TranslationRunViewModel = {
   models: MODELS,
   modelsLoading: false,
   results: RESULT_ROWS,
-  errorMessage: ""
+  errorMessage: "",
+  paging: {
+    total: RESULT_ROWS.length,
+    pageNumber: 1,
+    canPrev: false,
+    canNext: false
+  }
 }
 
 // 実行中（台詞を抽出している段階）。件数は出ず、不定バーを出す。
@@ -184,6 +193,7 @@ export const RUNNING_TRANSLATE_STATE: TranslationRunViewModel = {
 }
 
 // 完了し、台詞の訳文と注入した口調指示文が並ぶ。話者ごとの口調差が観測できる。
+// 総件数 121・ページサイズ 50 を想定した先頭ページ（次へ有効）。LINE_RESULT_ROWS は当該ページ分。
 export const DONE_PERSONA_STATE: TranslationRunViewModel = {
   form: FILLED_FORM,
   phase: "done",
@@ -191,7 +201,13 @@ export const DONE_PERSONA_STATE: TranslationRunViewModel = {
   models: MODELS,
   modelsLoading: false,
   results: LINE_RESULT_ROWS,
-  errorMessage: ""
+  errorMessage: "",
+  paging: {
+    total: 121,
+    pageNumber: 1,
+    canPrev: false,
+    canNext: true
+  }
 }
 
 // 実行が失敗し、原因と対応を伝える。
