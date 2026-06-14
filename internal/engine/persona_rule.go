@@ -22,14 +22,12 @@ func personaFromIdentity(id model.SpeakerIdentity) model.SpeakerPersona {
 	return persona
 }
 
-// voiceNature は声型 EditorID（VTYP）から声質の気質を引く。完全一致の表に無くても、
+// voiceNature は声型 EditorID（VTYP）から声質の気質を引く。
 // Skyrim の VTYP 命名（性別＋年齢＋気性）から機械的に推定する。空 EditorID は空を返す。
+// 命名で表せない例外を効かせたくなったら、推定の前に完全一致の分岐を足す。
 func voiceNature(edid string) string {
 	if edid == "" {
 		return ""
-	}
-	if n, ok := voiceNatureByEDID[edid]; ok {
-		return n
 	}
 	female := strings.HasPrefix(edid, "Female")
 	gender := "男性"
@@ -67,16 +65,6 @@ func voiceNature(edid string) string {
 	default:
 		return gender + "の声"
 	}
-}
-
-// voiceNatureByEDID は特に効かせたい代表 VTYP の完全一致表。命名推定より優先する。
-var voiceNatureByEDID = map[string]string{
-	"MaleChild":       "幼い少年の声",
-	"FemaleChild":     "幼い少女の声",
-	"FemaleOldGrumpy": "気難しい老女の声",
-	"FemaleOldKindly": "穏やかな老女の声",
-	"MaleOldGrumpy":   "気難しい老人の声",
-	"MaleOldKindly":   "好々爺の声",
 }
 
 // raceNature は種族 EditorID（RACE）から種族の気質を引く。完全一致の表に無くても、

@@ -135,20 +135,24 @@ public static class LineSpeakerSqliteWriter
 
         private void Exec(string sql, params (string Name, object Value)[] ps)
         {
-            using var cmd = _conn.CreateCommand();
-            cmd.Transaction = _tx;
-            cmd.CommandText = sql;
-            foreach (var (name, value) in ps) cmd.Parameters.AddWithValue(name, value);
+            using var cmd = Command(sql, ps);
             cmd.ExecuteNonQuery();
         }
 
         private long ScalarId(string sql, params (string Name, object Value)[] ps)
         {
-            using var cmd = _conn.CreateCommand();
+            using var cmd = Command(sql, ps);
+            return Convert.ToInt64(cmd.ExecuteScalar());
+        }
+
+        // Command は transaction 付きのパラメータ化コマンドを組む。Exec / ScalarId 共通。
+        private SqliteCommand Command(string sql, (string Name, object Value)[] ps)
+        {
+            var cmd = _conn.CreateCommand();
             cmd.Transaction = _tx;
             cmd.CommandText = sql;
             foreach (var (name, value) in ps) cmd.Parameters.AddWithValue(name, value);
-            return Convert.ToInt64(cmd.ExecuteScalar());
+            return cmd;
         }
 
         private static string HexFormId(FormKey key) => $"0x{key.ID:X6}";
