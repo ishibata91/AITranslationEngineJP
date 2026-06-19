@@ -32,6 +32,8 @@
     paging?: ResultsPaging
     onFieldInput: (field: TranslationRunFormField, value: string) => void
     onSelectPlugin: () => void
+    // plugin パスの直接入力。ネイティブダイアログに加え、パスを手で入れて実行できるようにする。
+    onPluginPathInput: (value: string) => void
     onLoadModels: () => void
     onRun: () => void
     // ページ送り操作。state は container が持つ。
@@ -51,6 +53,7 @@
     paging,
     onFieldInput,
     onSelectPlugin,
+    onPluginPathInput,
     onLoadModels,
     onRun,
     onPagePrev = () => {},
@@ -85,9 +88,11 @@
             label="plugin"
             buttonLabel="plugin を選択"
             path={form.pluginPath}
+            placeholder="/path/to/Data/Mod.esp"
             emptyText="plugin ファイルが未選択です。"
-            hint="master と Strings がある Data フォルダ内の plugin を選びます。Data フォルダはこのファイルの場所から判断します。"
+            hint="master と Strings がある Data フォルダ内の plugin を選ぶか、フルパスを直接入力します。Data フォルダはこのファイルの場所から判断します。"
             onSelect={onSelectPlugin}
+            onPathInput={onPluginPathInput}
           />
         </div>
 

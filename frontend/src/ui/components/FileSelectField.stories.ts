@@ -31,3 +31,16 @@ export const Selected: Story = {
     hint: "master と Strings がある Data フォルダ内の plugin を選びます。"
   }
 }
+
+// onPathInput を渡すと、選択ボタンに加えてパスを直接編集できる欄が出る。
+export const EditablePath: Story = {
+  name: "直接入力（編集できる）",
+  args: {
+    label: "plugin",
+    buttonLabel: "plugin を選択",
+    path: "/Users/me/Skyrim/Data/Dawnguard.esm",
+    placeholder: "/path/to/Data/Mod.esp",
+    hint: "plugin を選ぶか、フルパスを直接入力します。",
+    onPathInput: () => {}
+  }
+}

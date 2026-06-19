@@ -10,7 +10,7 @@ using Mutagen.Bethesda.Strings;
 //   dotnet run --project tools/extractor -- --data dictionaries/Data --plugin Dawnguard.esm \
 //       --xml dictionaries/xTranslatorXMLs/Dawnguard_english_japanese.xml
 
-string? dataFolder = null, plugin = null, xmlPath = null, dumpRecField = null, sqlitePath = null, schemaDir = null;
+string? dataFolder = null, plugin = null, xmlPath = null, dumpRecField = null, sqlitePath = null, schemaDir = null, termsXmlDir = null;
 var language = Language.English;
 
 for (var i = 0; i < args.Length; i++)
@@ -23,6 +23,7 @@ for (var i = 0; i < args.Length; i++)
         case "--dump": dumpRecField = Next(ref i).ToUpperInvariant(); break;
         case "--sqlite": sqlitePath = Next(ref i); break;
         case "--schema": schemaDir = Next(ref i); break;
+        case "--terms-xml": termsXmlDir = Next(ref i); break;
         case "--language": language = Enum.Parse<Language>(Next(ref i), ignoreCase: true); break;
         case "--help" or "-h": PrintUsage(); return 0;
         default:
@@ -60,6 +61,21 @@ if (sqlitePath != null)
     // T2 の台詞（INFO:NAM1）と話者属性。話者は master 側 NPC を LinkCache で解決して書く。
     var lineCount = LineSpeakerSqliteWriter.Write(sqlitePath, schemaSql, result, env.LinkCache);
     Console.WriteLine($"[sqlite] line {lineCount} 件と話者属性を {sqlitePath} へ書き込み（{sw.ElapsedMilliseconds} ms）");
+
+    // T3 の固有名辞書（master_term）。xTranslator 英日辞書 XML（公式日本語版既訳）から FULL を読み、
+    // 叙述文・台詞の本文へ機械置換するための「原語 → 確定訳語」を書く。
+    // 既定は data folder の兄弟 xTranslatorXMLs、--terms-xml で上書きできる。
+    var xmlDir = termsXmlDir ?? Path.Combine(dataFolder, "..", "xTranslatorXMLs");
+    if (Directory.Exists(xmlDir))
+    {
+        var termXmls = Directory.GetFiles(xmlDir, "*.xml");
+        var termCount = MasterTermXmlWriter.Write(sqlitePath, schemaSql, termXmls);
+        Console.WriteLine($"[sqlite] master_term {termCount} 件を {termXmls.Length} 個の XML から {sqlitePath} へ書き込み（{sw.ElapsedMilliseconds} ms）");
+    }
+    else
+    {
+        Console.WriteLine($"[sqlite] 固有名辞書の XML ディレクトリが無い（{xmlDir}）。master_term は作らない。");
+    }
     return 0;
 }
 
@@ -137,6 +153,7 @@ static void PrintUsage()
           --plugin    抽出対象 plugin ファイル名（master は同フォルダから自動解決）
           --sqlite    中心 DB（SQLite）へ叙述文（BOOK:DESC）を書き込む。書込後に終了する
           --schema    --sqlite 用の migrations ディレクトリ（既定 repo の db/migrations を自動探索）
+          --terms-xml 固有名辞書（master_term）の供給元 xTranslator 英日 XML ディレクトリ（既定 data の兄弟 xTranslatorXMLs）
           --xml       xTranslator 辞書 XML と REC:FIELD 件数比較を行う（不一致なら exit 2）
           --language  localized strings の言語（既定 English。翻訳元テキストを解決する）
         """);

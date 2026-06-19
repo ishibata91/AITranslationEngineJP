@@ -110,6 +110,11 @@
     }
   }
 
+  // plugin パスの直接入力。ネイティブダイアログを使わず手でパスを入れて実行できるようにする。
+  function onPluginPathInput(value: string) {
+    pluginPath = value
+  }
+
   async function onLoadModels() {
     modelsLoading = true
     errorMessage = ""
@@ -177,6 +182,7 @@
   {errorMessage}
   {onFieldInput}
   {onSelectPlugin}
+  {onPluginPathInput}
   {onLoadModels}
   {onRun}
   {onPagePrev}

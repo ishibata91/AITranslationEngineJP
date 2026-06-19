@@ -33,10 +33,16 @@ type Persona struct {
 	Label     string
 }
 
+// DictStore は engine が固有名の機械置換辞書（master_term）を読むための中心データアクセス。
+type DictStore interface {
+	ListMasterTerms(ctx context.Context) ([]model.MasterTerm, error)
+}
+
 // Store は engine が必要とする中心データアクセスをまとめる。concrete は internal/store が 1 つ実装する。
 type Store interface {
 	NarrationStore
 	LineStore
+	DictStore
 }
 
 // Engine は翻訳手続きを実行する。
@@ -69,6 +75,12 @@ func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string
 		return 0, err
 	}
 
+	// 固有名の機械置換辞書をループ前に 1 度だけ組む。本文翻訳の前に原文の固有名を確定訳語へ置換する。
+	dict, err := e.loadDictionary(ctx)
+	if err != nil {
+		return 0, err
+	}
+
 	total := len(narrations) + len(lines)
 	done := 0
 	report := func() {
@@ -79,7 +91,9 @@ func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string
 	report()
 
 	for _, row := range narrations {
-		dest, err := e.provider.Translate(ctx, conn, model, row.Source, "")
+		// 本文中の固有名を辞書の確定訳語へ機械置換してから AI 翻訳する。AI は周りの英語だけを訳す。
+		source, _ := dict.Apply(row.Source)
+		dest, err := e.provider.Translate(ctx, conn, model, source, "")
 		if err != nil {
 			return done, fmt.Errorf("叙述文の翻訳: %w", err)
 		}
@@ -91,7 +105,8 @@ func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string
 	}
 
 	for _, row := range lines {
-		dest, err := e.provider.Translate(ctx, conn, model, row.Source, personas[row.ID].Directive)
+		source, _ := dict.Apply(row.Source)
+		dest, err := e.provider.Translate(ctx, conn, model, source, personas[row.ID].Directive)
 		if err != nil {
 			return done, fmt.Errorf("台詞の翻訳: %w", err)
 		}
@@ -102,6 +117,19 @@ func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string
 		report()
 	}
 	return done, nil
+}
+
+// loadDictionary は master_term を読み、固有名の機械置換辞書を組む。
+func (e *Engine) loadDictionary(ctx context.Context) (*Dictionary, error) {
+	terms, err := e.store.ListMasterTerms(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("マスター辞書の取得: %w", err)
+	}
+	pairs := make([]DictionaryTerm, len(terms))
+	for i, term := range terms {
+		pairs[i] = DictionaryTerm{Source: term.Source, Dest: term.Dest}
+	}
+	return NewDictionary(pairs), nil
 }
 
 // LinePersonas は台詞 id 群の話者を一括取得し、各台詞の口調指示文（全文）と一覧用の短い要約を map で返す。

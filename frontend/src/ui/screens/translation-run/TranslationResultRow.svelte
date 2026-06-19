@@ -14,6 +14,7 @@
   let { row, defaultOpen = false }: Props = $props()
 
   let hasPersona = $derived(!!row.directive)
+  let termCount = $derived(row.terms?.length ?? 0)
 </script>
 
 <details
@@ -35,6 +36,14 @@
       </span>
     {:else}
       <span class="u-mono text-[0.65rem] text-base-content/30 shrink-0">口調なし</span>
+    {/if}
+    {#if termCount > 0}
+      <span
+        class="badge badge-sm badge-outline border-secondary/40 text-secondary/80 shrink-0 u-mono"
+        title="本文で辞書から確定訳語へ置換した固有名の件数"
+      >
+        固有名 {termCount}
+      </span>
     {/if}
     <span class="min-w-0 flex-1 truncate text-sm text-base-content/65">
       {row.source}
@@ -78,6 +87,22 @@
         <p class="mt-1 whitespace-pre-line text-xs leading-relaxed text-base-content/70">
           {row.directive}
         </p>
+      </div>
+    {/if}
+    {#if termCount > 0}
+      <div class="mt-4 rounded-box border border-secondary/25 bg-secondary/5 p-3">
+        <span class="u-mono text-[0.65rem] uppercase tracking-widest text-secondary/70">
+          置換した固有名
+        </span>
+        <ul class="mt-2 flex flex-col gap-1">
+          {#each row.terms ?? [] as term (term.source)}
+            <li class="text-sm text-base-content/80">
+              <span class="u-mono text-xs text-base-content/85">{term.source}</span>
+              <span class="text-base-content/30">→</span>
+              <span class="text-base-content">{term.dest}</span>
+            </li>
+          {/each}
+        </ul>
       </div>
     {/if}
   </div>

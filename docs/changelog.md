@@ -4,6 +4,36 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-06-18 マスター辞書 T3 増分: 人名の部分形の派生（名のみ・短名を辞書化）
+
+### 変更
+
+- `internal/engine/termderive.go`（新規）: 人名の部分形を 3 種で派生する純関数 `DeriveTerms` を追加。shrt（`NPC_:SHRT` の短縮別名通過）・byname（` the ` を含む名の前部と Dest 末尾カタカナ連）・two（base ゲームの空白 2 語姓名を中黒 2 語で整列）。安全フィルタ（用法比 lc/uc・称号・種族/ハウス語・縮約素体・純カタカナ・最小長 4・base 衝突 skip・two の base ゲーム限定）を同関数に持つ。副作用なし。
+- `internal/engine/termusage.go`（新規）: 会話文の英語原文から各英単語の用法分布（lc=小文字始まり一般語用法 / uc=文頭以外の大文字始まり固有名用法）を作る純関数 `BuildUsage` を追加。
+- `internal/engine/termderive_test.go`・`termusage_test.go`（新規）: 純粋ルールの全分岐単体テスト。新規ルール関数のカバレッジ 100%。
+- `scripts/dict/derive-master-terms/main.go`（新規）: ビルド時コマンド。xTranslator 英日 XML を解析し、用法分布を作り、純粋ルールを呼び、base 衝突を除いて `master_term` へ `category="derive:<種別>"` で追記する。`db.Apply` で schema を ensure し、`INSERT OR IGNORE` で二重追記を防ぐ。
+- `scripts/dict/derive-master-terms/main_test.go`（新規）: XML 解析の単体テストと、temp DB へ XML→派生→追記・base 衝突 skip の結合テスト。
+- 実行時の置換器 `internal/engine/dictionary.go`・`engine.go`、テーブル `master_term` は無改造。`loadDictionary` が category を問わず全件を読むため派生行を自動で取り込む。
+
+### 判断
+
+- 派生規則は副作用の無い単一の純粋ルール（`DeriveTerms`）へ分離し、ユニットテストカバレッジ 100% を基準にした（人間が固定した基準）。XML 解析・DB 書込の I/O 配線はルールの外（ビルド時コマンド）へ出し、結合テストで見る。
+- 置き場所は判定が属する言語（置換器が Go なので Go）に合わせ、ビルド時生成で `master_term` へ焼く（人間承認の構成）。永続した派生行は category 印で目視・差し戻しできる。
+- base 辞書は現行の C# extractor のまま。派生は base 書き込み後に走る Go コマンドが追記する 2 段構成。同じ既訳をより単純に得られ、純粋ルールを Go に置けるため。
+- 由来種別は既存 `category` 列に `derive:<種別>` として持たせ、スキーマは変えない。実行時の照合は source だけを見るため影響しない。
+- two（姓名分割）は base ゲーム XML 限定にした。patch/mod の Source/Dest 対応ずれ（USSEP で観測）による誤訳を避けるため。
+- 安全フィルタは観測した失敗の手書き除外でなく、用法分布と語形による構造判定にした。一般語（`Master`・`Blood`・`Mine`）・種族語（`Imperial`・`Nord`）・称号（`Lord`・`Captain`）・縮約（`Aren`）を捨て、固有名（`Grelod`・`Mercer`）を残す。`Imperial` は用法比だけでは残る側だが種族/ハウス語集合で捨てる（地の文の誤置換回避）。
+- two の category 形容語フィルタ（creature ラベル混入抑制）は本実装に入れない。検証済み数値（破壊型過剰置換 0・被覆 99.9%・held-out 汎用性）はフィルタ無しで得たもので、追加は未検証のため。起動条件は「ハーネスで過剰置換が減り被覆が落ちないと実測したとき」。
+
+### 残課題
+
+- 機械置換は実 DB（base 24,554＋派生 517）で観測済み: `Grelod`→`グレロッド`（名のみ、原問題解消）、`Mercer Frey`→`メルセル・フレイ`（最長一致）、`Mercer`→`メルセル`（姓のみ）、一般語 `master` は無置換。AI 無しで `engine.NewDictionary`+`Apply` を実 DB に対し実行して確認。
+- 実 app の end-to-end も観測済み（実 LLM、2026-06-19）: 「Innocence Lost - Quest Expansion.esp」の台詞 121 件を gemma-4-12b で翻訳し、`Grelod` 28/28→`グレロッド`、`Riften` 4/4→`リフテン`、崩れ 0。観測前は前回（派生なし）の訳で裸 `Grelod` が `グレロド`/`グレロッド` に揺れていたのが、派生辞書で全て `グレロッド` に揃った。plugin はパス直接入力欄から手入力（人間補助不要。先の「ネイティブダイアログのため人間依頼」は誤り）。
+- 所見（モデル依存・新規発見）: 機械置換は AI 前段で確定訳語を注入するが、end-to-end の一貫性は AI が注入カタカナを保持するかに依存する。shisa-v2.1-qwen3-8b は注入済み `リフテン` を `リヴェン` 等へ書き換え（`Riften` 0/4・`Grelod` 24/28 のみ保持）、gemma-4-12b は完全保持。派生のバグではなく（base 名 `Riften` も崩れる）、弱い小型モデルが注入トークンを保持しない問題。翻訳モデルは注入トークンを保持できる能力のものを選ぶ。
+- 派生はビルド時 1 段（`go run ./scripts/dict/derive-master-terms --sqlite db/aitranslation.dev.sqlite3`）。中心 DB は wipe されず writer が `INSERT OR IGNORE` のため、app の再抽出で派生行は消えず runtime 無改造で base+派生が効く。
+- `docs/architecture.md` 反映の要否は finalization-module で判断する（本増分は engine 内の純粋ルール追加とビルド時コマンドで、Wails 境界・実行時の層構造は変えていない）。
+- `go build ./...` は既存の壊れ（`scripts/test/seed-system-test-db/main.go` が存在しない `internal/repository` を import）で失敗する。本増分の範囲外。
+
 ## 2026-06-15 結果一覧の N+1 廃止＋keyset cursor ページング（T2 の効率課題の恒久対応）
 
 ### 変更
