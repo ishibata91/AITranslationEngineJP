@@ -1,7 +1,7 @@
 # Task Plan: 2026-06-14-master-dictionary
 
 - `workflow`: work
-- `status`: in_progress（着手。preparation-module 完了）
+- `status`: completed（finalization-module 完了。master へ merge 済み）
 - `task_id`: 2026-06-14-master-dictionary
 - `task_mode`: 重 task（preparation-module で確定）
 - `request_summary`: Mod 横断マスター辞書（原語 → 確定訳語）のテーブル・登録・適用を実装する。固有名詞を抽出して辞書へ登録し、辞書解決の差込点を engine に新設して本文翻訳へ適用する。T2 は差込点を作らなかったため、差込点も本 task で作る。
@@ -137,3 +137,12 @@
 
 - `docs/architecture.md` 反映: 不要と判断（人間確認のうえ）。§1〜7（層構成・依存方向・強い制約・Wails 境界）は不変。`DictStore` は consumer 側の狭い interface（§4 で許容）、派生コマンドはビルドツールで実行時の層ではない。§8（現在の状態）は記述スナップショットで、構造不変のため churn しない（結果一覧ページング task と同じ判断）。当初 plan の「§8 反映 Y」は事前見込みで、実装が層を変えなかったため不要に確定。
 - 人間承認済みの恒久仕様の正本反映: なし。
+
+### 作業 commit / merge
+
+- 作業 commit: `4acad2d2`（branch `claude/2026-06-14-master-dictionary`）。T3 全体（base 辞書・機械置換・人名派生・frontend・extractor・docs）。
+- local merge: `git merge --no-ff` で master へ取り込み、merge commit `99e903ea`。conflict なし。
+- merge 後検証: `go test ./internal/engine/ ./scripts/dict/derive-master-terms/` 通過、`frontend-local` 通過。
+- completed 移動: 本 plan folder を `docs/exec-plans/completed/2026-06-14-master-dictionary/` へ移動。
+- 正本反映: なし（architecture.md §1〜7 不変、§8 churn せず）。
+- remote 変更なし（push しない）。
