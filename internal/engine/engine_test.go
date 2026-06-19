@@ -14,6 +14,7 @@ type fakeStore struct {
 	untranslated []model.Narration
 	lines        []model.Line
 	speakers     map[int64]model.SpeakerIdentity // lineID → 識別子（無ければ話者なし）
+	terms        []model.MasterTerm              // 固有名の機械置換辞書（無ければ置換なし）
 	updates      []update
 	lineUpdates  []update
 	// loadSpeakersCalls は LoadLineSpeakers の呼び出し回数。話者取得が台詞数 N 非依存（N+1 廃止）の観測に使う。
@@ -53,6 +54,10 @@ func (f *fakeStore) LoadLineSpeakers(_ context.Context, lineIDs []int64) (map[in
 func (f *fakeStore) UpdateLineDest(_ context.Context, id int64, dest string, status int) error {
 	f.lineUpdates = append(f.lineUpdates, update{id: id, dest: dest, status: status})
 	return nil
+}
+
+func (f *fakeStore) ListMasterTerms(_ context.Context) ([]model.MasterTerm, error) {
+	return f.terms, nil
 }
 
 type fakeTranslator struct {
@@ -108,6 +113,31 @@ func TestRunTranslatesUntranslatedAsProvisional(t *testing.T) {
 		if store.updates[i] != want[i] {
 			t.Errorf("update[%d] = %v, want %v", i, store.updates[i], want[i])
 		}
+	}
+}
+
+// 本文翻訳の前に、原文中の固有名を辞書の確定訳語へ機械置換してから AI へ渡すこと。
+func TestRunReplacesTermsBeforeTranslate(t *testing.T) {
+	store := &fakeStore{
+		untranslated: []model.Narration{{ID: 1, Source: "The Riften guard waited."}},
+		terms:        []model.MasterTerm{{Source: "Riften", Dest: "リフテン"}},
+	}
+	tr := &fakeTranslator{out: map[string]string{
+		"The リフテン guard waited.": "リフテンの衛兵が待っていた。",
+	}}
+	eng := New(store, tr)
+
+	if _, err := eng.Run(context.Background(), provider.Connection{}, "m", nil); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	// AI へ渡した原文は固有名が置換済みであること（置換前の原文では渡らない）。
+	if _, ok := tr.gotDirectives["The リフテン guard waited."]; !ok {
+		t.Errorf("置換後の原文が AI へ渡っていない。gotDirectives=%v", tr.gotDirectives)
+	}
+	// 書き戻した訳文は置換済み原文に対する訳であること。
+	want := []update{{1, "リフテンの衛兵が待っていた。", 3}}
+	if len(store.updates) != 1 || store.updates[0] != want[0] {
+		t.Errorf("updates = %v, want %v", store.updates, want)
 	}
 }
 

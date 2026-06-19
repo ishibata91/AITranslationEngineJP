@@ -10,6 +10,9 @@
     emptyText?: string
     hint?: string
     onSelect: () => void
+    // パスの直接入力を許す場合に渡す。渡されたときは、選択ボタンに加えて編集できるパス欄を出す。
+    onPathInput?: (value: string) => void
+    placeholder?: string
   }
 
   let {
@@ -18,7 +21,9 @@
     path,
     emptyText = "ファイルが未選択です。",
     hint = "",
-    onSelect
+    onSelect,
+    onPathInput,
+    placeholder = ""
   }: Props = $props()
 
   // フルパスからファイル名だけを取り出す。Windows と Unix の区切りに対応する。
@@ -51,7 +56,18 @@
       </svg>
       {buttonLabel}
     </button>
-    {#if path.length > 0}
+    {#if onPathInput}
+      <input
+        type="text"
+        class="input input-bordered u-mono text-sm flex-1 min-w-[16rem]"
+        value={path}
+        {placeholder}
+        spellcheck="false"
+        autocapitalize="off"
+        autocorrect="off"
+        oninput={(event) => onPathInput?.(event.currentTarget.value)}
+      />
+    {:else if path.length > 0}
       <div class="flex min-w-0 flex-col">
         <span class="u-mono text-sm text-base-content">{fileName(path)}</span>
         <span class="u-mono text-xs text-base-content/45 truncate">{path}</span>

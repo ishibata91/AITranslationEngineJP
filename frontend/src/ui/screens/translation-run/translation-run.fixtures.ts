@@ -46,7 +46,8 @@ const RESULT_ROWS: NarrationResultRow[] = [
     source:
       "I have walked these halls for centuries, and still the cold of Castle Volkihar finds me.",
     dest: "私は何世紀もこの広間を歩いてきたが、それでもヴォルキハル城の冷気は私を捉えて離さない。",
-    statusLabel: "仮訳"
+    statusLabel: "仮訳",
+    terms: [{ source: "Castle Volkihar", dest: "ヴォルキハル城" }]
   },
   {
     edid: "DLC1NoteFromArvak",
@@ -102,7 +103,8 @@ const LINE_RESULT_ROWS: NarrationResultRow[] = [
     statusLabel: "仮訳",
     personaLabel: "声質: 幼い少年の声",
     directive:
-      "この台詞の話者の人物像:\n- 声質: 幼い少年の声\n- 種族の気質: ノルド（実直で粘り強い北方の気質）\nこの人物像に合う口調と人称で訳すこと。"
+      "この台詞の話者の人物像:\n- 声質: 幼い少年の声\n- 種族の気質: ノルド（実直で粘り強い北方の気質）\nこの人物像に合う口調と人称で訳すこと。",
+    terms: [{ source: "Dark Brotherhood", dest: "闇の一党" }]
   },
   {
     edid: "HonorhallDoorActivate",

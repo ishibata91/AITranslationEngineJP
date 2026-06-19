@@ -64,3 +64,43 @@ export const CollapsedWithoutPersona: Story = {
     defaultOpen: false
   }
 }
+
+// 本文で固有名を置換した叙述文。畳んだ行に「固有名 N」チップが出る。
+const TERM_ROW = {
+  edid: "DLC1BookSerana",
+  source:
+    "I have walked these halls for centuries, and still the cold of Castle Volkihar finds me.",
+  dest: "私は何世紀もこの広間を歩いてきたが、それでもヴォルキハル城の冷気は私を捉えて離さない。",
+  statusLabel: "仮訳",
+  terms: [{ source: "Castle Volkihar", dest: "ヴォルキハル城" }]
+}
+
+// 畳んだ行。口調なしでも「固有名 1」チップで置換があったと分かる。
+export const CollapsedWithTerms: Story = {
+  name: "畳む（置換した固有名あり）",
+  args: { row: TERM_ROW, defaultOpen: false }
+}
+
+// 展開した行。「置換した固有名」一覧に原語 → 確定訳語が出て、本文で揃えた固有名を確かめられる。
+export const ExpandedWithTerms: Story = {
+  name: "展開（置換した固有名あり）",
+  args: { row: TERM_ROW, defaultOpen: true }
+}
+
+// 台詞で口調指示と固有名置換が両方ある行。口調チップと「固有名 N」チップが並び、展開で両方の節が出る。
+export const ExpandedPersonaAndTerms: Story = {
+  name: "展開（口調＋置換した固有名）",
+  args: {
+    row: {
+      edid: "AventusAretinoRitual",
+      source: "I knew the Dark Brotherhood would answer my prayer.",
+      dest: "闇の一党が僕の祈りに応えてくれるって、分かってたんだ。",
+      statusLabel: "仮訳",
+      personaLabel: "声質: 幼い少年の声",
+      directive:
+        "この台詞の話者の人物像:\n- 声質: 幼い少年の声\n- 種族の気質: ノルド（実直で粘り強い北方の気質）\nこの人物像に合う口調と人称で訳すこと。",
+      terms: [{ source: "Dark Brotherhood", dest: "闇の一党" }]
+    },
+    defaultOpen: true
+  }
+}

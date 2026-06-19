@@ -21,6 +21,7 @@ const meta = {
   args: {
     onFieldInput: () => {},
     onSelectPlugin: () => {},
+    onPluginPathInput: () => {},
     onLoadModels: () => {},
     onRun: () => {},
     onPagePrev: () => {},

@@ -32,6 +32,15 @@ export interface TranslationRunForm {
 
 export type TranslationRunFormField = keyof TranslationRunForm
 
+// 本文で辞書から確定訳語へ置換した固有名 1 件（原語 → 確定訳語）。
+// 同一原語へ常に同一訳語が当たることを行ごとに確かめるための表示値。
+export interface ReplacedTerm {
+  // 原語（英語 FULL）。本文中に出ていた固有名。
+  source: string
+  // 確定訳語（日本語の公式既訳）。置換後に本文へ入った訳。
+  dest: string
+}
+
 // 結果一覧の 1 行。叙述文（narration）と台詞（line）の原文・訳文・状態を表示用に整形した値。
 export interface NarrationResultRow {
   // レコードの EditorID。どの書物・台詞かを利用者が識別するための表示。
@@ -48,6 +57,9 @@ export interface NarrationResultRow {
   // 口調チップ用の短い要約。話者の最も効く特徴 1 つ（声質など）。一覧のまま口調差を観測するための表示。
   // directive を持つ行だけ持つ。
   personaLabel?: string
+  // この本文で辞書から置換した固有名（原語 → 確定訳語）。置換が無い行は空または未設定。
+  // 畳んだ行には件数チップ、展開で一覧を出し、同一原語への同一訳語を行ごとに確かめる。
+  terms?: ReplacedTerm[]
 }
 
 // 結果一覧の keyset ページャの表示値。results はページ分のみを持つため、総件数と現在ページ番号は別に渡す。
