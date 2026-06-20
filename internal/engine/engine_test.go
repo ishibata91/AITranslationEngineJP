@@ -10,15 +10,30 @@ import (
 	"aitranslationenginejp/internal/provider"
 )
 
+// testBaseDirective・testPersonaTemplate はテスト用のプロンプトテンプレート既定値。
+// 実際の seed 文面（migration 0004）に依存せず、テンプレート駆動の組み立てを確かめるために使う。
+const (
+	testBaseDirective   = "あなたは Skyrim Mod の翻訳者です。訳文だけを出力してください。"
+	testPersonaTemplate = "この台詞の話者の人物像:\n{traits}\nこの人物像に合う口調と人称で訳すこと。"
+)
+
 type fakeStore struct {
 	untranslated []model.Narration
 	lines        []model.Line
 	speakers     map[int64]model.SpeakerIdentity // lineID → 識別子（無ければ話者なし）
 	terms        []model.MasterTerm              // 固有名の機械置換辞書（無ければ置換なし）
+	tmpl         model.PromptTemplate            // プロンプトテンプレート（未設定ならテスト用既定値を返す）
 	updates      []update
 	lineUpdates  []update
 	// loadSpeakersCalls は LoadLineSpeakers の呼び出し回数。話者取得が台詞数 N 非依存（N+1 廃止）の観測に使う。
 	loadSpeakersCalls int
+}
+
+func (f *fakeStore) GetPromptTemplate(_ context.Context) (model.PromptTemplate, error) {
+	if f.tmpl.BaseDirective == "" && f.tmpl.PersonaTemplate == "" {
+		return model.PromptTemplate{BaseDirective: testBaseDirective, PersonaTemplate: testPersonaTemplate}, nil
+	}
+	return f.tmpl, nil
 }
 
 type update struct {
@@ -61,22 +76,22 @@ func (f *fakeStore) ListMasterTerms(_ context.Context) ([]model.MasterTerm, erro
 }
 
 type fakeTranslator struct {
-	out           map[string]string
-	gotModel      string
-	gotDirectives map[string]string // source → 注入された directive
-	err           error
+	out        map[string]string          // user メッセージ（機械置換済み原文）→ 訳文
+	gotModel   string
+	gotPrompts map[string]provider.Prompt // user メッセージ → engine が組んで送った完成プロンプト
+	err        error
 }
 
-func (f *fakeTranslator) Translate(_ context.Context, _ provider.Connection, model, source, directive string) (string, error) {
+func (f *fakeTranslator) Translate(_ context.Context, _ provider.Connection, model string, prompt provider.Prompt) (string, error) {
 	f.gotModel = model
-	if f.gotDirectives == nil {
-		f.gotDirectives = map[string]string{}
+	if f.gotPrompts == nil {
+		f.gotPrompts = map[string]provider.Prompt{}
 	}
-	f.gotDirectives[source] = directive
+	f.gotPrompts[prompt.User] = prompt
 	if f.err != nil {
 		return "", f.err
 	}
-	return f.out[source], nil
+	return f.out[prompt.User], nil
 }
 
 func (f *fakeTranslator) ListModels(_ context.Context, _ provider.Connection) ([]string, error) {
@@ -102,8 +117,9 @@ func TestRunTranslatesUntranslatedAsProvisional(t *testing.T) {
 	if tr.gotModel != "model-x" {
 		t.Errorf("model passed = %q, want model-x", tr.gotModel)
 	}
-	if d := tr.gotDirectives["halls"]; d != "" {
-		t.Errorf("叙述文に directive が付いた: %q", d)
+	// 叙述文は口調指示を持たないため、system はテンプレートの base 指示だけになる（口調指示の合成なし）。
+	if sys := tr.gotPrompts["halls"].System; sys != testBaseDirective {
+		t.Errorf("叙述文の system に口調指示が合成された: %q", sys)
 	}
 	want := []update{{1, "広間", 3}, {2, "ケルン", 3}}
 	if len(store.updates) != len(want) {
@@ -130,9 +146,9 @@ func TestRunReplacesTermsBeforeTranslate(t *testing.T) {
 	if _, err := eng.Run(context.Background(), provider.Connection{}, "m", nil); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	// AI へ渡した原文は固有名が置換済みであること（置換前の原文では渡らない）。
-	if _, ok := tr.gotDirectives["The リフテン guard waited."]; !ok {
-		t.Errorf("置換後の原文が AI へ渡っていない。gotDirectives=%v", tr.gotDirectives)
+	// AI へ渡した user メッセージ（原文）は固有名が置換済みであること（置換前の原文では渡らない）。
+	if _, ok := tr.gotPrompts["The リフテン guard waited."]; !ok {
+		t.Errorf("置換後の原文が AI へ渡っていない。gotPrompts=%v", tr.gotPrompts)
 	}
 	// 書き戻した訳文は置換済み原文に対する訳であること。
 	want := []update{{1, "リフテンの衛兵が待っていた。", 3}}
@@ -174,12 +190,13 @@ func TestRunTranslatesLinesWithPersonaDirective(t *testing.T) {
 	if count != 1 {
 		t.Errorf("count = %d, want 1", count)
 	}
-	directive := tr.gotDirectives["mother?"]
-	if !strings.Contains(directive, "幼い少年の声") {
-		t.Errorf("声質が directive に無い: %q", directive)
+	// 口調指示は完成プロンプトの system へ合成される（base 指示の後ろに続く）。
+	system := tr.gotPrompts["mother?"].System
+	if !strings.Contains(system, "幼い少年の声") {
+		t.Errorf("声質が system に無い: %q", system)
 	}
-	if !strings.Contains(directive, "ノルド") {
-		t.Errorf("種族の気質が directive に無い: %q", directive)
+	if !strings.Contains(system, "ノルド") {
+		t.Errorf("種族の気質が system に無い: %q", system)
 	}
 	want := []update{{10, "母さん？", 3}}
 	if len(store.lineUpdates) != 1 || store.lineUpdates[0] != want[0] {
@@ -200,8 +217,9 @@ func TestRunTranslatesLineWithoutSpeaker(t *testing.T) {
 	if _, err := eng.Run(context.Background(), provider.Connection{}, "m", nil); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	if d := tr.gotDirectives["door"]; d != "" {
-		t.Errorf("話者なしの台詞に directive が付いた: %q", d)
+	// 話者なしの台詞は口調指示を合成せず、system はテンプレートの base 指示だけになる。
+	if sys := tr.gotPrompts["door"].System; sys != testBaseDirective {
+		t.Errorf("話者なしの台詞の system に口調指示が合成された: %q", sys)
 	}
 }
 
@@ -242,7 +260,7 @@ func TestLinePersonas(t *testing.T) {
 	}
 	eng := New(store, &fakeTranslator{})
 
-	personas, err := eng.LinePersonas(context.Background(), []int64{10, 99}) // 99 は話者なし
+	personas, err := eng.LinePersonas(context.Background(), []int64{10, 99}, testPersonaTemplate) // 99 は話者なし
 	if err != nil {
 		t.Fatalf("LinePersonas: %v", err)
 	}
@@ -272,7 +290,7 @@ func TestLinePersonasBulkLoadsOnce(t *testing.T) {
 			store.speakers[id] = model.SpeakerIdentity{VoiceEDID: "MaleChild"}
 		}
 		eng := New(store, &fakeTranslator{})
-		if _, err := eng.LinePersonas(context.Background(), ids); err != nil {
+		if _, err := eng.LinePersonas(context.Background(), ids, testPersonaTemplate); err != nil {
 			t.Fatalf("LinePersonas(N=%d): %v", n, err)
 		}
 		if store.loadSpeakersCalls != 1 {

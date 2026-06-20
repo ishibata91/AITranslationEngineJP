@@ -7,9 +7,9 @@ import (
 	"aitranslationenginejp/internal/model"
 )
 
-// 口調 traits が揃うと、声質・種族・所属を箇条書きにした口調指示文を組むこと。
+// 口調 traits が揃うと、テンプレートの {traits} へ声質・種族・所属を箇条書きで差し込んだ口調指示文を組むこと。
 func TestBuildPersonaDirective(t *testing.T) {
-	got := buildPersonaDirective(model.SpeakerPersona{
+	got := buildPersonaDirective(testPersonaTemplate, model.SpeakerPersona{
 		VoiceNature:    "幼い少年の声",
 		RaceNature:     "ノルド（実直で粘り強い北方の気質）",
 		FactionNatures: []string{"闇の一党の気風（冷徹さ）"},
@@ -19,11 +19,15 @@ func TestBuildPersonaDirective(t *testing.T) {
 			t.Errorf("directive に %q が無い:\n%s", want, got)
 		}
 	}
+	// {traits} の差し込み口は置換され、テンプレートにそのまま残らないこと。
+	if strings.Contains(got, traitsToken) {
+		t.Errorf("差し込み口 %q が未置換で残った:\n%s", traitsToken, got)
+	}
 }
 
 // traits が 1 つも無ければ空文字を返し、ペルソナ指示を注入しないこと。
 func TestBuildPersonaDirectiveEmpty(t *testing.T) {
-	if got := buildPersonaDirective(model.SpeakerPersona{}); got != "" {
+	if got := buildPersonaDirective(testPersonaTemplate, model.SpeakerPersona{}); got != "" {
 		t.Errorf("空の persona で directive=%q、空を期待", got)
 	}
 }

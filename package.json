@@ -21,8 +21,6 @@
     "test:backend": "sh ./scripts/test/run-go-backend-test.sh",
     "test:backend:coverage": "sh ./scripts/test/run-go-backend-coverage.sh",
     "test:frontend": "npm --prefix frontend run test",
-    "test:frontend:coverage": "sh ./scripts/test/run-frontend-coverage.sh",
-    "test:system": "sh ./scripts/test/run-system-test.sh",
-    "test:system:install": "npx playwright install chromium"
+    "test:frontend:coverage": "sh ./scripts/test/run-frontend-coverage.sh"
   }
 }

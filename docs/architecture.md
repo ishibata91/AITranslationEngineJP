@@ -88,9 +88,9 @@ flowchart TB
 ### Backend（Go・薄い）
 
 - `api`: Wails Bind の公開面。辞書・ルール・設定の CRUD を `store` へ素通しし、翻訳ジョブを `engine` の goroutine として起動し、進捗を runtime events で push する。
-- `engine`: 翻訳手続きの本体。中心データを読み、訳の単位化（重複排除）、辞書解決、ペルソナ生成、AI 翻訳、配置への書き戻し、xTranslator XML 出力を順に行う純 Go の手続き。GUI から切り離して単体テストでき、CLI からも起動できる。
-- `store`: SQLite への薄いデータアクセス。sqlx を使い、entity ごとの repository interface は作らず関数で持つ。残存の keyring secret store を secret 子に置く。
-- `provider`: AI クライアントの interface と 4 実装（Gemini / xAI / OpenAI 互換 / Claude）。本構成で唯一の port。
+- `engine`: 翻訳手続きの本体。中心データを読み、訳の単位化（重複排除）、辞書解決、ペルソナ生成、AI 翻訳、配置への書き戻し、xTranslator XML 出力を順に行う純 Go の手続き。GUI から切り離して単体テストでき、CLI からも起動できる。翻訳プロンプトの組み立て（base 指示・口調指示・機械置換済み原文の合成）は `engine` の純粋関数が持ち、完成プロンプトを `provider` へ渡す。
+- `store`: SQLite への薄いデータアクセス。sqlx を使い、entity ごとの repository interface は作らず関数で持つ。プロンプトテンプレート（base 指示・口調指示の雛形）の CRUD を含む。残存の keyring secret store を secret 子に置く。
+- `provider`: AI クライアントの interface と 4 実装（Gemini / xAI / OpenAI 互換 / Claude）。本構成で唯一の port。`engine` が組んだ完成プロンプトを受け取って送るだけで、プロンプトの文面構築はしない。
 - `model`: [`concept-model.md`](./concept-model.md) の箱に対応するデータ構造。`engine` と `store` が参照する。
 - `bootstrap`: composition root。`store` と `provider` を生成し、`engine` と `api` へ注入する唯一の場所。
 
@@ -159,4 +159,5 @@ flowchart TB
 - backend は `greenfield-reset` task（2026-06-06）で削減済み。残存は keyring 2 ファイルのみ。
 - frontend は `frontend-greenfield` task（2026-06-06）で削減済み。残存は `ui/stores/shell-state.ts` と diagnostic logger のみ。
 - `extractor` は `ExtractionResult` を作り、叙述文（narration）と台詞（line）・話者属性（speaker / race / faction / voice_type）を中心 DB へ書く。`engine` は叙述文と台詞を AI 翻訳し、台詞は話者属性からのペルソナ口調指示を注入する。本文翻訳の進捗は runtime events で frontend へ push する。
+- T4（prompt-persona-customization、2026-06-20）で次を足した。プロンプト構築を `provider` から `engine` の純粋関数へ移し、`provider` は完成プロンプトを送るだけにした。プロンプトテンプレート（base 指示・口調指示の雛形）を中心 DB の専用テーブル `prompt_template`（単一行）へ永続し、抽出データと別に保つ。`api` の Wails 公開面に `GetPromptTemplate` / `SavePromptTemplate` を足した。結果取得（`ListResultsPage`）は各行で辞書とテンプレートを当て直し、機械置換内訳（`ResultView.terms`）と実プロンプト（`ResultView.prompt`）を再構成して供給する。口調指示は `prompt_template` の口調テンプレートの `{traits}` へ話者の性質列を差し込んで組む。
 - 本骨格への再構築は `docs/exec-plans/active/` の active plan で進める。

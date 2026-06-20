@@ -87,6 +87,14 @@ func (f *fakePageStore) LinesAfter(_ context.Context, afterID int64, limit int) 
 	return out, nil
 }
 
+// pageRows の cursor 境界ロジックだけを確かめる fake のため、テンプレート CRUD は未使用のスタブにする。
+func (f *fakePageStore) GetPromptTemplate(_ context.Context) (model.PromptTemplate, error) {
+	return model.PromptTemplate{}, nil
+}
+func (f *fakePageStore) SavePromptTemplate(_ context.Context, _ model.PromptTemplate) error {
+	return nil
+}
+
 func narrationsWithIDs(ids ...int64) []model.Narration {
 	rows := make([]model.Narration, len(ids))
 	for i, id := range ids {

@@ -87,6 +87,8 @@
       "src/ui/screens/translation-job-setup/PhaseSettingsSummaryPanel.svelte",
       "src/ui/screens/translation-job-setup/job-setup-panel-props.ts",
       "src/ui/screens/translation-run/translation-run.fixtures.ts",
+      "src/ui/screens/translation-run/TranslationRunNavPreview.svelte",
+      "src/ui/screens/template-editor/template-editor.fixtures.ts",
       "src/application/diagnostic/frontend-diagnostic-logger.ts",
       "src/application/diagnostic/index.ts",
       "src/ui/stores/shell-state.ts",

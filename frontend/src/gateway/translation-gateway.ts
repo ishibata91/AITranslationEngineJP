@@ -21,7 +21,15 @@ export interface RunInput {
   model: string
 }
 
+// 結果行の機械置換内訳 1 件（原語 → 確定訳語）。取得時に原文へ辞書を当て直して再構成した値。
+export interface TermRow {
+  source: string
+  dest: string
+}
+
 // 結果一覧の 1 行。叙述文と台詞を共通の行で表す。directive と personaLabel は話者を解決できた台詞だけ持つ。
+// terms は本文で辞書から確定訳語へ置換した固有名の内訳。置換が無い行は省略する。
+// prompt は実際に翻訳 AI へ投げた完成プロンプトを取得時に再構成した全文。再構成できない行は省略する。
 export interface ResultRow {
   edid: string
   source: string
@@ -29,6 +37,8 @@ export interface ResultRow {
   statusLabel: string
   directive?: string
   personaLabel?: string
+  terms?: TermRow[]
+  prompt?: string
 }
 
 // 実行結果の要約。結果一覧は数万件になりうるため実行時には返さず、listResultsPage で取得する。
@@ -97,6 +107,8 @@ function toResultRow(view: api.ResultView): ResultRow {
     dest: view.dest,
     statusLabel: view.statusLabel,
     directive: view.directive,
-    personaLabel: view.personaLabel
+    personaLabel: view.personaLabel,
+    terms: view.terms?.map((t) => ({ source: t.source, dest: t.dest })),
+    prompt: view.prompt
   }
 }

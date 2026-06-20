@@ -4,6 +4,43 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-06-20 T4（prompt-persona-customization）の backend 本番接続と旧 E2E 残骸の削除
+
+### 変更
+
+- プロンプト構築を `internal/provider/openai_compatible.go` から `internal/engine/prompt.go` の純粋関数（`ComposePrompt`・`RenderPrompt`）へ移設。`provider.Translate` を完成 `Prompt`（System/User）受け取りへ変更し、base 指示の文面定数を撤去した。
+- `internal/api/app.go`: `ResultView` に機械置換内訳（`Terms`）と実プロンプト（`Prompt`）を足し、`ListResultsPage` が各行へ辞書とテンプレートを当て直して取得時に再構成する。`GetPromptTemplate` / `SavePromptTemplate` を足した。
+- プロンプトテンプレートを永続化した。`db/migrations/0004_prompt_template.sql`（単一行テーブル・既定値 seed）、`internal/model/prompt_template.go`、`internal/store/prompt_template.go`。`internal/engine` は翻訳実行と結果取得の両方で DB テンプレートを読む。
+- 口調指示を編集可能テンプレートの `{traits}` 差し込み駆動へ見直した（`internal/engine/persona.go`）。性質文の中身（属性 → 性質文）は `persona_rule.go` のハードコードのまま使う。
+- frontend: テンプレート編集 container（`TemplateEditorContainer.svelte`）、画面間ナビの本番ルーティング（`App.svelte` で AppShell＋AppNav）、gateway（`template-gateway.ts`、`translation-gateway.ts` の terms/prompt 写像）を配線した。
+- `docs/architecture.md` §3・§8 にプロンプト構築の所在移設、`prompt_template` 永続化、Wails 新メソッド、`ResultView` の terms/prompt 供給を反映した。
+- 旧 E2E system-test 一式（`scripts/test/seed-system-test-db/`、`scripts/test/run-system-test.sh`、`playwright.config.ts`、`package.json` の `test:system` / `test:system:install`）を削除した。
+
+### 判断
+
+- プロンプト構築は LLM 出力品質に直結し、翻訳実行と結果参照で同じ文面を使う必要がある。所在を `provider` から `engine` の 1 関数へ集約し、実行時と取得時の両方が同じ関数を呼ぶことで実プロンプトの一致を保証した。
+- テンプレートは抽出・翻訳データと寿命が違う（編集結果を残したい）。中心 DB 内の専用テーブルに分離し、起動ごとの中心 DB 消去の対象から外せるようにした。永続化方針自体は未決のまま、置き場所だけ先に分けた。
+- 口調指示の精緻化は「テンプレート構造の見直し」を完了線にした。性質列を差し込む `{traits}` 雛形を編集可能にし、属性 → 性質文の対応の編集は新 plan（`2026-06-20-character-persona-from-dialogue`）へ残した。
+- 旧 E2E は greenfield で spec 本体が既に削除済みで、起動スクリプトと設定だけが残り `go build ./...` を壊していた（削除済み `internal/repository` を import）。新アーキの統合確認は実画面（chrome-devtools 手動）で行うため、連鎖一式を削除した。`@playwright/test` 依存はロックファイルを荒らさないため残置。`.claude/settings.json` の stale permission（`test:system` 系）は auto-mode により未編集で残る。
+
+## 2026-06-20 T4（prompt-persona-customization）の scope 縮小とルール編集の切り出し
+
+### 変更
+
+- `docs/exec-plans/active/2026-06-14-prompt-persona-customization/plan.md`: scope を「テンプレート編集・実プロンプト参照・機械置換内訳・口調指示テンプレート精緻化・画面間ナビゲーション」へ縮小。属性 → 性質文のルール編集を「含まない」へ移し、完了定義を 6 項目から 4 項目（テンプレート編集・実プロンプト参照・機械置換内訳・口調精緻化）へ整理。
+- `docs/exec-plans/active/2026-06-14-prompt-persona-customization/implementation-scope.md`: 縦切りを 4 段から 3 段へ。旧 Slice 3「ルール編集・永続化・反映」を削除し、旧 Slice 4「テンプレート編集・口調精緻化」を Slice 3 へ繰り上げ、画面間ナビゲーションを同 Slice に含めた。
+- `docs/exec-plans/active/2026-06-20-character-persona-from-dialogue/plan.md`（新規）: T4 から切り出したルール編集の受け皿。種族・汎用声型への固定ペルソナ割り当てと、キャラ専用声型ペルソナの台詞群からの生成を、仕様から設計し直す骨子。
+
+### 判断
+
+- T4 の storybook レビューで、ルールの持ち方を見直す指示が出た。属性キーは抽出データ由来とし、ユーザーは性質文を割り当てるだけにする。声型は汎用（パターングループ）とキャラ専用（1:1）の 2 層に分ける。
+- キャラ専用声型の個別ペルソナは、ユーザーが手で書くのではなく、そのキャラの台詞群から生成したい。生成は仕組みが大きく、T4 の「テンプレート編集」より広い。T4 へ無理に詰めず、仕様から起こす別 task（`2026-06-20-character-persona-from-dialogue`）へ切り出した。
+- T4 は「カスタマイズ（テンプレート編集）を先に終わらせる」方針に絞る。種族・声型 → 性質文の対応は現状ハードコード（`persona_rule.go`）のまま使い、その編集は新 plan で扱う。
+
+### 残課題
+
+- 新 plan `2026-06-20-character-persona-from-dialogue` は骨子のみ。preparation-module で仕様を起こす。
+
 ## 2026-06-20 設計説明 skill を presentation に統合（diagramming 廃止）
 
 ### 変更
