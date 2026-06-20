@@ -4,6 +4,33 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-06-20 設計説明 skill を presentation に統合（diagramming 廃止）
+
+### 変更
+
+- `.claude/skills/presentation/SKILL.md`（新規）: 人間が読んで判断する、わかりやすい説明 md を作る下位 skill。説明文と図（Mermaid）を 1 つの md に統合する。図作法（差分凡例 赤=削除・緑=追加・黄=変更なし、Before/After 並置、図の分割、設計差分図の範囲限定）を含む。
+- `.claude/skills/presentation/references/templates/review-diff-template.md`: `diagramming` 配下から git mv で移動。
+- `.claude/skills/diagramming/`（削除）: SKILL.md と references を削除。
+- `.claude/skills/design-module/SKILL.md`: 下位 skill 参照を `diagramming` から `presentation` へ付け替え。人間設計レビュー材料の固定 2 セクション（概要・図）を廃止し、`presentation` の厚め構成（背景・課題、採用方針、代替案、図、影響範囲、テスト要点、確認点）へ寄せた。
+- `.claude/skills/presentation/SKILL.md`（追補）: わかりやすさの規約を、確立した資料設計の原則で埋めた。構成の順序（ピラミッド原則の結論ファースト、グループ化）、文（一文一義、専門語に意味を添える）、視覚（近接・整列・反復・対比、関連情報の比率を上げる、視線の流れ）、図（色だけに依存せずラベルまたは線種を併用）を追加。design-module 固有の記述（最初の呼び出し元、Wails 境界、実装範囲・テスト設計 artifact 名）を外し、呼び出し元が固有セクションを指定する一般形にした。
+- `.claude/skills/presentation/references/templates/review-diff-template.md`（削除）: 差分図の穴埋め雛形を廃止。
+- `.claude/skills/presentation/SKILL.md`（追補）: 雛形参照を外し、構成と図種別を「題材に最適化する判断」へ直した。厚め構成を固定セットから論点候補へ変更。図種別はコンポーネント図前提をやめ、主張を最も伝える図を選ぶ形にした。差分凡例（色＋ラベル）の原則は残した。
+- `.claude/skills/presentation/SKILL.md`（追補）: 図のサイズ基準を追加。1 枚を大きくしすぎず、16:9 のプレビューで文字が読める大きさに収める。要素は 7 個前後を目安にし、超えるか縦横に伸びて縮むなら主張の単位で分割する。完了条件に同基準の検査を追加。
+
+### 判断
+
+- `diagramming` の現役呼び出し元は `design-module` 1 つだけだったため、図作法を `presentation` へ統合し、独立 skill を廃止した。
+- `presentation` は「人間が読んでわかりやすい説明 md（図を含む）」を担う。図は説明 md を分かりやすくする一手段として内包する。
+- 成果物の寿命は `presentation` が決めず、呼び出し元に従わせる。`design-module` の人間設計レビューは一時（レビュー後削除）を維持する。
+- 人間設計レビューの図は、Mermaid の色分け強調と Before/After 並置でスライド級の視認性へ寄せる。1 枚ずつめくる段階表示の演出は、承認・差し戻し判断に不要として持たない。
+- わかりやすさの規約は、確立した資料設計の原則（ピラミッド原則、関連情報の比率、デザイン 4 原則、色だけで伝えない WCAG 1.4.1）を出典として埋めた。原則名は固定名として残し、意味を日本語で添えた。
+- `presentation` は design-module 専用にせず、説明 md・図が要る module 全般から呼べる一般形にした。design-module 固有のセクションは design-module 側に残し、`presentation` へは呼び出し元の指定として渡す。
+- 穴埋め雛形を持たせない方針にした。題材ごとに最適な図種別と論点が変わるため、雛形は 1 つの形へ寄せて関連情報の比率を下げる。残すのは判断基準（差分凡例の色＋ラベル、図種別の選び方、わかりやすさの原則）とし、型は持たない。
+
+### 残課題
+
+- なし。完了済み exec-plans の `diagramming` 言及は過去記録として残す（正本ではないため変更しない）。
+
 ## 2026-06-18 マスター辞書 T3 増分: 人名の部分形の派生（名のみ・短名を辞書化）
 
 ### 変更

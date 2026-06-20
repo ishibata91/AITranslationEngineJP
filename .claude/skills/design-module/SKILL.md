@@ -13,7 +13,7 @@ description: "重 task の設計成果物（設計差分図、人間設計レビ
 
 - 呼び出し元: 人間、または上位モジュール skill。
 - 返却先: 呼び出し元。
-- モジュールが呼ぶ下位 skill: `diagramming`（参照のみ。Claude 本体が読んで適用する）。実装範囲、テスト設計は本 SKILL.md 内の手順で Claude 本体が直接書く。画面表示の設計は storybook-module が Storybook の story とコンポーネントで扱う。
+- モジュールが呼ぶ下位 skill: `presentation`（参照のみ。Claude 本体が読んで適用する。人間設計レビュー材料と設計差分図を作る）。実装範囲、テスト設計は本 SKILL.md 内の手順で Claude 本体が直接書く。画面表示の設計は storybook-module が Storybook の story とコンポーネントで扱う。
 - モジュールが呼ぶ下位 agent: なし。Claude 本体が task 文脈を持ったまま各 artifact を書く。
 
 ## 入口条件
@@ -58,14 +58,15 @@ description: "重 task の設計成果物（設計差分図、人間設計レビ
 
 ### 設計差分図
 
-- 下位 skill: `diagramming` を Claude 本体が読んで適用する。
+- 下位 skill: `presentation` を Claude 本体が読んで適用する。
 - `docs/architecture.md` 反映が要る場合に作る。
 - Mermaid 図と説明、根拠、検証観点を固定する。
 
 ### 人間設計レビュー
 
 - 設計差分図のうち「要」になった成果物が揃った時点で人間へ返す。画面表示の視覚レビューは storybook-module の Storybook 人間レビューループで行う。
-- 人間レビューを依頼する直前に、active plan folder に `summary.md` を一時作成し、レビュー終了後に削除する。固定セクションは「概要」と「図」の 2 つ。
+- 人間レビューを依頼する直前に、active plan folder へレビュー材料の md を一時作成し、レビュー終了後に削除する。材料は `presentation` skill に従い、人間がわかりやすい構成で書く。寿命は一時（レビュー後削除）で、`presentation` へ寿命指定として渡す。
+- 材料の構成は、対象 task に当たるものだけ残す。背景と課題、採用した方針、検討した代替案と却下理由（あれば）、図、影響範囲（層・依存・Wails 境界の構造が変わる時だけ）、テストの要点（artifact 確定は承認後なので方針の要点だけ）、人間に確認してほしい点とする。
 - 差し戻しまたは追加質問の場合は、Claude 本体が同じ文脈で書き直す。
 
 ### 実装範囲
