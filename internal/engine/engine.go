@@ -38,11 +38,17 @@ type DictStore interface {
 	ListMasterTerms(ctx context.Context) ([]model.MasterTerm, error)
 }
 
+// TemplateStore は engine がプロンプトテンプレート（base 指示・口調指示の雛形）を読むための中心データアクセス。
+type TemplateStore interface {
+	GetPromptTemplate(ctx context.Context) (model.PromptTemplate, error)
+}
+
 // Store は engine が必要とする中心データアクセスをまとめる。concrete は internal/store が 1 つ実装する。
 type Store interface {
 	NarrationStore
 	LineStore
 	DictStore
+	TemplateStore
 }
 
 // Engine は翻訳手続きを実行する。
@@ -69,14 +75,22 @@ func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string
 		return 0, fmt.Errorf("未訳台詞の取得: %w", err)
 	}
 
+	// プロンプトテンプレート（base 指示・口調指示の雛形）をループ前に 1 度だけ読む。
+	// base 指示と口調指示の組み立てに使い、保存済みテンプレートを翻訳へ反映する。
+	tmpl, err := e.store.GetPromptTemplate(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("プロンプトテンプレートの取得: %w", err)
+	}
+
 	// 台詞の話者属性をループ前に 1 度だけ一括取得し、ループ内の個別 DB 問い合わせ（N+1）を避ける。
-	personas, err := e.LinePersonas(ctx, lineIDsOf(lines))
+	// 口調指示テンプレートの {traits} へ話者の性質列を差し込んで口調指示文を組む。
+	personas, err := e.LinePersonas(ctx, lineIDsOf(lines), tmpl.PersonaTemplate)
 	if err != nil {
 		return 0, err
 	}
 
 	// 固有名の機械置換辞書をループ前に 1 度だけ組む。本文翻訳の前に原文の固有名を確定訳語へ置換する。
-	dict, err := e.loadDictionary(ctx)
+	dict, err := e.LoadDictionary(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -93,7 +107,8 @@ func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string
 	for _, row := range narrations {
 		// 本文中の固有名を辞書の確定訳語へ機械置換してから AI 翻訳する。AI は周りの英語だけを訳す。
 		source, _ := dict.Apply(row.Source)
-		dest, err := e.provider.Translate(ctx, conn, model, source, "")
+		// 叙述文は話者を持たないため口調指示なし。テンプレートの base 指示だけで完成プロンプトを組んで送る。
+		dest, err := e.provider.Translate(ctx, conn, model, ComposePrompt(tmpl.BaseDirective, "", source))
 		if err != nil {
 			return done, fmt.Errorf("叙述文の翻訳: %w", err)
 		}
@@ -106,7 +121,8 @@ func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string
 
 	for _, row := range lines {
 		source, _ := dict.Apply(row.Source)
-		dest, err := e.provider.Translate(ctx, conn, model, source, personas[row.ID].Directive)
+		// 台詞は話者の口調指示をテンプレートの base 指示へ合成した完成プロンプトを組んで送る。話者なしなら口調指示は空。
+		dest, err := e.provider.Translate(ctx, conn, model, ComposePrompt(tmpl.BaseDirective, personas[row.ID].Directive, source))
 		if err != nil {
 			return done, fmt.Errorf("台詞の翻訳: %w", err)
 		}
@@ -119,8 +135,9 @@ func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string
 	return done, nil
 }
 
-// loadDictionary は master_term を読み、固有名の機械置換辞書を組む。
-func (e *Engine) loadDictionary(ctx context.Context) (*Dictionary, error) {
+// LoadDictionary は master_term を読み、固有名の機械置換辞書を組む。
+// 翻訳実行（Run）と結果取得（api の内訳・実プロンプト再構成）の両方が、ページ単位で 1 度だけ組んで使う。
+func (e *Engine) LoadDictionary(ctx context.Context) (*Dictionary, error) {
 	terms, err := e.store.ListMasterTerms(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("マスター辞書の取得: %w", err)
@@ -133,9 +150,10 @@ func (e *Engine) loadDictionary(ctx context.Context) (*Dictionary, error) {
 }
 
 // LinePersonas は台詞 id 群の話者を一括取得し、各台詞の口調指示文（全文）と一覧用の短い要約を map で返す。
+// personaTemplate は口調指示の雛形（{traits} を含む）で、話者の性質列を差し込んで口調指示文を組む。
 // 話者が解決できない台詞、および既知属性が無く口調 traits が空になる台詞は map に現れない
 // （呼び出し側は欠落を「口調なし」として扱う）。話者取得を 1 度の一括問い合わせにまとめ、台詞数に依存させない。
-func (e *Engine) LinePersonas(ctx context.Context, lineIDs []int64) (map[int64]Persona, error) {
+func (e *Engine) LinePersonas(ctx context.Context, lineIDs []int64, personaTemplate string) (map[int64]Persona, error) {
 	speakers, err := e.store.LoadLineSpeakers(ctx, lineIDs)
 	if err != nil {
 		return nil, fmt.Errorf("ペルソナ生成の話者識別子一括取得: %w", err)
@@ -143,7 +161,7 @@ func (e *Engine) LinePersonas(ctx context.Context, lineIDs []int64) (map[int64]P
 	out := make(map[int64]Persona, len(speakers))
 	for lineID, identity := range speakers {
 		persona := personaFromIdentity(identity)
-		directive := buildPersonaDirective(persona)
+		directive := buildPersonaDirective(personaTemplate, persona)
 		if directive == "" {
 			continue // 既知属性が無く口調が組めない話者は口調なし扱い。
 		}

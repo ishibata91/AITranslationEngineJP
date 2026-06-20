@@ -38,11 +38,11 @@ func TestListModelsNormalizesV1AndOmitsAuthWhenKeyEmpty(t *testing.T) {
 	}
 }
 
-// Translate は指定 model と原文を /v1/chat/completions へ送り、応答本文を訳文として返すこと。
-// API キーがあるときは Bearer で送ること。directive を渡すと system メッセージへ注入すること。
-func TestTranslateSendsSourceAndReturnsContent(t *testing.T) {
-	var gotPath, gotAuth, gotModel, gotSystem string
-	var gotBodyHasSource bool
+// Translate は engine が組んだ完成 Prompt を /v1/chat/completions へ素通しで送ること。
+// System を system メッセージ、User を user メッセージへ写し、内容を加工しないこと。
+// API キーがあるときは Bearer で送り、応答本文を訳文として返すこと。
+func TestTranslateSendsPromptAndReturnsContent(t *testing.T) {
+	var gotPath, gotAuth, gotModel, gotSystem, gotUser string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotPath = r.URL.Path
 		gotAuth = r.Header.Get("Authorization")
@@ -57,21 +57,24 @@ func TestTranslateSendsSourceAndReturnsContent(t *testing.T) {
 		_ = json.Unmarshal(body, &req)
 		gotModel = req.Model
 		for _, m := range req.Messages {
-			if m.Role == "system" {
+			switch m.Role {
+			case "system":
 				gotSystem = m.Content
-			}
-			if contains(m.Content, "Ancient Nord text") {
-				gotBodyHasSource = true
+			case "user":
+				gotUser = m.Content
 			}
 		}
 		_, _ = io.WriteString(w, `{"choices":[{"message":{"content":"古代ノルドの文章"}}]}`)
 	}))
 	defer srv.Close()
 
+	prompt := Prompt{
+		System: "base 指示\n\nこの台詞の話者の人物像:\n- 声質: 幼い少年の声",
+		User:   "Ancient Nord text",
+	}
 	client := NewOpenAICompatible(http.DefaultClient)
 	dest, err := client.Translate(context.Background(),
-		Connection{Endpoint: srv.URL, APIKey: "sk-test"}, "qwen2.5-7b", "Ancient Nord text",
-		"この台詞の話者の人物像:\n- 声質: 幼い少年の声")
+		Connection{Endpoint: srv.URL, APIKey: "sk-test"}, "qwen2.5-7b", prompt)
 	if err != nil {
 		t.Fatalf("Translate error: %v", err)
 	}
@@ -85,56 +88,14 @@ func TestTranslateSendsSourceAndReturnsContent(t *testing.T) {
 	if gotModel != "qwen2.5-7b" {
 		t.Errorf("model = %q, want qwen2.5-7b", gotModel)
 	}
-	if !gotBodyHasSource {
-		t.Errorf("request body did not include the source text")
+	// 完成 Prompt の System / User を加工せず素通しで送ること（合成は engine の責務）。
+	if gotSystem != prompt.System {
+		t.Errorf("system メッセージ = %q, want %q", gotSystem, prompt.System)
 	}
-	if !contains(gotSystem, "幼い少年の声") {
-		t.Errorf("system メッセージに directive が注入されていない: %q", gotSystem)
-	}
-	if !contains(gotSystem, "Skyrim Mod の翻訳者") {
-		t.Errorf("system メッセージに base 指示が無い: %q", gotSystem)
+	if gotUser != prompt.User {
+		t.Errorf("user メッセージ = %q, want %q", gotUser, prompt.User)
 	}
 	if dest != "古代ノルドの文章" {
 		t.Errorf("dest = %q, want 古代ノルドの文章", dest)
 	}
-}
-
-// directive が空なら system メッセージは base 指示だけにすること。
-func TestTranslateEmptyDirectiveUsesBaseOnly(t *testing.T) {
-	var gotSystem string
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
-		var req struct {
-			Messages []struct {
-				Role    string `json:"role"`
-				Content string `json:"content"`
-			} `json:"messages"`
-		}
-		_ = json.Unmarshal(body, &req)
-		for _, m := range req.Messages {
-			if m.Role == "system" {
-				gotSystem = m.Content
-			}
-		}
-		_, _ = io.WriteString(w, `{"choices":[{"message":{"content":"訳"}}]}`)
-	}))
-	defer srv.Close()
-
-	client := NewOpenAICompatible(http.DefaultClient)
-	if _, err := client.Translate(context.Background(),
-		Connection{Endpoint: srv.URL}, "m", "source", ""); err != nil {
-		t.Fatalf("Translate error: %v", err)
-	}
-	if gotSystem != translationDirective {
-		t.Errorf("空 directive で system = %q、base 指示のみを期待", gotSystem)
-	}
-}
-
-func contains(s, sub string) bool {
-	for i := 0; i+len(sub) <= len(s); i++ {
-		if s[i:i+len(sub)] == sub {
-			return true
-		}
-	}
-	return false
 }

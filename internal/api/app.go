@@ -22,12 +22,15 @@ const progressEventName = "translation:progress"
 // defaultPageLimit は ListResultsPage の limit が未指定（0 以下）のときの既定ページ件数。
 const defaultPageLimit = 50
 
-// Store は api が結果一覧の keyset ページングに使う中心データアクセスの interface（使う分だけ宣言する）。
+// Store は api が結果一覧の keyset ページングとプロンプトテンプレートの CRUD に使う
+// 中心データアクセスの interface（使う分だけ宣言する）。
 type Store interface {
 	CountNarrations(ctx context.Context) (int, error)
 	CountLines(ctx context.Context) (int, error)
 	NarrationsAfter(ctx context.Context, afterID int64, limit int) ([]model.Narration, error)
 	LinesAfter(ctx context.Context, afterID int64, limit int) ([]model.Line, error)
+	GetPromptTemplate(ctx context.Context) (model.PromptTemplate, error)
+	SavePromptTemplate(ctx context.Context, t model.PromptTemplate) error
 }
 
 // ExtractorConfig は抽出子プロセス（C#）の起動設定。
@@ -77,15 +80,26 @@ type RunRequest struct {
 	Model      string `json:"model"`
 }
 
+// TermView は結果行の機械置換内訳 1 件（原語 → 確定訳語）。
+// 結果取得時に各行の原文へ辞書を当て直して再構成する（保存はしない）。
+type TermView struct {
+	Source string `json:"source"`
+	Dest   string `json:"dest"`
+}
+
 // ResultView は結果一覧の表示用 DTO。叙述文と台詞を共通の行として表す。
 // Directive と PersonaLabel は話者を解決できた台詞だけ持つ（叙述文や話者なしの台詞は空で省略）。
+// Terms は本文で辞書から確定訳語へ置換した固有名の内訳。置換が無い行は空で省略する。
+// Prompt は実際に翻訳 AI へ投げた完成プロンプト（base 指示＋口調指示＋機械置換済み原文）を取得時に再構成した全文。
 type ResultView struct {
-	EDID         string `json:"edid"`
-	Source       string `json:"source"`
-	Dest         string `json:"dest"`
-	StatusLabel  string `json:"statusLabel"`
-	Directive    string `json:"directive,omitempty"`
-	PersonaLabel string `json:"personaLabel,omitempty"`
+	EDID         string     `json:"edid"`
+	Source       string     `json:"source"`
+	Dest         string     `json:"dest"`
+	StatusLabel  string     `json:"statusLabel"`
+	Directive    string     `json:"directive,omitempty"`
+	PersonaLabel string     `json:"personaLabel,omitempty"`
+	Terms        []TermView `json:"terms,omitempty"`
+	Prompt       string     `json:"prompt,omitempty"`
 }
 
 // RunResult は実行結果の要約。結果一覧は数万件になりうるためここでは返さず、
@@ -140,6 +154,34 @@ func (a *App) ListResultsPage(cursor string, limit int) (ResultPage, error) {
 		limit = defaultPageLimit
 	}
 	return a.buildResultsPage(a.baseCtx(), cursor, limit)
+}
+
+// PromptTemplateView はプロンプトテンプレート編集画面の表示用 DTO。
+// BaseDirective は叙述文・台詞の両方に付く base 翻訳指示文、PersonaTemplate は話者のいる台詞に付く口調指示の雛形。
+type PromptTemplateView struct {
+	BaseDirective   string `json:"baseDirective"`
+	PersonaTemplate string `json:"personaTemplate"`
+}
+
+// GetPromptTemplate は編集画面の初期表示用に、現在保存されているプロンプトテンプレートを返す。
+func (a *App) GetPromptTemplate() (PromptTemplateView, error) {
+	t, err := a.store.GetPromptTemplate(a.baseCtx())
+	if err != nil {
+		return PromptTemplateView{}, fmt.Errorf("プロンプトテンプレートの取得: %w", err)
+	}
+	return PromptTemplateView{BaseDirective: t.BaseDirective, PersonaTemplate: t.PersonaTemplate}, nil
+}
+
+// SavePromptTemplate は編集したプロンプトテンプレートを保存する。
+// 保存後の翻訳実行と、結果行の実プロンプト再構成は、この保存値を読んで反映する。
+func (a *App) SavePromptTemplate(req PromptTemplateView) error {
+	if err := a.store.SavePromptTemplate(a.baseCtx(), model.PromptTemplate{
+		BaseDirective:   req.BaseDirective,
+		PersonaTemplate: req.PersonaTemplate,
+	}); err != nil {
+		return fmt.Errorf("プロンプトテンプレートの保存: %w", err)
+	}
+	return nil
 }
 
 // RunExtractAndTranslate は plugin を抽出し、未訳の叙述文と台詞を翻訳し、翻訳件数の要約を返す。
@@ -201,24 +243,45 @@ func makeCursor(section string, id int64) string {
 }
 
 // buildResultsPage は cursor の指すページの叙述文・台詞を取り、台詞へ口調を一括で付けて ResultPage を返す。
+// 各行の原文へ機械置換辞書を当て直し、置換内訳（terms）を再構成して結果行へ供給する。
 func (a *App) buildResultsPage(ctx context.Context, cursor string, limit int) (ResultPage, error) {
 	narrations, lines, total, nextCursor, hasMore, err := a.pageRows(ctx, cursor, limit)
 	if err != nil {
 		return ResultPage{}, err
 	}
 
+	// プロンプトテンプレート（base 指示・口調指示の雛形）をページ単位で 1 度だけ読む。
+	// 実行時と同じ雛形で実プロンプトを再構成し、保存済みテンプレートを参照へ反映する。
+	tmpl, err := a.store.GetPromptTemplate(ctx)
+	if err != nil {
+		return ResultPage{}, fmt.Errorf("プロンプトテンプレートの取得: %w", err)
+	}
+
 	// ページの台詞ぶんだけ口調を 1 度に一括生成する（台詞ごとの DB 問い合わせを避ける）。
-	personas, err := a.engine.LinePersonas(ctx, lineIDs(lines))
+	personas, err := a.engine.LinePersonas(ctx, lineIDs(lines), tmpl.PersonaTemplate)
 	if err != nil {
 		return ResultPage{}, fmt.Errorf("口調の一括生成: %w", err)
 	}
 
+	// 機械置換辞書をページ単位で 1 度だけ組み、各行の原文へ当て直して内訳を再構成する。
+	dict, err := a.engine.LoadDictionary(ctx)
+	if err != nil {
+		return ResultPage{}, fmt.Errorf("機械置換辞書の構築: %w", err)
+	}
+
 	views := make([]ResultView, 0, len(narrations)+len(lines))
 	for _, n := range narrations {
-		views = append(views, narrationResultView(n))
+		view := narrationResultView(n)
+		// 原文へ辞書を当て直し、置換内訳（terms）と、置換済み原文から組んだ実プロンプトを再構成する。
+		replaced, used := dict.Apply(n.Source)
+		view.Terms = termViews(used)
+		// 叙述文は口調指示なし。実行時と同じ構築関数で完成プロンプトを組み、表示用全文へ描く。
+		view.Prompt = engine.RenderPrompt(engine.ComposePrompt(tmpl.BaseDirective, "", replaced))
+		views = append(views, view)
 	}
 	for _, l := range lines {
 		p := personas[l.ID]
+		replaced, used := dict.Apply(l.Source)
 		views = append(views, ResultView{
 			EDID:         l.EDID,
 			Source:       l.Source,
@@ -226,9 +289,24 @@ func (a *App) buildResultsPage(ctx context.Context, cursor string, limit int) (R
 			StatusLabel:  statusLabel(l.Status),
 			Directive:    p.Directive,
 			PersonaLabel: p.Label,
+			Terms:        termViews(used),
+			// 台詞は話者の口調指示を合成した実プロンプトを再構成する（口調指示の合成を目視で確かめる）。
+			Prompt: engine.RenderPrompt(engine.ComposePrompt(tmpl.BaseDirective, p.Directive, replaced)),
 		})
 	}
 	return ResultPage{Total: total, Results: views, NextCursor: nextCursor, HasMore: hasMore}, nil
+}
+
+// termViews は辞書の置換内訳（engine.DictionaryTerm）を結果行の表示 DTO へ写す。置換が無ければ nil を返す。
+func termViews(used []engine.DictionaryTerm) []TermView {
+	if len(used) == 0 {
+		return nil
+	}
+	out := make([]TermView, len(used))
+	for i, t := range used {
+		out[i] = TermView{Source: t.Source, Dest: t.Dest}
+	}
+	return out
 }
 
 // pageRows は keyset cursor から当該ページの叙述文・台詞、総件数、次 cursor、続きの有無を決める。

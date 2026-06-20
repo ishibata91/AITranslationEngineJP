@@ -1,6 +1,7 @@
 <script lang="ts">
   // 翻訳結果 1 件のコンパクト行。数万件・ページングでも一覧として読めるよう、既定は 1 行に畳む。
-  // 畳んだ summary に状態・EDID・口調チップ・原文/訳文の抜粋を出し、展開で全文と口調指示を見せる。
+  // 畳んだ summary に状態・EDID・口調チップ・固有名チップ・原文/訳文の抜粋を出す。
+  // 展開で原文/訳文・置換した固有名・実プロンプト（送信全文）を見せる。口調指示は実プロンプトの system で確かめる。
   // details/summary の開閉は利用者操作で、state は持たない。defaultOpen は story 表示用。
   import StatusBadge from "@ui/components/StatusBadge.svelte"
   import { statusTone } from "./translation-run-presentation"
@@ -15,6 +16,7 @@
 
   let hasPersona = $derived(!!row.directive)
   let termCount = $derived(row.terms?.length ?? 0)
+  let hasPrompt = $derived(!!row.prompt)
 </script>
 
 <details
@@ -79,16 +81,6 @@
         {/if}
       </div>
     </div>
-    {#if hasPersona}
-      <div class="mt-4 rounded-box border border-primary/25 bg-primary/5 p-3">
-        <span class="u-mono text-[0.65rem] uppercase tracking-widest text-primary/70">
-          口調指示
-        </span>
-        <p class="mt-1 whitespace-pre-line text-xs leading-relaxed text-base-content/70">
-          {row.directive}
-        </p>
-      </div>
-    {/if}
     {#if termCount > 0}
       <div class="mt-4 rounded-box border border-secondary/25 bg-secondary/5 p-3">
         <span class="u-mono text-[0.65rem] uppercase tracking-widest text-secondary/70">
@@ -103,6 +95,14 @@
             </li>
           {/each}
         </ul>
+      </div>
+    {/if}
+    {#if hasPrompt}
+      <div class="mt-4 rounded-box border border-info/25 bg-info/5 p-3">
+        <span class="u-mono text-[0.65rem] uppercase tracking-widest text-info/70">
+          実プロンプト
+        </span>
+        <pre class="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-box bg-base-300/30 p-2.5 u-mono text-xs leading-relaxed text-base-content/75">{row.prompt}</pre>
       </div>
     {/if}
   </div>

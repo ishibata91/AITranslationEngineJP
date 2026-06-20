@@ -51,7 +51,7 @@ func TestPersonaFromIdentityUnknown(t *testing.T) {
 	if got.RaceNature != "" || got.VoiceNature != "" || len(got.FactionNatures) != 0 {
 		t.Errorf("未知の識別子で traits が残った: %+v", got)
 	}
-	if buildPersonaDirective(got) != "" {
+	if buildPersonaDirective(testPersonaTemplate, got) != "" {
 		t.Errorf("空 traits で directive が出た")
 	}
 }
