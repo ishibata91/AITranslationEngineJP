@@ -1,7 +1,7 @@
 # Task Plan: 2026-06-14-prompt-persona-customization
 
 - `workflow`: work
-- `status`: implementation-module 通過（縦切り 3 段の backend 本番接続・frontend 配線・実画面確認まで完了。finalization 待ち。2026-06-20）
+- `status`: 完了（finalization-module 通過。master へ merge 済み、completed へ移動済み。2026-06-20）
 - `task_id`: 2026-06-14-prompt-persona-customization
 - `task_mode`: 重 task（画面が動く: Y、`docs/architecture.md` 反映: 要・小。プロンプト構築の所在を §3 で 1 行明確化、完了時に §8 更新）
 - `request_summary`: プロンプトテンプレートの編集、実際に翻訳 AI へ投げるプロンプトの参照、翻訳後の機械置換内訳の表示、口調指示テンプレートの精緻化をできるようにする。
@@ -142,4 +142,9 @@ frontend:
 
 ### 作業 commit / local merge / completed 移動 / merge 結果 commit
 
-（以下は実行後に hash を追記する）
+- 作業 commit: `daabbe30`（branch `claude/2026-06-14-prompt-persona-customization`）。T4 backend 本番接続・frontend 配線・docs 反映・旧 E2E 残骸削除。`.DS_Store` と `.claude/skills/presentation/SKILL.md` の T4 外作業変更は含めず stash 退避。
+- local merge: `master` へ `git merge --no-ff`。merge commit `1b83dbb0`。conflict なし。work branch にあった既存 commit `f69d95e4`（skill refactor）も併せて取り込んだ。
+- merge 後検証: `go build ./...` 通過、`go test ./internal/...` 通過、`python3 scripts/harness/run.py --suite frontend-local` 通過。
+- completed 移動: `docs/exec-plans/active/2026-06-14-prompt-persona-customization/` → `docs/exec-plans/completed/2026-06-14-prompt-persona-customization/`。新 task `2026-06-20-character-persona-from-dialogue` は active に残す。
+- merge 結果 commit: 本 commit（completed 移動と本記録）。
+- remote: 変更なし（push なし）。stash 退避した T4 外作業変更は finalization 後に pop で復帰する。
