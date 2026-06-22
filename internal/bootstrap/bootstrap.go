@@ -8,6 +8,7 @@ import (
 
 	"aitranslationenginejp/internal/api"
 	"aitranslationenginejp/internal/engine"
+	"aitranslationenginejp/internal/lexicon"
 	"aitranslationenginejp/internal/provider"
 	"aitranslationenginejp/internal/store"
 )
@@ -17,6 +18,8 @@ const (
 	devDBPath        = "db/aitranslation.dev.sqlite3"
 	extractorProject = "tools/extractor"
 	migrationsDir    = "db/migrations"
+	// nrcDictPath は口調生成の感情辞書（研究用ライセンス）。製品化時に MIT 実装へ差し替える。
+	nrcDictPath = "dictionaries/nrc-emolex.txt"
 )
 
 // NewApp は中心 DB を開き、全層を配線して api.App を返す。Close 用に store も返す。
@@ -30,7 +33,14 @@ func NewApp() (*api.App, *store.Store, error) {
 	client := &http.Client{Timeout: 10 * time.Minute}
 	p := provider.NewOpenAICompatible(client)
 
-	eng := engine.New(s, p)
+	// 口調生成の感情辞書を読む。差し替え可能な境界（engine.EmotionLexicon）の concrete 実装。
+	lex, err := lexicon.LoadNRC(nrcDictPath)
+	if err != nil {
+		_ = s.Close()
+		return nil, nil, fmt.Errorf("感情辞書の読み込み: %w", err)
+	}
+
+	eng := engine.New(s, p, lex)
 	app := api.New(s, eng, p, api.ExtractorConfig{
 		ProjectPath: extractorProject,
 		SchemaDir:   migrationsDir,
