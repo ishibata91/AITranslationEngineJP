@@ -274,3 +274,11 @@ close-4 の不変ルール（口調合成の純粋 IO クラス・カバレッ�
 - `go test ./...`: 全パッケージ ok。
 - frontend `npm run check`（svelte-check）: 当方コード 0 error。既存の `node_modules/@storybook/svelte/dist/index.d.ts` 1 件のみ。
 - 実 app（:34115）再起動: `assets/role-speech.tsv` から読めて clean 起動（`bootstrap.NewApp` の `LoadRoleSpeech` 失敗時はエラー伝播で起動失敗するため、起動成功が読み込み成功を裏づける）。
+
+### 作業 commit
+
+- branch: `claude/2026-06-20-character-persona-from-dialogue`。
+- commit hash: `3bb42ea7`（32 files changed, 1323 insertions(+), 330 deletions(-)）。
+- 内容: ペルソナ既知問題 1-3 の解消、固有名ファーストネーム派生の Run 組み込み、結果行の話者名＋属性表示、役割語テンプレートの `assets/role-speech.tsv` 外部化。
+- commit 除外（本 task と無関係、または生成物）: `.DS_Store`、`.claude/skills/presentation/SKILL.md`、`cmd/CLAUDE.md`・`db/CLAUDE.md`・`docs/CLAUDE.md`・`scripts/CLAUDE.md`・`tools/CLAUDE.md`、`frontend/wailsjs/go/models.ts`（gitignore・再生成物）、`dictionaries/`（gitignore・nrc は研究ライセンス）。
+- 残留リスク: スライス 3（属性割当 UI）は未着手。役割語の語尾揺れが残るセルは後追い拡張（`assets/role-speech.tsv` 編集＋再 Run）。
