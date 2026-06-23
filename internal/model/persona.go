@@ -37,13 +37,24 @@ type SpeakerLineSource struct {
 	Source        string `db:"source"`
 }
 
-// LinePersonaInput は注入の入力 1 件。台詞 1 行へ与える話者の生成済み基底口調と、種族訛りマーカー用の種族 EditorID。
-// persona_character を持つ話者の台詞だけが現れる。
+// LineSpeaker は台詞 1 行の話者識別と属性。誰の台詞かと、口調指示の根拠（性別・年齢＝種族・声型）を表示するために読む。
+// 1 台詞に複数話者が紐づく場合は呼び出し側が id 昇順の先頭話者を採る。
+type LineSpeaker struct {
+	LineID    int64  `db:"line_id"`
+	EDID      string `db:"edid"`       // 話者の EditorID（例 AventusAretino）
+	Sex       string `db:"sex"`        // 性別（"Female"/"Male"/""）
+	RaceEDID  string `db:"race_edid"`  // 種族 EditorID（年齢区分の判定元。ElderRace/*Child 等）
+	VoiceEDID string `db:"voice_edid"` // 声型 EditorID（例 FemaleOldGrumpy）
+}
+
+// LinePersonaInput は注入の入力 1 件。台詞 1 行へ与える話者の生成済み基底口調と、役割語マーカー用の性別・種族 EditorID。
+// persona_character を持つ話者の台詞だけが現れる。Sex・RaceEDID は一人称・語尾テンプレートと種族訛りの引きに使う。
 type LinePersonaInput struct {
 	LineID       int64  `db:"line_id"`
 	AttitudeBand int    `db:"attitude_band"`
 	EmotionBand  int    `db:"emotion_band"`
 	Marked       int    `db:"marked"`
 	DecisionPath string `db:"decision_path"`
+	Sex          string `db:"sex"` // 話者の性別（"Female"/"Male"/""）。役割語テンプレートの引きに使う。
 	RaceEDID     string `db:"race_edid"`
 }

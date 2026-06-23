@@ -1,6 +1,9 @@
 // 翻訳実行画面の表示用の値（入力欄メタ・段階表示・訳状態トーン）。型は translation-run-view.ts。
 import type { BadgeTone } from "@ui/components/status-badge"
 import type {
+  AttitudeBand,
+  DecisionPath,
+  EmotionBand,
   FormFieldDescriptor,
   ProgressStage,
   RunPhase
@@ -53,4 +56,32 @@ export function statusTone(statusLabel: string): BadgeTone {
     default:
       return "outline"
   }
+}
+
+// 対人段階の表示ラベル。
+export const ATTITUDE_LABEL: Record<AttitudeBand, string> = {
+  0: "尊大",
+  1: "中立",
+  2: "丁寧"
+}
+
+// 感情段階の表示ラベル。
+export const EMOTION_LABEL: Record<EmotionBand, string> = {
+  0: "抑制",
+  1: "中",
+  2: "激情"
+}
+
+// 決定経路の表示ラベル。voice は「声質」と読み替えて出す。
+export const DECISION_PATH_LABEL: Record<DecisionPath, string> = {
+  本文: "本文",
+  voice: "声質",
+  保留: "保留"
+}
+
+// 決定経路の補足説明。根拠を title 属性で読めるようにする。
+export const DECISION_PATH_HINT: Record<DecisionPath, string> = {
+  本文: "印（対人マーカーを含む台詞数）が十分で、本文 2 軸から対人段階を決めた。",
+  voice: "印が不足のため、声質の気質を prior として対人段階を決めた。",
+  保留: "印が不足で固有声質に気質も無いため、薄い本文値を低信頼で保持した。"
 }

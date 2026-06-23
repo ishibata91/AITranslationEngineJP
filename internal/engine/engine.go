@@ -36,15 +36,24 @@ type PersonaStore interface {
 	LoadLinePersonas(ctx context.Context, lineIDs []int64) (map[int64]model.LinePersonaInput, error)
 }
 
-// Persona は台詞 1 件へ与える口調指示文（全文）と一覧表示用の短い要約。話者を解決できた台詞だけ持つ。
+// Persona は台詞 1 件へ与える口調指示文（全文）と、UI 表示用の口調メタデータ。話者を解決できた台詞だけ持つ。
+// Directive・Label は翻訳と一覧チップ用。Cell 以降は結果行を展開したときに出す判定結果と根拠。
 type Persona struct {
-	Directive string
-	Label     string
+	Directive    string
+	Label        string
+	Cell         string // 基底口調セル名（判定結果）
+	Trait        string // 基底口調の性質文（口調を普通の言葉で説明した一文）
+	AttitudeBand int    // 対人段階 0尊大/1中立/2丁寧
+	EmotionBand  int    // 感情段階 0抑制/1中/2激情
+	Marked       int    // 印（信頼度の目安）
+	DecisionPath string // 本文/voice/保留
 }
 
-// DictStore は engine が固有名の機械置換辞書（master_term）を読むための中心データアクセス。
+// DictStore は engine が固有名の機械置換辞書（master_term）を読み書きするための中心データアクセス。
+// ListMasterTerms は本文置換用の全件読み出し、InsertDerivedTerms は派生（人名の部分形）の追記。
 type DictStore interface {
 	ListMasterTerms(ctx context.Context) ([]model.MasterTerm, error)
+	InsertDerivedTerms(ctx context.Context, terms []model.MasterTerm) (int, error)
 }
 
 // TemplateStore は engine がプロンプトテンプレート（base 指示・口調指示の雛形）を読むための中心データアクセス。
@@ -63,14 +72,16 @@ type Store interface {
 
 // Engine は翻訳手続きを実行する。
 type Engine struct {
-	store    Store
-	provider provider.Translator
-	lexicon  EmotionLexicon
+	store      Store
+	provider   provider.Translator
+	lexicon    EmotionLexicon
+	roleSpeech *RoleSpeechTable
 }
 
-// New は engine を生成する。provider は AI 翻訳の port、lexicon は口調生成の感情辞書（差し替え可能な境界）。
-func New(store Store, p provider.Translator, lexicon EmotionLexicon) *Engine {
-	return &Engine{store: store, provider: p, lexicon: lexicon}
+// New は engine を生成する。provider は AI 翻訳の port、lexicon は口調生成の感情辞書（差し替え可能な境界）、
+// roleSpeech は注入時に引く一人称・語尾テンプレート（差し替え可能な参照データ。nil なら役割語を付けない）。
+func New(store Store, p provider.Translator, lexicon EmotionLexicon, roleSpeech *RoleSpeechTable) *Engine {
+	return &Engine{store: store, provider: p, lexicon: lexicon, roleSpeech: roleSpeech}
 }
 
 // GeneratePersonas は台詞を持つ全話者の基底口調を一括生成し persona_character へ保存する。保存した話者数を返す。
@@ -173,6 +184,30 @@ func (e *Engine) LoadDictionary(ctx context.Context) (*Dictionary, error) {
 	return NewDictionary(pairs), nil
 }
 
+// DeriveMasterTerms は xTranslator 英日 XML から人名の部分形（名のみ・短名）の確定訳語を派生し、
+// master_term へ追記する。base 既出の原語との衝突を避け、派生行は category="derive:<種別>" で由来を残す。
+// 翻訳 Run の抽出後に呼び、DB を作り直しても単独名（例 Aventus→アベンタス）が辞書へ入るようにする。
+// 追記した件数を返す。INSERT OR IGNORE のため二重実行でも増えない（冪等）。
+func (e *Engine) DeriveMasterTerms(ctx context.Context, xmlDir string) (int, error) {
+	terms, err := e.store.ListMasterTerms(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("base 辞書の取得: %w", err)
+	}
+	baseSources := make(map[string]bool, len(terms))
+	for _, t := range terms {
+		baseSources[t.Source] = true
+	}
+	derived, err := DeriveTermsFromXMLDir(xmlDir, baseSources)
+	if err != nil {
+		return 0, fmt.Errorf("固有名の派生: %w", err)
+	}
+	rows := make([]model.MasterTerm, len(derived))
+	for i, d := range derived {
+		rows[i] = model.MasterTerm{Source: d.Source, Dest: d.Dest, Category: "derive:" + d.Kind}
+	}
+	return e.store.InsertDerivedTerms(ctx, rows)
+}
+
 // LinePersonas は台詞 id 群へ生成済みの基底口調を一括で引き、各台詞の口調指示文（全文）と一覧用の短い要約を map で返す。
 // personaTemplate は口調指示の雛形（{traits} を含む）で、基底口調の性質文と種族訛りを差し込んで口調指示文を組む。
 // 生成済みペルソナが無い台詞、および段階が範囲外で性質文が空になる台詞は map に現れない
@@ -184,11 +219,21 @@ func (e *Engine) LinePersonas(ctx context.Context, lineIDs []int64, personaTempl
 	}
 	out := make(map[int64]Persona, len(inputs))
 	for lineID, in := range inputs {
-		directive := buildToneDirective(personaTemplate, buildToneTraits(in))
+		directive := buildToneDirective(personaTemplate, buildToneTraits(in, e.roleSpeech))
 		if directive == "" {
 			continue // 段階が範囲外で性質文が組めない場合は口調なし扱い。
 		}
-		out[lineID] = Persona{Directive: directive, Label: buildToneLabel(in)}
+		cell, trait := personaMetaOf(in)
+		out[lineID] = Persona{
+			Directive:    directive,
+			Label:        buildToneLabel(in),
+			Cell:         cell,
+			Trait:        trait,
+			AttitudeBand: in.AttitudeBand,
+			EmotionBand:  in.EmotionBand,
+			Marked:       in.Marked,
+			DecisionPath: in.DecisionPath,
+		}
 	}
 	return out, nil
 }

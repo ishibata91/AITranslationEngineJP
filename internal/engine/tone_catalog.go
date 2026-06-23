@@ -58,18 +58,43 @@ func raceMarkerTrait(raceEDID string) string {
 	}
 }
 
-// buildToneTraits は注入入力（生成済み基底口調＋種族）から口調指示の箇条書き行を組む。
-// 性質文（基底口調）と種族訛り（語彙マーカー）の順に並べる。性質文が無ければ空（口調指示なし）。
-func buildToneTraits(in model.LinePersonaInput) []string {
+// buildToneTraits は注入入力（生成済み基底口調＋性別＋種族）から口調指示の箇条書き行を組む。
+// 性質文（基底口調）→ 役割語（一人称・言い回し）→ 種族訛り の順に並べる。性質文が無ければ空（口調指示なし）。
+// 役割語は roles テンプレートを 性別×年齢（race 由来）×セル で引く。roles が nil なら役割語は付けない。
+func buildToneTraits(in model.LinePersonaInput, roles *RoleSpeechTable) []string {
 	trait := toneTraitOf(in.AttitudeBand, in.EmotionBand)
 	if trait == "" {
 		return nil
 	}
 	traits := []string{"- 口調: " + trait}
+	if line := roleSpeechLine(in, roles); line != "" {
+		traits = append(traits, line)
+	}
 	if m := raceMarkerTrait(in.RaceEDID); m != "" {
 		traits = append(traits, "- 種族訛り: "+m)
 	}
 	return traits
+}
+
+// roleSpeechLine は役割語テンプレートを引いて口調指示の 1 行へ整える。
+// 照合は決定経路に依らず、性別・race 由来の区分・基底口調セルだけで決める（フォールバック・保留でも付く）。
+// 一致が無い、または一人称も言い回しも空なら空文字を返す（役割語マーカーなし）。
+func roleSpeechLine(in model.LinePersonaInput, roles *RoleSpeechTable) string {
+	cell := tone.CellName(in.AttitudeBand, in.EmotionBand)
+	tmpl, ok := roles.Lookup(roleClassOfRace(in.RaceEDID), strings.ToLower(in.Sex), cell)
+	if !ok {
+		return ""
+	}
+	switch {
+	case tmpl.FirstPerson != "" && tmpl.Register != "":
+		return "- 人称と言い回し: 一人称は「" + tmpl.FirstPerson + "」。" + tmpl.Register
+	case tmpl.FirstPerson != "":
+		return "- 人称と言い回し: 一人称は「" + tmpl.FirstPerson + "」。"
+	case tmpl.Register != "":
+		return "- 言い回し: " + tmpl.Register
+	default:
+		return ""
+	}
 }
 
 // buildToneDirective は口調指示テンプレートの {traits} へ口調指示の箇条書きを差し込む。
@@ -88,4 +113,9 @@ func buildToneLabel(in model.LinePersonaInput) string {
 		return ""
 	}
 	return "口調: " + cell
+}
+
+// personaMetaOf は注入入力から、UI 表示用の基底口調セル名と性質文を引く（判定結果の表示）。
+func personaMetaOf(in model.LinePersonaInput) (cell, trait string) {
+	return tone.CellName(in.AttitudeBand, in.EmotionBand), toneTraitOf(in.AttitudeBand, in.EmotionBand)
 }

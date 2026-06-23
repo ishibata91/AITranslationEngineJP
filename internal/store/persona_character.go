@@ -130,6 +130,7 @@ func (s *Store) LoadLinePersonas(ctx context.Context, lineIDs []int64) (map[int6
 			       pc.emotion_band AS emotion_band,
 			       pc.marked AS marked,
 			       pc.decision_path AS decision_path,
+			       COALESCE(s.sex, '') AS sex,
 			       COALESCE(r.edid, '') AS race_edid
 			FROM line_speaker ls
 			JOIN speaker s ON s.id = ls.speaker_id
@@ -139,6 +140,42 @@ func (s *Store) LoadLinePersonas(ctx context.Context, lineIDs []int64) (map[int6
 			ORDER BY ls.line_id, s.id`
 		if err := s.db.SelectContext(ctx, &rows, query, args...); err != nil {
 			return nil, fmt.Errorf("注入入力（生成ペルソナ）の一括取得: %w", err)
+		}
+		for _, row := range rows {
+			if _, seen := out[row.LineID]; seen {
+				continue // 先頭話者（id 昇順）だけ採る。
+			}
+			out[row.LineID] = row
+		}
+	}
+	return out, nil
+}
+
+// LoadLineSpeakers は台詞 id 群に紐づく話者の識別と属性（性別・種族・声型）を一括で読み、lineID→話者 の map を返す。
+// 話者を持つ台詞だけが現れる（叙述文や話者なしの台詞は欠落）。複数話者を指す台詞は id 昇順の先頭話者を採る。
+// 結果詳細で「誰の台詞か」と口調指示の根拠（属性）を出すために読む。
+func (s *Store) LoadLineSpeakers(ctx context.Context, lineIDs []int64) (map[int64]model.LineSpeaker, error) {
+	out := make(map[int64]model.LineSpeaker, len(lineIDs))
+	if len(lineIDs) == 0 {
+		return out, nil
+	}
+	for _, chunk := range chunkInt64(lineIDs, speakerChunkSize) {
+		marks, args := placeholders(chunk)
+		var rows []model.LineSpeaker
+		query := `
+			SELECT ls.line_id AS line_id,
+			       s.edid AS edid,
+			       COALESCE(s.sex, '') AS sex,
+			       COALESCE(r.edid, '') AS race_edid,
+			       COALESCE(v.edid, '') AS voice_edid
+			FROM line_speaker ls
+			JOIN speaker s ON s.id = ls.speaker_id
+			LEFT JOIN race r ON r.id = s.race_id
+			LEFT JOIN voice_type v ON v.id = s.voice_type_id
+			WHERE ls.line_id IN (` + marks + `)
+			ORDER BY ls.line_id, s.id`
+		if err := s.db.SelectContext(ctx, &rows, query, args...); err != nil {
+			return nil, fmt.Errorf("話者識別の一括取得: %w", err)
 		}
 		for _, row := range rows {
 			if _, seen := out[row.LineID]; seen {

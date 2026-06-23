@@ -1,7 +1,7 @@
 # Task Plan: 2026-06-20-character-persona-from-dialogue
 
 - `workflow`: work
-- `status`: implementation-module スライス 1・2 完了（口調分類・対話由来生成・キャッシュ・翻訳注入の backend）。スライス 3・4（UI）着手前（2026-06-23）
+- `status`: スライス 1・2・4 完了。既知の問題 1〜3（性別・年齢の役割語、一人称・語尾、保留較正）を実装・検証・実画面目視まで完了。問題 4 は許容誤差。スライス 3 未着手（2026-06-23）
 - `task_id`: 2026-06-20-character-persona-from-dialogue
 - `request_summary`: 話者の口調の素（性質文・ペルソナ）の持ち方を仕様から設計し直す。種族・汎用声型には固定のペルソナを割り当て、キャラ専用声型はそのキャラの台詞群から個別ペルソナを生成する。
 - `goal`: 翻訳の口調指示に差し込む性質文・ペルソナを、抽出データ由来の属性へ割り当て・生成でき、再抽出後も保持し、翻訳実行へ反映できる。
@@ -203,11 +203,74 @@ close-4 の不変ルール（口調合成の純粋 IO クラス・カバレッ�
 
 残る観測（close-4 の実翻訳）: 実 app（UI）＋ LLM での実翻訳でプロンプトへ口調が入ることの目視は、app 起動時の UI 検証（chrome-devtools）で行う。注入ロジックは単体で、生成は実データで確認済み。
 
-### 次スライス
+### スライス 4（表示）: 結果行に口調メタデータ — storybook-module 承認済み
 
-- スライス 3: persona_assignment（属性割当）＋ 属性割当 UI ＋ fallback 解決。画面のため storybook-module 経由。
-- スライス 4: キャラペルソナの表示・編集 UI ＋ 手修正保護。画面のため storybook-module 経由。
+方針変更: 専用のキャラ管理画面・編集はやめ、既存の翻訳結果行を開いた詳細に、台詞の話者の生成済み基底口調を「口調」メタデータとして出す（表示のみ）。判定結果（基底口調セル＋性質文）を強調し、根拠（決定経路・対人段階・感情段階・印）は小さくする。
+
+変更ファイル（表示・storybook-module）:
+- `TranslationResultRow.svelte`: 展開詳細に口調メタ節を追加。
+- `translation-run-view.ts`・`translation-run-presentation.ts`: `PersonaMeta`（cell・trait・段階・印・経路）・段階型・ラベル・補足を追加。
+- `TranslationResultRow.stories.ts`: 新表示の story（本文・声質・保留・叙述文・口調なし）。
+
+承認・検証: 人間レビュー承認済み。通常分類（UI Components）へ統合、レビュー story 削除。`build-storybook` 成功、`frontend-local` 通過。詳細は `storybook-review-loop.md`。宙に浮いていた独立コンポーネント案（CharacterPersonaRow/Screen・編集 UI）は破棄した。
+
+### スライス 4（配線）: 口調メタを結果行へ流す — implementation-module 完了・close-4 目視済み
+
+承認済みの表示を実 app で動かす配線を縦通しに入れた。
+
+変更ファイル:
+- `internal/engine/engine.go`・`tone_catalog.go`: `Persona` に口調メタ（cell・trait・段階・印・経路）を足し、`LinePersonas` で埋める。
+- `internal/api/app.go`: `PersonaView` DTO と `ResultView.Persona` を足し、`buildResultsPage` で話者ありの台詞へ載せる。
+- `frontend/wailsjs/go/models.ts`: `wails generate module` で再生成（`api.PersonaView`・`persona?`）。
+- `frontend/src/gateway/translation-gateway.ts`: `PersonaRow` と `toPersonaRow` を足し、結果行へ写す（段階・経路は境界で union へ確定）。
+
+観測（close-4、実 app）: `npm run dev:wails:run`（:34115）で結果一覧を開き、台詞行に口調チップ、展開で口調メタ節（判定結果＋性質文を強調、根拠を小さく）が出ることを目視した。Grelod=ぞんざい・声質・印6 等、生成結果が表示へ正しく流れた。dev DB は使い捨てツールで persona_character を生成して観測した（ツールは削除済み）。検証: `go test ./...`・`go vet`・`gofmt` 通過、frontend `check`（当方 0 エラー）・`frontend-local` 通過。
+
+### 既知の問題 1〜3 の対応（implementation-module、2026-06-23）
+
+`persona-known-issues.md` の問題 1〜3 を実装した。問題 4 は許容誤差として受け入れた。
+
+設計の出どころ（人間修正）: 性別は声型でなく NPC の Female flag、年齢は race EditorID（`ElderRace`／`*Child`）、声型は対人 prior フォールバック専用。役割語は決定経路（本文／voice／保留）に依らず常に付く。一人称・語尾は戯画的にせず（フィクションの老人語 わし・〜じゃ を使わない）現実的な register にする。
+
+変更ファイル:
+- `tools/extractor/LineSpeakerSqliteWriter.cs`: NPC の Female flag を読み speaker.sex を書く（問題 1）。
+- `assets/role-speech.tsv`（新規）: 一人称・語尾テンプレート。`race`×`sex`×`cell` キー、ワイルドカード優先。見直しはファイル編集＋再 Run。
+- `internal/engine/role_speech.go`＋`role_speech_test.go`（新規）: `RoleSpeechTable`・loader・純粋照合。カバレッジ 100%。
+- `internal/engine/tone_catalog.go`: `buildToneTraits` で 性質文→役割語→種族訛り を合成（問題 1・2）。
+- `internal/engine/engine.go`・`bootstrap.go`: テンプレートを読み Engine へ DI（`EmotionLexicon` と同じ差し替え可能境界）。
+- `internal/model/persona.go`・`internal/store/persona_character.go`: 注入入力へ `Sex` を通す。
+- `internal/engine/tone/classifier.go`＋`classifier_test.go`: 保留経路で対人を中立へ寄せる（問題 3）。
+
+検証: `gofmt -l internal/`（差分なし）・`go vet ./...`・`go test ./...` 通過。tone・role_speech のカバレッジ 100%。`dotnet build tools/extractor` 成功。
+
+実画面の最終目視まで完了した。dev DB を作り直し、`Innocence Lost - Quest Expansion.esp` を実 LLM（`hy-mt2-7b`）で再抽出→再生成→翻訳して目視した。性別は 7 話者すべてに充填され、Grelod（老女）は老年女性の口調になり山賊風が消えた。子供は一人称が性別どおりで安定し、Aventus（保留）は対人が中立へ寄り「平明」になった。Constance（成人女）は一人称「わたし」＋女性 register が付いた（基底口調は淡々のまま＝問題 4 許容）。詳細は `persona-known-issues.md`「対応状況」。
+
+### 次
+
+- スライス 3: persona_assignment（属性割当）＋ 属性割当 UI ＋ fallback 解決（印不足話者の口調を種族・声型グループから引く）。画面のため storybook-module 経由。
+- 役割語の精緻化: 基底口調セル別の行を `assets/role-speech.tsv` へ後追いで足す（語尾の揺れが残るセルが見つかった場合）。few-shot 例文（R3）も同じ起動条件。
+- 残較正（`poc-tone-report.md`「本実装で残る較正」）は別途。
 
 ## Outcome
 
 口調の概念モデルと 2 軸を確定し、機械分類が LLM なしで成立することを実データで実証した（無作為検証・メタと本文の融合・実 mod inigo.esp 確認）。含意の尊大は既知の許容誤差と決め、extractor 拡張は対象外とした。設計成果物（`persona-design.md`・`implementation-scope.md`・`test-plan.md`）が揃い、人間レビュー後に storybook-module・implementation-module へ渡せる。計画資料は確定記録へ整理した（superseded な PoC 計画・v1 説明・第 2 段作業記録を削除し、再現手順を `poc-tone-report.md` へ一本化）。
+
+## Finalization（2026-06-23）
+
+### 正本化判断
+
+- 反映対象: `docs/architecture.md`。
+- 判断: 反映不要。
+- 影響範囲: 本 session の変更は層・依存方向・Wails 境界の構造を変えない。`engine`・`store`・`api` 内へ機能追加した（`DeriveMasterTerms`、`RoleSpeechTable`、`LoadLineSpeakers`、`SpeakerView`）が、新層も依存方向の変更も無い。`SpeakerView` は既存 DTO へのフィールド追加であり、`assets/role-speech.tsv` と nrc 辞書は `bootstrap` 読み込みの既存パターンに乗る。
+- 根拠: `feedback-architecture-reflection-structural-only`（層・依存・Wails 境界が不変なら §8 を churn せず承認も求めない）。
+- 人間承認状態: 構造不変のため承認不要（恒久仕様の正本反映は行わない）。
+- 対象 docs パス候補: なし。
+
+### 最終検証（commit 前、role-speech 移動後の取り直し）
+
+- `gofmt -l internal/`: 差分なし。
+- `go build ./...`: 通過。
+- `go vet ./...`: 通過（先行 session）。
+- `go test ./...`: 全パッケージ ok。
+- frontend `npm run check`（svelte-check）: 当方コード 0 error。既存の `node_modules/@storybook/svelte/dist/index.d.ts` 1 件のみ。
+- 実 app（:34115）再起動: `assets/role-speech.tsv` から読めて clean 起動（`bootstrap.NewApp` の `LoadRoleSpeech` 失敗時はエラー伝播で起動失敗するため、起動成功が読み込み成功を裏づける）。

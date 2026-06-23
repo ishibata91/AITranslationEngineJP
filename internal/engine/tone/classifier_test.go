@@ -293,16 +293,19 @@ func TestClassifyVoicePath(t *testing.T) {
 	}
 }
 
-// Classify は印不足かつ固有 voice で prior も無い話者を保留にし、薄い本文値を保持する。
+// Classify は印不足かつ固有 voice で prior も無い話者を保留にし、対人を中立へ寄せる。
 func TestClassifyHoldPath(t *testing.T) {
 	c := NewClassifier()
-	// 1 台詞・粗野（印 1）で固有 voice（prior 無し）。保留経路で本文の薄い値を保持する。
+	// 1 台詞・粗野（印 1）で固有 voice（prior 無し）。保留経路で薄い本文値を捨て対人を中立にする。
 	got := c.Classify([]Features{rudeLine()}, "MaleUniqueEdorfin")
 	if got.DecisionPath != PathHold {
 		t.Fatalf("DecisionPath = %q, want %q", got.DecisionPath, PathHold)
 	}
-	if got.AttitudeScore != -1 {
-		t.Fatalf("AttitudeScore = %v, want -1（本文の薄い値を保持）", got.AttitudeScore)
+	if got.AttitudeBand != AttitudeNeutral {
+		t.Fatalf("AttitudeBand = %d, want %d（保留は中立へ寄せる）", got.AttitudeBand, AttitudeNeutral)
+	}
+	if got.AttitudeScore != 0 {
+		t.Fatalf("AttitudeScore = %v, want 0（薄い本文値を捨て中立）", got.AttitudeScore)
 	}
 	if got.VoiceLabel != "固有" {
 		t.Fatalf("VoiceLabel = %q, want %q", got.VoiceLabel, "固有")

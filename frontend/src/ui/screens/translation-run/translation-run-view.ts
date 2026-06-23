@@ -41,6 +41,45 @@ export interface ReplacedTerm {
   dest: string
 }
 
+// 基底口調の対人段階。0 尊大 / 1 中立 / 2 丁寧。
+export type AttitudeBand = 0 | 1 | 2
+
+// 基底口調の感情段階。0 抑制 / 1 中 / 2 激情。
+export type EmotionBand = 0 | 1 | 2
+
+// 決定経路。対人段階をどの信号で決めたか（本文 2 軸 / 声質 prior / 保留）。
+export type DecisionPath = "本文" | "voice" | "保留"
+
+// 結果行を展開したときにメタデータとして出す口調情報。台詞の話者の生成済み基底口調（persona_character 由来）。
+// 話者を解決できた台詞だけ持つ。叙述文や話者なしの台詞は未設定。
+export interface PersonaMeta {
+  // 基底口調セル名（対人段階×感情段階。例: 冷然・見下し）。判定結果として強調して出す。
+  cell: string
+  // 基底口調の性質文（口調をふつうの言葉で説明した一文）。判定結果の補足として出す。
+  trait: string
+  // 対人段階。
+  attitudeBand: AttitudeBand
+  // 感情段階。
+  emotionBand: EmotionBand
+  // 印。対人マーカーを含む台詞数で信頼度の目安。
+  marked: number
+  // 決定経路。
+  decisionPath: DecisionPath
+}
+
+// 結果行を展開したときに出す話者情報。誰の台詞かと、口調指示の根拠（性別・年齢・声型）。
+// 話者を解決できた台詞だけ持つ。叙述文や話者なしの台詞は未設定。
+export interface SpeakerMeta {
+  // 話者の EditorID（例: AventusAretino）。誰の台詞かを示す。
+  edid: string
+  // 性別ラベル（女性 / 男性 / 空）。役割語（一人称・語尾）の根拠。
+  sex: string
+  // 年齢区分ラベル（老人 / 子供 / 成人 / 空）。役割語の根拠（種族 EditorID 由来）。
+  age: string
+  // 声型 EditorID（例: FemaleOldGrumpy）。印不足時の対人 prior の根拠。
+  voice: string
+}
+
 // 結果一覧の 1 行。叙述文（narration）と台詞（line）の原文・訳文・状態を表示用に整形した値。
 export interface NarrationResultRow {
   // レコードの EditorID。どの書物・台詞かを利用者が識別するための表示。
@@ -51,12 +90,17 @@ export interface NarrationResultRow {
   dest: string
   // 訳状態の表示ラベル（未訳・仮訳・訳済・承認）。status コードからの変換は Presenter が行い、ここには表示文字列だけ入る。
   statusLabel: string
+  // 行を展開したときに出す話者情報（誰の台詞か＋属性）。話者を解決できた台詞だけ持つ。
+  speaker?: SpeakerMeta
   // 注入したペルソナ口調指示文の全文。話者を解決できた台詞だけ入る。叙述文や話者なしの台詞は空または未設定。
   // 既定では畳み、行を展開したときに見せる。
   directive?: string
-  // 口調チップ用の短い要約。話者の最も効く特徴 1 つ（声質など）。一覧のまま口調差を観測するための表示。
+  // 口調チップ用の短い要約。基底口調セル名。一覧のまま口調差を観測するための表示。
   // directive を持つ行だけ持つ。
   personaLabel?: string
+  // 行を展開したときにメタデータとして出す口調情報（基底口調・対人/感情段階・印・決定経路）。
+  // 話者を解決できた台詞だけ持つ。
+  persona?: PersonaMeta
   // この本文で辞書から置換した固有名（原語 → 確定訳語）。置換が無い行は空または未設定。
   // 畳んだ行には件数チップ、展開で一覧を出し、同一原語への同一訳語を行ごとに確かめる。
   terms?: ReplacedTerm[]

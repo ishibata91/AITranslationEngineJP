@@ -38,7 +38,7 @@ const (
 const (
 	PathDialogue = "本文"    // 印が閾値以上。本文 2 軸で対人を決めた
 	PathVoice    = "voice" // 印不足。voice 気質 prior で対人を決めた
-	PathHold     = "保留"    // 印不足かつ固有 voice で prior も無い。薄い本文値を低信頼で保持した
+	PathHold     = "保留"    // 印不足かつ固有 voice で prior も無い。薄い本文値は当てにならず対人を中立へ寄せる
 )
 
 // Persona は Classifier の出力。基底口調（対人段階・感情段階・セル名）と、品質指標（印・決定経路・voice 気質名）。
@@ -196,7 +196,8 @@ func (c *Classifier) arousalBand(a float64) int {
 }
 
 // fuseAttitude は対人軸を融合する。印が十分なら本文、足りなければ voice 気質 prior、
-// 固有 voice で prior も無ければ保留（本文の薄い値をそのまま使うが信頼は低い）。
+// 固有 voice で prior も無ければ保留にする。保留では薄い本文値が実像とずれやすいため、
+// 対人を中立（スコア 0）へ寄せる。感情軸は呼び出し側で常に本文から測るため影響しない。
 func (c *Classifier) fuseAttitude(dialogueAtt float64, marked int, voice string) (att float64, band int, path string) {
 	if marked >= c.markedThreshold {
 		return dialogueAtt, c.attitudeBand(dialogueAtt), PathDialogue
@@ -204,5 +205,5 @@ func (c *Classifier) fuseAttitude(dialogueAtt float64, marked int, voice string)
 	if prior, ok := c.voicePrior(voice); ok {
 		return prior, c.attitudeBand(prior), PathVoice
 	}
-	return dialogueAtt, c.attitudeBand(dialogueAtt), PathHold
+	return 0, AttitudeNeutral, PathHold
 }

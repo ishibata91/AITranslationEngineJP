@@ -38,12 +38,12 @@ func TestRaceMarkerTrait(t *testing.T) {
 	}
 }
 
-// buildToneTraits は性質文に種族訛りを重ね、範囲外の段階では空を返す。
+// buildToneTraits は性質文に種族訛りを重ね、範囲外の段階では空を返す（役割語テンプレート無し）。
 func TestBuildToneTraits(t *testing.T) {
-	// 丁寧×中（物腰やわ）＋ Khajiit → 口調行 ＋ 種族訛り行。
+	// 丁寧×中（物腰やわ）＋ Khajiit → 口調行 ＋ 種族訛り行。役割語テンプレート nil。
 	traits := buildToneTraits(model.LinePersonaInput{
 		AttitudeBand: tone.AttitudePolite, EmotionBand: tone.EmotionMid, RaceEDID: "KhajiitRace",
-	})
+	}, nil)
 	if len(traits) != 2 {
 		t.Fatalf("Khajiit の口調指示行 = %d, want 2", len(traits))
 	}
@@ -54,14 +54,43 @@ func TestBuildToneTraits(t *testing.T) {
 	// 種族訛りを持たない種族は口調行のみ。
 	plain := buildToneTraits(model.LinePersonaInput{
 		AttitudeBand: tone.AttitudeArrogant, EmotionBand: tone.EmotionSuppressed, RaceEDID: "NordRace",
-	})
+	}, nil)
 	if len(plain) != 1 {
 		t.Fatalf("Nord の口調指示行 = %d, want 1", len(plain))
 	}
 
 	// 段階が範囲外なら口調指示なし（空）。
-	if got := buildToneTraits(model.LinePersonaInput{AttitudeBand: 9, EmotionBand: 9}); got != nil {
+	if got := buildToneTraits(model.LinePersonaInput{AttitudeBand: 9, EmotionBand: 9}, nil); got != nil {
 		t.Errorf("範囲外段階で traits = %v, want nil", got)
+	}
+}
+
+// buildToneTraits は役割語テンプレートがあれば、性質文と種族訛りの間へ一人称・言い回しの行を挟む。
+func TestBuildToneTraitsWithRoleSpeech(t *testing.T) {
+	roles, err := ParseRoleSpeech(strings.NewReader(
+		"elder\tfemale\t*\tわたし\t年配の女性らしく落ち着いて。\n"))
+	if err != nil {
+		t.Fatalf("ParseRoleSpeech: %v", err)
+	}
+	// 老女（ElderRace + Female）・物腰やわ（丁寧×中）。口調 ＋ 人称と言い回し の 2 行（種族訛り無し）。
+	traits := buildToneTraits(model.LinePersonaInput{
+		AttitudeBand: tone.AttitudePolite, EmotionBand: tone.EmotionMid,
+		Sex: "Female", RaceEDID: "ElderRace",
+	}, roles)
+	if len(traits) != 2 {
+		t.Fatalf("老女の口調指示行 = %d, want 2: %v", len(traits), traits)
+	}
+	if !strings.HasPrefix(traits[1], "- 人称と言い回し: ") || !strings.Contains(traits[1], "わたし") {
+		t.Errorf("役割語の行が想定外: %q", traits[1])
+	}
+
+	// テンプレートに当たらない成人男（adult/male、行なし）は役割語を付けず口調行のみ。
+	none := buildToneTraits(model.LinePersonaInput{
+		AttitudeBand: tone.AttitudeNeutral, EmotionBand: tone.EmotionMid,
+		Sex: "Male", RaceEDID: "NordRace",
+	}, roles)
+	if len(none) != 1 {
+		t.Fatalf("成人男の口調指示行 = %d, want 1: %v", len(none), none)
 	}
 }
 
