@@ -282,3 +282,25 @@ close-4 の不変ルール（口調合成の純粋 IO クラス・カバレッ�
 - 内容: ペルソナ既知問題 1-3 の解消、固有名ファーストネーム派生の Run 組み込み、結果行の話者名＋属性表示、役割語テンプレートの `assets/role-speech.tsv` 外部化。
 - commit 除外（本 task と無関係、または生成物）: `.DS_Store`、`.claude/skills/presentation/SKILL.md`、`cmd/CLAUDE.md`・`db/CLAUDE.md`・`docs/CLAUDE.md`・`scripts/CLAUDE.md`・`tools/CLAUDE.md`、`frontend/wailsjs/go/models.ts`（gitignore・再生成物）、`dictionaries/`（gitignore・nrc は研究ライセンス）。
 - 残留リスク: スライス 3（属性割当 UI）は未着手。役割語の語尾揺れが残るセルは後追い拡張（`assets/role-speech.tsv` 編集＋再 Run）。
+- finalization 記録 commit: `32f638c6`（正本化判断・最終検証・作業 commit hash を branch へ記録）。
+
+### local merge
+
+- source branch: `claude/2026-06-20-character-persona-from-dialogue`。
+- target branch: `master`。
+- command: `git merge --no-ff`。
+- 取り込んだ commit: `f131ffc1`・`3bb42ea7`・`32f638c6`。
+- merge commit hash: `b46bf465`。
+- conflict: なし（master は merge-base `6721b7a7` から分岐しておらず、branch が線形で 3 commit 先行）。
+
+### merge 後検証
+
+- `go build ./...`: 通過。
+- `go vet ./...`: 通過。
+- `go test ./...`: 全パッケージ ok。
+- frontend `npm run check`（svelte-check）: 当方コード 0 error。既存の `node_modules/@storybook/svelte/dist/index.d.ts` 1 件のみ。
+
+### completed 移動とスライス 3 の切り出し
+
+- 本 task はスライス 1・2・4（口調ペルソナ機構、既知問題 1-3 解消、固有名派生の Run 組み込み、話者属性表示）を完了とし、active から `docs/exec-plans/completed/2026-06-20-character-persona-from-dialogue/` へ移す。
+- スライス 3（persona_assignment 属性割当 ＋ 属性割当 UI ＋ fallback 解決）は未着手のため本 task の完了に含めない。別 task として切り出す（画面を伴うため storybook-module 経由。印不足話者の口調を種族・声型グループから引く fallback を含む）。「次」節のスライス 3 記述が起点。
