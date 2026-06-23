@@ -94,6 +94,9 @@ func (f *fakePageStore) GetPromptTemplate(_ context.Context) (model.PromptTempla
 func (f *fakePageStore) SavePromptTemplate(_ context.Context, _ model.PromptTemplate) error {
 	return nil
 }
+func (f *fakePageStore) LoadLineSpeakers(_ context.Context, _ []int64) (map[int64]model.LineSpeaker, error) {
+	return map[int64]model.LineSpeaker{}, nil
+}
 
 func narrationsWithIDs(ids ...int64) []model.Narration {
 	rows := make([]model.Narration, len(ids))

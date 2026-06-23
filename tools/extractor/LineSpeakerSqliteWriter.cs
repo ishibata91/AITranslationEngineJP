@@ -97,12 +97,14 @@ public static class LineSpeakerSqliteWriter
 
             var formId = HexFormId(npc.FormKey);
             var plugin = npc.FormKey.ModKey.FileName.ToString();
+            // 性別は NPC の Female フラグ（実体メタ）から取る。声型の Female/Male 接頭はユニーク NPC で当てにならず使わない。
+            var sex = npc.Configuration.Flags.HasFlag(NpcConfiguration.Flag.Female) ? "Female" : "Male";
             Exec(
                 """
-                INSERT OR IGNORE INTO speaker (edid, form_id, plugin, race_id, voice_type_id)
-                VALUES ($edid, $form_id, $plugin, $race_id, $voice_id)
+                INSERT OR IGNORE INTO speaker (edid, form_id, plugin, sex, race_id, voice_type_id)
+                VALUES ($edid, $form_id, $plugin, $sex, $race_id, $voice_id)
                 """,
-                ("$edid", npc.EditorID ?? ""), ("$form_id", formId), ("$plugin", plugin),
+                ("$edid", npc.EditorID ?? ""), ("$form_id", formId), ("$plugin", plugin), ("$sex", sex),
                 ("$race_id", (object?)raceId ?? DBNull.Value), ("$voice_id", (object?)voiceId ?? DBNull.Value));
             var speakerId = ScalarId(
                 "SELECT id FROM speaker WHERE plugin=$plugin AND form_id=$form_id",

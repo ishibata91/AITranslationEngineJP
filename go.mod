@@ -4,6 +4,7 @@ go 1.24.0
 
 require (
 	github.com/99designs/keyring v1.2.2
+	github.com/jdkato/prose/v2 v2.0.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/wailsapp/wails/v2 v2.10.2
 	modernc.org/sqlite v1.39.1
@@ -13,6 +14,7 @@ require (
 	github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4 // indirect
 	github.com/bep/debounce v1.2.1 // indirect
 	github.com/danieljoos/wincred v1.1.2 // indirect
+	github.com/deckarep/golang-set v1.7.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/dvsekhvalnov/jose2go v1.5.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
@@ -30,6 +32,7 @@ require (
 	github.com/leaanthony/u v1.1.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/mingrammer/commonregex v1.0.1 // indirect
 	github.com/mtibben/percent v0.2.1 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
@@ -48,6 +51,8 @@ require (
 	golang.org/x/sys v0.36.0 // indirect
 	golang.org/x/term v0.29.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
+	gonum.org/v1/gonum v0.7.0 // indirect
+	gopkg.in/neurosnap/sentences.v1 v1.0.6 // indirect
 	modernc.org/libc v1.66.10 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect

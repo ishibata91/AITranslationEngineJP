@@ -20,22 +20,40 @@ type NarrationStore interface {
 }
 
 // LineStore は engine が台詞の翻訳に使う中心データアクセス（使う分だけ宣言する）。
-// LoadLineSpeakers は台詞 id 群に紐づく話者の事実上の識別子を一括で返す。話者が無い台詞は map に現れない。
 type LineStore interface {
 	ListUntranslatedLines(ctx context.Context) ([]model.Line, error)
-	LoadLineSpeakers(ctx context.Context, lineIDs []int64) (map[int64]model.SpeakerIdentity, error)
 	UpdateLineDest(ctx context.Context, id int64, dest string, status int) error
 }
 
-// Persona は台詞 1 件へ与える口調指示文（全文）と一覧表示用の短い要約。話者を解決できた台詞だけ持つ。
-type Persona struct {
-	Directive string
-	Label     string
+// PersonaStore は engine が口調ペルソナの一括生成と注入に使う中心データアクセス。
+// 生成は台詞の言語特徴を line_analysis にキャッシュして集計し persona_character へ保存する。
+// 注入は台詞 id 群へ生成済みの基底口調を引く。
+type PersonaStore interface {
+	ListSpeakerLineSources(ctx context.Context) ([]model.SpeakerLineSource, error)
+	GetLineAnalyses(ctx context.Context, hashes []string) (map[string]model.LineAnalysis, error)
+	UpsertLineAnalysis(ctx context.Context, a model.LineAnalysis) error
+	UpsertPersonaCharacter(ctx context.Context, pc model.PersonaCharacter) error
+	LoadLinePersonas(ctx context.Context, lineIDs []int64) (map[int64]model.LinePersonaInput, error)
 }
 
-// DictStore は engine が固有名の機械置換辞書（master_term）を読むための中心データアクセス。
+// Persona は台詞 1 件へ与える口調指示文（全文）と、UI 表示用の口調メタデータ。話者を解決できた台詞だけ持つ。
+// Directive・Label は翻訳と一覧チップ用。Cell 以降は結果行を展開したときに出す判定結果と根拠。
+type Persona struct {
+	Directive    string
+	Label        string
+	Cell         string // 基底口調セル名（判定結果）
+	Trait        string // 基底口調の性質文（口調を普通の言葉で説明した一文）
+	AttitudeBand int    // 対人段階 0尊大/1中立/2丁寧
+	EmotionBand  int    // 感情段階 0抑制/1中/2激情
+	Marked       int    // 印（信頼度の目安）
+	DecisionPath string // 本文/voice/保留
+}
+
+// DictStore は engine が固有名の機械置換辞書（master_term）を読み書きするための中心データアクセス。
+// ListMasterTerms は本文置換用の全件読み出し、InsertDerivedTerms は派生（人名の部分形）の追記。
 type DictStore interface {
 	ListMasterTerms(ctx context.Context) ([]model.MasterTerm, error)
+	InsertDerivedTerms(ctx context.Context, terms []model.MasterTerm) (int, error)
 }
 
 // TemplateStore は engine がプロンプトテンプレート（base 指示・口調指示の雛形）を読むための中心データアクセス。
@@ -49,17 +67,28 @@ type Store interface {
 	LineStore
 	DictStore
 	TemplateStore
+	PersonaStore
 }
 
 // Engine は翻訳手続きを実行する。
 type Engine struct {
-	store    Store
-	provider provider.Translator
+	store      Store
+	provider   provider.Translator
+	lexicon    EmotionLexicon
+	roleSpeech *RoleSpeechTable
 }
 
-// New は engine を生成する。provider は AI 翻訳の port。
-func New(store Store, p provider.Translator) *Engine {
-	return &Engine{store: store, provider: p}
+// New は engine を生成する。provider は AI 翻訳の port、lexicon は口調生成の感情辞書（差し替え可能な境界）、
+// roleSpeech は注入時に引く一人称・語尾テンプレート（差し替え可能な参照データ。nil なら役割語を付けない）。
+func New(store Store, p provider.Translator, lexicon EmotionLexicon, roleSpeech *RoleSpeechTable) *Engine {
+	return &Engine{store: store, provider: p, lexicon: lexicon, roleSpeech: roleSpeech}
+}
+
+// GeneratePersonas は台詞を持つ全話者の基底口調を一括生成し persona_character へ保存する。保存した話者数を返す。
+// 最も重い行解析は line_analysis に本文ハッシュでキャッシュし、本文ごとに 1 度だけ prose を回す。
+// 冪等で、手修正済み（hand_edited）の行は store が再生成から保護する。
+func (e *Engine) GeneratePersonas(ctx context.Context) (int, error) {
+	return NewPersonaGenerator(e.store, e.lexicon).Generate(ctx)
 }
 
 // Run は未訳の叙述文と台詞を順に翻訳し、訳文を仮訳として書き戻す。翻訳できた合計件数を返す。
@@ -82,8 +111,14 @@ func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string
 		return 0, fmt.Errorf("プロンプトテンプレートの取得: %w", err)
 	}
 
-	// 台詞の話者属性をループ前に 1 度だけ一括取得し、ループ内の個別 DB 問い合わせ（N+1）を避ける。
-	// 口調指示テンプレートの {traits} へ話者の性質列を差し込んで口調指示文を組む。
+	// 口調ペルソナを一括生成して persona_character を最新化する。最も重い行解析は line_analysis に
+	// 本文ハッシュでキャッシュし、本文ごとに 1 度だけ prose を回す。注入はこの生成結果を引く。
+	if _, err := e.GeneratePersonas(ctx); err != nil {
+		return 0, err
+	}
+
+	// 台詞ごとの口調指示をループ前に 1 度だけ一括で組み、ループ内の個別 DB 問い合わせ（N+1）を避ける。
+	// 生成済みの基底口調を性質文カタログへ写し、口調指示テンプレートの {traits} へ差し込む。
 	personas, err := e.LinePersonas(ctx, lineIDsOf(lines), tmpl.PersonaTemplate)
 	if err != nil {
 		return 0, err
@@ -149,23 +184,56 @@ func (e *Engine) LoadDictionary(ctx context.Context) (*Dictionary, error) {
 	return NewDictionary(pairs), nil
 }
 
-// LinePersonas は台詞 id 群の話者を一括取得し、各台詞の口調指示文（全文）と一覧用の短い要約を map で返す。
-// personaTemplate は口調指示の雛形（{traits} を含む）で、話者の性質列を差し込んで口調指示文を組む。
-// 話者が解決できない台詞、および既知属性が無く口調 traits が空になる台詞は map に現れない
-// （呼び出し側は欠落を「口調なし」として扱う）。話者取得を 1 度の一括問い合わせにまとめ、台詞数に依存させない。
-func (e *Engine) LinePersonas(ctx context.Context, lineIDs []int64, personaTemplate string) (map[int64]Persona, error) {
-	speakers, err := e.store.LoadLineSpeakers(ctx, lineIDs)
+// DeriveMasterTerms は xTranslator 英日 XML から人名の部分形（名のみ・短名）の確定訳語を派生し、
+// master_term へ追記する。base 既出の原語との衝突を避け、派生行は category="derive:<種別>" で由来を残す。
+// 翻訳 Run の抽出後に呼び、DB を作り直しても単独名（例 Aventus→アベンタス）が辞書へ入るようにする。
+// 追記した件数を返す。INSERT OR IGNORE のため二重実行でも増えない（冪等）。
+func (e *Engine) DeriveMasterTerms(ctx context.Context, xmlDir string) (int, error) {
+	terms, err := e.store.ListMasterTerms(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("ペルソナ生成の話者識別子一括取得: %w", err)
+		return 0, fmt.Errorf("base 辞書の取得: %w", err)
 	}
-	out := make(map[int64]Persona, len(speakers))
-	for lineID, identity := range speakers {
-		persona := personaFromIdentity(identity)
-		directive := buildPersonaDirective(personaTemplate, persona)
+	baseSources := make(map[string]bool, len(terms))
+	for _, t := range terms {
+		baseSources[t.Source] = true
+	}
+	derived, err := DeriveTermsFromXMLDir(xmlDir, baseSources)
+	if err != nil {
+		return 0, fmt.Errorf("固有名の派生: %w", err)
+	}
+	rows := make([]model.MasterTerm, len(derived))
+	for i, d := range derived {
+		rows[i] = model.MasterTerm{Source: d.Source, Dest: d.Dest, Category: "derive:" + d.Kind}
+	}
+	return e.store.InsertDerivedTerms(ctx, rows)
+}
+
+// LinePersonas は台詞 id 群へ生成済みの基底口調を一括で引き、各台詞の口調指示文（全文）と一覧用の短い要約を map で返す。
+// personaTemplate は口調指示の雛形（{traits} を含む）で、基底口調の性質文と種族訛りを差し込んで口調指示文を組む。
+// 生成済みペルソナが無い台詞、および段階が範囲外で性質文が空になる台詞は map に現れない
+// （呼び出し側は欠落を「口調なし」として扱う）。引きを 1 度の一括問い合わせにまとめ、台詞数に依存させない。
+func (e *Engine) LinePersonas(ctx context.Context, lineIDs []int64, personaTemplate string) (map[int64]Persona, error) {
+	inputs, err := e.store.LoadLinePersonas(ctx, lineIDs)
+	if err != nil {
+		return nil, fmt.Errorf("注入入力（生成ペルソナ）の一括取得: %w", err)
+	}
+	out := make(map[int64]Persona, len(inputs))
+	for lineID, in := range inputs {
+		directive := buildToneDirective(personaTemplate, buildToneTraits(in, e.roleSpeech))
 		if directive == "" {
-			continue // 既知属性が無く口調が組めない話者は口調なし扱い。
+			continue // 段階が範囲外で性質文が組めない場合は口調なし扱い。
 		}
-		out[lineID] = Persona{Directive: directive, Label: buildPersonaLabel(persona)}
+		cell, trait := personaMetaOf(in)
+		out[lineID] = Persona{
+			Directive:    directive,
+			Label:        buildToneLabel(in),
+			Cell:         cell,
+			Trait:        trait,
+			AttitudeBand: in.AttitudeBand,
+			EmotionBand:  in.EmotionBand,
+			Marked:       in.Marked,
+			DecisionPath: in.DecisionPath,
+		}
 	}
 	return out, nil
 }

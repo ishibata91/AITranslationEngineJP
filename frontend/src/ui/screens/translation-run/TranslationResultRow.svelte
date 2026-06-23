@@ -4,7 +4,13 @@
   // 展開で原文/訳文・置換した固有名・実プロンプト（送信全文）を見せる。口調指示は実プロンプトの system で確かめる。
   // details/summary の開閉は利用者操作で、state は持たない。defaultOpen は story 表示用。
   import StatusBadge from "@ui/components/StatusBadge.svelte"
-  import { statusTone } from "./translation-run-presentation"
+  import {
+    ATTITUDE_LABEL,
+    DECISION_PATH_HINT,
+    DECISION_PATH_LABEL,
+    EMOTION_LABEL,
+    statusTone
+  } from "./translation-run-presentation"
   import type { NarrationResultRow } from "./translation-run-view"
 
   interface Props {
@@ -17,6 +23,18 @@
   let hasPersona = $derived(!!row.directive)
   let termCount = $derived(row.terms?.length ?? 0)
   let hasPrompt = $derived(!!row.prompt)
+  // 話者の属性キャプション（性別 ・ 年齢 ・ 声質）。空の属性は区切りごと省く。
+  let speakerAttrs = $derived(
+    row.speaker
+      ? [
+          row.speaker.sex,
+          row.speaker.age,
+          row.speaker.voice ? `声質 ${row.speaker.voice}` : ""
+        ]
+          .filter(Boolean)
+          .join(" ・ ")
+      : ""
+  )
 </script>
 
 <details
@@ -30,6 +48,14 @@
     <span class="u-mono text-xs text-base-content/55 shrink-0 max-w-[10rem] truncate">
       {row.edid}
     </span>
+    {#if row.speaker}
+      <span
+        class="badge badge-sm badge-outline border-accent/40 text-accent/90 shrink-0 max-w-[10rem] truncate"
+        title="この台詞の話者"
+      >
+        {row.speaker.edid}
+      </span>
+    {/if}
     {#if hasPersona}
       <span
         class="badge badge-sm badge-outline border-primary/40 text-primary/80 shrink-0 max-w-[12rem] truncate"
@@ -63,6 +89,15 @@
   </summary>
 
   <div class="border-t border-base-300/40 px-4 py-4">
+    {#if row.speaker}
+      <div class="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span class="u-mono text-[0.6rem] uppercase tracking-widest text-accent/60">話者</span>
+        <span class="text-sm font-semibold text-base-content/90">{row.speaker.edid}</span>
+        {#if speakerAttrs.length > 0}
+          <span class="u-mono text-[0.65rem] text-base-content/40">{speakerAttrs}</span>
+        {/if}
+      </div>
+    {/if}
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
       <div class="flex flex-col gap-1.5">
         <span class="u-mono text-[0.65rem] uppercase tracking-widest text-base-content/40">
@@ -81,6 +116,26 @@
         {/if}
       </div>
     </div>
+    {#if row.persona}
+      <div class="mt-4 rounded-box border border-primary/25 bg-primary/5 px-4 py-3">
+        <span class="u-mono text-[0.6rem] uppercase tracking-widest text-primary/60">
+          口調
+        </span>
+        <p class="mt-0.5 text-lg font-semibold text-primary">{row.persona.cell}</p>
+        <p class="mt-1 text-sm leading-relaxed text-base-content/75">
+          {row.persona.trait}
+        </p>
+        <p
+          class="mt-2 u-mono text-[0.65rem] text-base-content/40"
+          title={DECISION_PATH_HINT[row.persona.decisionPath]}
+        >
+          {DECISION_PATH_LABEL[row.persona.decisionPath]} ・ 対人 {ATTITUDE_LABEL[
+            row.persona.attitudeBand
+          ]} ・ 感情 {EMOTION_LABEL[row.persona.emotionBand]} ・ 印 {row.persona
+            .marked}
+        </p>
+      </div>
+    {/if}
     {#if termCount > 0}
       <div class="mt-4 rounded-box border border-secondary/25 bg-secondary/5 p-3">
         <span class="u-mono text-[0.65rem] uppercase tracking-widest text-secondary/70">

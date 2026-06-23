@@ -31,6 +31,7 @@ type Store interface {
 	LinesAfter(ctx context.Context, afterID int64, limit int) ([]model.Line, error)
 	GetPromptTemplate(ctx context.Context) (model.PromptTemplate, error)
 	SavePromptTemplate(ctx context.Context, t model.PromptTemplate) error
+	LoadLineSpeakers(ctx context.Context, lineIDs []int64) (map[int64]model.LineSpeaker, error)
 }
 
 // ExtractorConfig は抽出子プロセス（C#）の起動設定。
@@ -38,6 +39,7 @@ type ExtractorConfig struct {
 	ProjectPath string // dotnet run --project のパス（dev: tools/extractor）
 	SchemaDir   string // db/migrations のパス
 	DBPath      string // 中心 DB のパス。store と同じファイルを指す。
+	TermsXMLDir string // 固有名辞書の供給元 xTranslator 英日 XML ディレクトリ。抽出後の派生で読む。
 }
 
 // App は Wails へ Bind する公開面。
@@ -87,19 +89,42 @@ type TermView struct {
 	Dest   string `json:"dest"`
 }
 
+// PersonaView は結果行の口調メタデータ。台詞の話者の生成済み基底口調（判定結果と根拠）。
+// 結果行を展開したときに、判定結果（Cell・Trait）を強調し、根拠（段階・印・経路）を小さく出す。
+// 話者を解決できた台詞だけ持つ（叙述文や話者なしの台詞は nil で省略）。
+type PersonaView struct {
+	Cell         string `json:"cell"`         // 基底口調セル名（判定結果）
+	Trait        string `json:"trait"`        // 基底口調の性質文（口調を普通の言葉で説明した一文）
+	AttitudeBand int    `json:"attitudeBand"` // 対人段階 0尊大/1中立/2丁寧
+	EmotionBand  int    `json:"emotionBand"`  // 感情段階 0抑制/1中/2激情
+	Marked       int    `json:"marked"`       // 印（信頼度の目安）
+	DecisionPath string `json:"decisionPath"` // 本文/voice/保留
+}
+
+// SpeakerView は結果行の話者識別と属性。誰の台詞かと、口調指示の根拠（性別・年齢・声型）を結果詳細で出す。
+// 話者を解決できた台詞だけ持つ（叙述文や話者なしの台詞は nil で省略）。
+type SpeakerView struct {
+	EDID  string `json:"edid"`  // 話者の EditorID（例 AventusAretino）
+	Sex   string `json:"sex"`   // 性別ラベル（女性/男性/空）
+	Age   string `json:"age"`   // 年齢区分ラベル（老人/子供/成人/空）
+	Voice string `json:"voice"` // 声型 EditorID（例 FemaleOldGrumpy。役割語でなく対人 prior の根拠）
+}
+
 // ResultView は結果一覧の表示用 DTO。叙述文と台詞を共通の行として表す。
-// Directive と PersonaLabel は話者を解決できた台詞だけ持つ（叙述文や話者なしの台詞は空で省略）。
+// Speaker・Directive・PersonaLabel・Persona は話者を解決できた台詞だけ持つ（叙述文や話者なしの台詞は省略）。
 // Terms は本文で辞書から確定訳語へ置換した固有名の内訳。置換が無い行は空で省略する。
 // Prompt は実際に翻訳 AI へ投げた完成プロンプト（base 指示＋口調指示＋機械置換済み原文）を取得時に再構成した全文。
 type ResultView struct {
-	EDID         string     `json:"edid"`
-	Source       string     `json:"source"`
-	Dest         string     `json:"dest"`
-	StatusLabel  string     `json:"statusLabel"`
-	Directive    string     `json:"directive,omitempty"`
-	PersonaLabel string     `json:"personaLabel,omitempty"`
-	Terms        []TermView `json:"terms,omitempty"`
-	Prompt       string     `json:"prompt,omitempty"`
+	EDID         string       `json:"edid"`
+	Source       string       `json:"source"`
+	Dest         string       `json:"dest"`
+	StatusLabel  string       `json:"statusLabel"`
+	Speaker      *SpeakerView `json:"speaker,omitempty"`
+	Directive    string       `json:"directive,omitempty"`
+	PersonaLabel string       `json:"personaLabel,omitempty"`
+	Persona      *PersonaView `json:"persona,omitempty"`
+	Terms        []TermView   `json:"terms,omitempty"`
+	Prompt       string       `json:"prompt,omitempty"`
 }
 
 // RunResult は実行結果の要約。結果一覧は数万件になりうるためここでは返さず、
@@ -200,6 +225,12 @@ func (a *App) RunExtractAndTranslate(req RunRequest) (RunResult, error) {
 		return RunResult{}, fmt.Errorf("抽出に失敗: %w: %s", err, string(out))
 	}
 
+	// 抽出後、人名の部分形（名のみ・短名）を派生して master_term へ追記する。C# が書いた base 辞書（FULL）の
+	// 後に走らせ、DB を作り直しても単独名（例 Aventus→アベンタス）が機械置換へ載るようにする。冪等。
+	if _, err := a.engine.DeriveMasterTerms(ctx, a.ext.TermsXMLDir); err != nil {
+		return RunResult{}, fmt.Errorf("固有名の派生に失敗: %w", err)
+	}
+
 	count, runErr := a.engine.Run(ctx, provider.Connection{Endpoint: req.Endpoint, APIKey: req.APIKey}, req.Model,
 		func(done, total int) {
 			a.emitProgress(ProgressEvent{Stage: "translate", Done: done, Total: total})
@@ -263,6 +294,12 @@ func (a *App) buildResultsPage(ctx context.Context, cursor string, limit int) (R
 		return ResultPage{}, fmt.Errorf("口調の一括生成: %w", err)
 	}
 
+	// 「誰の台詞か」と口調指示の根拠（性別・年齢・声型）を出すため、話者識別もページ単位で一括取得する。
+	speakers, err := a.store.LoadLineSpeakers(ctx, lineIDs(lines))
+	if err != nil {
+		return ResultPage{}, fmt.Errorf("話者識別の一括取得: %w", err)
+	}
+
 	// 機械置換辞書をページ単位で 1 度だけ組み、各行の原文へ当て直して内訳を再構成する。
 	dict, err := a.engine.LoadDictionary(ctx)
 	if err != nil {
@@ -280,9 +317,9 @@ func (a *App) buildResultsPage(ctx context.Context, cursor string, limit int) (R
 		views = append(views, view)
 	}
 	for _, l := range lines {
-		p := personas[l.ID]
+		p, hasPersona := personas[l.ID]
 		replaced, used := dict.Apply(l.Source)
-		views = append(views, ResultView{
+		view := ResultView{
 			EDID:         l.EDID,
 			Source:       l.Source,
 			Dest:         l.Dest,
@@ -292,7 +329,28 @@ func (a *App) buildResultsPage(ctx context.Context, cursor string, limit int) (R
 			Terms:        termViews(used),
 			// 台詞は話者の口調指示を合成した実プロンプトを再構成する（口調指示の合成を目視で確かめる）。
 			Prompt: engine.RenderPrompt(engine.ComposePrompt(tmpl.BaseDirective, p.Directive, replaced)),
-		})
+		}
+		// 話者を解決できた台詞は、誰の台詞かと属性（性別・年齢・声型）を付ける。
+		if sp, ok := speakers[l.ID]; ok {
+			view.Speaker = &SpeakerView{
+				EDID:  sp.EDID,
+				Sex:   sexLabel(sp.Sex),
+				Age:   ageLabel(sp.RaceEDID),
+				Voice: sp.VoiceEDID,
+			}
+		}
+		// 話者を解決できた台詞は、展開時に出す口調メタ（判定結果と根拠）を付ける。
+		if hasPersona {
+			view.Persona = &PersonaView{
+				Cell:         p.Cell,
+				Trait:        p.Trait,
+				AttitudeBand: p.AttitudeBand,
+				EmotionBand:  p.EmotionBand,
+				Marked:       p.Marked,
+				DecisionPath: p.DecisionPath,
+			}
+		}
+		views = append(views, view)
 	}
 	return ResultPage{Total: total, Results: views, NextCursor: nextCursor, HasMore: hasMore}, nil
 }
@@ -397,6 +455,32 @@ func narrationResultView(n model.Narration) ResultView {
 		Source:      n.Source,
 		Dest:        n.Dest,
 		StatusLabel: statusLabel(n.Status),
+	}
+}
+
+// sexLabel は性別コード（Female/Male）を表示ラベルへ写す。性別が取れない話者は空。
+func sexLabel(sex string) string {
+	switch sex {
+	case "Female":
+		return "女性"
+	case "Male":
+		return "男性"
+	default:
+		return ""
+	}
+}
+
+// ageLabel は種族 EditorID から年齢区分の表示ラベルを引く。ElderRace=老人、*Child=子供、他=成人。種族不明は空。
+func ageLabel(raceEDID string) string {
+	switch {
+	case raceEDID == "":
+		return ""
+	case strings.Contains(raceEDID, "Child"):
+		return "子供"
+	case strings.Contains(raceEDID, "Elder"):
+		return "老人"
+	default:
+		return "成人"
 	}
 }
 

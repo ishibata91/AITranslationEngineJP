@@ -27,7 +27,25 @@ export interface TermRow {
   dest: string
 }
 
-// 結果一覧の 1 行。叙述文と台詞を共通の行で表す。directive と personaLabel は話者を解決できた台詞だけ持つ。
+// 結果行の口調メタデータ。判定された基底口調（cell・trait）と根拠（段階・印・経路）。話者を解決できた台詞だけ持つ。
+export interface PersonaRow {
+  cell: string
+  trait: string
+  attitudeBand: 0 | 1 | 2
+  emotionBand: 0 | 1 | 2
+  marked: number
+  decisionPath: "本文" | "voice" | "保留"
+}
+
+// 結果行の話者識別と属性。誰の台詞かと、口調指示の根拠（性別・年齢・声型）。話者を解決できた台詞だけ持つ。
+export interface SpeakerRow {
+  edid: string
+  sex: string
+  age: string
+  voice: string
+}
+
+// 結果一覧の 1 行。叙述文と台詞を共通の行で表す。speaker・directive・personaLabel・persona は話者を解決できた台詞だけ持つ。
 // terms は本文で辞書から確定訳語へ置換した固有名の内訳。置換が無い行は省略する。
 // prompt は実際に翻訳 AI へ投げた完成プロンプトを取得時に再構成した全文。再構成できない行は省略する。
 export interface ResultRow {
@@ -35,8 +53,10 @@ export interface ResultRow {
   source: string
   dest: string
   statusLabel: string
+  speaker?: SpeakerRow
   directive?: string
   personaLabel?: string
+  persona?: PersonaRow
   terms?: TermRow[]
   prompt?: string
 }
@@ -106,9 +126,28 @@ function toResultRow(view: api.ResultView): ResultRow {
     source: view.source,
     dest: view.dest,
     statusLabel: view.statusLabel,
+    speaker: view.speaker ? toSpeakerRow(view.speaker) : undefined,
     directive: view.directive,
     personaLabel: view.personaLabel,
+    persona: view.persona ? toPersonaRow(view.persona) : undefined,
     terms: view.terms?.map((t) => ({ source: t.source, dest: t.dest })),
     prompt: view.prompt
+  }
+}
+
+// 話者 DTO を結果行へ写す。表示用の識別・属性ラベルをそのまま渡す。
+function toSpeakerRow(s: api.SpeakerView): SpeakerRow {
+  return { edid: s.edid, sex: s.sex, age: s.age, voice: s.voice }
+}
+
+// 口調メタの DTO を結果行へ写す。段階（0..2）と決定経路（本文・voice・保留）は backend が妥当な値を保証する境界のため、union へ確定する。
+function toPersonaRow(p: api.PersonaView): PersonaRow {
+  return {
+    cell: p.cell,
+    trait: p.trait,
+    attitudeBand: p.attitudeBand as 0 | 1 | 2,
+    emotionBand: p.emotionBand as 0 | 1 | 2,
+    marked: p.marked,
+    decisionPath: p.decisionPath as "本文" | "voice" | "保留"
   }
 }
