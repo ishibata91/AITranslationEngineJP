@@ -6,6 +6,21 @@ import (
 	"aitranslationenginejp/internal/provider"
 )
 
+// FillVariables は directive の指示文中の変数トークン（{name}）を vars の値へ差し込む純粋関数。
+// MECE モデルの「directive ＝ 指示文 ＋ 実行時に埋める変数」の変数差し込みを 1 関数に閉じる。
+// vars のキーはトークン全体（"{traits}" など）で渡す。未宣言のトークンはそのまま残す。
+// 変数なしの directive（固有名・定型句・文体）は vars が空で、instruction をそのまま返す経路になる。副作用を持たない。
+func FillVariables(instruction string, vars map[string]string) string {
+	if len(vars) == 0 {
+		return instruction
+	}
+	filled := instruction
+	for token, value := range vars {
+		filled = strings.ReplaceAll(filled, token, value)
+	}
+	return filled
+}
+
 // ComposePrompt は base 指示・口調指示・機械置換済み原文から完成プロンプトを組む純粋関数。
 // 翻訳実行（Run）と結果取得（api の実プロンプト再構成）の両方がこの 1 関数を使い、同じ入力から同じプロンプトを得る。
 // personaDirective が空なら system は base 指示だけにする。source はそのまま user メッセージへ入れる。

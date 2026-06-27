@@ -18,16 +18,96 @@ const (
 )
 
 type fakeStore struct {
-	untranslated []model.Narration
-	lines        []model.Line
-	linePersonas map[int64]model.LinePersonaInput // lineID → 生成済み基底口調（無ければ口調なし）
-	terms        []model.MasterTerm               // 固有名の機械置換辞書（無ければ置換なし）
-	tmpl         model.PromptTemplate             // プロンプトテンプレート（未設定ならテスト用既定値を返す）
-	genSources   []model.SpeakerLineSource        // 一括生成が読む入力（Run テストでは空で生成 no-op）
-	updates      []update
-	lineUpdates  []update
+	untranslated  []model.Narration
+	lines         []model.Line
+	proper        []model.ProperNoun               // 固有名（ListProperNouns / 未訳は status=0 を ListUntranslatedProperNouns）
+	linePersonas  map[int64]model.LinePersonaInput // lineID → 生成済み基底口調（無ければ口調なし）
+	terms         []model.MasterTerm               // 固有名の機械置換辞書（無ければ置換なし）
+	tmpl          model.PromptTemplate             // プロンプトテンプレート（未設定ならテスト用既定値を返す）
+	directives    []model.Directive                // 指示文（nil ならテスト用既定: 口調=testPersonaTemplate）
+	recordTypes   []model.RecordType               // REC:FIELD 割り当て（既定は空。叙述文 directive テストで設定）
+	extracted     []model.ExtractedField           // 取込段の入力（既定は空）
+	genSources    []model.SpeakerLineSource        // 一括生成が読む入力（Run テストでは空で生成 no-op）
+	updates       []update
+	lineUpdates   []update
+	properUpdates []update           // UpdateProperNounDest の記録（固有名フェーズの観測）
+	ingestedNarr  []model.Narration  // IngestNarrations で投入された行
+	ingestedPN    []model.ProperNoun // IngestProperNouns で投入された行
+	ingestedLine  []model.Line       // IngestLines で投入された行
+	linkCalled    bool               // LinkLineSpeakersFromStaging が呼ばれたか
 	// loadPersonasCalls は LoadLinePersonas の呼び出し回数。注入の引きが台詞数 N 非依存（N+1 廃止）の観測に使う。
 	loadPersonasCalls int
+}
+
+// directivesOrDefault はテスト用の指示文集合を返す。未設定なら口調・固有名の最小集合を既定にする。
+func (f *fakeStore) directivesOrDefault() []model.Directive {
+	if f.directives != nil {
+		return f.directives
+	}
+	return []model.Directive{
+		{Key: "口調", Instruction: testPersonaTemplate},
+		{Key: "固有名", Instruction: "これは固有名詞です。簡潔に訳すこと。"},
+	}
+}
+
+func (f *fakeStore) ListDirectives(_ context.Context) ([]model.Directive, error) {
+	return f.directivesOrDefault(), nil
+}
+
+func (f *fakeStore) GetDirectiveInstruction(_ context.Context, key string) (string, error) {
+	for _, d := range f.directivesOrDefault() {
+		if d.Key == key {
+			return d.Instruction, nil
+		}
+	}
+	return "", nil
+}
+
+func (f *fakeStore) ListRecordTypeMaster(_ context.Context) ([]model.RecordType, error) {
+	return f.recordTypes, nil
+}
+
+func (f *fakeStore) ListExtractedFields(_ context.Context) ([]model.ExtractedField, error) {
+	return f.extracted, nil
+}
+
+func (f *fakeStore) IngestNarrations(_ context.Context, rows []model.Narration) (int, error) {
+	f.ingestedNarr = append(f.ingestedNarr, rows...)
+	return len(rows), nil
+}
+
+func (f *fakeStore) IngestProperNouns(_ context.Context, rows []model.ProperNoun) (int, error) {
+	f.ingestedPN = append(f.ingestedPN, rows...)
+	return len(rows), nil
+}
+
+func (f *fakeStore) IngestLines(_ context.Context, rows []model.Line) (int, error) {
+	f.ingestedLine = append(f.ingestedLine, rows...)
+	return len(rows), nil
+}
+
+func (f *fakeStore) LinkLineSpeakersFromStaging(_ context.Context) error {
+	f.linkCalled = true
+	return nil
+}
+
+func (f *fakeStore) ListProperNouns(_ context.Context) ([]model.ProperNoun, error) {
+	return f.proper, nil
+}
+
+func (f *fakeStore) ListUntranslatedProperNouns(_ context.Context) ([]model.ProperNoun, error) {
+	var out []model.ProperNoun
+	for _, p := range f.proper {
+		if p.Status == 0 {
+			out = append(out, p)
+		}
+	}
+	return out, nil
+}
+
+func (f *fakeStore) UpdateProperNounDest(_ context.Context, id int64, dest string, status int) error {
+	f.properUpdates = append(f.properUpdates, update{id: id, dest: dest, status: status})
+	return nil
 }
 
 func (f *fakeStore) GetPromptTemplate(_ context.Context) (model.PromptTemplate, error) {

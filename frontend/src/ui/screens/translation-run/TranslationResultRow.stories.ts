@@ -2,7 +2,8 @@ import type { Meta, StoryObj } from "@storybook/svelte-vite"
 import TranslationResultRow from "./TranslationResultRow.svelte"
 import type { NarrationResultRow } from "./translation-run-view"
 
-// Storybook 人間レビュー承認済み。通常分類（UI Components）に置く。
+// record-type-translation-expansion で元レコード種別バッジ（箱 ・ REC:FIELD）を畳んだ行へ追加した。
+// Storybook 人間レビュー承認済み（2026-06-25）。通常分類（UI Components）に置く。
 // 結果行を展開すると、台詞の話者の生成済み基底口調を「口調」メタデータとして強調表示する（判定結果＋性質文を大きく、根拠は小さく）。
 const meta = {
   title: "UI Components/TranslationResultRow",
@@ -20,6 +21,7 @@ const BASE = `[system]
 // 本文経路の台詞（Inigo、Khajiit、物腰やわ）。口調メタ＋種族訛り＋置換固有名＋実プロンプトが並ぶ。
 const DIALOGUE_ROW: NarrationResultRow = {
   edid: "Inigo",
+  recordType: { box: "台詞", recField: "INFO:NAM1" },
   source: "This one knows Riften well, my friend.",
   dest: "この者はリフテンをよく知っているよ、友よ。",
   statusLabel: "仮訳",
@@ -50,6 +52,7 @@ This one knows リフテン well, my friend.`
 // 声質経路の台詞（Nazeem、台詞少で声質の横柄を prior にした）。決定経路が「声質」、印が少ない（4）。
 const VOICE_ROW: NarrationResultRow = {
   edid: "Nazeem",
+  recordType: { box: "台詞", recField: "INFO:NAM1" },
   source: "Do you get to the Cloud District very often?",
   dest: "雲の地区にはよく行かれるのかね？",
   statusLabel: "仮訳",
@@ -70,6 +73,7 @@ const VOICE_ROW: NarrationResultRow = {
 // 保留経路の台詞（印が不足で固有声質に気質も無く、薄い本文値を低信頼で保持）。決定経路が「保留」。
 const HELD_ROW: NarrationResultRow = {
   edid: "Galmar",
+  recordType: { box: "台詞", recField: "INFO:NAM1" },
   source: "Stand and fight, you milk-drinker!",
   dest: "立って戦え、この臆病者が！",
   statusLabel: "仮訳",
@@ -90,6 +94,7 @@ const HELD_ROW: NarrationResultRow = {
 // 叙述文。口調は無く（台詞ではない）、置換固有名と実プロンプトだけが並ぶ。
 const NARRATION_ROW: NarrationResultRow = {
   edid: "DLC1BookSerana",
+  recordType: { box: "叙述文", recField: "BOOK:DESC" },
   source:
     "I have walked these halls for centuries, and still the cold of Castle Volkihar finds me.",
   dest: "私は何世紀もこの広間を歩いてきたが、それでもヴォルキハル城の冷気は私を捉えて離さない。",
@@ -101,12 +106,32 @@ const NARRATION_ROW: NarrationResultRow = {
 I have walked these halls for centuries, and still the cold of ヴォルキハル城 finds me.`
 }
 
-// 話者を解決できなかった行（口調も置換も無い）。畳んだ行は「口調なし」を控えめに示す。
+// 定型句（起動動作）。話者は無く、種別バッジで定型句と分かる。
 const PLAIN_ROW: NarrationResultRow = {
   edid: "HonorhallDoorActivate",
+  recordType: { box: "定型句", recField: "ACTI:RNAM" },
   source: "The door is locked.",
   dest: "扉には鍵がかかっている。",
   statusLabel: "仮訳"
+}
+
+// 追加した叙述文の種別（武器の説明）。種別バッジで叙述文 ・ WEAP:DESC と分かる。
+const WEAPON_DESC_ROW: NarrationResultRow = {
+  edid: "DragonbaneDesc",
+  recordType: { box: "叙述文", recField: "WEAP:DESC" },
+  source: "A blade forged to slay dragons, humming with stored lightning.",
+  dest: "竜を討つために鍛えられた刃。蓄えた雷の力で唸りを上げる。",
+  statusLabel: "仮訳",
+  terms: [{ source: "Dragonbane", dest: "竜の災い" }]
+}
+
+// 固有名（武器名）の AI 訳。本文より先に確定し proper_noun へ入った訳。話者・口調は無い。
+const PROPER_NOUN_ROW: NarrationResultRow = {
+  edid: "Dragonbane",
+  recordType: { box: "固有名", recField: "WEAP:FULL" },
+  source: "Dragonbane",
+  dest: "竜の災い",
+  statusLabel: "訳済"
 }
 
 // 畳んだ台詞。口調チップ（基底口調セル）と「固有名 N」チップで、一覧のまま口調差と置換を観測する。
@@ -139,8 +164,20 @@ export const ExpandedNarration: Story = {
   args: { row: NARRATION_ROW, defaultOpen: true }
 }
 
-// 口調も置換も無い行。畳んだ行で「口調なし」を控えめに示す。
-export const CollapsedWithoutPersona: Story = {
-  name: "畳む（口調なし）",
+// 定型句の畳んだ行。種別バッジで「定型句 ・ ACTI:RNAM」と分かる。口調なし。
+export const CollapsedSetPhrase: Story = {
+  name: "畳む（定型句）",
   args: { row: PLAIN_ROW, defaultOpen: false }
+}
+
+// 追加した叙述文の種別（武器の説明）の畳んだ行。種別バッジで「叙述文 ・ WEAP:DESC」と分かる。
+export const CollapsedWeaponDesc: Story = {
+  name: "畳む（叙述文・WEAP:DESC）",
+  args: { row: WEAPON_DESC_ROW, defaultOpen: false }
+}
+
+// 固有名の AI 訳の畳んだ行。種別バッジで「固有名 ・ WEAP:FULL」と分かる。本文より先に確定した訳。
+export const CollapsedProperNoun: Story = {
+  name: "畳む（固有名）",
+  args: { row: PROPER_NOUN_ROW, defaultOpen: false }
 }

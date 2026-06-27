@@ -45,14 +45,22 @@ export interface SpeakerRow {
   voice: string
 }
 
-// 結果一覧の 1 行。叙述文と台詞を共通の行で表す。speaker・directive・personaLabel・persona は話者を解決できた台詞だけ持つ。
+// 結果行の元レコード種別バッジ。box は概念モデルの箱（叙述文/固有名/定型句/台詞）、recField は "REC:FIELD"。
+export interface RecordTypeRow {
+  box: string
+  recField: string
+}
+
+// 結果一覧の 1 行。叙述文・定型句・台詞・固有名を共通の行で表す。speaker・directive・personaLabel・persona は話者を解決できた台詞だけ持つ。
 // terms は本文で辞書から確定訳語へ置換した固有名の内訳。置換が無い行は省略する。
 // prompt は実際に翻訳 AI へ投げた完成プロンプトを取得時に再構成した全文。再構成できない行は省略する。
+// recordType は元レコード種別バッジ。master に無い種別の行は省略する。
 export interface ResultRow {
   edid: string
   source: string
   dest: string
   statusLabel: string
+  recordType?: RecordTypeRow
   speaker?: SpeakerRow
   directive?: string
   personaLabel?: string
@@ -126,6 +134,9 @@ function toResultRow(view: api.ResultView): ResultRow {
     source: view.source,
     dest: view.dest,
     statusLabel: view.statusLabel,
+    recordType: view.recordType
+      ? { box: view.recordType.box, recField: view.recordType.recField }
+      : undefined,
     speaker: view.speaker ? toSpeakerRow(view.speaker) : undefined,
     directive: view.directive,
     personaLabel: view.personaLabel,

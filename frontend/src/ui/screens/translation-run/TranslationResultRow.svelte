@@ -45,6 +45,14 @@
     class="flex cursor-pointer list-none items-center gap-3 px-4 py-2.5 [&::-webkit-details-marker]:hidden"
   >
     <StatusBadge label={row.statusLabel} tone={statusTone(row.statusLabel)} />
+    {#if row.recordType}
+      <span
+        class="badge badge-sm badge-outline border-base-content/25 text-base-content/55 shrink-0 u-mono"
+        title="この結果の元レコード種別（箱 ・ REC:FIELD）"
+      >
+        {row.recordType.box} ・ {row.recordType.recField}
+      </span>
+    {/if}
     <span class="u-mono text-xs text-base-content/55 shrink-0 max-w-[10rem] truncate">
       {row.edid}
     </span>

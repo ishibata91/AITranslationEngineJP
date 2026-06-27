@@ -5,13 +5,14 @@ using Mutagen.Bethesda.Skyrim;
 
 namespace Extractor;
 
-// 抽出結果の台詞（INFO:NAM1）と、その話者属性（speaker / race / faction / voice_type）を中心 DB へ書く。
-// 話者は esp に無く master 側 NPC にいるため、INFO の話者 FormKey を LinkCache で解決し、
-// NPC の種族・声型・所属勢力を引いて書く。書くのは識別子と事実（EditorID / FormKey）に限り、
-// 口調などの解釈は持たない（解釈は Go engine のルールが与える）。schema は db/migrations を冪等 ensure する。
-public static class LineSpeakerSqliteWriter
+// 台詞の話者属性（speaker / race / faction / voice_type）と、INFO→speaker の橋渡し（extracted_info_speaker）を中心 DB へ書く。
+// 台詞本文（INFO:NAM1/RNAM）は ExtractedFieldSqliteWriter が extracted_field へ素朴に書き、line 行は Go 取込段が作る。
+// そのため本 writer は line/line_speaker を書かず、INFO の安定キー（plugin・form_id）へ解決済み speaker.id を結ぶ。
+// 話者は esp に無く master 側 NPC にいるため、INFO の話者 FormKey を LinkCache で解決して書く。
+// 書くのは識別子と事実（EditorID / FormKey）に限り、口調などの解釈は持たない（解釈は Go engine が与える）。
+public static class SpeakerSqliteWriter
 {
-    // dbPath の SQLite に schema を ensure し、台詞と話者属性を書く。書いた台詞の行数を返す。
+    // dbPath の SQLite に schema を ensure し、話者属性と INFO→speaker の橋渡しを書く。書いた橋渡し行数を返す。
     public static int Write(string dbPath, string schemaSql, ExtractionResult result, ILinkCache linkCache)
     {
         using var conn = new SqliteConnection($"Data Source={dbPath}");
@@ -26,7 +27,7 @@ public static class LineSpeakerSqliteWriter
         using var tx = conn.BeginTransaction();
         var w = new Writer(conn, tx, result.TargetPlugin);
 
-        var lineCount = 0;
+        var linkCount = 0;
         foreach (var dialogue in result.Dialogues)
         {
             foreach (var info in dialogue.Infos)
@@ -39,21 +40,20 @@ public static class LineSpeakerSqliteWriter
                         speakerIds.Add(w.UpsertSpeaker(npc, linkCache));
                 }
 
-                foreach (var response in info.Responses)
-                {
-                    var lineId = w.UpsertLine(info, response);
-                    lineCount++;
-                    foreach (var speakerId in speakerIds)
-                        w.UpsertLineSpeaker(lineId, speakerId);
-                }
+                // INFO（plugin・form_id）→ speaker.id の橋渡しを書く。Go 取込段が line を作った後に line_speaker へ解決する。
+                var infoFormId = HexFormId(info.Id);
+                foreach (var speakerId in speakerIds)
+                    linkCount += w.UpsertInfoSpeaker(infoFormId, speakerId);
             }
         }
 
         tx.Commit();
-        return lineCount;
+        return linkCount;
     }
 
-    // Writer は prepared statement をまとめ、台詞・話者の UPSERT と id 取得を行う。
+    private static string HexFormId(FormKey key) => $"0x{key.ID:X6}";
+
+    // Writer は prepared statement をまとめ、話者の UPSERT・id 取得と、INFO→speaker 橋渡しの書き込みを行う。
     private sealed class Writer
     {
         private readonly SqliteConnection _conn;
@@ -65,23 +65,6 @@ public static class LineSpeakerSqliteWriter
             _conn = conn;
             _tx = tx;
             _targetPlugin = targetPlugin;
-        }
-
-        // UpsertLine は台詞 1 件（INFO:NAM1）を line へ入れ、id を返す。複数 response は ordinal=Number で分ける。
-        public long UpsertLine(InfoNode info, ResponseLine response)
-        {
-            var formId = HexFormId(info.Id);
-            Exec(
-                """
-                INSERT OR IGNORE INTO line (source, response_order, plugin, form_id, edid, rec, field, ordinal)
-                VALUES ($source, $order, $plugin, $form_id, $edid, 'INFO', 'NAM1', $ordinal)
-                """,
-                ("$source", response.Text), ("$order", response.Number),
-                ("$plugin", _targetPlugin), ("$form_id", formId),
-                ("$edid", info.EditorId), ("$ordinal", response.Number));
-            return ScalarId(
-                "SELECT id FROM line WHERE plugin=$plugin AND form_id=$form_id AND rec='INFO' AND field='NAM1' AND ordinal=$ordinal",
-                ("$plugin", _targetPlugin), ("$form_id", formId), ("$ordinal", response.Number));
         }
 
         // UpsertSpeaker は NPC とその種族・声型・所属勢力を解決して書き、speaker の id を返す。
@@ -120,10 +103,14 @@ public static class LineSpeakerSqliteWriter
             return speakerId;
         }
 
-        // UpsertLineSpeaker は台詞と話者の対応（e6）を入れる。
-        public void UpsertLineSpeaker(long lineId, long speakerId)
-            => Exec("INSERT OR IGNORE INTO line_speaker (line_id, speaker_id) VALUES ($l, $s)",
-                ("$l", lineId), ("$s", speakerId));
+        // UpsertInfoSpeaker は INFO（plugin・form_id）→ speaker.id の橋渡しを書く。書けた行数（0/1）を返す。
+        public int UpsertInfoSpeaker(string infoFormId, long speakerId)
+        {
+            using var cmd = Command(
+                "INSERT OR IGNORE INTO extracted_info_speaker (info_plugin, info_form_id, speaker_id) VALUES ($p, $f, $s)",
+                [("$p", _targetPlugin), ("$f", infoFormId), ("$s", speakerId)]);
+            return cmd.ExecuteNonQuery();
+        }
 
         // UpsertNamed は (edid, form_id, plugin) を持つ素材テーブル（race/faction/voice_type）へ入れ、id を返す。
         private long UpsertNamed(string table, string insertSql, string? edid, FormKey key)
@@ -147,7 +134,7 @@ public static class LineSpeakerSqliteWriter
             return Convert.ToInt64(cmd.ExecuteScalar());
         }
 
-        // Command は transaction 付きのパラメータ化コマンドを組む。Exec / ScalarId 共通。
+        // Command は transaction 付きのパラメータ化コマンドを組む。Exec / ScalarId / UpsertInfoSpeaker 共通。
         private SqliteCommand Command(string sql, (string Name, object Value)[] ps)
         {
             var cmd = _conn.CreateCommand();
@@ -156,7 +143,5 @@ public static class LineSpeakerSqliteWriter
             foreach (var (name, value) in ps) cmd.Parameters.AddWithValue(name, value);
             return cmd;
         }
-
-        private static string HexFormId(FormKey key) => $"0x{key.ID:X6}";
     }
 }

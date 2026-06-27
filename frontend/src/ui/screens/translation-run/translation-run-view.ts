@@ -32,6 +32,14 @@ export interface TranslationRunForm {
 
 export type TranslationRunFormField = keyof TranslationRunForm
 
+// 結果行の元レコード種別（箱と REC:FIELD）。会話・本以外の種別が増えたため、どの種別の結果かを一覧で示す。
+export interface ResultRecordType {
+  // 概念モデルの箱（叙述文・固有名・定型句・台詞）。
+  box: string
+  // REC:FIELD（例: WEAP:DESC）。どの種別から抽出した行かを示す。
+  recField: string
+}
+
 // 本文で辞書から確定訳語へ置換した固有名 1 件（原語 → 確定訳語）。
 // 同一原語へ常に同一訳語が当たることを行ごとに確かめるための表示値。
 export interface ReplacedTerm {
@@ -84,6 +92,9 @@ export interface SpeakerMeta {
 export interface NarrationResultRow {
   // レコードの EditorID。どの書物・台詞かを利用者が識別するための表示。
   edid: string
+  // 元レコード種別（箱と REC:FIELD）。会話・本以外の種別が増えたため、一覧でどの種別の結果かを示す。
+  // 既存の本文（叙述文・台詞）にも順次付く。未設定の行は種別バッジを出さない。
+  recordType?: ResultRecordType
   // 原文（抽出した叙述文または台詞）。
   source: string
   // 訳文。未訳のときは空文字。
