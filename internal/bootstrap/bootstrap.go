@@ -52,11 +52,13 @@ func NewApp() (*api.App, *store.Store, error) {
 	}
 
 	eng := engine.New(s, p, lex, roles)
-	app := api.New(s, eng, p, api.ExtractorConfig{
+	ext := api.ExtractorConfig{
 		ProjectPath: extractorProject,
 		SchemaDir:   migrationsDir,
 		DBPath:      devDBPath,
-		TermsXMLDir: termsXMLDir,
-	})
+	}
+	// 抽出子は本番の dotnet 子プロセス起動。composition root が concrete を生成して注入する唯一の場所。
+	// App には固有名派生で読む XML ディレクトリ（termsXMLDir）だけ渡す（抽出に要するパスは DotnetExtractor が保持する）。
+	app := api.New(s, eng, p, termsXMLDir, api.NewDotnetExtractor(ext))
 	return app, s, nil
 }

@@ -46,6 +46,18 @@ kill_listeners_on_port() {
 kill_listeners_on_port "$devserver_port"
 kill_listeners_on_port "$vite_port"
 
+# 開発起動ごとに中心 DB を空から始める。
+# 抽出・翻訳の成果（narration / line / proper_noun / persona / master_term など）を
+# 前回起動から持ち越すと、再実行しても既訳が INSERT OR IGNORE で残って新規翻訳が走らず、
+# 開発時の動作確認の邪魔になる。dev 専用のこのランチャでだけ DB ファイルを消し、
+# 起動時の store.Open（db.Apply の migration）で空スキーマを作り直す。
+# 本番ビルドはこのスクリプトを通らないため、本番の永続には影響しない。
+# パスは internal/bootstrap/bootstrap.go の devDBPath と一致させる。
+# -wal / -shm の付随ファイルもまとめて消す（SQLite の journal）。
+dev_db_path="db/aitranslation.dev.sqlite3"
+echo "[run-wails] resetting dev DB: $dev_db_path (+ -wal/-shm)" >&2
+rm -f "$dev_db_path" "$dev_db_path-wal" "$dev_db_path-shm"
+
 export GOCACHE="${GOCACHE:-/tmp/aitranslationenginejp-go-build}"
 export GOPATH="${GOPATH:-/tmp/aitranslationenginejp-go}"
 export GOMODCACHE="${GOMODCACHE:-/tmp/aitranslationenginejp-go-mod}"

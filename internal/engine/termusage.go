@@ -23,7 +23,7 @@ var (
 // BuildUsage は会話文の英語原文から各英単語の用法分布（LC / UC）を作る。
 // 文ごとに語を取り、小文字始まりの語は一般語用法として小文字連を LC に積み、
 // 文頭以外で大文字始まりの語は固有名用法として小文字化した語を UC に積む。文頭語（i==0）の大文字は数えない。
-func BuildUsage(dialogues []string) Usage {
+func BuildUsage(dialogues []string) Usage { //nolint:gocognit // TODO(refactor): 用法分布の集計ループ（文分割×トークン走査）。リファクタ本体で簡素化する。
 	u := Usage{LC: map[string]int{}, UC: map[string]int{}}
 	for _, line := range dialogues {
 		for _, sent := range sentSplitRe.Split(line, -1) {

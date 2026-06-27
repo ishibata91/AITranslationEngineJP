@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	"aitranslationenginejp/internal/engine/tone"
 	"aitranslationenginejp/internal/model"
@@ -80,23 +81,28 @@ func (g *PersonaGenerator) ensureLineAnalyses(ctx context.Context, rows []model.
 	for _, r := range rows {
 		hashToText[SourceHash(r.Source)] = r.Source
 	}
+	// hash 群は決定的な順序にする。map 反復のままだと UpsertLineAnalysis の書き込み順が実行ごとに揺れ、
+	// line_analysis の採番 id が非決定になる。本文ハッシュの昇順で固定する。
 	hashes := make([]string, 0, len(hashToText))
 	for h := range hashToText {
 		hashes = append(hashes, h)
 	}
+	sort.Strings(hashes)
 	cached, err := g.store.GetLineAnalyses(ctx, hashes)
 	if err != nil {
 		return nil, fmt.Errorf("行解析キャッシュの取得: %w", err)
 	}
 	out := make(map[string]tone.Features, len(hashes))
-	for h, text := range hashToText {
+	// 並びを固定した hashes でキャッシュ未命中の本文を処理し、書き込み順を決定的にする。
+	for _, h := range hashes {
+		text := hashToText[h]
 		if row, ok := cached[h]; ok {
 			out[h] = featuresFromAnalysis(row)
 			continue
 		}
 		f := ExtractFeatures(text, g.lexicon) // prose（重い）。キャッシュ未命中の本文だけ実行する。
 		if err := g.store.UpsertLineAnalysis(ctx, analysisFromFeatures(h, f)); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("行解析キャッシュの保存: %w", err)
 		}
 		out[h] = f
 	}

@@ -113,6 +113,25 @@ flowchart TB
 - `store` は concrete を渡す。`engine`・`api` へ SQLite driver 固有 API を漏らさない。単体テストのため、`engine`・`api` は `store` の使う分だけを写した狭い interface（実装は `store` 1 つ）を consumer 側で宣言してよい。これは多態の port ではなく、テスト容易性のための切り離しとする。
 - frontend と backend は Wails 境界で接続する。
 
+### 4.1 境界の機械検査（arch-lint と境界走査）
+
+§4 の依存方向と、§5・§6 の漏れ禁止を、2 つの検査で機械的に強制する。どちらも `npm run lint:backend`（および backend 検証 1 コマンド `npm run verify:backend`）から回る。
+
+- import 方向の検査（`.go-arch-lint.yml`、go-arch-lint）。component を実ディレクトリへ対応づけ、`mayDependOn` で許す import 先を固定する。現状の対応は次のとおり。
+    - `main`（root）→ `bootstrap`。
+    - `bootstrap` → `api`・`engine`・`provider`・`store`・`lexicon`（concrete を new する唯一の層）。
+    - `api` → `model`・`provider`・`engine`。
+    - `engine` → `model`・`provider`・`tone`（`tone` は基底口調分類器の engine 子パッケージ）。
+    - `store` → `model`・`migrations`。`secret` は store 子（残存の keyring）。
+    - `lexicon`（感情辞書 NRC の concrete アダプタ）は leaf。`engine` は `EmotionLexicon` interface に依存し `lexicon` を import しない。
+    - `harness`（合成 golden のテスト基盤）→ `api`・`engine`・`provider`・`store`。テスト用の composition root として層をまたぐことを明示的に許す。
+    - `goldcap`（実データ golden 捕獲ツール）→ `api`・`engine`・`harness`・`lexicon`。
+    - 現状、この依存グラフに対し違反 0（`OK - No warnings found`）。
+- 責務違反の走査（`scripts/lint/run-boundary-scan.sh`）。arch-lint は vendor import をどの層でも許す設定（`depOnAnyVendor: true`）のため、vendor の閉じ込めは本走査で強制する。
+    - Wails runtime（`github.com/wailsapp/wails`）は `api`・`bootstrap`・root `main` だけ（§5 の runtime handle 閉じ込め）。
+    - SQLite driver（`modernc.org/sqlite`）は `store`・`harness`・`cmd`・`scripts` だけ（§6 の driver 閉じ込め）。
+    - 現状、いずれも違反 0。
+
 ## 5. Wails 境界
 
 - frontend の query / command は `Gateway` 経由で generated bindings を呼ぶ。

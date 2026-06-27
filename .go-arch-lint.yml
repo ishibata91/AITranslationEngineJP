@@ -17,6 +17,7 @@ exclude:
   - node_modules
 
 components:
+  # 製品本体の層（architecture.md §2・§3）。
   main:
     in: .
   bootstrap:
@@ -25,16 +26,34 @@ components:
     in: internal/api
   engine:
     in: internal/engine
+  # tone は engine の子パッケージ（基底口調の分類器）。engine だけが使う。
+  tone:
+    in: internal/engine/tone
   provider:
     in: internal/provider
   store:
     in: internal/store
+  # secret は store の子（残存の keyring secret store）。現状 import 元なし。
   secret:
     in: internal/store/secret
+  # lexicon は感情辞書（NRC）の concrete アダプタ。bootstrap が new し engine の
+  # EmotionLexicon interface へ注入する。engine は lexicon を import しない。
+  lexicon:
+    in: internal/lexicon
   model:
     in: internal/model
   migrations:
     in: db
+  # harness は合成入力の統合非劣化テスト基盤（完了定義②）。テスト用の composition root の
+  # ように層をまたいで配線するため、api・engine・store・provider への依存を明示的に許す。
+  harness:
+    in: internal/harness
+  # goldcap は実データ golden 捕獲ツール（完了定義③）。harness を本番アダプタで駆動する。
+  goldcap:
+    in: cmd/goldcap
+  # poc-tone は口調抽出の旧 PoC（stdlib のみ・自 module 非依存の独立 main）。
+  poc-tone:
+    in: cmd/poc-tone
 
 deps:
   main:
@@ -46,6 +65,7 @@ deps:
       - engine
       - provider
       - store
+      - lexicon
   api:
     mayDependOn:
       - model
@@ -55,7 +75,20 @@ deps:
     mayDependOn:
       - model
       - provider
+      - tone
   store:
     mayDependOn:
       - model
       - migrations
+  harness:
+    mayDependOn:
+      - api
+      - engine
+      - provider
+      - store
+  goldcap:
+    mayDependOn:
+      - api
+      - engine
+      - harness
+      - lexicon

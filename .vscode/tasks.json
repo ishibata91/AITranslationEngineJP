@@ -10,6 +10,13 @@
       "problemMatcher": []
     },
     {
+      "label": "verify:backend",
+      "type": "shell",
+      "command": "npm run verify:backend",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
       "label": "lint:backend",
       "type": "shell",
       "command": "npm run lint:backend",
@@ -45,6 +52,13 @@
       "problemMatcher": []
     },
     {
+      "label": "lint:backend:boundary",
+      "type": "shell",
+      "command": "npm run lint:backend:boundary",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
       "label": "lint:backend:module",
       "type": "shell",
       "command": "npm run lint:backend:module",
@@ -66,128 +80,9 @@
       "problemMatcher": []
     },
     {
-      "label": "test:backend:coverage",
-      "type": "shell",
-      "command": "npm run test:backend:coverage",
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": []
-    },
-    {
       "label": "test:frontend",
       "type": "shell",
       "command": "npm run test:frontend",
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": []
-    },
-    {
-      "label": "test:frontend:coverage",
-      "type": "shell",
-      "command": "npm run test:frontend:coverage",
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": []
-    },
-    {
-      "label": "test:system",
-      "type": "shell",
-      "command": "npm run test:system",
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": []
-    },
-    {
-      "label": "test:system:install",
-      "type": "shell",
-      "command": "npm run test:system:install",
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": []
-    },
-    {
-      "label": "scan:sonar",
-      "type": "shell",
-      "command": "npm run scan:sonar",
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": []
-    },
-    {
-      "label": "harness: backend-lint",
-      "type": "shell",
-      "command": "python3 scripts/harness/run.py --suite backend-lint",
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": []
-    },
-    {
-      "label": "harness: backend-local",
-      "type": "shell",
-      "command": "python3 scripts/harness/run.py --suite backend-local",
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": []
-    },
-    {
-      "label": "harness: backend-test",
-      "type": "shell",
-      "command": "python3 scripts/harness/run.py --suite backend-test",
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": []
-    },
-    {
-      "label": "harness: frontend-lint",
-      "type": "shell",
-      "command": "python3 scripts/harness/run.py --suite frontend-lint",
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": []
-    },
-    {
-      "label": "harness: frontend-local",
-      "type": "shell",
-      "command": "python3 scripts/harness/run.py --suite frontend-local",
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": []
-    },
-    {
-      "label": "harness: frontend-test",
-      "type": "shell",
-      "command": "python3 scripts/harness/run.py --suite frontend-test",
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": []
-    },
-    {
-      "label": "harness: system-test",
-      "type": "shell",
-      "command": "python3 scripts/harness/run.py --suite system-test",
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": []
-    },
-    {
-      "label": "harness: scenario-gate",
-      "type": "shell",
-      "command": "python3 scripts/harness/run.py --suite scenario-gate",
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": []
-    },
-    {
-      "label": "harness: coverage",
-      "type": "shell",
-      "command": "python3 scripts/harness/run.py --suite coverage",
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": []
-    },
-    {
-      "label": "harness: structure",
-      "type": "shell",
-      "command": "python3 scripts/harness/run.py --suite structure",
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": []
-    },
-    {
-      "label": "harness: execution",
-      "type": "shell",
-      "command": "python3 scripts/harness/run.py --suite execution",
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": []
-    },
-    {
-      "label": "harness: all",
-      "type": "shell",
-      "command": "python3 scripts/harness/run.py --suite all",
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": []
     }

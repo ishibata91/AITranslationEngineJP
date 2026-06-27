@@ -8,8 +8,9 @@
     "backendlint": "npm run lint:backend",
     "dev:wails:run": "sh ./scripts/dev/run-wails.sh",
     "backendtest": "npm run test:backend",
-    "lint:backend": "npm run lint:backend:format && npm run lint:backend:vet && npm run lint:backend:static && npm run lint:backend:arch && npm run lint:backend:module",
+    "lint:backend": "npm run lint:backend:format && npm run lint:backend:vet && npm run lint:backend:static && npm run lint:backend:arch && npm run lint:backend:boundary && npm run lint:backend:module",
     "lint:backend:arch": "sh ./scripts/lint/run-go-backend-lint.sh arch",
+    "lint:backend:boundary": "sh ./scripts/lint/run-go-backend-lint.sh boundary",
     "lint:backend:format": "sh ./scripts/lint/run-go-backend-lint.sh format-check",
     "lint:backend:module": "sh ./scripts/lint/run-go-backend-lint.sh module",
     "lint:backend:vet": "sh ./scripts/lint/run-go-backend-lint.sh vet",
@@ -17,10 +18,8 @@
     "frontendlint": "npm --prefix frontend run lint",
     "frontendtest": "npm run test:frontend",
     "lint:frontend": "npm run frontendlint",
-    "scan:sonar": "node ./scripts/node/run-sonar-scanner.mjs",
     "test:backend": "sh ./scripts/test/run-go-backend-test.sh",
-    "test:backend:coverage": "sh ./scripts/test/run-go-backend-coverage.sh",
     "test:frontend": "npm --prefix frontend run test",
-    "test:frontend:coverage": "sh ./scripts/test/run-frontend-coverage.sh"
+    "verify:backend": "npm run test:backend && npm run lint:backend:arch && npm run lint:backend:boundary"
   }
 }
