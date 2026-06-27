@@ -201,10 +201,25 @@ scope 外として記録した engine 非決定（`hashToText` の map 反復順
 
 ### 後続課題の切り出し
 
-- 残した違反（gocognit baseline 除外 6 関数の `//nolint` 解除と static baseline 11 件）の解消を、新 active plan [`backend-violation-cleanup`](../backend-violation-cleanup/plan.md) へ切り出した。本 foundation の done を前提にした backlog。
+- 残した違反（gocognit baseline 除外 6 関数の `//nolint` 解除と static baseline 11 件）の解消を、新 active plan [`backend-violation-cleanup`](../../active/backend-violation-cleanup/plan.md) へ切り出した。本 foundation の done を前提にした backlog。
 
 ### 作業 commit
 
-- `d8e01c01` ①②③＋dev DB 全消去、`1edc49f1` ④⑤、`13438a26` ⑥⑦⑧。finalization 分（architecture.md §4.1・finalization 記録・後続 plan）は本節記録後に追加 commit する。
+- `d8e01c01` ①②③＋dev DB 全消去、`1edc49f1` ④⑤、`13438a26` ⑥⑦⑧、`92ca3430` finalization（architecture.md §4.1・finalization 記録・後続 plan）。
 
-（local merge・merge 後検証・completed 移動・merge 結果 commit は実行後に追記する。）
+### local merge
+
+- `git merge --no-ff claude/backend-refactor-test-foundation` を `master` へ実行。conflict なし。merge commit `314b6544`。source branch と作業 commit（上記 4 つ）が対応。
+- remote は変更していない（push・tag・remote branch 操作なし）。
+
+### merge 後検証
+
+- `go build ./...`・`go vet ./...` 全 ok。`npm run verify:backend`（go test ＋ arch-lint ＋ 境界走査）緑（exit 0）。
+
+### completed 移動
+
+- `docs/exec-plans/active/backend-refactor-test-foundation/` を `docs/exec-plans/completed/backend-refactor-test-foundation/` へ `git mv`。`backend-violation-cleanup` は active に残す。
+
+### merge 結果 commit
+
+- completed 移動と本節の記録を含めて local commit を作る（hash は commit 後に確定）。remote は変更しない。
