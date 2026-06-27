@@ -67,10 +67,9 @@ func (d *Dictionary) Apply(source string) (string, []DictionaryTerm) {
 	var used []DictionaryTerm
 	seen := make(map[string]bool)
 	replaced := d.re.ReplaceAllStringFunc(source, func(match string) string {
-		dest, ok := d.bySource[match]
-		if !ok {
-			return match
-		}
+		// d.re は bySource のキー（QuoteMeta 済み原語）だけを alternation に並べて組むため、
+		// 一致した match は必ず bySource のキーになる。ここでの取得は欠落しない。
+		dest := d.bySource[match]
 		if !seen[match] {
 			seen[match] = true
 			used = append(used, DictionaryTerm{Source: match, Dest: dest})

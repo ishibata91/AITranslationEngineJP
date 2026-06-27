@@ -144,3 +144,17 @@ scope 外として記録した engine 非決定（`hashToText` の map 反復順
 - 画面状態: 実行後に「完了」表示、結果一覧 197 件、ページ送り動作。
 
 結論: ①②③ の seam 配線変更後も、実機での抽出→固有名派生→取込→機械置換→口調生成→プロンプト合成→翻訳が端から端まで非劣化で動くことを実画面で確認した。③ の実データ baseline 観測点もこの実行で充足した。
+
+### ④ 既純粋ルール 100%（達成）
+
+既に純粋なルールを分岐網羅で固め、`go test -cover` 手元確認で 100% にした。
+
+- `internal/engine/dictionary.go`: `Apply` の `if !ok { return match }` を除いた。`re` は `bySource` のキーだけから組むため一致 match は必ずキーに存在し、当該分岐は構造上到達不能（不変条件をコメントで根拠づけ）。
+- `internal/engine/dictionary_test.go`: 原語空・訳語空の対を捨てる経路と、同長の別原語 2 つで並べ替えの同長分岐（辞書順）を通すケースを足した。
+- 結果: `NewDictionary`・`Apply`・`FillVariables`・`ComposePrompt`・`RenderPrompt` がいずれも 100%。`prompt.go` は変更前から 100%。
+
+### ⑤ 恒久ユニット計画文書（作成）
+
+残る不変ルールの純粋部括り出し方針と 100% 目標を [`unit-test-plan.md`](./unit-test-plan.md) へ固定した。各ルールの純粋単位・IO 統合部・現状カバレッジ実測値を表で示し、追加作業が要る純粋単位（`roleSpeechLine`・`parseTermXML`・`isBaseGame`・`directiveViews`・`assignmentViews`・`recordTypeView`・`termViews`）と、既に括り出し済みで同値維持だけ要る純粋単位（ingest 分類・termderive 派生・tone_catalog/role_speech の大半）を分けた。IO 統合部は単体対象にせず②の harness と api 統合で担保する方針を明記した。
+
+最終検証（④⑤後）: `go build`／`go vet`／`go test ./...` 全 ok（harness golden 含む）。④対象 5 関数のカバレッジ 100% を `go test ./internal/engine/ -cover` で手元確認した。

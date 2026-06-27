@@ -55,6 +55,27 @@ func TestDictionaryApply(t *testing.T) {
 			want:     "Iron Sword.",
 			wantUsed: nil,
 		},
+		{
+			// 原語が空・訳語が空の対は NewDictionary が捨てる。残る有効語だけが置換される。
+			name: "原語空・訳語空の対は捨てる",
+			terms: []DictionaryTerm{
+				{"", "捨てる訳"},      // 原語が空 → 捨てる
+				{"Whiterun", ""},   // 訳語が空 → 捨てる
+				{"Riften", "リフテン"}, // 有効
+			},
+			source:   "From Whiterun to Riften.",
+			want:     "From Whiterun to リフテン.",
+			wantUsed: []string{"Riften"},
+		},
+		{
+			// 同じ長さの別の原語が 2 つあると、並べ替えの同長分岐（辞書順）を通る。
+			// どちらも語境界・大小区別で独立に置換されることを確かめる。
+			name:     "同長の別原語は辞書順で並べどちらも置換する",
+			terms:    []DictionaryTerm{{"Storm", "嵐"}, {"Frost", "霜"}},
+			source:   "Frost follows Storm.",
+			want:     "霜 follows 嵐.",
+			wantUsed: []string{"Frost", "Storm"},
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
