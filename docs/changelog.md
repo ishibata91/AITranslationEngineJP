@@ -4,6 +4,19 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-06-27 dev 起動ごとに中心 DB を空にする
+
+### 変更
+
+- `scripts/dev/run-wails.sh`: dev 起動時に中心 DB ファイル（`db/aitranslation.dev.sqlite3` と付随する `-wal`・`-shm`）を削除する処理を追加した。既存 listener の停止後、`wails dev` 起動前に消す。起動時の `store.Open`（`db.Apply` の migration）が空スキーマを作り直し、seed（`prompt_template`・`directive`）は復元される。
+
+### 判断
+
+- 動機: 中心 DB はファイルが永続し、取込が `INSERT OR IGNORE`（UNIQUE `plugin, form_id, rec, field, ordinal`）のため、再抽出しても既存行の `dest`・`status` を保持する。結果として再実行しても既訳が残り、新規翻訳が走らないため、開発時の動作確認の妨げになっていた。`project-db-wipe-on-launch-intent`（起動ごとに空にしたい意向、抽出・翻訳を残さない）に沿って、起動ごとに空から始める形へ確定した。
+- 置き場所の選定: 本番ビルドはこのランチャを通らないため、dev 専用スクリプトでのファイル削除に限定し、本番の永続には影響させない。Go 側（bootstrap）に dev 分岐を足す案は採らず、起動入口の 1 箇所に閉じた。
+- 全消去の粒度: 翻訳成果だけのリセットでなく DB ファイル全体の削除を選んだ（意向「抽出・翻訳を残さない」に一致）。`master_term`（固有名辞書 25071 行）も毎起動で消え、次回 C# 抽出で再構築される。`prompt_template` を UI で手編集していた場合は migration の既定値へ戻る。dev 専用かつ全消去の明示要望のため許容する。
+- 実機確認: スクリプト経由で再起動し、`narration`・`line`・`proper_noun`・`persona_character`・`line_analysis`・`master_term`・`extracted_field` が全て 0、`prompt_template`=1・`directive`=7 が復元、実画面の結果一覧が「まだ結果はありません」の空状態であることを確認した。
+
 ## 2026-06-27 record-type-translation-expansion の AI 実走確認と正本化判断（finalization）
 
 ### 変更

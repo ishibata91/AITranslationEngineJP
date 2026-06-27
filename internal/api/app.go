@@ -40,26 +40,69 @@ type Store interface {
 	ListRecordTypeMaster(ctx context.Context) ([]model.RecordType, error)
 }
 
-// ExtractorConfig は抽出子プロセス（C#）の起動設定。
+// ExtractorConfig は抽出子プロセス（C#）の起動設定。dotnet 起動に要するパスだけを持つ。
+// 固有名派生で読む XML ディレクトリは抽出の入力ではないため、ここに含めず api.New が直接受け取る。
 type ExtractorConfig struct {
 	ProjectPath string // dotnet run --project のパス（dev: tools/extractor）
 	SchemaDir   string // db/migrations のパス
 	DBPath      string // 中心 DB のパス。store と同じファイルを指す。
-	TermsXMLDir string // 固有名辞書の供給元 xTranslator 英日 XML ディレクトリ。抽出後の派生で読む。
+}
+
+// Extractor は plugin を抽出し、原文を extracted_field（と話者 staging）へ書き込む境界。
+// 本番は dotnet 子プロセス起動（DotnetExtractor）、テストは DB を直接 seed する fake を注入する。
+// これは provider のような多態 port ではなく、子プロセス起動を呼び出し側から切り離してテスト可能にするための
+// consumer 側 interface。api コンポーネント内に閉じ、.go-arch-lint.yml に新コンポーネントや新依存規則を足さない。
+type Extractor interface {
+	// Extract は pluginPath の plugin を抽出し、結果を中心 DB へ書き込む。書き込み先 DB は実装が保持する。
+	Extract(ctx context.Context, pluginPath string) error
+}
+
+// DotnetExtractor は C# 抽出器（Mutagen）を dotnet run で起動する本番 Extractor。
+// 起動に要するパス（project・schema・出力先 DB）は ExtractorConfig から受け取って保持する。
+type DotnetExtractor struct {
+	ext ExtractorConfig
+}
+
+// NewDotnetExtractor は本番の dotnet 抽出子を生成する。bootstrap が唯一の生成点。
+func NewDotnetExtractor(ext ExtractorConfig) *DotnetExtractor {
+	return &DotnetExtractor{ext: ext}
+}
+
+// Extract は dotnet run で C# 抽出器を起動し、pluginPath の plugin を抽出して extracted_field へ書き込む。
+func (d *DotnetExtractor) Extract(ctx context.Context, pluginPath string) error {
+	dataFolder := filepath.Dir(pluginPath)
+	pluginName := filepath.Base(pluginPath)
+	args := buildExtractorArgs(d.ext.ProjectPath, dataFolder, pluginName, d.ext.DBPath, d.ext.SchemaDir)
+	// dotnet は固定コマンド、引数は内部生成のパスのみ。利用者が選んだ plugin を抽出するための意図的な子プロセス起動。
+	out, err := exec.CommandContext(ctx, "dotnet", args...).CombinedOutput() //nolint:gosec // 固定コマンド dotnet・内部生成引数
+	if err != nil {
+		// 元実装と同じく dotnet の stdout/stderr をエラーへ含める。接頭は付けず、呼び出し側（RunExtractAndTranslate）が
+		// "抽出に失敗" を付ける。最終メッセージは "抽出に失敗: <exec error>: <出力>" でリファクタ前と一致する。
+		return fmt.Errorf("%w: %s", err, string(out))
+	}
+	return nil
 }
 
 // App は Wails へ Bind する公開面。
 type App struct {
-	store    Store
-	engine   *engine.Engine
-	provider provider.Translator
-	ext      ExtractorConfig
-	ctx      context.Context
+	store       Store
+	engine      *engine.Engine
+	provider    provider.Translator
+	extractor   Extractor
+	termsXMLDir string // 抽出後の固有名派生（DeriveMasterTerms）で読む xTranslator 英日 XML ディレクトリ。
+	ctx         context.Context
 }
 
-// New は App を生成する。
-func New(store Store, eng *engine.Engine, p provider.Translator, ext ExtractorConfig) *App {
-	return &App{store: store, engine: eng, provider: p, ext: ext}
+// New は App を生成する。extractor は抽出子の注入点（本番は DotnetExtractor。抽出に要するパスは extractor が保持する）。
+// termsXMLDir は抽出後の固有名派生で読む XML ディレクトリで、抽出設定（ExtractorConfig）とは別系統のため文字列で直接受ける。
+func New(store Store, eng *engine.Engine, p provider.Translator, termsXMLDir string, extractor Extractor) *App {
+	if extractor == nil {
+		// 抽出子は必須の注入物。nil interface（リテラル nil や未設定の interface 変数）を渡す配線ミスを起動時に弾く。
+		// なお typed-nil（nil の concrete ポインタを interface に入れた値）は Go の制約で検出できないが、
+		// composition root は concrete を直接 new して渡すため該当しない。
+		panic("api.New: extractor は nil にできない")
+	}
+	return &App{store: store, engine: eng, provider: p, extractor: extractor, termsXMLDir: termsXMLDir}
 }
 
 // Startup は Wails 起動時に runtime context を受け取る。ファイルダイアログと進捗 event の push に使う。
@@ -308,20 +351,16 @@ func assignmentViews(rows []model.RecordType) []RecordAssignmentView {
 // 抽出中は extract 進捗を、本文翻訳中は translate 進捗を runtime event で push する。
 func (a *App) RunExtractAndTranslate(req RunRequest) (RunResult, error) {
 	ctx := a.baseCtx()
-	dataFolder := filepath.Dir(req.PluginPath)
-	pluginName := filepath.Base(req.PluginPath)
 
 	a.emitProgress(ProgressEvent{Stage: "extract"})
-	args := buildExtractorArgs(a.ext.ProjectPath, dataFolder, pluginName, a.ext.DBPath, a.ext.SchemaDir)
-	// dotnet は固定コマンド、引数は内部生成のパスのみ。利用者が選んだ plugin を抽出するための意図的な子プロセス起動。
-	out, err := exec.CommandContext(ctx, "dotnet", args...).CombinedOutput() //nolint:gosec // 固定コマンド dotnet・内部生成引数
-	if err != nil {
-		return RunResult{}, fmt.Errorf("抽出に失敗: %w: %s", err, string(out))
+	// 抽出子は注入点（本番は dotnet 子プロセス、テストは DB 直 seed の fake）。利用者が選んだ plugin を抽出する。
+	if err := a.extractor.Extract(ctx, req.PluginPath); err != nil {
+		return RunResult{}, fmt.Errorf("抽出に失敗: %w", err)
 	}
 
 	// 抽出後、人名の部分形（名のみ・短名）を派生して master_term へ追記する。C# が書いた base 辞書（FULL）の
 	// 後に走らせ、DB を作り直しても単独名（例 Aventus→アベンタス）が機械置換へ載るようにする。冪等。
-	if _, err := a.engine.DeriveMasterTerms(ctx, a.ext.TermsXMLDir); err != nil {
+	if _, err := a.engine.DeriveMasterTerms(ctx, a.termsXMLDir); err != nil {
 		return RunResult{}, fmt.Errorf("固有名の派生に失敗: %w", err)
 	}
 
