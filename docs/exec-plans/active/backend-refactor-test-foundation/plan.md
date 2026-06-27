@@ -186,3 +186,25 @@ scope 外として記録した engine 非決定（`hashToText` の map 反復順
 - 観測: baseline 除外込みで gocognit の指摘 0。production に 15 超の関数を一時挿入すると `gocognit: 1`（complexity 30 > 15）で赤になることを確認した。`static` 全体は gocognit と無関係の本 task 前からの baseline 11 件（wrapcheck/gosec/errcheck/staticcheck/errorlint、engine/lexicon）で赤のまま。これは⑧の範囲外で、gocognit 次元は緑。
 
 最終検証（⑥⑦⑧後）: `go build`／`go vet` 全 ok。`npm run verify:backend`（go test ＋ arch-lint ＋ 境界走査）緑（exit 0）。`gofmt -l internal` 指摘 0。gocognit 指摘 0（baseline 除外込み）。
+
+## finalization
+
+### 正本化判断
+
+- 反映対象: `docs/architecture.md`。影響範囲: §4（依存方向）の下に `### 4.1 境界の機械検査（arch-lint と境界走査）` を追加。
+- 判断: 利用者の明示指示「archlintの現状の説明も」を承認とみなし、arch-lint の現状（component 対応・許す依存・違反 0）と境界走査（Wails runtime・SQLite driver の閉じ込め）を §4.1 として正本へ反映した。§4 の依存方向・層構造は変えず、既存の §4/§5/§6 の制約を機械検査が強制している事実を記述しただけ（構造変更でない。`feedback-architecture-reflection-structural-only` に整合）。
+- 人間承認状態: 承認済み（利用者が明示指示）。§8 移行記述は構造不変のため churn しない。
+
+### 正本反映
+
+- `docs/architecture.md`: `### 4.1 境界の機械検査（arch-lint と境界走査）` を追加。変更前: arch-lint 設定の現状を記す節なし。変更後: component→ディレクトリ対応、`mayDependOn` の許可依存、境界走査の vendor 閉じ込め、現状違反 0 を記述。根拠 active plan: 本 plan の⑥。
+
+### 後続課題の切り出し
+
+- 残した違反（gocognit baseline 除外 6 関数の `//nolint` 解除と static baseline 11 件）の解消を、新 active plan [`backend-violation-cleanup`](../backend-violation-cleanup/plan.md) へ切り出した。本 foundation の done を前提にした backlog。
+
+### 作業 commit
+
+- `d8e01c01` ①②③＋dev DB 全消去、`1edc49f1` ④⑤、`13438a26` ⑥⑦⑧。finalization 分（architecture.md §4.1・finalization 記録・後続 plan）は本節記録後に追加 commit する。
+
+（local merge・merge 後検証・completed 移動・merge 結果 commit は実行後に追記する。）
