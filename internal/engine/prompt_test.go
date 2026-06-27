@@ -51,6 +51,64 @@ func TestComposePrompt(t *testing.T) {
 	}
 }
 
+// FillVariables は directive の指示文中の変数トークンを vars の値へ差し込むこと。
+// 口調 directive の {traits} に話者の性質を埋める経路と、変数なしの directive（固有名・定型句・文体）で
+// 指示文をそのまま返す経路の両方を確かめる。
+func TestFillVariables(t *testing.T) {
+	cases := []struct {
+		name        string
+		instruction string
+		vars        map[string]string
+		want        string
+	}{
+		{
+			name:        "口調 directive の {traits} を性質で埋める",
+			instruction: "この台詞の話者の人物像:\n{traits}\nこの人物像に合う口調で訳すこと。",
+			vars:        map[string]string{"{traits}": "- 口調: 柔らかく丁寧"},
+			want:        "この台詞の話者の人物像:\n- 口調: 柔らかく丁寧\nこの人物像に合う口調で訳すこと。",
+		},
+		{
+			name:        "変数なし（vars 空）は指示文をそのまま返す",
+			instruction: "これは固有名詞です。簡潔に訳すこと。",
+			vars:        nil,
+			want:        "これは固有名詞です。簡潔に訳すこと。",
+		},
+		{
+			name:        "宣言外のトークンはそのまま残す",
+			instruction: "説明文を訳すこと。{unknown} は残す。",
+			vars:        map[string]string{"{traits}": "x"},
+			want:        "説明文を訳すこと。{unknown} は残す。",
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := FillVariables(c.instruction, c.vars); got != c.want {
+				t.Errorf("FillVariables = %q, want %q", got, c.want)
+			}
+		})
+	}
+}
+
+// プロンプト合成（MECE）: Base 指示 ＋ 変数を埋めた directive 指示文 ＋ 機械置換済み原文。
+// 口調 directive（変数あり）と固有名 directive（変数なし）の両経路で完成プロンプトを確かめる。
+func TestComposeWithFilledDirective(t *testing.T) {
+	const base = "あなたは翻訳者です。"
+
+	// 口調 directive: {traits} を埋めてから base へ合成する。
+	tone := FillVariables("人物像:\n{traits}", map[string]string{"{traits}": "- 丁寧"})
+	got := ComposePrompt(base, tone, "Hello")
+	if got.System != base+"\n\n人物像:\n- 丁寧" {
+		t.Errorf("口調合成の System = %q", got.System)
+	}
+
+	// 固有名 directive: 変数なしで、base へ指示文をそのまま合成する。
+	proper := FillVariables("これは固有名詞です。", nil)
+	got = ComposePrompt(base, proper, "Dragonbane")
+	if got.System != base+"\n\nこれは固有名詞です。" || got.User != "Dragonbane" {
+		t.Errorf("固有名合成 = %+v", got)
+	}
+}
+
 // RenderPrompt は完成プロンプトを役割見出し付きの 1 文字列へ描き、system と user の両方を全文含めること。
 func TestRenderPrompt(t *testing.T) {
 	got := RenderPrompt(ComposePrompt("base 指示", "口調指示", "原文"))

@@ -49,17 +49,19 @@ func TestBuildExtractorArgs(t *testing.T) {
 	}
 }
 
-// fakePageStore は api.Store を満たす最小の fake。id 昇順の叙述文・台詞を保持し、keyset 範囲取得を模す。
+// fakePageStore は api.Store を満たす最小の fake。id 昇順の叙述文・台詞・固有名を保持し、keyset 範囲取得を模す。
 // DB を使わず、pageRows の cursor 境界ロジック（連結列の順次送り・区間跨ぎ・末尾）だけを確かめる。
 type fakePageStore struct {
 	narrations []model.Narration
 	lines      []model.Line
+	propers    []model.ProperNoun
 }
 
 func (f *fakePageStore) CountNarrations(_ context.Context) (int, error) {
 	return len(f.narrations), nil
 }
-func (f *fakePageStore) CountLines(_ context.Context) (int, error) { return len(f.lines), nil }
+func (f *fakePageStore) CountLines(_ context.Context) (int, error)       { return len(f.lines), nil }
+func (f *fakePageStore) CountProperNouns(_ context.Context) (int, error) { return len(f.propers), nil }
 
 func (f *fakePageStore) NarrationsAfter(_ context.Context, afterID int64, limit int) ([]model.Narration, error) {
 	var out []model.Narration
@@ -87,7 +89,20 @@ func (f *fakePageStore) LinesAfter(_ context.Context, afterID int64, limit int) 
 	return out, nil
 }
 
-// pageRows の cursor 境界ロジックだけを確かめる fake のため、テンプレート CRUD は未使用のスタブにする。
+func (f *fakePageStore) ProperNounsAfter(_ context.Context, afterID int64, limit int) ([]model.ProperNoun, error) {
+	var out []model.ProperNoun
+	for _, p := range f.propers {
+		if p.ID > afterID {
+			out = append(out, p)
+			if len(out) == limit {
+				break
+			}
+		}
+	}
+	return out, nil
+}
+
+// pageRows の cursor 境界ロジックだけを確かめる fake のため、テンプレート・directive CRUD は未使用のスタブにする。
 func (f *fakePageStore) GetPromptTemplate(_ context.Context) (model.PromptTemplate, error) {
 	return model.PromptTemplate{}, nil
 }
@@ -96,6 +111,15 @@ func (f *fakePageStore) SavePromptTemplate(_ context.Context, _ model.PromptTemp
 }
 func (f *fakePageStore) LoadLineSpeakers(_ context.Context, _ []int64) (map[int64]model.LineSpeaker, error) {
 	return map[int64]model.LineSpeaker{}, nil
+}
+func (f *fakePageStore) ListDirectives(_ context.Context) ([]model.Directive, error) {
+	return nil, nil
+}
+func (f *fakePageStore) SaveDirectiveInstruction(_ context.Context, _, _ string) error {
+	return nil
+}
+func (f *fakePageStore) ListRecordTypeMaster(_ context.Context) ([]model.RecordType, error) {
+	return nil, nil
 }
 
 func narrationsWithIDs(ids ...int64) []model.Narration {
@@ -138,7 +162,7 @@ func TestPageRowsWalk(t *testing.T) {
 	cursor := ""
 	pages := 0
 	for {
-		narrations, lines, total, next, hasMore, err := app.pageRows(context.Background(), cursor, 2)
+		narrations, lines, _, total, next, hasMore, err := app.pageRows(context.Background(), cursor, 2)
 		if err != nil {
 			t.Fatalf("pageRows: %v", err)
 		}
@@ -177,7 +201,7 @@ func TestPageRowsCrossBoundary(t *testing.T) {
 		lines:      linesWithIDs(1, 2, 3, 4, 5),
 	}}
 
-	narrations, lines, _, next, hasMore, err := app.pageRows(context.Background(), "n:2", 2)
+	narrations, lines, _, _, next, hasMore, err := app.pageRows(context.Background(), "n:2", 2)
 	if err != nil {
 		t.Fatalf("pageRows: %v", err)
 	}
@@ -202,7 +226,7 @@ func TestPageRowsNarrationsExactlyFill(t *testing.T) {
 		lines:      linesWithIDs(1, 2, 3),
 	}}
 
-	narrations, lines, total, next, hasMore, err := app.pageRows(context.Background(), "", 2)
+	narrations, lines, _, total, next, hasMore, err := app.pageRows(context.Background(), "", 2)
 	if err != nil {
 		t.Fatalf("pageRows: %v", err)
 	}
@@ -220,7 +244,7 @@ func TestPageRowsNarrationsExactlyFill(t *testing.T) {
 	}
 
 	// 続く l:0 から台詞先頭が取れること。
-	_, lines2, _, _, _, err := app.pageRows(context.Background(), next, 2)
+	_, lines2, _, _, _, _, err := app.pageRows(context.Background(), next, 2)
 	if err != nil {
 		t.Fatalf("pageRows(l:0): %v", err)
 	}
@@ -233,12 +257,68 @@ func TestPageRowsNarrationsExactlyFill(t *testing.T) {
 func TestPageRowsEmpty(t *testing.T) {
 	app := &App{store: &fakePageStore{}}
 
-	narrations, lines, total, next, hasMore, err := app.pageRows(context.Background(), "", 2)
+	narrations, lines, propers, total, next, hasMore, err := app.pageRows(context.Background(), "", 2)
 	if err != nil {
 		t.Fatalf("pageRows: %v", err)
 	}
-	if len(narrations) != 0 || len(lines) != 0 || total != 0 || hasMore || next != "" {
-		t.Errorf("空のはず: 叙述文=%v 台詞=%v total=%d hasMore=%v next=%q",
-			narrations, lines, total, hasMore, next)
+	if len(narrations) != 0 || len(lines) != 0 || len(propers) != 0 || total != 0 || hasMore || next != "" {
+		t.Errorf("空のはず: 叙述文=%v 台詞=%v 固有名=%v total=%d hasMore=%v next=%q",
+			narrations, lines, propers, total, hasMore, next)
 	}
+}
+
+// 台詞のあと固有名区間へ跨ぐページで、台詞の残り＋固有名の先頭を返し、次 cursor が固有名区間（p:<id>）になること。
+// 連結列は叙述文 → 台詞 → 固有名。固有名が末尾区間で、ここで尽きれば hasMore=false になることも確かめる。
+func TestPageRowsProperNounSection(t *testing.T) {
+	app := &App{store: &fakePageStore{
+		narrations: narrationsWithIDs(1),
+		lines:      linesWithIDs(1, 2),
+		propers:    propersWithIDs(1, 2),
+	}}
+
+	// "" から走査して、連結列 n:1 → l:1,l:2 → p:1,p:2 を順に取り切ること。
+	var got []string
+	cursor := ""
+	for pages := 0; ; pages++ {
+		narrations, lines, propers, total, next, hasMore, err := app.pageRows(context.Background(), cursor, 2)
+		if err != nil {
+			t.Fatalf("pageRows: %v", err)
+		}
+		if total != 5 {
+			t.Errorf("total = %d, want 5", total)
+		}
+		for _, n := range narrations {
+			got = append(got, "n:"+strconv.FormatInt(n.ID, 10))
+		}
+		for _, l := range lines {
+			got = append(got, "l:"+strconv.FormatInt(l.ID, 10))
+		}
+		for _, p := range propers {
+			got = append(got, "p:"+strconv.FormatInt(p.ID, 10))
+		}
+		if !hasMore {
+			break
+		}
+		cursor = next
+		if pages > 10 {
+			t.Fatalf("ページが終わらない（無限ループ）")
+		}
+	}
+	want := []string{"n:1", "l:1", "l:2", "p:1", "p:2"}
+	if len(got) != len(want) {
+		t.Fatalf("走査結果 = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("走査[%d] = %s, want %s", i, got[i], want[i])
+		}
+	}
+}
+
+func propersWithIDs(ids ...int64) []model.ProperNoun {
+	rows := make([]model.ProperNoun, len(ids))
+	for i, id := range ids {
+		rows[i] = model.ProperNoun{ID: id}
+	}
+	return rows
 }

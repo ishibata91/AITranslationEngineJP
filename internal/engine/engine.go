@@ -56,9 +56,21 @@ type DictStore interface {
 	InsertDerivedTerms(ctx context.Context, terms []model.MasterTerm) (int, error)
 }
 
-// TemplateStore は engine がプロンプトテンプレート（base 指示・口調指示の雛形）を読むための中心データアクセス。
+// TemplateStore は engine がプロンプトテンプレート（base 指示）を読むための中心データアクセス。
 type TemplateStore interface {
 	GetPromptTemplate(ctx context.Context) (model.PromptTemplate, error)
+}
+
+// DirectiveStore は engine が指示文（directive）を読むための中心データアクセス。
+// 本文フェーズは (rec, field) ごとの文体 directive と口調 directive の指示文を引いてプロンプトを組む。
+type DirectiveStore interface {
+	ListDirectives(ctx context.Context) ([]model.Directive, error)
+	GetDirectiveInstruction(ctx context.Context, key string) (string, error)
+}
+
+// ProperNounDictStore は engine が本文機械置換辞書へ固有名（proper_noun）の訳を合流させるための読み出し。
+type ProperNounDictStore interface {
+	ListProperNouns(ctx context.Context) ([]model.ProperNoun, error)
 }
 
 // Store は engine が必要とする中心データアクセスをまとめる。concrete は internal/store が 1 つ実装する。
@@ -68,6 +80,10 @@ type Store interface {
 	DictStore
 	TemplateStore
 	PersonaStore
+	IngestStore
+	ProperNounStore
+	ProperNounDictStore
+	DirectiveStore
 }
 
 // Engine は翻訳手続きを実行する。
@@ -91,10 +107,15 @@ func (e *Engine) GeneratePersonas(ctx context.Context) (int, error) {
 	return NewPersonaGenerator(e.store, e.lexicon).Generate(ctx)
 }
 
-// Run は未訳の叙述文と台詞を順に翻訳し、訳文を仮訳として書き戻す。翻訳できた合計件数を返す。
-// 叙述文は base 指示だけで訳し、台詞は話者属性からのペルソナ口調指示を注入して訳す。
-// onProgress が非 nil なら本文翻訳 phase の進捗（処理済み件数 done、総件数 total）を都度通知する。
+// Run は未訳の固有名・叙述文・定型句・台詞を順に翻訳し、訳文を書き戻す。翻訳できた合計件数を返す。
+// 段階順序は固有名フェーズ（本文より先に固有名を確定）→ 本文フェーズ（叙述文・定型句・台詞）。
+// プロンプトは Base 指示 ＋ その REC:FIELD に割り当てた directive の指示文（台詞は口調 directive の {traits} を埋める）で組む。
+// onProgress が非 nil なら、固有名・本文を通した進捗（処理済み件数 done、総件数 total）を都度通知する。
 func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string, onProgress func(done, total int)) (int, error) {
+	propers, err := e.store.ListUntranslatedProperNouns(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("未訳固有名の取得: %w", err)
+	}
 	narrations, err := e.store.ListUntranslatedNarrations(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("未訳叙述文の取得: %w", err)
@@ -104,33 +125,33 @@ func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string
 		return 0, fmt.Errorf("未訳台詞の取得: %w", err)
 	}
 
-	// プロンプトテンプレート（base 指示・口調指示の雛形）をループ前に 1 度だけ読む。
-	// base 指示と口調指示の組み立てに使い、保存済みテンプレートを翻訳へ反映する。
+	// プロンプトテンプレート（base 指示）と指示文（directive）をループ前に 1 度だけ読む。
 	tmpl, err := e.store.GetPromptTemplate(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("プロンプトテンプレートの取得: %w", err)
 	}
-
-	// 口調ペルソナを一括生成して persona_character を最新化する。最も重い行解析は line_analysis に
-	// 本文ハッシュでキャッシュし、本文ごとに 1 度だけ prose を回す。注入はこの生成結果を引く。
-	if _, err := e.GeneratePersonas(ctx); err != nil {
-		return 0, err
-	}
-
-	// 台詞ごとの口調指示をループ前に 1 度だけ一括で組み、ループ内の個別 DB 問い合わせ（N+1）を避ける。
-	// 生成済みの基底口調を性質文カタログへ写し、口調指示テンプレートの {traits} へ差し込む。
-	personas, err := e.LinePersonas(ctx, lineIDsOf(lines), tmpl.PersonaTemplate)
+	instructionByKey, keyByRF, err := e.directiveLookups(ctx)
 	if err != nil {
 		return 0, err
 	}
 
-	// 固有名の機械置換辞書をループ前に 1 度だけ組む。本文翻訳の前に原文の固有名を確定訳語へ置換する。
-	dict, err := e.LoadDictionary(ctx)
+	// 既訳辞書（master_term の source→dest）を固有名フェーズの供給源選別に使う。
+	authoritative, err := e.authoritativeTerms(ctx)
 	if err != nil {
 		return 0, err
 	}
 
-	total := len(narrations) + len(lines)
+	// 口調ペルソナを一括生成して persona_character を最新化する。注入はこの生成結果を引く。
+	if _, err = e.GeneratePersonas(ctx); err != nil {
+		return 0, err
+	}
+	// 台詞ごとの口調指示をループ前に 1 度だけ一括で組む。口調 directive の指示文（{traits} を含む）へ性質を差し込む。
+	personas, err := e.LinePersonas(ctx, lineIDsOf(lines), instructionByKey[directiveTone])
+	if err != nil {
+		return 0, err
+	}
+
+	total := len(propers) + len(narrations) + len(lines)
 	done := 0
 	report := func() {
 		if onProgress != nil {
@@ -139,11 +160,24 @@ func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string
 	}
 	report()
 
+	// 固有名フェーズ: 本文より先に固有名を確定する。既訳ありは権威訳、既訳なしは固有名 directive で AI 訳。
+	if err = e.translateProperNouns(ctx, conn, model, propers, authoritative,
+		tmpl.BaseDirective, instructionByKey[directiveProperNoun], func() { done++; report() }); err != nil {
+		return done, err
+	}
+
+	// 本文フェーズの機械置換辞書は固有名フェーズ後に組む（master_term ∪ 確定した proper_noun）。
+	dict, err := e.LoadDictionary(ctx)
+	if err != nil {
+		return done, err
+	}
+
 	for _, row := range narrations {
 		// 本文中の固有名を辞書の確定訳語へ機械置換してから AI 翻訳する。AI は周りの英語だけを訳す。
 		source, _ := dict.Apply(row.Source)
-		// 叙述文は話者を持たないため口調指示なし。テンプレートの base 指示だけで完成プロンプトを組んで送る。
-		dest, err := e.provider.Translate(ctx, conn, model, ComposePrompt(tmpl.BaseDirective, "", source))
+		// 叙述文・定型句は、その REC:FIELD に割り当てた文体・定型句 directive の指示文を base へ合成して訳す。
+		instruction := instructionByKey[keyByRF[RecordKey{Rec: row.Rec, Field: row.Field}]]
+		dest, err := e.provider.Translate(ctx, conn, model, ComposePrompt(tmpl.BaseDirective, instruction, source))
 		if err != nil {
 			return done, fmt.Errorf("叙述文の翻訳: %w", err)
 		}
@@ -156,7 +190,7 @@ func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string
 
 	for _, row := range lines {
 		source, _ := dict.Apply(row.Source)
-		// 台詞は話者の口調指示をテンプレートの base 指示へ合成した完成プロンプトを組んで送る。話者なしなら口調指示は空。
+		// 台詞は口調 directive（{traits} を話者の性質で埋めたもの）を base へ合成して訳す。話者なしなら口調指示は空。
 		dest, err := e.provider.Translate(ctx, conn, model, ComposePrompt(tmpl.BaseDirective, personas[row.ID].Directive, source))
 		if err != nil {
 			return done, fmt.Errorf("台詞の翻訳: %w", err)
@@ -170,16 +204,67 @@ func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string
 	return done, nil
 }
 
-// LoadDictionary は master_term を読み、固有名の機械置換辞書を組む。
-// 翻訳実行（Run）と結果取得（api の内訳・実プロンプト再構成）の両方が、ページ単位で 1 度だけ組んで使う。
+// directive のキー定数。本文フェーズが口調・固有名 directive を引くために使う（record_type_master.directive と一致）。
+const (
+	directiveTone       = "口調"
+	directiveProperNoun = "固有名"
+)
+
+// directiveLookups は directive と record_type_master を読み、本文フェーズの 2 つの引きを返す。
+// instructionByKey は directive キー → 指示文、keyByRF は (rec, field) → directive キー。
+func (e *Engine) directiveLookups(ctx context.Context) (instructionByKey map[string]string, keyByRF map[RecordKey]string, err error) {
+	directives, err := e.store.ListDirectives(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("directive の取得: %w", err)
+	}
+	instructionByKey = make(map[string]string, len(directives))
+	for _, d := range directives {
+		instructionByKey[d.Key] = d.Instruction
+	}
+	masterRows, err := e.store.ListRecordTypeMaster(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("record_type_master の取得: %w", err)
+	}
+	keyByRF = make(map[RecordKey]string, len(masterRows))
+	for _, r := range masterRows {
+		keyByRF[RecordKey{Rec: r.Rec, Field: r.Field}] = r.Directive
+	}
+	return instructionByKey, keyByRF, nil
+}
+
+// authoritativeTerms は master_term を source→dest の既訳辞書へ畳む（固有名フェーズの供給源選別に使う）。
+func (e *Engine) authoritativeTerms(ctx context.Context) (map[string]string, error) {
+	terms, err := e.store.ListMasterTerms(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("master_term の取得: %w", err)
+	}
+	m := make(map[string]string, len(terms))
+	for _, t := range terms {
+		if _, ok := m[t.Source]; !ok {
+			m[t.Source] = t.Dest
+		}
+	}
+	return m, nil
+}
+
+// LoadDictionary は master_term と確定済みの proper_noun を合流し、固有名の機械置換辞書を組む。
+// 翻訳実行（Run の本文フェーズ）と結果取得（api の内訳・実プロンプト再構成）が、ページ単位で 1 度だけ組んで使う。
+// master_term（権威訳）を先に積み、同綴りの proper_noun より優先する（NewDictionary は先勝ち）。
 func (e *Engine) LoadDictionary(ctx context.Context) (*Dictionary, error) {
 	terms, err := e.store.ListMasterTerms(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("マスター辞書の取得: %w", err)
 	}
-	pairs := make([]DictionaryTerm, len(terms))
-	for i, term := range terms {
-		pairs[i] = DictionaryTerm{Source: term.Source, Dest: term.Dest}
+	propers, err := e.store.ListProperNouns(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("固有名の取得: %w", err)
+	}
+	pairs := make([]DictionaryTerm, 0, len(terms)+len(propers))
+	for _, term := range terms {
+		pairs = append(pairs, DictionaryTerm{Source: term.Source, Dest: term.Dest})
+	}
+	for _, pn := range propers {
+		pairs = append(pairs, DictionaryTerm{Source: pn.Source, Dest: pn.Dest})
 	}
 	return NewDictionary(pairs), nil
 }

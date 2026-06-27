@@ -3,6 +3,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os/exec"
 	"path/filepath"
@@ -22,16 +23,21 @@ const progressEventName = "translation:progress"
 // defaultPageLimit は ListResultsPage の limit が未指定（0 以下）のときの既定ページ件数。
 const defaultPageLimit = 50
 
-// Store は api が結果一覧の keyset ページングとプロンプトテンプレートの CRUD に使う
-// 中心データアクセスの interface（使う分だけ宣言する）。
+// Store は api が結果一覧の keyset ページング、プロンプトテンプレートの CRUD、
+// 指示文（directive）の編集と REC:FIELD 種別の参照に使う中心データアクセスの interface（使う分だけ宣言する）。
 type Store interface {
 	CountNarrations(ctx context.Context) (int, error)
 	CountLines(ctx context.Context) (int, error)
+	CountProperNouns(ctx context.Context) (int, error)
 	NarrationsAfter(ctx context.Context, afterID int64, limit int) ([]model.Narration, error)
 	LinesAfter(ctx context.Context, afterID int64, limit int) ([]model.Line, error)
+	ProperNounsAfter(ctx context.Context, afterID int64, limit int) ([]model.ProperNoun, error)
 	GetPromptTemplate(ctx context.Context) (model.PromptTemplate, error)
 	SavePromptTemplate(ctx context.Context, t model.PromptTemplate) error
 	LoadLineSpeakers(ctx context.Context, lineIDs []int64) (map[int64]model.LineSpeaker, error)
+	ListDirectives(ctx context.Context) ([]model.Directive, error)
+	SaveDirectiveInstruction(ctx context.Context, key, instruction string) error
+	ListRecordTypeMaster(ctx context.Context) ([]model.RecordType, error)
 }
 
 // ExtractorConfig は抽出子プロセス（C#）の起動設定。
@@ -110,21 +116,30 @@ type SpeakerView struct {
 	Voice string `json:"voice"` // 声型 EditorID（例 FemaleOldGrumpy。役割語でなく対人 prior の根拠）
 }
 
-// ResultView は結果一覧の表示用 DTO。叙述文と台詞を共通の行として表す。
+// RecordTypeView は結果行の元レコード種別バッジ（箱 ・ REC:FIELD）。
+// Box は概念モデルの箱（叙述文/固有名/定型句/台詞）、RecField は "REC:FIELD"（固有名は種別＝rec）。
+type RecordTypeView struct {
+	Box      string `json:"box"`
+	RecField string `json:"recField"`
+}
+
+// ResultView は結果一覧の表示用 DTO。叙述文・定型句・台詞・固有名を共通の行として表す。
 // Speaker・Directive・PersonaLabel・Persona は話者を解決できた台詞だけ持つ（叙述文や話者なしの台詞は省略）。
 // Terms は本文で辞書から確定訳語へ置換した固有名の内訳。置換が無い行は空で省略する。
-// Prompt は実際に翻訳 AI へ投げた完成プロンプト（base 指示＋口調指示＋機械置換済み原文）を取得時に再構成した全文。
+// Prompt は実際に翻訳 AI へ投げた完成プロンプト（base 指示＋directive＋機械置換済み原文）を取得時に再構成した全文。
+// RecordType は元レコード種別バッジ。
 type ResultView struct {
-	EDID         string       `json:"edid"`
-	Source       string       `json:"source"`
-	Dest         string       `json:"dest"`
-	StatusLabel  string       `json:"statusLabel"`
-	Speaker      *SpeakerView `json:"speaker,omitempty"`
-	Directive    string       `json:"directive,omitempty"`
-	PersonaLabel string       `json:"personaLabel,omitempty"`
-	Persona      *PersonaView `json:"persona,omitempty"`
-	Terms        []TermView   `json:"terms,omitempty"`
-	Prompt       string       `json:"prompt,omitempty"`
+	EDID         string          `json:"edid"`
+	Source       string          `json:"source"`
+	Dest         string          `json:"dest"`
+	StatusLabel  string          `json:"statusLabel"`
+	RecordType   *RecordTypeView `json:"recordType,omitempty"`
+	Speaker      *SpeakerView    `json:"speaker,omitempty"`
+	Directive    string          `json:"directive,omitempty"`
+	PersonaLabel string          `json:"personaLabel,omitempty"`
+	Persona      *PersonaView    `json:"persona,omitempty"`
+	Terms        []TermView      `json:"terms,omitempty"`
+	Prompt       string          `json:"prompt,omitempty"`
 }
 
 // RunResult は実行結果の要約。結果一覧は数万件になりうるためここでは返さず、
@@ -209,6 +224,85 @@ func (a *App) SavePromptTemplate(req PromptTemplateView) error {
 	return nil
 }
 
+// TemplateVariableView は directive が実行時に埋める変数 1 件（プロンプトテンプレート画面のレコード別タブ用）。
+type TemplateVariableView struct {
+	Token       string `json:"token"`
+	Description string `json:"description"`
+}
+
+// DirectiveView は指示文 1 件（key・指示文・変数宣言）。レコード別タブで指示文を編集する単位。
+type DirectiveView struct {
+	Key         string                 `json:"key"`
+	Instruction string                 `json:"instruction"`
+	Variables   []TemplateVariableView `json:"variables"`
+}
+
+// RecordAssignmentView は REC:FIELD → directive の割り当て 1 件（読み取り専用の対象一覧）。
+type RecordAssignmentView struct {
+	RecField    string `json:"recField"`
+	LogicalName string `json:"logicalName"`
+	Directive   string `json:"directive"`
+}
+
+// DirectiveEditingView はプロンプトテンプレート画面のレコード別タブの表示用 DTO。
+// Directives は編集できる指示文一覧、Assignments は各 directive の対象 REC:FIELD（割り当ては固定で編集不可）。
+type DirectiveEditingView struct {
+	Directives  []DirectiveView        `json:"directives"`
+	Assignments []RecordAssignmentView `json:"assignments"`
+}
+
+// GetDirectiveEditing は編集画面のレコード別タブ初期表示用に、指示文一覧と REC:FIELD 割り当てを返す。
+func (a *App) GetDirectiveEditing() (DirectiveEditingView, error) {
+	ctx := a.baseCtx()
+	directives, err := a.store.ListDirectives(ctx)
+	if err != nil {
+		return DirectiveEditingView{}, fmt.Errorf("directive の取得: %w", err)
+	}
+	assignments, err := a.store.ListRecordTypeMaster(ctx)
+	if err != nil {
+		return DirectiveEditingView{}, fmt.Errorf("REC:FIELD 割り当ての取得: %w", err)
+	}
+	return DirectiveEditingView{
+		Directives:  directiveViews(directives),
+		Assignments: assignmentViews(assignments),
+	}, nil
+}
+
+// SaveDirective は編集した指示文を保存する。割り当て（record_type_master）は固定のため変えず、指示文だけ書き換える。
+func (a *App) SaveDirective(key, instruction string) error {
+	if err := a.store.SaveDirectiveInstruction(a.baseCtx(), key, instruction); err != nil {
+		return fmt.Errorf("指示文の保存: %w", err)
+	}
+	return nil
+}
+
+// directiveViews は directive 行を表示 DTO へ写し、変数宣言（JSON）を配列へ解く。
+func directiveViews(rows []model.Directive) []DirectiveView {
+	out := make([]DirectiveView, len(rows))
+	for i, d := range rows {
+		var vars []TemplateVariableView
+		if strings.TrimSpace(d.Variables) != "" {
+			// 変数宣言が壊れていても画面を止めない。解けなければ変数なし扱いにする。
+			_ = json.Unmarshal([]byte(d.Variables), &vars)
+		}
+		out[i] = DirectiveView{Key: d.Key, Instruction: d.Instruction, Variables: vars}
+	}
+	return out
+}
+
+// assignmentViews は record_type_master 行を表示 DTO へ写す（REC:FIELD は "REC:FIELD" に組む）。
+func assignmentViews(rows []model.RecordType) []RecordAssignmentView {
+	out := make([]RecordAssignmentView, len(rows))
+	for i, r := range rows {
+		out[i] = RecordAssignmentView{
+			RecField:    r.Rec + ":" + r.Field,
+			LogicalName: r.LogicalName,
+			Directive:   r.Directive,
+		}
+	}
+	return out
+}
+
 // RunExtractAndTranslate は plugin を抽出し、未訳の叙述文と台詞を翻訳し、翻訳件数の要約を返す。
 // 結果一覧は数万件になりうるためここでは返さず、frontend が ListResultsPage で取得する。
 // 抽出中は extract 進捗を、本文翻訳中は translate 進捗を runtime event で push する。
@@ -231,6 +325,13 @@ func (a *App) RunExtractAndTranslate(req RunRequest) (RunResult, error) {
 		return RunResult{}, fmt.Errorf("固有名の派生に失敗: %w", err)
 	}
 
+	// 取込段: C# が素朴吸い出しした extracted_field を record_type_master で振り分け、
+	// narration（叙述文・定型句）・proper_noun（固有名）・line（台詞）へ投入し、話者連関を解決する。
+	// 本文・固有名フェーズより前に 1 度実行する。冪等。
+	if _, err := a.engine.Ingest(ctx); err != nil {
+		return RunResult{}, fmt.Errorf("取込段に失敗: %w", err)
+	}
+
 	count, runErr := a.engine.Run(ctx, provider.Connection{Endpoint: req.Endpoint, APIKey: req.APIKey}, req.Model,
 		func(done, total int) {
 			a.emitProgress(ProgressEvent{Stage: "translate", Done: done, Total: total})
@@ -251,16 +352,17 @@ func (a *App) emitProgress(ev ProgressEvent) {
 	wailsruntime.EventsEmit(a.ctx, progressEventName, ev)
 }
 
-// cursor の区間種別。叙述文（id 昇順）を先頭に、台詞（id 昇順）を続けた連結列上の位置を表す。
+// cursor の区間種別。叙述文（id 昇順）→ 台詞（id 昇順）→ 固有名（id 昇順）の連結列上の位置を表す。
 const (
 	cursorNarration = "n"
 	cursorLine      = "l"
+	cursorProper    = "p"
 )
 
 // parseCursor は cursor を区間種別と afterID へ分解する。""（先頭）や不正な cursor は叙述文先頭（id 0）とみなす。
 func parseCursor(cursor string) (section string, afterID int64) {
 	parts := strings.SplitN(cursor, ":", 2)
-	if len(parts) == 2 && (parts[0] == cursorNarration || parts[0] == cursorLine) {
+	if len(parts) == 2 && (parts[0] == cursorNarration || parts[0] == cursorLine || parts[0] == cursorProper) {
 		if id, err := strconv.ParseInt(parts[1], 10, 64); err == nil {
 			return parts[0], id
 		}
@@ -273,23 +375,31 @@ func makeCursor(section string, id int64) string {
 	return section + ":" + strconv.FormatInt(id, 10)
 }
 
-// buildResultsPage は cursor の指すページの叙述文・台詞を取り、台詞へ口調を一括で付けて ResultPage を返す。
-// 各行の原文へ機械置換辞書を当て直し、置換内訳（terms）を再構成して結果行へ供給する。
+// buildResultsPage は cursor の指すページの叙述文・台詞・固有名を取り、台詞へ口調を一括で付けて ResultPage を返す。
+// 各行の原文へ機械置換辞書を当て直し、置換内訳（terms）と元レコード種別バッジ（recordType）を再構成して供給する。
 func (a *App) buildResultsPage(ctx context.Context, cursor string, limit int) (ResultPage, error) {
-	narrations, lines, total, nextCursor, hasMore, err := a.pageRows(ctx, cursor, limit)
+	narrations, lines, propers, total, nextCursor, hasMore, err := a.pageRows(ctx, cursor, limit)
 	if err != nil {
 		return ResultPage{}, err
 	}
 
-	// プロンプトテンプレート（base 指示・口調指示の雛形）をページ単位で 1 度だけ読む。
-	// 実行時と同じ雛形で実プロンプトを再構成し、保存済みテンプレートを参照へ反映する。
+	// base 指示と、(rec, field) ごとの directive 指示文をページ単位で 1 度だけ読み、実プロンプトを実行時と同じ式で再構成する。
 	tmpl, err := a.store.GetPromptTemplate(ctx)
 	if err != nil {
 		return ResultPage{}, fmt.Errorf("プロンプトテンプレートの取得: %w", err)
 	}
+	directives, err := a.store.ListDirectives(ctx)
+	if err != nil {
+		return ResultPage{}, fmt.Errorf("directive の取得: %w", err)
+	}
+	masterRows, err := a.store.ListRecordTypeMaster(ctx)
+	if err != nil {
+		return ResultPage{}, fmt.Errorf("record_type_master の取得: %w", err)
+	}
+	instructionByKey, boxByRF, directiveByRF := resultLookups(directives, masterRows)
 
-	// ページの台詞ぶんだけ口調を 1 度に一括生成する（台詞ごとの DB 問い合わせを避ける）。
-	personas, err := a.engine.LinePersonas(ctx, lineIDs(lines), tmpl.PersonaTemplate)
+	// ページの台詞ぶんだけ口調を 1 度に一括生成する（台詞ごとの DB 問い合わせを避ける）。口調 directive の指示文を雛形にする。
+	personas, err := a.engine.LinePersonas(ctx, lineIDs(lines), instructionByKey["口調"])
 	if err != nil {
 		return ResultPage{}, fmt.Errorf("口調の一括生成: %w", err)
 	}
@@ -300,20 +410,22 @@ func (a *App) buildResultsPage(ctx context.Context, cursor string, limit int) (R
 		return ResultPage{}, fmt.Errorf("話者識別の一括取得: %w", err)
 	}
 
-	// 機械置換辞書をページ単位で 1 度だけ組み、各行の原文へ当て直して内訳を再構成する。
+	// 機械置換辞書をページ単位で 1 度だけ組み、各行の原文へ当て直して内訳を再構成する（master_term ∪ proper_noun）。
 	dict, err := a.engine.LoadDictionary(ctx)
 	if err != nil {
 		return ResultPage{}, fmt.Errorf("機械置換辞書の構築: %w", err)
 	}
 
-	views := make([]ResultView, 0, len(narrations)+len(lines))
+	views := make([]ResultView, 0, len(narrations)+len(lines)+len(propers))
 	for _, n := range narrations {
 		view := narrationResultView(n)
+		view.RecordType = recordTypeView(boxByRF, n.Rec, n.Field)
 		// 原文へ辞書を当て直し、置換内訳（terms）と、置換済み原文から組んだ実プロンプトを再構成する。
 		replaced, used := dict.Apply(n.Source)
 		view.Terms = termViews(used)
-		// 叙述文は口調指示なし。実行時と同じ構築関数で完成プロンプトを組み、表示用全文へ描く。
-		view.Prompt = engine.RenderPrompt(engine.ComposePrompt(tmpl.BaseDirective, "", replaced))
+		// 叙述文・定型句は、その REC:FIELD の文体・定型句 directive を base へ合成した実プロンプトを再構成する。
+		instruction := instructionByKey[directiveByRF[RecordKey{Rec: n.Rec, Field: n.Field}]]
+		view.Prompt = engine.RenderPrompt(engine.ComposePrompt(tmpl.BaseDirective, instruction, replaced))
 		views = append(views, view)
 	}
 	for _, l := range lines {
@@ -324,6 +436,7 @@ func (a *App) buildResultsPage(ctx context.Context, cursor string, limit int) (R
 			Source:       l.Source,
 			Dest:         l.Dest,
 			StatusLabel:  statusLabel(l.Status),
+			RecordType:   recordTypeView(boxByRF, l.Rec, l.Field),
 			Directive:    p.Directive,
 			PersonaLabel: p.Label,
 			Terms:        termViews(used),
@@ -352,7 +465,51 @@ func (a *App) buildResultsPage(ctx context.Context, cursor string, limit int) (R
 		}
 		views = append(views, view)
 	}
+	for _, pn := range propers {
+		// 固有名は本文より先に確定した訳の単位。種別バッジは箱＝固有名、REC:FIELD は種別（category＝rec）。
+		view := ResultView{
+			EDID:        pn.Source,
+			Source:      pn.Source,
+			Dest:        pn.Dest,
+			StatusLabel: statusLabel(pn.Status),
+			RecordType:  &RecordTypeView{Box: "固有名", RecField: pn.Category},
+		}
+		views = append(views, view)
+	}
 	return ResultPage{Total: total, Results: views, NextCursor: nextCursor, HasMore: hasMore}, nil
+}
+
+// RecordKey は record_type_master の引きキー (rec, field)。結果行の種別バッジ・directive 再構成に使う。
+type RecordKey struct {
+	Rec   string
+	Field string
+}
+
+// resultLookups は directive と record_type_master から結果再構成用の 3 つの引きを作る。
+// instructionByKey は directive キー → 指示文、boxByRF は (rec, field) → box、directiveByRF は (rec, field) → directive キー。
+func resultLookups(directives []model.Directive, masterRows []model.RecordType) (
+	instructionByKey map[string]string, boxByRF map[RecordKey]string, directiveByRF map[RecordKey]string) {
+	instructionByKey = make(map[string]string, len(directives))
+	for _, d := range directives {
+		instructionByKey[d.Key] = d.Instruction
+	}
+	boxByRF = make(map[RecordKey]string, len(masterRows))
+	directiveByRF = make(map[RecordKey]string, len(masterRows))
+	for _, r := range masterRows {
+		key := RecordKey{Rec: r.Rec, Field: r.Field}
+		boxByRF[key] = r.Box
+		directiveByRF[key] = r.Directive
+	}
+	return instructionByKey, boxByRF, directiveByRF
+}
+
+// recordTypeView は (rec, field) から元レコード種別バッジを組む。master に無い (rec, field) は nil（バッジを出さない）。
+func recordTypeView(boxByRF map[RecordKey]string, rec, field string) *RecordTypeView {
+	box, ok := boxByRF[RecordKey{Rec: rec, Field: field}]
+	if !ok {
+		return nil
+	}
+	return &RecordTypeView{Box: box, RecField: rec + ":" + field}
 }
 
 // termViews は辞書の置換内訳（engine.DictionaryTerm）を結果行の表示 DTO へ写す。置換が無ければ nil を返す。
@@ -367,65 +524,84 @@ func termViews(used []engine.DictionaryTerm) []TermView {
 	return out
 }
 
-// pageRows は keyset cursor から当該ページの叙述文・台詞、総件数、次 cursor、続きの有無を決める。
-// 叙述文区間でページに満たなければ台詞を先頭から補充して台詞区間へ移る。口調は付けない（呼び出し側が付ける）。
-func (a *App) pageRows(ctx context.Context, cursor string, limit int) (narrations []model.Narration, lines []model.Line, total int, nextCursor string, hasMore bool, err error) {
+// pageRows は keyset cursor から当該ページの叙述文・台詞・固有名、総件数、次 cursor、続きの有無を決める。
+// 区間は叙述文 → 台詞 → 固有名 の順に連結し、ある区間がページに満たなければ次区間の先頭から補充する。
+// 口調・種別バッジは付けない（呼び出し側が付ける）。
+func (a *App) pageRows(ctx context.Context, cursor string, limit int) (
+	narrations []model.Narration, lines []model.Line, propers []model.ProperNoun,
+	total int, nextCursor string, hasMore bool, err error) {
 	nTotal, err := a.store.CountNarrations(ctx)
 	if err != nil {
-		return nil, nil, 0, "", false, fmt.Errorf("叙述文の件数: %w", err)
+		return nil, nil, nil, 0, "", false, fmt.Errorf("叙述文の件数: %w", err)
 	}
 	lTotal, err := a.store.CountLines(ctx)
 	if err != nil {
-		return nil, nil, 0, "", false, fmt.Errorf("台詞の件数: %w", err)
+		return nil, nil, nil, 0, "", false, fmt.Errorf("台詞の件数: %w", err)
 	}
-	total = nTotal + lTotal
+	pTotal, err := a.store.CountProperNouns(ctx)
+	if err != nil {
+		return nil, nil, nil, 0, "", false, fmt.Errorf("固有名の件数: %w", err)
+	}
+	total = nTotal + lTotal + pTotal
 
 	section, afterID := parseCursor(cursor)
+	remaining := limit
+	cur := section
 
-	// 台詞区間: 台詞だけを afterID から取る。
-	if section == cursorLine {
-		lines, err = a.store.LinesAfter(ctx, afterID, limit+1)
+	// 叙述文区間: cursor がここから始まるときだけ取る。limit を超えたらこの区間で切る。
+	if cur == cursorNarration {
+		narrations, err = a.store.NarrationsAfter(ctx, afterID, remaining+1)
 		if err != nil {
-			return nil, nil, 0, "", false, fmt.Errorf("台詞ページの取得: %w", err)
+			return nil, nil, nil, 0, "", false, fmt.Errorf("叙述文ページの取得: %w", err)
 		}
-		hasMore = len(lines) > limit
-		if hasMore {
-			lines = lines[:limit]
+		if len(narrations) > remaining {
+			narrations = narrations[:remaining]
+			return narrations, nil, nil, total, makeCursor(cursorNarration, narrations[len(narrations)-1].ID), true, nil
 		}
-		if len(lines) > 0 {
-			nextCursor = makeCursor(cursorLine, lines[len(lines)-1].ID)
-		}
-		return nil, lines, total, nextCursor, hasMore, nil
+		remaining -= len(narrations)
+		cur, afterID = cursorLine, 0
 	}
 
-	// 叙述文区間: 叙述文で埋め、足りなければ台詞先頭から補充する。
-	narrations, err = a.store.NarrationsAfter(ctx, afterID, limit+1)
-	if err != nil {
-		return nil, nil, 0, "", false, fmt.Errorf("叙述文ページの取得: %w", err)
-	}
-	if len(narrations) > limit {
-		narrations = narrations[:limit]
-		return narrations, nil, total, makeCursor(cursorNarration, narrations[len(narrations)-1].ID), true, nil
+	// 台詞区間: 叙述文の残りを台詞で補充する。remaining が 0 ちょうどなら、台詞があれば次ページへ送る。
+	if cur == cursorLine {
+		lines, err = a.store.LinesAfter(ctx, afterID, remaining+1)
+		if err != nil {
+			return nil, nil, nil, 0, "", false, fmt.Errorf("台詞ページの取得: %w", err)
+		}
+		switch {
+		case remaining == 0:
+			if len(lines) > 0 {
+				return narrations, nil, nil, total, makeCursor(cursorLine, afterID), true, nil
+			}
+			lines = nil
+		case len(lines) > remaining:
+			lines = lines[:remaining]
+			return narrations, lines, nil, total, makeCursor(cursorLine, lines[len(lines)-1].ID), true, nil
+		default:
+			remaining -= len(lines)
+		}
+		cur, afterID = cursorProper, 0
 	}
 
-	remaining := limit - len(narrations)
-	lines, err = a.store.LinesAfter(ctx, 0, remaining+1)
-	if err != nil {
-		return nil, nil, 0, "", false, fmt.Errorf("台詞ページの取得: %w", err)
+	// 固有名区間（末尾）: 台詞の残りを固有名で補充する。ここで尽きれば続きなし。
+	if cur == cursorProper {
+		propers, err = a.store.ProperNounsAfter(ctx, afterID, remaining+1)
+		if err != nil {
+			return nil, nil, nil, 0, "", false, fmt.Errorf("固有名ページの取得: %w", err)
+		}
+		if remaining == 0 {
+			if len(propers) > 0 {
+				return narrations, lines, nil, total, makeCursor(cursorProper, afterID), true, nil
+			}
+			return narrations, lines, nil, total, "", false, nil
+		}
+		if len(propers) > remaining {
+			propers = propers[:remaining]
+			return narrations, lines, propers, total, makeCursor(cursorProper, propers[len(propers)-1].ID), true, nil
+		}
+		return narrations, lines, propers, total, "", false, nil
 	}
-	lineHasMore := len(lines) > remaining
-	if lineHasMore {
-		lines = lines[:remaining]
-	}
-	switch {
-	case len(lines) > 0:
-		return narrations, lines, total, makeCursor(cursorLine, lines[len(lines)-1].ID), lineHasMore, nil
-	case lineHasMore:
-		// 叙述文がちょうどページを埋め、台詞が残る。次ページは台詞先頭（afterID 0）から。
-		return narrations, nil, total, makeCursor(cursorLine, 0), true, nil
-	default:
-		return narrations, nil, total, "", false, nil
-	}
+	return narrations, lines, propers, total, "", false, nil
 }
 
 // lineIDs は台詞行から id 列を取り出す（口調の一括生成の入力用）。

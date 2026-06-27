@@ -8,10 +8,10 @@ using Xunit;
 
 namespace Extractor.Tests;
 
-// 台詞 SQLite writer の検証。台詞（INFO:NAM1）を db/migrations の schema へ冪等に書くこと。
-// 話者解決（NPC→種族/声型/勢力）の網羅は実 mod 抽出で確認するため、本テストは話者なし台詞の書込と
-// 冪等性に絞り、LinkCache は空のものを渡す。
-public class LineSpeakerSqliteWriterTests
+// 話者 writer の検証。INFO→speaker の橋渡し（extracted_info_speaker）を db/migrations の schema へ冪等に書くこと。
+// 話者解決（NPC→種族/声型/勢力）の網羅は実 mod 抽出で確認するため、本テストは話者が解決できない場合の
+// 振る舞い（橋渡しを書かない・落ちない）に絞り、LinkCache は空のものを渡す。台詞本文は ExtractedFieldSqliteWriter が書く。
+public class SpeakerSqliteWriterTests
 {
     private static string RepoRoot()
     {
@@ -22,7 +22,6 @@ public class LineSpeakerSqliteWriterTests
         return dir!.FullName;
     }
 
-    // 0001 と 0002 を結合した schema（line/speaker テーブルは 0002）。
     private static string Schema()
     {
         var migrations = Path.Combine(RepoRoot(), "db", "migrations");
@@ -59,35 +58,20 @@ public class LineSpeakerSqliteWriterTests
     }
 
     [Fact]
-    public void INFO_NAM1_を_line_へ書く()
+    public void 話者が解決できない_INFO_は橋渡しを書かない()
     {
-        var dbPath = Path.Combine(Path.GetTempPath(), $"lw-{Guid.NewGuid():N}.sqlite3");
+        var dbPath = Path.Combine(Path.GetTempPath(), $"sp-{Guid.NewGuid():N}.sqlite3");
         try
         {
-            var count = LineSpeakerSqliteWriter.Write(dbPath, Schema(), WithInfo("InfoA", 0x800, "Hello.", "Goodbye."), EmptyLinkCache());
-            Assert.Equal(2, count);
+            // 空 LinkCache では話者 NPC を解決できない（info.SpeakerIds も空）。橋渡し 0 件で落ちないこと。
+            var count = SpeakerSqliteWriter.Write(dbPath, Schema(), WithInfo("InfoA", 0x800, "Hello.", "Goodbye."), EmptyLinkCache());
+            Assert.Equal(0, count);
 
             using var conn = new SqliteConnection($"Data Source={dbPath}");
             conn.Open();
             using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT plugin, form_id, edid, rec, field, ordinal, response_order, source, status FROM line ORDER BY ordinal";
-            using var reader = cmd.ExecuteReader();
-
-            Assert.True(reader.Read());
-            Assert.Equal("Test.esp", reader.GetString(0));
-            Assert.Equal("0x000800", reader.GetString(1));
-            Assert.Equal("InfoA", reader.GetString(2));
-            Assert.Equal("INFO", reader.GetString(3));
-            Assert.Equal("NAM1", reader.GetString(4));
-            Assert.Equal(1, reader.GetInt32(5));  // ordinal = response 番号
-            Assert.Equal(1, reader.GetInt32(6));  // response_order
-            Assert.Equal("Hello.", reader.GetString(7));
-            Assert.Equal(0, reader.GetInt32(8));  // status = 未訳
-
-            Assert.True(reader.Read());
-            Assert.Equal("Goodbye.", reader.GetString(7));
-            Assert.Equal(2, reader.GetInt32(5));
-            Assert.False(reader.Read());
+            cmd.CommandText = "SELECT COUNT(*) FROM extracted_info_speaker";
+            Assert.Equal(0L, (long)cmd.ExecuteScalar()!);
         }
         finally
         {
@@ -96,19 +80,19 @@ public class LineSpeakerSqliteWriterTests
     }
 
     [Fact]
-    public void 同じ台詞を二度書いても重複しない()
+    public void 二度書いても落ちない_冪等()
     {
-        var dbPath = Path.Combine(Path.GetTempPath(), $"lw-{Guid.NewGuid():N}.sqlite3");
+        var dbPath = Path.Combine(Path.GetTempPath(), $"sp-{Guid.NewGuid():N}.sqlite3");
         try
         {
-            LineSpeakerSqliteWriter.Write(dbPath, Schema(), WithInfo("InfoA", 0x800, "Hello."), EmptyLinkCache());
-            LineSpeakerSqliteWriter.Write(dbPath, Schema(), WithInfo("InfoA", 0x800, "Hello."), EmptyLinkCache());
+            SpeakerSqliteWriter.Write(dbPath, Schema(), WithInfo("InfoA", 0x800, "Hello."), EmptyLinkCache());
+            SpeakerSqliteWriter.Write(dbPath, Schema(), WithInfo("InfoA", 0x800, "Hello."), EmptyLinkCache());
 
             using var conn = new SqliteConnection($"Data Source={dbPath}");
             conn.Open();
             using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT COUNT(*) FROM line";
-            Assert.Equal(1L, (long)cmd.ExecuteScalar()!);
+            cmd.CommandText = "SELECT COUNT(*) FROM extracted_info_speaker";
+            Assert.Equal(0L, (long)cmd.ExecuteScalar()!);
         }
         finally
         {

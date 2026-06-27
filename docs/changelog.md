@@ -4,6 +4,50 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-06-27 record-type-translation-expansion の AI 実走確認と正本化判断（finalization）
+
+### 変更
+
+- `docs/exec-plans/active/2026-06-23-record-type-translation-expansion/plan.md`: finalization-module 記録（AI 実走の実画面確認・検証・正本化判断・merge）を追加。
+
+### 判断
+
+- パイプライン段階追加の正本化: 翻訳手続きへ「取込段（C# 素朴吸い出しの `extracted_field` を `record_type_master` で箱別へ振り分け）」と「固有名フェーズ（固有名を本文より先に確定し辞書化）」を加え、箱判定の責務を C# 抽出器から Go engine へ移した。`docs/architecture.md` へは反映しない。理由: 層・依存方向・Wails 境界のいずれも不変（新規 package/box なし、engine の新規 consumer interface は §4 既存パターン、Bind 追加は §5 機構を変えない）。`feedback-architecture-reflection-structural-only` に従い §8 を churn しない。§8 の「extractor が narration/line を書く」記述は現状と乖離するが、構造説明としては不変のため据え置き、データフローの現状は本 changelog を参照先とする。
+- `docs/er.md` への追記は不要と確定。理由: er.md は概念モデル 10 箱の論理 ER で、対象外に「マスター辞書・実現方式・schema version」を明記。新表のうち `directive`・`record_type_master` は config、`extracted_field`・`extracted_info_speaker` は実現方式の buffer/staging で概念箱でない。`proper_noun`/`narration`/`line` は既存箱。設計時 Routing Notes の暫定 canonicalization_targets（er.md・§8）は、実装後の実スコープ判定で反映不要へ確定。
+- AI 実走で MECE モデルの動作を確認: 固有名フェーズ先行→ペルソナ生成→本文フェーズ（叙述文・台詞）の段階順が hy-mt2-7b で成立。固有名注入が叙述文・台詞を通して一貫し、台詞の口調が話者差で出た。7B 翻訳特化モデルでも注入カタカナを保持する点を `project-injected-token-fidelity` へ追記（「弱い小型モデルは崩す」の単純一般化は不成立）。
+
+## 2026-06-25 record-type-translation-expansion の Storybook レビューと MECE モデルへの収束
+
+### 変更
+
+- `frontend/src/ui/screens/template-editor/`: プロンプトテンプレート画面をサブタブ [ベース][レコード別] へ作り直し、レコード別タブを「種別ごとの指示文（directive）」の一律一覧にした（`TemplateEditorScreen.svelte`・`TemplateBasePane.svelte`・`DirectiveEditor.svelte`・`directive-view.ts`・`directive-presentation.ts`・`template-editor.fixtures.ts` 新設/改訂、`template-editor-view.ts` から `TemplatePlaceholder` 撤去、`TemplateEditorContainer.svelte` から不要 placeholders 受け渡し撤去）。
+- `frontend/src/ui/screens/translation-run/`: 結果行へ元レコード種別バッジ（箱 ・ REC:FIELD）を追加（`TranslationResultRow.svelte`・`translation-run-view.ts`）。
+- `frontend/src/ui/screens/record-type-master/`: 独立画面のレコード種別マスター一式を削除（directive へ畳んだため）。
+- `frontend/package.json`: knip ignore を整理。
+- `docs/exec-plans/active/2026-06-23-record-type-translation-expansion/implementation-scope.md`: 実装範囲を MECE モデルへ更新。`plan.md`: status・HITL Status・合意済み frontend 保護を記入。
+
+### 判断
+
+- Storybook 人間レビューで設計が段階的に収束した。経緯: 一覧に論理名を追加 → 種別ごとの文体 select は「割り当ては変えない」ため撤去（編集は指示文だけ）→ 翻訳対象列と翻訳しない種別をマスターから外す（読み込まない種別はマスターに不要）→ 独立画面でなくプロンプトテンプレートのタブへ統合 → 「MECE 感がない」を受けプロンプトの作られ方から再設計。
+- 確定モデル: プロンプト = Base 指示 ＋ その REC:FIELD に割り当てた指示文（directive、変数を実行時に埋めたもの）。口調・文体・固有名・定型句を「指示文」という 1 つの形に揃え、口調は `{traits}` 変数を持つ指示文の 1 つにした。固有名・定型句も指示文を編集できる。各 REC:FIELD は指示文を 1 つだけ持ち（排他）、全 translatable REC:FIELD が指示文へ割り当たる（網羅）。
+- データ面: `style_template`（文体専用）を `directive`（全種別の指示文）へ一般化。`prompt_template` の口調（persona）は directive の口調行へ畳む。`record_type_master` は REC:FIELD → directive の割り当てを持ち、翻訳対象だけを載せる（翻訳対象フラグ・無訳片の行を持たない）。
+- storybook-module の表示範囲を越える最小の触り: `TemplateEditorContainer` から不要になった placeholders 受け渡しを撤去した。タブ状態・directive データ・指示文保存の本配線は implementation-module。
+
+## 2026-06-25 record-type-translation-expansion の設計確定（人間設計レビュー承認）
+
+### 変更
+
+- `docs/exec-plans/active/2026-06-23-record-type-translation-expansion/implementation-scope.md`（新規）: design-module 出口の実装範囲とテスト設計を固定。
+- `docs/exec-plans/active/2026-06-23-record-type-translation-expansion/plan.md`: `status` を design-module 承認済み・storybook-module 待ちへ更新。後続モジュールが埋める枠（Artifact Index・Routing Notes・HITL Status）を記入。
+- `docs/exec-plans/active/2026-06-23-record-type-translation-expansion/design-review.md`: 人間設計レビュー承認後に削除（一時材料）。
+
+### 判断
+
+- 人間設計レビューを承認で通過した（2026-06-25、人間の「先へ進めて」）。確定済み方針（方針 A=master_term 権威訳専用、レコード種別マスターで box と style を持つ、純粋判定は供給源選別とプロンプト合成の 2 つ、C# 抽出器は素朴吸い出し、style 画面編集）に加え、残る 3 確認点を確定した。
+- 確認点 1（抽出生テーブル）: `extracted_field` を新設して採用する。C# 抽出器を素朴吸い出しに徹させる方針の必然の受け皿で、箱判定を Go の取込段へ集約でき、C#/Go で箱知識が重複しない。抽出器が中心 DB のマスターを読む依存を増やさない。
+- 確認点 2（定型句）: `RNAM`・`MESG:ITXT`・`WOOP:TNAM` は重複排除せず `narration` 系として位置キーで訳す簡略案を採用する。`set_phrase` 重複排除テーブルは構造が増える。定型句訳の不一致やコストが実測で問題になった時に後続 task で重複排除を足す（起動条件付き）。
+- 確認点 3（style カラム方式）: 文体キー方式を採用する。`record_type_master.style` に文体キーを持ち、`style_template`（キー → 指示文）で指示文を共有する。文体は説明体・書物体・日記体・世界観断片の少数集合で複数 REC:FIELD が共有するため、指示文は文体に属する。直書き方式は同一指示文が rec 行へ重複し、文体 1 つの修正が複数行編集になる。概念モデルの文体を 1 対 1 で写すため正規化を採る。
+
 ## 2026-06-20 T4（prompt-persona-customization）の backend 本番接続と旧 E2E 残骸の削除
 
 ### 変更

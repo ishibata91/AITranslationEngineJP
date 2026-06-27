@@ -49,18 +49,19 @@ Console.WriteLine($"[extract] {plugin} を {sw.ElapsedMilliseconds} ms で抽出
 
 if (sqlitePath != null)
 {
-    // 中心 DB（SQLite）へ叙述文を書く。schema は db/migrations の SQL を ensure する（C#↔Go 契約 1 本）。
+    // 中心 DB（SQLite）へ翻訳対象を書く。schema は db/migrations の SQL を ensure する（C#↔Go 契約 1 本）。
     var dir = schemaDir ?? FindSchemaDir();
     var schemaSql = string.Join("\n",
         Directory.GetFiles(dir, "*.sql").OrderBy(p => p, StringComparer.Ordinal).Select(File.ReadAllText));
-    // T1 の叙述文 1 種。種類を増やすときはここへ足す（writer ではなく呼び出し側が分類を持つ）。
-    var narrationRecFields = new HashSet<string> { "BOOK:DESC" };
-    var written = NarrationSqliteWriter.Write(sqlitePath, schemaSql, result, narrationRecFields);
-    Console.WriteLine($"[sqlite] narration {written} 件を {sqlitePath} へ書き込み（{sw.ElapsedMilliseconds} ms）");
+    // 全 REC:FIELD の原文を extracted_field へ素朴に書く（箱・directive の判定は持たない）。
+    // 箱の振り分けは Go 取込段が record_type_master を引いて narration/proper_noun/line へ行う。
+    var written = ExtractedFieldSqliteWriter.Write(sqlitePath, schemaSql, result);
+    Console.WriteLine($"[sqlite] extracted_field {written} 件を {sqlitePath} へ書き込み（{sw.ElapsedMilliseconds} ms）");
 
-    // T2 の台詞（INFO:NAM1）と話者属性。話者は master 側 NPC を LinkCache で解決して書く。
-    var lineCount = LineSpeakerSqliteWriter.Write(sqlitePath, schemaSql, result, env.LinkCache);
-    Console.WriteLine($"[sqlite] line {lineCount} 件と話者属性を {sqlitePath} へ書き込み（{sw.ElapsedMilliseconds} ms）");
+    // 台詞の話者属性と INFO→speaker の橋渡し。話者は master 側 NPC を LinkCache で解決して書く。
+    // 台詞本文は extracted_field 側に入り、line 行と line_speaker は Go 取込段が作る。
+    var linkCount = SpeakerSqliteWriter.Write(sqlitePath, schemaSql, result, env.LinkCache);
+    Console.WriteLine($"[sqlite] 話者属性と INFO→speaker 橋渡し {linkCount} 件を {sqlitePath} へ書き込み（{sw.ElapsedMilliseconds} ms）");
 
     // T3 の固有名辞書（master_term）。xTranslator 英日辞書 XML（公式日本語版既訳）から FULL を読み、
     // 叙述文・台詞の本文へ機械置換するための「原語 → 確定訳語」を書く。
@@ -151,7 +152,7 @@ static void PrintUsage()
         使い方: extractor --data <DataFolder> --plugin <name.esp> [--sqlite <db>] [--xml <xTranslator XML>] [--language Japanese]
           --data      Skyrim の Data 相当フォルダ（esm/esp/esl + Strings/）
           --plugin    抽出対象 plugin ファイル名（master は同フォルダから自動解決）
-          --sqlite    中心 DB（SQLite）へ叙述文（BOOK:DESC）を書き込む。書込後に終了する
+          --sqlite    中心 DB（SQLite）へ全 REC:FIELD の原文（extracted_field）と話者属性を書き込む。書込後に終了する
           --schema    --sqlite 用の migrations ディレクトリ（既定 repo の db/migrations を自動探索）
           --terms-xml 固有名辞書（master_term）の供給元 xTranslator 英日 XML ディレクトリ（既定 data の兄弟 xTranslatorXMLs）
           --xml       xTranslator 辞書 XML と REC:FIELD 件数比較を行う（不一致なら exit 2）
