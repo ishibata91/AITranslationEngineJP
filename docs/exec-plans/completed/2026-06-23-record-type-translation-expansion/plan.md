@@ -158,4 +158,10 @@ LM Studio（`192.168.0.226:1234`、モデル `hy-mt2-7b`）復帰後に実 app�
 
 ### 作業 commit / local merge / completed 移動 / merge 結果 commit
 
-（以降で実行し hash を追記）
+- 作業 commit: `f05fddc9`（work branch `claude/2026-06-23-record-type-translation-expansion` 上、44 ファイル、2723 挿入・498 削除）。ノイズ（`.DS_Store`・`.claude/skills/presentation/SKILL.md`・`cmd|db|docs|scripts|tools/CLAUDE.md`・`docs/.obsidian/`）は本 task 外として除外し未コミットのまま残した。
+- local merge: `git merge --no-ff` で master へ取り込み。merge commit `2af24c53`。merge-base が master 先端（`18de51c0`）と一致し divergence なし、conflict なし。
+- merge 後検証: `go build ./...` 通過、`go test ./internal/... ./db/...` 全通過（cached＝merge 後ツリーは検証済み f05fddc9 と同一）。
+- completed 移動: `git mv docs/exec-plans/active/2026-06-23-record-type-translation-expansion docs/exec-plans/completed/`。
+- merge 結果 commit: 後述の hash（completed 移動と本記録を含めて master 上で commit）。
+- remote 操作: 行わない（push・tag・remote delete なし）。
+- 残留リスク: 固有名フェーズの大量翻訳は小型モデルでは時間がかかる（hy-mt2-7b で 1 件あたり数〜十数秒）。本 task の範囲外。後続 task（固有名辞書の永続化・既訳 XML 取り込み・言及自動検出）は本 plan の「後続 task」節に起動条件付きで記録済み。
