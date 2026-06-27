@@ -9,10 +9,11 @@
 ### 変更
 
 - `docs/exec-plans/active/2026-06-23-record-type-translation-expansion/plan.md`: finalization-module 記録（AI 実走の実画面確認・検証・正本化判断・merge）を追加。
+- `docs/architecture.md`: §3（engine 責務へ取込段・固有名フェーズを反映）・§8（現状記述を `extracted_field` 経由の振り分けへ修正、本 task の移行 entry を追加）を更新。
 
 ### 判断
 
-- パイプライン段階追加の正本化: 翻訳手続きへ「取込段（C# 素朴吸い出しの `extracted_field` を `record_type_master` で箱別へ振り分け）」と「固有名フェーズ（固有名を本文より先に確定し辞書化）」を加え、箱判定の責務を C# 抽出器から Go engine へ移した。`docs/architecture.md` へは反映しない。理由: 層・依存方向・Wails 境界のいずれも不変（新規 package/box なし、engine の新規 consumer interface は §4 既存パターン、Bind 追加は §5 機構を変えない）。`feedback-architecture-reflection-structural-only` に従い §8 を churn しない。§8 の「extractor が narration/line を書く」記述は現状と乖離するが、構造説明としては不変のため据え置き、データフローの現状は本 changelog を参照先とする。
+- パイプライン段階追加の正本化: 翻訳手続きへ「取込段（C# 素朴吸い出しの `extracted_field` を `record_type_master` で箱別へ振り分け）」と「固有名フェーズ（固有名を本文より先に確定し辞書化）」を加え、箱判定の責務を C# 抽出器から Go engine へ移した。当初は層・依存方向・Wails 境界のいずれも不変（新規 package/box なし、engine の新規 consumer interface は §4 既存パターン、Bind 追加は §5 機構を変えない）を理由に、`feedback-architecture-reflection-structural-only` に従い `docs/architecture.md` 反映を見送った。merge 後に人間指示「他の乖離を直してくれ」を受け、構造不変でも §8 の現在状態の記述が実装と乖離している点を反映へ切り替えた。§3・§8 を修正し、口調指示の供給が `prompt_template` の口調テンプレートから口調 `directive` へ移った点も §8 entry に明記した。
 - `docs/er.md` への追記は不要と確定。理由: er.md は概念モデル 10 箱の論理 ER で、対象外に「マスター辞書・実現方式・schema version」を明記。新表のうち `directive`・`record_type_master` は config、`extracted_field`・`extracted_info_speaker` は実現方式の buffer/staging で概念箱でない。`proper_noun`/`narration`/`line` は既存箱。設計時 Routing Notes の暫定 canonicalization_targets（er.md・§8）は、実装後の実スコープ判定で反映不要へ確定。
 - AI 実走で MECE モデルの動作を確認: 固有名フェーズ先行→ペルソナ生成→本文フェーズ（叙述文・台詞）の段階順が hy-mt2-7b で成立。固有名注入が叙述文・台詞を通して一貫し、台詞の口調が話者差で出た。7B 翻訳特化モデルでも注入カタカナを保持する点を `project-injected-token-fidelity` へ追記（「弱い小型モデルは崩す」の単純一般化は不成立）。
 

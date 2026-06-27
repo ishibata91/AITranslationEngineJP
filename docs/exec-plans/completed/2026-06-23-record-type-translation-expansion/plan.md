@@ -155,6 +155,7 @@ LM Studio（`192.168.0.226:1234`、モデル `hy-mt2-7b`）復帰後に実 app�
 - 根拠（`docs/architecture.md`）: 層（新規 box/package なし、追加は engine・store・model の既存層内）・依存方向（engine の新規 consumer interface は §4 が許す既存パターンの踏襲）・Wails 境界（Bind 追加は §5 の機構を変えない）のいずれも不変。`feedback-architecture-reflection-structural-only` に従い §8 を churn せず人間承認も求めない。パイプライン段階追加（取込段・固有名フェーズ）と C#→素朴吸い出し/Go→振り分けの責務移動は changelog に記録する（正本ではない）。
 - 根拠（`docs/er.md`、finalization の正本反映対象外だが整合を確認）: er.md は概念モデル 10 箱の論理 ER で、スコープ対象外に「マスター辞書・実現方式・schema version」を明記。新表は config（`directive`・`record_type_master`）と実現方式 buffer/staging（`extracted_field`・`extracted_info_speaker`）で概念箱でない。`proper_noun`/`narration`/`line` は既存概念箱。er.md §レコード識別は既に `QUST:CNAM`・`MESG:ITXT` の序数まで織り込み済みで本 task と整合。よって追記不要。
 - 人間承認状態: 構造不変につき承認不要（memory 準拠）。設計時 Routing Notes の canonicalization_targets（er.md・architecture.md §8）は「実在後に追記」の暫定で、実装後に er.md の実スコープと構造不変判定により反映不要へ確定。
+- 追補（merge 後、人間指示「他の乖離を直してくれ」を受領）: 構造は不変だが、`docs/architecture.md` §8 の「extractor は narration/line を書く」という現在状態の記述が実装と乖離していた。人間指示を承認として `architecture.md` を反映へ切り替えた。§3（engine 責務に取込段・固有名フェーズを反映）・§8 現状記述（extractor は `extracted_field` を書き engine の取込段が振り分ける）を修正し、§8 へ本 task の移行 entry（全 REC:FIELD 化・取込段・固有名フェーズ・directive・口調供給の prompt_template→口調 directive 移行・新 Bind）を追加。`er.md` は概念モデルの段でテーブルそのものではないと人間が確認し、据え置き。`docs/architecture.md`・本 plan・changelog の反映は同一 commit に含める（hash は git log 参照）。
 
 ### 作業 commit / local merge / completed 移動 / merge 結果 commit
 
