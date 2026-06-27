@@ -82,7 +82,7 @@ func wordSet(s string) map[string]bool {
 // DeriveTerms は NPC 対から人名の部分形の訳を派生し、安全フィルタを通った対だけを返す。
 // 同一原語に複数の由来が当たる場合は最初に採れた由来を保つ（shrt → byname → two の順）。
 // base 辞書に既にある原語は base を優先して派生に含めない。
-func DeriveTerms(fullPairs, shrtPairs []NamePair, usage Usage, baseSources map[string]bool, cfg DeriveConfig) []DerivedTerm {
+func DeriveTerms(fullPairs, shrtPairs []NamePair, usage Usage, baseSources map[string]bool, cfg DeriveConfig) []DerivedTerm { //nolint:gocognit // TODO(refactor): 派生規則の分岐集約（姓名分割/二つ名前部/短名と地雷除外）。リファクタ本体で規則ごとに分割する。
 	out := []DerivedTerm{}
 	seen := map[string]bool{}
 	add := func(source, dest, kind string) {

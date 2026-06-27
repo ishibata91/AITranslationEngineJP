@@ -13,7 +13,7 @@ import (
 
 // 本ファイルは xTranslator 英日 XML から人名の部分形（名のみ・短名）を派生する I/O を持つ。
 // 純粋ルール（termderive.go の DeriveTerms）へ XML 解析と用法集計を与える橋渡しで、
-// ビルド時コマンド（scripts/dict/derive-master-terms）と翻訳 Run（DeriveMasterTerms）の両方が使う。
+// 翻訳 Run の固有名派生（engine.DeriveMasterTerms）が使う。
 
 // baseGamePrefixes は base ゲーム（Bethesda 公式本体・DLC）の XML ファイル名接頭。姓名分割（two）を
 // base ゲーム限定にするための判定に使う。第三者 mod は Source/Dest 対応が信頼できないため two を派生しない。
@@ -70,7 +70,7 @@ type xmlString struct {
 // parseTermXML は 1 つの XML から NPC のフルネーム対・短名対と会話文の英語原文を取り出す。
 // baseGame は供給元が base ゲームかを示し、フルネーム対へ印を付ける（two の base ゲーム限定判定用）。
 // encoding/xml はエンティティ（&lt; など）を復号する。先頭 UTF-8 BOM は除いてから解析する。
-func parseTermXML(data []byte, baseGame bool) (fulls, shrts []NamePair, dialogues []string, err error) {
+func parseTermXML(data []byte, baseGame bool) (fulls, shrts []NamePair, dialogues []string, err error) { //nolint:gocognit // TODO(refactor): XML トークン走査の状態分岐（要素種別×収集先）。リファクタ本体で分割する。
 	data = bytes.TrimPrefix(data, []byte("\uFEFF"))
 	dec := xml.NewDecoder(bytes.NewReader(data))
 	for {

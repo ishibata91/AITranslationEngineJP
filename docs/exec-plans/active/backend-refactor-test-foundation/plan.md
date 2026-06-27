@@ -158,3 +158,31 @@ scope 外として記録した engine 非決定（`hashToText` の map 反復順
 残る不変ルールの純粋部括り出し方針と 100% 目標を [`unit-test-plan.md`](./unit-test-plan.md) へ固定した。各ルールの純粋単位・IO 統合部・現状カバレッジ実測値を表で示し、追加作業が要る純粋単位（`roleSpeechLine`・`parseTermXML`・`isBaseGame`・`directiveViews`・`assignmentViews`・`recordTypeView`・`termViews`）と、既に括り出し済みで同値維持だけ要る純粋単位（ingest 分類・termderive 派生・tone_catalog/role_speech の大半）を分けた。IO 統合部は単体対象にせず②の harness と api 統合で担保する方針を明記した。
 
 最終検証（④⑤後）: `go build`／`go vet`／`go test ./...` 全 ok（harness golden 含む）。④対象 5 関数のカバレッジ 100% を `go test ./internal/engine/ -cover` で手元確認した。
+
+### ⑥ 境界安全網（達成）
+
+`.go-arch-lint.yml` を architecture §4 の依存方向へ合わせて整備し、arch-lint で表せない責務違反の走査を足した。architecture.md 本文は変えない（§4 の依存方向を強制するだけ）。
+
+- `.go-arch-lint.yml`: 未登録だった `tone`（engine 子）・`lexicon`（感情辞書アダプタ）・`harness`（②のテスト基盤）・`goldcap`（③ツール）・`poc-tone`（旧 PoC）を component 登録し、`bootstrap → lexicon`・`engine → tone`・`harness → api/engine/provider/store`・`goldcap → api/engine/harness/lexicon` の依存を明示した。着手前は「shouldn't depend」6 件＋「not attached」13 件で赤。整備後は `OK - No warnings found`（違反 0）。
+- `scripts/lint/run-boundary-scan.sh`（新規）: 禁止 import を層ごとに固定する走査。Wails runtime（`github.com/wailsapp/wails`）は api・bootstrap・root main だけ、SQLite driver（`modernc.org/sqlite`）は store・harness・cmd・scripts だけに許す。`run-go-backend-lint.sh` に `boundary` サブコマンドを足し、`lint:backend` チェーンと npm へ組み込んだ。
+- 観測: 現状 master は arch-lint・境界走査ともに違反 0 で通る。意図的に作った違反例（engine への Wails import、api への SQLite driver import、新規 15 超の複雑関数）を 3 種ともゲートが検出することを確認した。
+
+### ⑦ ハーネス整理（達成）
+
+[`harness-inventory.md`](./harness-inventory.md) §9 の確定仕分けに従い、検証を npm へ一本化し旧 Python harness を退役した。
+
+- 削除（§9.2）: `scripts/harness/` 一式・`scripts/test/run-go-backend-coverage.sh`・`scripts/test/run-frontend-coverage.sh`・`scripts/node/run-sonar-scanner.mjs`・`sonar-project.properties`・`scripts/lint/run-oxlint.mjs`・`scripts/dict/derive-master-terms/`・`.github/.trash/`。npm から `scan:sonar`・`test:backend:coverage`・`test:frontend:coverage` を外した。
+- 新規（§9.4）: npm `verify:backend`（`go test` ＋ arch-lint ＋ 境界走査を束ねる backend 検証 1 コマンド）、境界違反走査（⑥）、`scripts/CLAUDE.md`（退役した `harness/README.md` の代替・scoped 指示）。
+- 参照整合: `docs/coding-guidelines-tests.md` §6 の `run.py --suite` 参照を npm 検証へ書き換え。`internal/engine/termxml.go` の陳腐化コメント（削除した CLI 参照）を修正。`.vscode/tasks.json` の退役タスク（harness:*・coverage・sonar）を実在 npm へ整理。
+- 残置: `scripts/node/disable-vite-windows-net-use.cjs`（§9.3 保留）。`.vscode/settings.json`・`.claude/settings.json` の auto-approve allowlist の死にエントリは無害（存在しないコマンドにマッチせず）で §9.2 対象外のため残置。前者は auto-approve 設定の編集が安全機構により拒否された。
+- 観測: `npm run verify:backend` が `go test`・arch-lint・境界走査をまとめて回し緑（exit 0）。退役対象が消え、runnable な参照が残らないことを確認した。
+
+### ⑧ 認知複雑度ゲート（達成）
+
+`.golangci.yml` に `gocognit` を enable し、しきい値 15・production 対象（`_test.go` は除外）にした。現状超過の関数を `//nolint:gocognit` ＋ リファクタ TODO で baseline 除外した。
+
+- `.golangci.yml`: `gocognit` を enable、`settings.gocognit.min-complexity: 15`、`exclusions.rules` で `_test.go` を gocognit 対象外にした。
+- baseline 除外（実測 >15 の 6 関数）: `DeriveTerms`(26)・`(*App).pageRows`(26)・`parseTermXML`(23)・`(*Engine).Run`(22)・`BuildUsage`(16)・`captureDBState`(21)。plan 列挙の 5 つに加え、②で新設した harness の `captureDBState` も同方針で除外した（plan 列挙の 14 複雑度 2 関数 `buildResultsPage`・`translateProperNouns` は実測 15 以下で対象外）。除外解除は後続リファクタ本体 task の done 条件にする。
+- 観測: baseline 除外込みで gocognit の指摘 0。production に 15 超の関数を一時挿入すると `gocognit: 1`（complexity 30 > 15）で赤になることを確認した。`static` 全体は gocognit と無関係の本 task 前からの baseline 11 件（wrapcheck/gosec/errcheck/staticcheck/errorlint、engine/lexicon）で赤のまま。これは⑧の範囲外で、gocognit 次元は緑。
+
+最終検証（⑥⑦⑧後）: `go build`／`go vet` 全 ok。`npm run verify:backend`（go test ＋ arch-lint ＋ 境界走査）緑（exit 0）。`gofmt -l internal` 指摘 0。gocognit 指摘 0（baseline 除外込み）。

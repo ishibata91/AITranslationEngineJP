@@ -64,10 +64,10 @@
 
 ## 6. 完了条件
 
-- backend 側のテスト変更は `python3 scripts/harness/run.py --suite backend-local` の結果または未実行理由を残す
-- frontend 側のテスト変更は `python3 scripts/harness/run.py --suite frontend-local` の結果または未実行理由を残す
-- backend と frontend の両方を含む場合は両方の局所ハーネス結果または未実行理由を残す
-- coverage 目標は個別 task の承認済み条件がある場合だけ完了条件にする
+- backend 側のテスト変更は `npm run verify:backend`（`go test` ＋ arch-lint ＋ 境界違反走査を束ねる）の結果または未実行理由を残す
+- frontend 側のテスト変更は `npm run test:frontend` の結果または未実行理由を残す
+- backend と frontend の両方を含む場合は両方の結果または未実行理由を残す
+- coverage 目標は個別 task の承認済み条件がある場合だけ完了条件にする。100% を求める純粋ルールは `go test -cover` の手元確認で見る（常設 coverage ゲートは持たない）
 
 ## 7. 参照元
 

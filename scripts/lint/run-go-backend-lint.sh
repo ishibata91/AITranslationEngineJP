@@ -30,6 +30,9 @@ case "${1:-}" in
   arch)
     "$go_cmd" run github.com/fe3dback/go-arch-lint@v1.14.0 check --arch-file .go-arch-lint.yml --project-path "$repo_root"
     ;;
+  boundary)
+    sh "$repo_root/scripts/lint/run-boundary-scan.sh"
+    ;;
   module)
     "$go_cmd" run github.com/ryancurrah/gomodguard/cmd/gomodguard@v1.4.1 -n ./internal/...
     ;;
@@ -37,7 +40,7 @@ case "${1:-}" in
     backend_packages
     ;;
   *)
-    echo "usage: $0 {format-check|vet|static|arch|module|packages}" >&2
+    echo "usage: $0 {format-check|vet|static|arch|boundary|module|packages}" >&2
     exit 2
     ;;
 esac

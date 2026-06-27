@@ -111,7 +111,7 @@ func (e *Engine) GeneratePersonas(ctx context.Context) (int, error) {
 // 段階順序は固有名フェーズ（本文より先に固有名を確定）→ 本文フェーズ（叙述文・定型句・台詞）。
 // プロンプトは Base 指示 ＋ その REC:FIELD に割り当てた directive の指示文（台詞は口調 directive の {traits} を埋める）で組む。
 // onProgress が非 nil なら、固有名・本文を通した進捗（処理済み件数 done、総件数 total）を都度通知する。
-func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string, onProgress func(done, total int)) (int, error) {
+func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string, onProgress func(done, total int)) (int, error) { //nolint:gocognit // TODO(refactor): 翻訳手続きの段階連結（固有名→叙述文/定型句→台詞）。リファクタ本体で段階を関数へ分割する。
 	propers, err := e.store.ListUntranslatedProperNouns(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("未訳固有名の取得: %w", err)

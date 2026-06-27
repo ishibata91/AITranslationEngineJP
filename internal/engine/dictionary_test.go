@@ -59,7 +59,7 @@ func TestDictionaryApply(t *testing.T) {
 			// 原語が空・訳語が空の対は NewDictionary が捨てる。残る有効語だけが置換される。
 			name: "原語空・訳語空の対は捨てる",
 			terms: []DictionaryTerm{
-				{"", "捨てる訳"},      // 原語が空 → 捨てる
+				{"", "捨てる訳"},       // 原語が空 → 捨てる
 				{"Whiterun", ""},   // 訳語が空 → 捨てる
 				{"Riften", "リフテン"}, // 有効
 			},

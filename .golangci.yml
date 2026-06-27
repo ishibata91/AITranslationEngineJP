@@ -13,6 +13,7 @@ linters:
     - durationcheck
     - errcheck
     - errorlint
+    - gocognit
     - gocritic
     - gosec
     - govet
@@ -32,6 +33,11 @@ linters:
     - wastedassign
     - wrapcheck
   settings:
+    gocognit:
+      # 認知複雑度のしきい値。15 超の production 関数を検出する。
+      # 現状超過分は //nolint:gocognit ＋ リファクタ TODO で baseline 除外し、master を緑に保つ。
+      # 除外解除は後続リファクタ本体 task の done 条件にする（テスト整備 → リファクタの順）。
+      min-complexity: 15
     depguard:
       rules:
         controller:
@@ -321,6 +327,11 @@ linters:
         - all
   exclusions:
     generated: strict
+    rules:
+      # テストコードは認知複雑度ゲートの対象外にする（テーブル駆動や網羅で必然的に膨らむため）。
+      - path: _test\.go
+        linters:
+          - gocognit
     paths:
       - frontend/node_modules
       - frontend/wailsjs

@@ -566,7 +566,7 @@ func termViews(used []engine.DictionaryTerm) []TermView {
 // pageRows は keyset cursor から当該ページの叙述文・台詞・固有名、総件数、次 cursor、続きの有無を決める。
 // 区間は叙述文 → 台詞 → 固有名 の順に連結し、ある区間がページに満たなければ次区間の先頭から補充する。
 // 口調・種別バッジは付けない（呼び出し側が付ける）。
-func (a *App) pageRows(ctx context.Context, cursor string, limit int) (
+func (a *App) pageRows(ctx context.Context, cursor string, limit int) ( //nolint:gocognit // TODO(refactor): 叙述文→台詞→固有名の連結とカーソル境界の集約。リファクタ本体で区間ごとに分割する。
 	narrations []model.Narration, lines []model.Line, propers []model.ProperNoun,
 	total int, nextCursor string, hasMore bool, err error) {
 	nTotal, err := a.store.CountNarrations(ctx)

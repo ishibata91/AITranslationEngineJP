@@ -37,7 +37,7 @@ func (c Capture) Serialize() string {
 
 // captureDBState は中心 DB の最終状態を決定的な文字列へ描く。
 // 取込・固有名確定・本文書き戻し・話者連関・口調生成・固有名派生の結果が現れるテーブルを id 昇順で並べる。
-func captureDBState(db *sqlx.DB) (string, error) {
+func captureDBState(db *sqlx.DB) (string, error) { //nolint:gocognit // TODO(refactor): テーブル別ダンプの逐次連結（テスト基盤）。dumpRows 仕様の表化で簡素化できる。
 	var b strings.Builder
 
 	// 並びは自動採番 id でなく自然キー（UNIQUE 制約の列）で固定する。取込の INSERT 順が変わっても golden が
