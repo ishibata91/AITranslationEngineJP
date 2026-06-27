@@ -23,3 +23,4 @@ db/*.sqlite3-wal
 # C# 抽出ツール（Mutagen）のビルド成果物
 tools/**/bin
 tools/**/obj
+.DS_Store
