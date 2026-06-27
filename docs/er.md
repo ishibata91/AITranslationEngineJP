@@ -1,20 +1,16 @@
-# ER 設計（抽出入力）
+# ER 設計（中心 DB）
 
 関連文書: [`index.md`](./index.md), [`concept-model.md`](./concept-model.md)（概念の正本）, [`skyrim-structure-model.md`](./skyrim-structure-model.md)（入力＝世界の構造）, [`architecture.md`](./architecture.md)（境界と依存方向）, [`tech-selection.md`](./tech-selection.md)（採用技術）, [`references/xtranslator_ref.md`](./references/xtranslator_ref.md)（出力形式）
 
-本書は、[`concept-model.md`](./concept-model.md) の箱・属性・関連を `SQLite` のテーブルへ 1 対 1 で写した ER 設計を固定する。
+本書は、[`concept-model.md`](./concept-model.md) に基づいて作り、実装のため正規化した中心 DB のテーブル設計を固定する。
 論理 ER（テーブル、カラム、型、関係）を扱う。実行可能な SQL DDL は `db/` の repo-owned migration が正本であり、本書には DDL を二重に持たない（`architecture.md` §7）。
 
 ## 採用原則
 
-- **概念モデルから外れない**: テーブルは [`concept-model.md`](./concept-model.md) の箱と 1 対 1 にする。箱を統合せず、属性も落とさない。関連 e1〜e14 を FK または連関テーブルへそのまま写す。
-- **実現方式を持ち込まない**: 重複排除をいつ誰が畳むか、属性をいつ埋めるか、永続化するかは扱わない。それは `concept-model.md` L7 のとおり実現方式（`system_requirements.md`・migration）の責務で、ER は構造だけを固定する。
+- **概念モデルに基づく（厳密 1 対 1 は強制しない）**: テーブルは [`concept-model.md`](./concept-model.md) の箱・関連を出発点にする。実装の都合で正規化・分割・統合してよいが、各テーブルがどの概念箱・関連に由来するか、または実現方式（横断辞書・プロンプト構築・抽出バッファ等）のどれにあたるかを必ず追えるようにする。概念モデルと無関係に作らない。
+- **由来を 3 種に分けて明示する**: テーブルを「概念箱由来」「実装・運用（正規化・実現方式）」「未実装（概念由来・後続 task）」へ分けて書く。実装・運用テーブルも概念モデルのどの必要から生じたかを 1 行で示す。
+- **実 DDL は migration が正本**: PRIMARY KEY 型・index・外部キーの `ON DELETE`・schema version 刻みは `db/` migration が固定する（`architecture.md` §6/§7）。本書は論理 ER に限定する。
 - **レコード識別だけ具体化する**: 出力（xTranslator）が String 行を一意に指すために、concept-model の `レコード`・`フィールド` を物理キーへ具体化する。これは概念の改変ではなく、出力に必要な識別の具体化に限る。
-
-## スコープ
-
-- 対象は**抽出入力**。`concept-model.md` の 10 箱（固有名・定型句・配置・叙述文・台詞・無訳片・話者・種族・勢力・声型）と関連 e1〜e14。
-- 対象外は、Mod 横断マスター辞書、ペルソナルール、翻訳ジョブと結果キャッシュ、schema version 管理。同じ `SQLite` に同居するが（`architecture.md` §3）、本書では設計しない。
 
 ## レコード識別の具体化
 
@@ -23,9 +19,9 @@ concept-model の `配置`・`叙述文`・`台詞`・`無訳片` が持つ `レ
 - `レコード`（FormID/EDID）→ `plugin` + `form_id`（`0x` hex）+ `edid`。
 - `フィールド`（REC:FIELD）→ `rec`（record signature 4 字）+ `field` + `ordinal`（同一フィールドに複数値が出る `MESG:ITXT`・`QUST:CNAM` 等の序数）。
 - String 行の一意キーは `(plugin, form_id, rec, field, ordinal)`。
-- `訳状態` の値域は xTranslator `Status` を踏襲する。`0`=未訳、`1`=訳済、`2`=部分、`3`=仮、`4`=承認。
+- `訳状態`（`status`）の値域は xTranslator `Status` を踏襲する。`0`=未訳、`1`=訳済、`2`=部分、`3`=仮、`4`=承認。
 
-## ER 図
+## ER 図（実装済みテーブル）
 
 ```mermaid
 erDiagram
@@ -36,36 +32,18 @@ erDiagram
         TEXT dest "訳文"
         INTEGER status "訳状態"
     }
-    set_phrase {
-        INTEGER id PK
-        TEXT source "原文"
-        TEXT dest "訳文"
-        INTEGER status "訳状態"
-    }
-    placement {
-        INTEGER id PK
-        TEXT plugin
-        TEXT form_id "レコード"
-        TEXT edid "レコード"
-        TEXT rec "フィールド"
-        TEXT field "フィールド"
-        INTEGER ordinal "フィールド"
-        INTEGER proper_noun_id FK "e1"
-        INTEGER set_phrase_id FK "e2"
-    }
     narration {
         INTEGER id PK
         TEXT source "原文"
         TEXT dest "訳文"
         INTEGER status "訳状態"
-        TEXT style "文体"
+        TEXT style "文体(directive キー)"
         TEXT plugin
         TEXT form_id "レコード"
         TEXT edid "レコード"
         TEXT rec "フィールド"
         TEXT field "フィールド"
         INTEGER ordinal "フィールド"
-        INTEGER described_proper_noun_id FK "説明する名 e3"
     }
     line {
         INTEGER id PK
@@ -73,17 +51,6 @@ erDiagram
         TEXT dest "訳文"
         INTEGER status "訳状態"
         INTEGER response_order "応答順"
-        TEXT plugin
-        TEXT form_id "レコード"
-        TEXT edid "レコード"
-        TEXT rec "フィールド"
-        TEXT field "フィールド"
-        INTEGER ordinal "フィールド"
-    }
-    untranslated_fragment {
-        INTEGER id PK
-        TEXT source "原文"
-        TEXT untranslatable_reason "訳否理由"
         TEXT plugin
         TEXT form_id "レコード"
         TEXT edid "レコード"
@@ -102,184 +69,212 @@ erDiagram
         INTEGER race_id FK "e9"
         INTEGER voice_type_id FK "e11"
         INTEGER template_speaker_id FK "形態の元 e12"
+        TEXT plugin
+        TEXT form_id
+        TEXT edid
     }
     race {
         INTEGER id PK
         TEXT nature "性質"
-        INTEGER name_proper_noun_id FK "名称 e13"
+        TEXT plugin
+        TEXT form_id
+        TEXT edid
     }
     faction {
         INTEGER id PK
         TEXT nature "性質"
+        TEXT plugin
+        TEXT form_id
+        TEXT edid
     }
     voice_type {
         INTEGER id PK
         TEXT voice_id "声型識別子"
         TEXT voice_kind "声型種別"
         TEXT nature "性質"
-    }
-    narration_mention {
-        INTEGER narration_id FK
-        INTEGER proper_noun_id FK
-    }
-    line_mention {
-        INTEGER line_id FK
-        INTEGER proper_noun_id FK
+        TEXT plugin
+        TEXT form_id
+        TEXT edid
     }
     line_speaker {
         INTEGER line_id FK
         INTEGER speaker_id FK
     }
-    line_sequence {
-        INTEGER prev_line_id FK
-        INTEGER next_line_id FK
-    }
-    speaker_name {
-        INTEGER speaker_id FK
-        INTEGER proper_noun_id FK
-        TEXT role "full/short"
-    }
     speaker_faction {
         INTEGER speaker_id FK
         INTEGER faction_id FK
     }
-    faction_name {
-        INTEGER faction_id FK
-        INTEGER proper_noun_id FK
-        TEXT role "name/title"
+    master_term {
+        INTEGER id PK
+        TEXT source "原文"
+        TEXT dest "確定訳"
+        TEXT category "種別"
+    }
+    prompt_template {
+        INTEGER id PK "=1"
+        TEXT base_directive "base 指示"
+        TEXT persona_template "旧口調雛形"
+    }
+    directive {
+        TEXT key PK "指示文キー"
+        TEXT instruction "指示文"
+        TEXT variables "変数(JSON)"
+    }
+    record_type_master {
+        TEXT rec PK "フィールド"
+        TEXT field PK "フィールド"
+        TEXT box "箱"
+        TEXT directive FK "割り当て指示文"
+        TEXT logical_name "論理名"
+    }
+    persona_character {
+        INTEGER id PK
+        TEXT speaker_plugin
+        TEXT speaker_form_id
+        INTEGER attitude_band "対人段階"
+        INTEGER emotion_band "感情段階"
+        INTEGER marked "印"
+        TEXT decision_path "決定経路"
+        INTEGER hand_edited "手修正"
+    }
+    line_analysis {
+        INTEGER id PK
+        TEXT source_hash "本文ハッシュ"
+        INTEGER sentence_count
+        INTEGER polite_count
+        INTEGER insult_count
+        INTEGER is_imperative
+        INTEGER exclaim_count
+        INTEGER elong_count
+        INTEGER emotion_count
+    }
+    extracted_field {
+        INTEGER id PK
+        TEXT plugin
+        TEXT form_id "レコード"
+        TEXT edid "レコード"
+        TEXT rec "フィールド"
+        TEXT field "フィールド"
+        INTEGER ordinal "フィールド"
+        TEXT source "原文"
+    }
+    extracted_info_speaker {
+        TEXT info_plugin FK
+        TEXT info_form_id FK
+        INTEGER speaker_id FK
     }
 
-    placement }o--o| proper_noun : "指す e1"
-    placement }o--o| set_phrase : "指す e2"
-    narration }o--o| proper_noun : "説明する名 e3"
-    narration ||--o{ narration_mention : "言及元 e4"
-    proper_noun ||--o{ narration_mention : "言及先 e4"
-    line ||--o{ line_mention : "言及元 e5"
-    proper_noun ||--o{ line_mention : "言及先 e5"
+    record_type_master }o--|| directive : "割り当て"
     line ||--o{ line_speaker : "e6"
     speaker ||--o{ line_speaker : "発する話者 e6"
-    line ||--o{ line_sequence : "先行 e7"
-    line ||--o{ line_sequence : "後続 e7"
-    speaker ||--o{ speaker_name : "名乗る名 e8"
-    proper_noun ||--o{ speaker_name : "名の持ち主 e8"
     speaker }o--o| race : "生まれの種族 e9"
     speaker ||--o{ speaker_faction : "所属 e10"
     faction ||--o{ speaker_faction : "構成員 e10"
     speaker }o--o| voice_type : "持ち声 e11"
     speaker }o--o| speaker : "形態の元 e12"
-    race }o--|| proper_noun : "名乗る名 e13"
-    faction ||--o{ faction_name : "名乗る名 e14"
-    proper_noun ||--o{ faction_name : "名の勢力 e14"
+    speaker ||--o{ extracted_info_speaker : "INFO 橋渡し"
 ```
 
 ## テーブル定義
 
-型は `SQLite` の type affinity（`INTEGER` / `TEXT`）。`id` は `INTEGER PRIMARY KEY`。カラム名は concept-model の属性に対応させる。
+型は `SQLite` の type affinity（`INTEGER` / `TEXT`）。`id` は `INTEGER PRIMARY KEY`。
 
-### 訳の単位（重複排除する）
+### 1. 概念箱由来のテーブル
 
-| テーブル | concept-model の箱 | カラム（concept-model 属性） |
-|---|---|---|
-| proper_noun | 固有名 | source（原文）, category（種別）, dest（訳文）, status（訳状態） |
-| set_phrase | 定型句 | source（原文）, dest（訳文）, status（訳状態） |
+[`concept-model.md`](./concept-model.md) の箱を写したテーブル。
 
-- `proper_noun` 一意制約: UNIQUE(category, source)。種別で同綴り異義を分ける（`concept-model.md` 弱点 1）。
-- `set_phrase` 一意制約: UNIQUE(source)。
-
-### 配置・叙述文・台詞・無訳片（レコード情報を持つ）
-
-| テーブル | concept-model の箱 | concept-model 固有の属性 |
-|---|---|---|
-| placement | 配置 | （原文・訳文を持たない。固有名 or 定型句を指す） |
-| narration | 叙述文 | source, dest, status, style（文体） |
-| line | 台詞 | source, dest, status, response_order（応答順） |
-| untranslated_fragment | 無訳片 | source, untranslatable_reason（訳否理由） |
-
-- 4 テーブル共通のレコード識別カラム: plugin, form_id, edid, rec, field, ordinal。
-- 一意制約: UNIQUE(plugin, form_id, rec, field, ordinal)。
-- `placement` は `proper_noun_id`（e1, 0..1）と `set_phrase_id`（e2, 0..1）を nullable FK で持ち、どちらか一方を指す。出力時はここへ訳の単位の `dest` を戻す。
-- `narration`・`line`・`untranslated_fragment` は自前の `source`（・`dest`）を持つ。重複排除しない。
-
-### 話者・素材
-
-| テーブル | concept-model の箱 | カラム（concept-model 属性） |
-|---|---|---|
-| speaker | 話者 | speaker_kind（話者種別）, sex（性別）, occupation（職業傾向）, person（人称）, tone（口調）, background（背景） |
-| race | 種族 | nature（性質） |
-| faction | 勢力 | nature（性質） |
-| voice_type | 声型 | voice_id（声型識別子）, voice_kind（声型種別）, nature（性質） |
-
-- `speaker` の関連 FK: race_id（e9, 0..1）, voice_type_id（e11, 0..1）, template_speaker_id（e12, 自己参照 0..1）。
-- `race` の関連 FK: name_proper_noun_id（e13, 1）。
-- `speaker`・`race`・`faction`・`voice_type` は識別のため plugin, form_id, edid も持つ（一意制約 UNIQUE(plugin, form_id)）。これは抽出元レコードの識別で、concept-model の箱の同定に対応する。
-- 注: `人称`・`口調`・`背景`（話者）と `性質`（種族・勢力・声型）は concept-model の属性として写す。これらを生成系として永続化するか保存系とするかは実現方式（`system_requirements.md` §3）の判断で、ER は概念の属性として持つに留める。
-
-### 連関テーブル（多対多・自己参照・1..2／1..*）
-
-| テーブル | 対応関連 | カラム | 主キー |
+| テーブル | 概念箱 | カラム | 一意制約 |
 |---|---|---|---|
-| narration_mention | e4 叙述文↔固有名（言及） | narration_id, proper_noun_id | (narration_id, proper_noun_id) |
-| line_mention | e5 台詞↔固有名（言及） | line_id, proper_noun_id | (line_id, proper_noun_id) |
-| line_speaker | e6 台詞→話者（発話、1..*） | line_id, speaker_id | (line_id, speaker_id) |
-| line_sequence | e7 台詞→台詞（会話の流れ、自己参照） | prev_line_id, next_line_id | (prev_line_id, next_line_id) |
-| speaker_name | e8 話者→固有名（氏名/短名、1..2） | speaker_id, proper_noun_id, role | (speaker_id, role) |
-| speaker_faction | e10 話者↔勢力（所属） | speaker_id, faction_id | (speaker_id, faction_id) |
-| faction_name | e14 勢力→固有名（名称/階級称号、1..*） | faction_id, proper_noun_id, role | (faction_id, proper_noun_id) |
+| proper_noun | 固有名 | source, category, dest, status | UNIQUE(category, source) |
+| narration | 叙述文（＋定型句を収容） | source, dest, status, style, plugin, form_id, edid, rec, field, ordinal | UNIQUE(plugin, form_id, rec, field, ordinal) |
+| line | 台詞 | source, dest, status, response_order, plugin, form_id, edid, rec, field, ordinal | UNIQUE(plugin, form_id, rec, field, ordinal) |
+| speaker | 話者 | speaker_kind, sex, occupation, person, tone, background, race_id(FK e9), voice_type_id(FK e11), template_speaker_id(FK e12), plugin, form_id, edid | UNIQUE(plugin, form_id) |
+| race | 種族 | nature, plugin, form_id, edid | UNIQUE(plugin, form_id) |
+| faction | 勢力 | nature, plugin, form_id, edid | UNIQUE(plugin, form_id) |
+| voice_type | 声型 | voice_id, voice_kind, nature, plugin, form_id, edid | UNIQUE(plugin, form_id) |
+| line_speaker | e6 台詞→話者（発話、1..*） | line_id, speaker_id | PK(line_id, speaker_id) |
+| speaker_faction | e10 話者↔勢力（所属） | speaker_id, faction_id | PK(speaker_id, faction_id) |
 
-- `speaker_name.role` は `full`（氏名 FULL）/ `short`（短名 SHRT）。e8 の多重度 1..2 を表す。
-- `faction_name.role` は `name`（名称 FULL）/ `title`（階級称号 MNAM/FNAM）。e14 の多重度 1..* を表す。
+- 正規化の判断: `proper_noun` は `UNIQUE(category, source)` で同綴り異義を種別で分ける（`concept-model.md` 弱点 1）。
+- 統合（正規化）: 概念の `定型句` 箱は独立テーブルにせず `narration` へ収容し、`style`（割り当て directive のキー）で文体・定型句を区別する。理由は §4。
+- `proper_noun` は実行内で AI 翻訳した固有名訳を持つ。横断・権威の確定訳は `master_term`（§2）に分ける。
+
+### 2. 実装・運用テーブル（正規化・実現方式・横断機構）
+
+概念箱の直接の写しではないが、概念モデルの実現（横断辞書・プロンプト構築・口調生成・抽出受け渡し）から生じたテーブル。
+
+| テーブル | 由来（どの実現方式か） | カラム | 一意制約 |
+|---|---|---|---|
+| master_term | 固有名の確定訳を Mod 横断で永続するマスター辞書（権威訳）。`proper_noun`（実行内 AI 訳）と分離 | source, dest, category | UNIQUE(category, source) |
+| prompt_template | プロンプト構築の雛形（base 指示）。単一行 | base_directive, persona_template | PK(id=1) |
+| directive | REC:FIELD ごとの翻訳指示文。口調・文体・固有名・定型句を 1 つの「指示文」へ一般化（口調は `{traits}` 変数） | key, instruction, variables(JSON) | PK(key) |
+| record_type_master | REC:FIELD → box + directive の割り当て正本（取込段の振り分け表） | rec, field, box, directive(FK), logical_name | PK(rec, field) |
+| persona_character | 話者 box の口調属性を実現する生成ペルソナ（生成・キャッシュ） | speaker_plugin, speaker_form_id, attitude_band, emotion_band, marked, decision_path, hand_edited | UNIQUE(speaker_plugin, speaker_form_id) |
+| line_analysis | 台詞本文の解析キャッシュ（口調生成の中間、本文ハッシュで 1 度だけ） | source_hash, sentence_count, polite_count, insult_count, is_imperative, exclaim_count, elong_count, emotion_count | UNIQUE(source_hash) |
+| extracted_field | C# 抽出の生バッファ（箱判定前）。取込段が `record_type_master` で `narration`/`proper_noun`/`line` へ振り分ける | plugin, form_id, edid, rec, field, ordinal, source | UNIQUE(plugin, form_id, rec, field, ordinal) |
+| extracted_info_speaker | INFO→speaker の橋渡し staging。`line` 作成後に `line_speaker` へ解決する | info_plugin, info_form_id, speaker_id(FK) | PK(info_plugin, info_form_id, speaker_id) |
+
+- `prompt_template.persona_template` は旧経路の口調雛形。口調指示の供給は口調 `directive`（`{traits}` 入り）へ移行済みで、現状の本文フェーズは `directive` を引く（`architecture.md` §8 参照）。
+- `directive` と `record_type_master` の seed（指示文 7・REC:FIELD 割り当て 65）は migration 0006 が持つ。
+
+### 3. 未実装（概念モデル由来・後続 task）
+
+`concept-model.md` の箱・関連だが、現時点で物理テーブルを持たない。概念のロードマップとして残す。実装する時に §1/§2 へ移す。
+
+| 概念要素 | 概念モデル | 現状 |
+|---|---|---|
+| set_phrase（定型句の独立箱） | 定型句 | `narration` へ畳んで収容（§1）。独立テーブルは作らない |
+| placement（配置, e1/e2） | 配置→固有名/定型句 | 物理テーブル無し。固有名は `proper_noun.category` で直接識別する |
+| untranslated_fragment（無訳片） | 無訳片 | 物理テーブル無し（`WOOP:FULL` 等は翻訳対象外として除外） |
+| narration_mention（e4）, line_mention（e5） | 叙述文/台詞↔固有名（言及） | 未実装。固有名一貫性は当面マスター辞書の機械置換注入で担保 |
+| line_sequence（e7） | 台詞→台詞（会話の流れ） | 未実装 |
+| speaker_name（e8）, faction_name（e14） | 話者/勢力→固有名（名乗る名） | 未実装。話者名は `master_term`・人名派生で代替 |
+| narration.described_proper_noun_id（e3）, race.name_proper_noun_id（e13） | 叙述文→固有名（説明）, 種族→固有名（名称） | 未実装の FK。現テーブルに列を持たない |
 
 ## concept-model 関連端との対応
 
-| id | concept-model の関連 | 本書での実装 |
-|---|---|---|
-| e1 | 配置→固有名（0..*→0..1） | placement.proper_noun_id（FK） |
-| e2 | 配置→定型句（0..*→0..1） | placement.set_phrase_id（FK） |
-| e3 | 叙述文→固有名（説明、0..*→0..1） | narration.described_proper_noun_id（FK） |
-| e4 | 叙述文↔固有名（言及、0..*→0..*） | narration_mention（連関） |
-| e5 | 台詞↔固有名（言及、0..*→0..*） | line_mention（連関） |
-| e6 | 台詞→話者（0..*→1..*） | line_speaker（連関） |
-| e7 | 台詞→台詞（自己、0..*→0..*） | line_sequence（連関） |
-| e8 | 話者→固有名（0..*→1..2） | speaker_name（連関、role） |
-| e9 | 話者→種族（0..*→0..1） | speaker.race_id（FK） |
-| e10 | 話者→勢力（0..*→0..*） | speaker_faction（連関） |
-| e11 | 話者→声型（0..*→0..1） | speaker.voice_type_id（FK） |
-| e12 | 話者→話者（自己、0..*→0..1） | speaker.template_speaker_id（FK） |
-| e13 | 種族→固有名（0..*→1） | race.name_proper_noun_id（FK） |
-| e14 | 勢力→固有名（0..*→1..*） | faction_name（連関、role） |
+| id | concept-model の関連 | 本書での実装 | 状態 |
+|---|---|---|---|
+| e1 | 配置→固有名（0..*→0..1） | （placement 未実装。`proper_noun.category` で識別） | 未実装 |
+| e2 | 配置→定型句（0..*→0..1） | （placement 未実装。定型句は narration へ収容） | 未実装 |
+| e3 | 叙述文→固有名（説明、0..*→0..1） | narration の FK（未追加） | 未実装 |
+| e4 | 叙述文↔固有名（言及、0..*→0..*） | narration_mention（連関） | 未実装 |
+| e5 | 台詞↔固有名（言及、0..*→0..*） | line_mention（連関） | 未実装 |
+| e6 | 台詞→話者（0..*→1..*） | line_speaker（連関） | 実装済み |
+| e7 | 台詞→台詞（自己、0..*→0..*） | line_sequence（連関） | 未実装 |
+| e8 | 話者→固有名（0..*→1..2） | speaker_name（連関、role） | 未実装 |
+| e9 | 話者→種族（0..*→0..1） | speaker.race_id（FK） | 実装済み |
+| e10 | 話者→勢力（0..*→0..*） | speaker_faction（連関） | 実装済み |
+| e11 | 話者→声型（0..*→0..1） | speaker.voice_type_id（FK） | 実装済み |
+| e12 | 話者→話者（自己、0..*→0..1） | speaker.template_speaker_id（FK） | 実装済み |
+| e13 | 種族→固有名（0..*→1） | race の FK（未追加） | 未実装 |
+| e14 | 勢力→固有名（0..*→1..*） | faction_name（連関、role） | 未実装 |
 
-## 正規化の根拠
+## 正規化・統合の根拠
 
-ER は concept-model の箱を写すが、関連の物理化とレコード識別では正規化の判断が要る。概念モデルからの構造変形にあたるため、各判断の根拠を示す。
+ER は概念モデルを出発点にしつつ、実装のため正規化・統合する。概念モデルからの構造変形にあたる判断の根拠を示す。
 
-### 1. 多対多と可変多重度は連関テーブルにする（第1正規形）
-
-- 対象: e4・e5・e10（多対多）、e6（1..*）、e7（自己参照の多対多）、e8（1..2）、e14（1..*）。
-- 根拠: 1 行に可変個の参照を持たせると第1正規形に違反する（繰り返し群）。叙述文行に言及固有名の id を複数列やカンマ区切りで持つと、結合・検索・件数制約ができない。連関テーブル（交差エンティティ）が標準解。
-- 代替の却下: 参照列を固定本数だけ並べる案（name_1, name_2, …）は上限を決め打ちにし、e14（階級称号は男女×階級で可変）で破綻する。
-- e8 の選択: e8 は 1..2 で固定 2 本（FULL/SHRT）の 2 FK でも第1正規形を満たす。連関＋role を採ったのは、e14 が連関必須で、話者と勢力の名前参照を同型にして読み手の解釈を 1 つにするため。2 FK との差は対称性のトレードオフで、単純さを優先するなら 2 FK へ変えてよい。
-
-### 2. 1 対多は連関を作らず FK 1 本にする
-
-- 対象: e1・e2・e3（0..1）、e9・e11・e12（0..1）、e13（1）。
-- 根拠: 一方の多重度が高々 1 の関連は、「多」側に FK 1 本を置けば第1正規形を満たす。連関テーブルにすると行を増やすだけで冗長。連関は多対多と可変多重度だけに限定する。
-
-### 3. 訳の単位を配置から分離する（更新異常の除去）
-
-- 対象: 固有名（proper_noun）・定型句（set_phrase）を配置（placement）から分ける。e1/e2。
-- 根拠: 同じ固有名詞は複数レコードに配置される。訳文を配置側に持つと、N 箇所に同じ訳文が重複し、1 箇所だけ直すと不整合になる（更新異常）。訳の単位に訳文を 1 つ持てば更新異常が消える。これは concept-model の背骨（e1 の重複排除）と一致し、原文→訳文 の従属を 1 箇所へ寄せる第3正規形の動機にも合う。
-
-### 4. レコード識別を原子値へ分解する（第1正規形と出力要件）
+### 1. レコード識別を原子値へ分解する（第1正規形と出力要件）
 
 - 対象: concept-model の `レコード`・`フィールド` を plugin/form_id/edid/rec/field/ordinal へ分解。
 - 根拠: 出力（xTranslator）は plugin ごとの XML 生成、FormID 照合（`Use FormID Reference`）、フィールド種別での扱い分けを要求する。単一文字列のままでは各構成要素で検索・照合できない。原子値へ分解して第1正規形を満たす。
 - ordinal: 同一 (plugin, form_id, rec, field) に複数値が出るレコード（MESG:ITXT 配列、QUST:CNAM 複数）があり、ordinal なしでは一意キーが衝突する。一意キーに ordinal を含める。
 
-### 5. 意図的な冗長（form_id と edid の同居）
+### 2. 意図的な冗長（form_id と edid の同居）
 
-- 同一レコードで form_id → edid は機能従属し、厳密には冗長で、正規化を貫くなら record テーブルへ分けて参照する形になる。だが xTranslator String 行は EDID と FORMID の両方を出力に要求し、レコード行が両方を自己完結で持たないと出力できない。出力テーブルとしての自己完結を優先し、この冗長は意図的に許容する。正規化を全面適用しない判断であることを明示する。
+- 同一レコードで form_id → edid は機能従属し、厳密には冗長で、正規化を貫くなら record テーブルへ分けて参照する形になる。だが xTranslator String 行は EDID と FORMID の両方を出力に要求し、レコード行が両方を自己完結で持たないと出力できない。出力テーブルとしての自己完結を優先し、この冗長は意図的に許容する。
+
+### 3. 定型句を叙述文テーブルへ統合する
+
+- 対象: 概念の `定型句` 箱を独立テーブルにせず `narration` へ収容する。
+- 根拠: 定型句と叙述文はともに「レコード由来の本文を AI 翻訳する」単位で、列構成が一致する。区別は翻訳の指示文（`style` = 割り当て directive のキー）だけで足り、テーブルを分けると取込段・本文フェーズ・結果取得が同じ処理を 2 経路に分岐させるだけになる。箱の区別は `record_type_master.box` と `narration.style` で追える。
+
+### 4. 横断辞書と実行内辞書を分ける
+
+- 対象: 固有名の確定訳を `master_term`（権威・横断・永続）と `proper_noun`（実行内・AI 訳）へ分ける。
+- 根拠: 既訳の権威訳は Mod をまたいで一貫させるため横断辞書に置き、実行ごとの AI 訳は実行内テーブルに置く。本文フェーズの機械置換は両者の和（`master_term` ∪ `proper_noun`）を注入する。供給源を分けることで、AI 訳が権威訳を上書きしない（`architecture.md` §8）。
 
 ## 既知の論点
 
-- 同綴り異義の粗分け、言及（e4/e5）の検出方式、純汎用台詞の話者群の口調決定は、いずれも `concept-model.md` の「既知の弱点」に対応する。本書は構造だけを与え、検出・合成の方式は実現方式で決める。
+- 言及（e4/e5）の検出方式、純汎用台詞の話者群の口調決定は、いずれも `concept-model.md` の「既知の弱点」に対応する。言及テーブルは未実装で、固有名一貫性は当面マスター辞書の機械置換注入で担保する。
 - 実 SQL DDL（PRIMARY KEY 型、index、外部キーの `ON DELETE`、schema version 刻み）は `db/` migration が固定する（`architecture.md` §6/§7）。本書は論理 ER に限定する。

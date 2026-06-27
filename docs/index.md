@@ -32,7 +32,7 @@ backend は `greenfield-reset` task（2026-06-06）で削減済み。新 archite
 - [`skyrim-structure-model.md`](./skyrim-structure-model.md): Skyrim 世界を翻訳判定 context で再分類した Skyrim 構造体モデル
 - [`concept-model.md`](./concept-model.md): 翻訳という営みに登場する概念（訳の単位・配置・話者など）の概念モデル。`skyrim-structure-model.md` を入力にする
 - [`architecture.md`](./architecture.md): 層構成、transport boundary、依存方向の骨格
-- [`er.md`](./er.md): データモデルの ER 設計（抽出入力のテーブル定義・関係）。実 SQL DDL は `db/` migration が正本
+- [`er.md`](./er.md): 中心 DB の ER 設計（概念箱由来・実装運用・未実装の 3 区分でテーブル定義と関係）。概念モデルに基づき実装のため正規化する。実 SQL DDL は `db/` migration が正本
 - [`tech-selection.md`](./tech-selection.md): 採用技術と品質基盤
 - [`coding-guidelines.md`](./coding-guidelines.md): 実装規約の入口
 - [`coding-guidelines-frontend.md`](./coding-guidelines-frontend.md): TypeScript / Svelte / Wails gateway の frontend 実装規約
