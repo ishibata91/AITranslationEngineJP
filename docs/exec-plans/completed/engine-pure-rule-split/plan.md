@@ -149,7 +149,7 @@ goal が要る手段（純粋関数の移動・呼び出し元の更新・arch-l
 
 ### 作業 commit
 
-- commit hash: `5ae0536f`（branch `claude/engine-pure-rule-split`）。
+- commit hash: `07272ab0`（branch `claude/engine-pure-rule-split`）。
 - 変更: core 9 package 新設（移設）、engine/api/bootstrap/harness/goldcap の参照更新、`.go-arch-lint.yml`、`architecture.md` §3・§4.1・§7、active plan、`backend-violation-cleanup` plan の location 更新。
 - 検証: `verify:backend` exit 0、実機目視 OK。残留リスク: なし（非劣化確認済み）。
 
@@ -159,6 +159,13 @@ goal が要る手段（純粋関数の移動・呼び出し元の更新・arch-l
 - §4.1: component→ディレクトリ対応と `mayDependOn` を core 9 component と更新後の依存（engine→core/\*、api→dictionary・prompt、bootstrap/harness/goldcap→rolespeech ほか、core 内一方向、tone は core/tone）に差し替え。
 - §7: `internal/core/`（純粋ルールの集積、1 ルール 1 package）を 1 項追加。`engine` 記述を orchestration として整えた。
 - 根拠: 本 active plan（設計確定・実装範囲）。一時材料 `summary.md`・`design-review.md` は承認後に削除。
+
+### local merge / merge 後検証 / completed 移動
+
+- local merge: `git merge --no-ff claude/engine-pure-rule-split` を `master` へ。conflict なし。merge commit `8a89e517`。
+- merge 後検証: `go build ./...` OK、`npm run verify:backend` exit 0（test・arch・boundary 緑）。
+- completed 移動: active plan folder を `docs/exec-plans/completed/engine-pure-rule-split/` へ移動。
+- merge 結果 commit: 本コミット（completed 移動と記録）。remote 未変更（push・tag・remote 削除なし）。
 
 ## 軽 / 重判定
 
