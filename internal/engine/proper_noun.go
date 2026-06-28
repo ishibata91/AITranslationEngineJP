@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"aitranslationenginejp/internal/core/prompt"
 	"aitranslationenginejp/internal/model"
 	"aitranslationenginejp/internal/provider"
 )
@@ -69,7 +70,7 @@ func (e *Engine) translateProperNouns(ctx context.Context, conn provider.Connect
 			}
 		default:
 			// 既訳なし。固有名 directive で AI 翻訳し、仮訳として proper_noun へ書く。
-			dest, err := e.provider.Translate(ctx, conn, model, ComposePrompt(base, instruction, pn.Source))
+			dest, err := e.provider.Translate(ctx, conn, model, prompt.ComposePrompt(base, instruction, pn.Source))
 			if err != nil {
 				return fmt.Errorf("固有名の翻訳: %w", err)
 			}

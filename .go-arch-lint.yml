@@ -26,9 +26,6 @@ components:
     in: internal/api
   engine:
     in: internal/engine
-  # tone は engine の子パッケージ（基底口調の分類器）。engine だけが使う。
-  tone:
-    in: internal/engine/tone
   provider:
     in: internal/provider
   store:
@@ -36,14 +33,37 @@ components:
   # secret は store の子（残存の keyring secret store）。現状 import 元なし。
   secret:
     in: internal/store/secret
-  # lexicon は感情辞書（NRC）の concrete アダプタ。bootstrap が new し engine の
-  # EmotionLexicon interface へ注入する。engine は lexicon を import しない。
+  # lexicon は感情辞書（NRC）の concrete アダプタ（os 読みを持つ）。bootstrap が new し
+  # core/linefeatures.EmotionLexicon interface へ注入する。core は lexicon を import しない。
   lexicon:
     in: internal/lexicon
   model:
     in: internal/model
   migrations:
     in: db
+
+  # core/* は副作用のない決定的な計算ロジック（functional core）。engine 等が一方向に import する。
+  # 純粋ルールは os・provider・store・engine を import しない（IO は engine 側へ寄せる）。
+  dictionary:
+    in: internal/core/dictionary
+  prompt:
+    in: internal/core/prompt
+  termderive:
+    in: internal/core/termderive
+  termusage:
+    in: internal/core/termusage
+  termxml:
+    in: internal/core/termxml
+  rolespeech:
+    in: internal/core/rolespeech
+  linefeatures:
+    in: internal/core/linefeatures
+  personatone:
+    in: internal/core/personatone
+  # tone は基底口調の分類器（純粋）。core 集積へ移設した。
+  tone:
+    in: internal/core/tone
+
   # harness は合成入力の統合非劣化テスト基盤（完了定義②）。テスト用の composition root の
   # ように層をまたいで配線するため、api・engine・store・provider への依存を明示的に許す。
   harness:
@@ -66,29 +86,60 @@ deps:
       - provider
       - store
       - lexicon
+      - rolespeech
   api:
     mayDependOn:
       - model
       - provider
       - engine
+      - dictionary
+      - prompt
   engine:
     mayDependOn:
       - model
       - provider
       - tone
+      - dictionary
+      - prompt
+      - termxml
+      - rolespeech
+      - linefeatures
+      - personatone
   store:
     mayDependOn:
       - model
       - migrations
+  # core/* 内部の一方向依存（逆依存・循環なし）。
+  prompt:
+    mayDependOn:
+      - provider
+  termusage:
+    mayDependOn:
+      - termderive
+  termxml:
+    mayDependOn:
+      - termderive
+      - termusage
+  linefeatures:
+    mayDependOn:
+      - tone
+  personatone:
+    mayDependOn:
+      - tone
+      - model
+      - rolespeech
   harness:
     mayDependOn:
       - api
       - engine
       - provider
       - store
+      - linefeatures
+      - rolespeech
   goldcap:
     mayDependOn:
       - api
       - engine
       - harness
       - lexicon
+      - rolespeech

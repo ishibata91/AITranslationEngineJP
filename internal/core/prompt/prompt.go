@@ -1,4 +1,6 @@
-package engine
+// Package prompt は翻訳プロンプトの組み立て（base 指示・口調指示・原文の合成）を行う純粋ルール。
+// 翻訳 Run と結果取得の実プロンプト再構成が同じ関数を使い、同じ入力から同じプロンプトを得る。
+package prompt
 
 import (
 	"strings"

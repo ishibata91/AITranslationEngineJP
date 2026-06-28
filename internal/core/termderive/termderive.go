@@ -1,4 +1,6 @@
-package engine
+// Package termderive は固有名（人名）の部分形（名のみ・短名）の訳を派生する純粋ルール。
+// 用法分布（一般語か固有名か）で安全フィルタを掛け、確定訳語の対だけを返す。
+package termderive
 
 import (
 	"regexp"

@@ -1,10 +1,11 @@
-package engine
+package personatone
 
 import (
 	"strings"
 	"testing"
 
-	"aitranslationenginejp/internal/engine/tone"
+	"aitranslationenginejp/internal/core/rolespeech"
+	"aitranslationenginejp/internal/core/tone"
 	"aitranslationenginejp/internal/model"
 )
 
@@ -41,7 +42,7 @@ func TestRaceMarkerTrait(t *testing.T) {
 // buildToneTraits は性質文に種族訛りを重ね、範囲外の段階では空を返す（役割語テンプレート無し）。
 func TestBuildToneTraits(t *testing.T) {
 	// 丁寧×中（物腰やわ）＋ Khajiit → 口調行 ＋ 種族訛り行。役割語テンプレート nil。
-	traits := buildToneTraits(model.LinePersonaInput{
+	traits := BuildToneTraits(model.LinePersonaInput{
 		AttitudeBand: tone.AttitudePolite, EmotionBand: tone.EmotionMid, RaceEDID: "KhajiitRace",
 	}, nil)
 	if len(traits) != 2 {
@@ -52,7 +53,7 @@ func TestBuildToneTraits(t *testing.T) {
 	}
 
 	// 種族訛りを持たない種族は口調行のみ。
-	plain := buildToneTraits(model.LinePersonaInput{
+	plain := BuildToneTraits(model.LinePersonaInput{
 		AttitudeBand: tone.AttitudeArrogant, EmotionBand: tone.EmotionSuppressed, RaceEDID: "NordRace",
 	}, nil)
 	if len(plain) != 1 {
@@ -60,20 +61,20 @@ func TestBuildToneTraits(t *testing.T) {
 	}
 
 	// 段階が範囲外なら口調指示なし（空）。
-	if got := buildToneTraits(model.LinePersonaInput{AttitudeBand: 9, EmotionBand: 9}, nil); got != nil {
+	if got := BuildToneTraits(model.LinePersonaInput{AttitudeBand: 9, EmotionBand: 9}, nil); got != nil {
 		t.Errorf("範囲外段階で traits = %v, want nil", got)
 	}
 }
 
 // buildToneTraits は役割語テンプレートがあれば、性質文と種族訛りの間へ一人称・言い回しの行を挟む。
 func TestBuildToneTraitsWithRoleSpeech(t *testing.T) {
-	roles, err := ParseRoleSpeech(strings.NewReader(
+	roles, err := rolespeech.ParseRoleSpeech(strings.NewReader(
 		"elder\tfemale\t*\tわたし\t年配の女性らしく落ち着いて。\n"))
 	if err != nil {
 		t.Fatalf("ParseRoleSpeech: %v", err)
 	}
 	// 老女（ElderRace + Female）・物腰やわ（丁寧×中）。口調 ＋ 人称と言い回し の 2 行（種族訛り無し）。
-	traits := buildToneTraits(model.LinePersonaInput{
+	traits := BuildToneTraits(model.LinePersonaInput{
 		AttitudeBand: tone.AttitudePolite, EmotionBand: tone.EmotionMid,
 		Sex: "Female", RaceEDID: "ElderRace",
 	}, roles)
@@ -85,7 +86,7 @@ func TestBuildToneTraitsWithRoleSpeech(t *testing.T) {
 	}
 
 	// テンプレートに当たらない成人男（adult/male、行なし）は役割語を付けず口調行のみ。
-	none := buildToneTraits(model.LinePersonaInput{
+	none := BuildToneTraits(model.LinePersonaInput{
 		AttitudeBand: tone.AttitudeNeutral, EmotionBand: tone.EmotionMid,
 		Sex: "Male", RaceEDID: "NordRace",
 	}, roles)
@@ -97,22 +98,22 @@ func TestBuildToneTraitsWithRoleSpeech(t *testing.T) {
 // buildToneDirective は traits があればテンプレートの {traits} を置換し、無ければ空を返す。
 func TestBuildToneDirective(t *testing.T) {
 	tmpl := "口調指示:\n{traits}"
-	got := buildToneDirective(tmpl, []string{"- 口調: 柔らかく丁寧"})
+	got := BuildToneDirective(tmpl, []string{"- 口調: 柔らかく丁寧"})
 	if !strings.Contains(got, "- 口調: 柔らかく丁寧") || strings.Contains(got, "{traits}") {
 		t.Errorf("{traits} の置換が想定外: %q", got)
 	}
-	if buildToneDirective(tmpl, nil) != "" {
+	if BuildToneDirective(tmpl, nil) != "" {
 		t.Error("traits が空で空文字を返さない")
 	}
 }
 
 // buildToneLabel は基底口調セル名のチップ要約を返し、範囲外は空。
 func TestBuildToneLabel(t *testing.T) {
-	got := buildToneLabel(model.LinePersonaInput{AttitudeBand: tone.AttitudePolite, EmotionBand: tone.EmotionMid})
+	got := BuildToneLabel(model.LinePersonaInput{AttitudeBand: tone.AttitudePolite, EmotionBand: tone.EmotionMid})
 	if got != "口調: 物腰やわ" {
 		t.Errorf("buildToneLabel = %q, want %q", got, "口調: 物腰やわ")
 	}
-	if buildToneLabel(model.LinePersonaInput{AttitudeBand: 9, EmotionBand: 9}) != "" {
+	if BuildToneLabel(model.LinePersonaInput{AttitudeBand: 9, EmotionBand: 9}) != "" {
 		t.Error("範囲外段階で空文字を返さない")
 	}
 }

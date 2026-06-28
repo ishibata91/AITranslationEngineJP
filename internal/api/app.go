@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 
+	"aitranslationenginejp/internal/core/dictionary"
+	"aitranslationenginejp/internal/core/prompt"
 	"aitranslationenginejp/internal/engine"
 	"aitranslationenginejp/internal/model"
 	"aitranslationenginejp/internal/provider"
@@ -464,7 +466,7 @@ func (a *App) buildResultsPage(ctx context.Context, cursor string, limit int) (R
 		view.Terms = termViews(used)
 		// 叙述文・定型句は、その REC:FIELD の文体・定型句 directive を base へ合成した実プロンプトを再構成する。
 		instruction := instructionByKey[directiveByRF[RecordKey{Rec: n.Rec, Field: n.Field}]]
-		view.Prompt = engine.RenderPrompt(engine.ComposePrompt(tmpl.BaseDirective, instruction, replaced))
+		view.Prompt = prompt.RenderPrompt(prompt.ComposePrompt(tmpl.BaseDirective, instruction, replaced))
 		views = append(views, view)
 	}
 	for _, l := range lines {
@@ -480,7 +482,7 @@ func (a *App) buildResultsPage(ctx context.Context, cursor string, limit int) (R
 			PersonaLabel: p.Label,
 			Terms:        termViews(used),
 			// 台詞は話者の口調指示を合成した実プロンプトを再構成する（口調指示の合成を目視で確かめる）。
-			Prompt: engine.RenderPrompt(engine.ComposePrompt(tmpl.BaseDirective, p.Directive, replaced)),
+			Prompt: prompt.RenderPrompt(prompt.ComposePrompt(tmpl.BaseDirective, p.Directive, replaced)),
 		}
 		// 話者を解決できた台詞は、誰の台詞かと属性（性別・年齢・声型）を付ける。
 		if sp, ok := speakers[l.ID]; ok {
@@ -551,8 +553,8 @@ func recordTypeView(boxByRF map[RecordKey]string, rec, field string) *RecordType
 	return &RecordTypeView{Box: box, RecField: rec + ":" + field}
 }
 
-// termViews は辞書の置換内訳（engine.DictionaryTerm）を結果行の表示 DTO へ写す。置換が無ければ nil を返す。
-func termViews(used []engine.DictionaryTerm) []TermView {
+// termViews は辞書の置換内訳（dictionary.Term）を結果行の表示 DTO へ写す。置換が無ければ nil を返す。
+func termViews(used []dictionary.Term) []TermView {
 	if len(used) == 0 {
 		return nil
 	}

@@ -1,15 +1,13 @@
-package engine
+package rolespeech
 
 import (
 	"errors"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"testing/iotest"
 )
 
-// roleClassOfRace は race EditorID を child / elder / adult へ畳む。
+// RoleClassOfRace は race EditorID を child / elder / adult へ畳む。
 func TestRoleClassOfRace(t *testing.T) {
 	cases := []struct {
 		in   string
@@ -22,8 +20,8 @@ func TestRoleClassOfRace(t *testing.T) {
 		{"", "adult"},
 	}
 	for _, tc := range cases {
-		if got := roleClassOfRace(tc.in); got != tc.want {
-			t.Errorf("roleClassOfRace(%q) = %q, want %q", tc.in, got, tc.want)
+		if got := RoleClassOfRace(tc.in); got != tc.want {
+			t.Errorf("RoleClassOfRace(%q) = %q, want %q", tc.in, got, tc.want)
 		}
 	}
 }
@@ -40,7 +38,7 @@ func TestParseRoleSpeech(t *testing.T) {
 	if len(tbl.rows) != 2 {
 		t.Fatalf("行数 = %d, want 2（コメントと空行を除く）", len(tbl.rows))
 	}
-	if tbl.rows[0] != (roleSpeechRow{race: "child", sex: "male", cell: "*", tmpl: RoleSpeechTemplate{FirstPerson: "ぼく", Register: "平易に。"}}) {
+	if tbl.rows[0] != (roleSpeechRow{race: "child", sex: "male", cell: "*", tmpl: Template{FirstPerson: "ぼく", Register: "平易に。"}}) {
 		t.Errorf("先頭行が想定外: %+v", tbl.rows[0])
 	}
 }
@@ -58,26 +56,6 @@ func TestParseRoleSpeechReadError(t *testing.T) {
 	_, err := ParseRoleSpeech(iotest.ErrReader(errors.New("読み取り失敗")))
 	if err == nil {
 		t.Fatal("読み取りエラーを期待")
-	}
-}
-
-// LoadRoleSpeech はファイルを開いて読む。存在しないパスはエラー。
-func TestLoadRoleSpeech(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "role.tsv")
-	if err := os.WriteFile(path, []byte("adult\tfemale\t*\tわたし\tやわらかく。\n"), 0o600); err != nil {
-		t.Fatalf("temp 書き込み: %v", err)
-	}
-	tbl, err := LoadRoleSpeech(path)
-	if err != nil {
-		t.Fatalf("LoadRoleSpeech: %v", err)
-	}
-	if len(tbl.rows) != 1 {
-		t.Fatalf("行数 = %d, want 1", len(tbl.rows))
-	}
-
-	if _, err := LoadRoleSpeech(filepath.Join(dir, "no-such-file.tsv")); err == nil {
-		t.Fatal("存在しないファイルでエラーを期待")
 	}
 }
 
@@ -119,7 +97,7 @@ func TestRoleSpeechLookup(t *testing.T) {
 	}
 
 	// nil レシーバは安全に ok=false。
-	var nilTable *RoleSpeechTable
+	var nilTable *Table
 	if _, ok := nilTable.Lookup("child", "male", "平明"); ok {
 		t.Error("nil テーブルで ok=true")
 	}

@@ -18,7 +18,7 @@ import (
 	"strings"
 
 	"aitranslationenginejp/internal/api"
-	"aitranslationenginejp/internal/engine"
+	"aitranslationenginejp/internal/core/rolespeech"
 	"aitranslationenginejp/internal/harness"
 	"aitranslationenginejp/internal/lexicon"
 )
@@ -70,7 +70,12 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("感情辞書の読み込み: %w", err)
 	}
-	roles, err := engine.LoadRoleSpeech(o.rolePath)
+	rolesFile, err := os.Open(o.rolePath)
+	if err != nil {
+		return fmt.Errorf("役割語テンプレートを開けない (%s): %w", o.rolePath, err)
+	}
+	defer rolesFile.Close() //nolint:errcheck // 読み取り後の後始末。
+	roles, err := rolespeech.ParseRoleSpeech(rolesFile)
 	if err != nil {
 		return fmt.Errorf("役割語テンプレートの読み込み: %w", err)
 	}
