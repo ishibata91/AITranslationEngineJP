@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"sort"
 
-	"aitranslationenginejp/internal/engine/tone"
+	"aitranslationenginejp/internal/core/linefeatures"
+	"aitranslationenginejp/internal/core/tone"
 	"aitranslationenginejp/internal/model"
 )
 
@@ -21,12 +22,12 @@ type PersonaGenStore interface {
 // キャッシュし、本文ごとに 1 度だけ prose を回す。生成は集計するだけで安価。手修正は store 側で保護する。
 type PersonaGenerator struct {
 	store      PersonaGenStore
-	lexicon    EmotionLexicon
+	lexicon    linefeatures.EmotionLexicon
 	classifier *tone.Classifier
 }
 
 // NewPersonaGenerator は生成器を組む。classifier は不変ルール、lexicon は差し替え可能な感情辞書。
-func NewPersonaGenerator(store PersonaGenStore, lexicon EmotionLexicon) *PersonaGenerator {
+func NewPersonaGenerator(store PersonaGenStore, lexicon linefeatures.EmotionLexicon) *PersonaGenerator {
 	return &PersonaGenerator{store: store, lexicon: lexicon, classifier: tone.NewClassifier()}
 }
 
@@ -51,7 +52,7 @@ func (g *PersonaGenerator) Generate(ctx context.Context) (int, error) {
 		for j < len(rows) &&
 			rows[j].SpeakerPlugin == rows[i].SpeakerPlugin &&
 			rows[j].SpeakerFormID == rows[i].SpeakerFormID {
-			feats = append(feats, features[SourceHash(rows[j].Source)])
+			feats = append(feats, features[linefeatures.SourceHash(rows[j].Source)])
 			if voice == "" {
 				voice = rows[j].VoiceEDID
 			}
@@ -79,7 +80,7 @@ func (g *PersonaGenerator) Generate(ctx context.Context) (int, error) {
 func (g *PersonaGenerator) ensureLineAnalyses(ctx context.Context, rows []model.SpeakerLineSource) (map[string]tone.Features, error) {
 	hashToText := make(map[string]string)
 	for _, r := range rows {
-		hashToText[SourceHash(r.Source)] = r.Source
+		hashToText[linefeatures.SourceHash(r.Source)] = r.Source
 	}
 	// hash 群は決定的な順序にする。map 反復のままだと UpsertLineAnalysis の書き込み順が実行ごとに揺れ、
 	// line_analysis の採番 id が非決定になる。本文ハッシュの昇順で固定する。
@@ -100,7 +101,7 @@ func (g *PersonaGenerator) ensureLineAnalyses(ctx context.Context, rows []model.
 			out[h] = featuresFromAnalysis(row)
 			continue
 		}
-		f := ExtractFeatures(text, g.lexicon) // prose（重い）。キャッシュ未命中の本文だけ実行する。
+		f := linefeatures.ExtractFeatures(text, g.lexicon) // prose（重い）。キャッシュ未命中の本文だけ実行する。
 		if err := g.store.UpsertLineAnalysis(ctx, analysisFromFeatures(h, f)); err != nil {
 			return nil, fmt.Errorf("行解析キャッシュの保存: %w", err)
 		}

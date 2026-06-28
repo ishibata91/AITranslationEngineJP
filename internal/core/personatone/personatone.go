@@ -1,9 +1,12 @@
-package engine
+// Package personatone は注入入力（基底口調・性別・種族）から翻訳プロンプトの口調指示を組む純粋ルール。
+// 基底口調の性質文・役割語（rolespeech）・種族訛りを織り合わせ、副作用を持たない。
+package personatone
 
 import (
 	"strings"
 
-	"aitranslationenginejp/internal/engine/tone"
+	"aitranslationenginejp/internal/core/rolespeech"
+	"aitranslationenginejp/internal/core/tone"
 	"aitranslationenginejp/internal/model"
 )
 
@@ -58,10 +61,10 @@ func raceMarkerTrait(raceEDID string) string {
 	}
 }
 
-// buildToneTraits は注入入力（生成済み基底口調＋性別＋種族）から口調指示の箇条書き行を組む。
+// BuildToneTraits は注入入力（生成済み基底口調＋性別＋種族）から口調指示の箇条書き行を組む。
 // 性質文（基底口調）→ 役割語（一人称・言い回し）→ 種族訛り の順に並べる。性質文が無ければ空（口調指示なし）。
 // 役割語は roles テンプレートを 性別×年齢（race 由来）×セル で引く。roles が nil なら役割語は付けない。
-func buildToneTraits(in model.LinePersonaInput, roles *RoleSpeechTable) []string {
+func BuildToneTraits(in model.LinePersonaInput, roles *rolespeech.Table) []string {
 	trait := toneTraitOf(in.AttitudeBand, in.EmotionBand)
 	if trait == "" {
 		return nil
@@ -79,9 +82,9 @@ func buildToneTraits(in model.LinePersonaInput, roles *RoleSpeechTable) []string
 // roleSpeechLine は役割語テンプレートを引いて口調指示の 1 行へ整える。
 // 照合は決定経路に依らず、性別・race 由来の区分・基底口調セルだけで決める（フォールバック・保留でも付く）。
 // 一致が無い、または一人称も言い回しも空なら空文字を返す（役割語マーカーなし）。
-func roleSpeechLine(in model.LinePersonaInput, roles *RoleSpeechTable) string {
+func roleSpeechLine(in model.LinePersonaInput, roles *rolespeech.Table) string {
 	cell := tone.CellName(in.AttitudeBand, in.EmotionBand)
-	tmpl, ok := roles.Lookup(roleClassOfRace(in.RaceEDID), strings.ToLower(in.Sex), cell)
+	tmpl, ok := roles.Lookup(rolespeech.RoleClassOfRace(in.RaceEDID), strings.ToLower(in.Sex), cell)
 	if !ok {
 		return ""
 	}
@@ -97,17 +100,17 @@ func roleSpeechLine(in model.LinePersonaInput, roles *RoleSpeechTable) string {
 	}
 }
 
-// buildToneDirective は口調指示テンプレートの {traits} へ口調指示の箇条書きを差し込む。
+// BuildToneDirective は口調指示テンプレートの {traits} へ口調指示の箇条書きを差し込む。
 // traits が空なら空文字を返し、ペルソナ指示を注入しない（既存の差し込み口 traitsToken を再利用）。
-func buildToneDirective(personaTemplate string, traits []string) string {
+func BuildToneDirective(personaTemplate string, traits []string) string {
 	if len(traits) == 0 {
 		return ""
 	}
 	return strings.ReplaceAll(personaTemplate, traitsToken, strings.Join(traits, "\n"))
 }
 
-// buildToneLabel は結果一覧の口調チップ用の短い要約。基底口調セル名を返す。段階が範囲外なら空文字。
-func buildToneLabel(in model.LinePersonaInput) string {
+// BuildToneLabel は結果一覧の口調チップ用の短い要約。基底口調セル名を返す。段階が範囲外なら空文字。
+func BuildToneLabel(in model.LinePersonaInput) string {
 	cell := tone.CellName(in.AttitudeBand, in.EmotionBand)
 	if cell == "" {
 		return ""
@@ -115,7 +118,7 @@ func buildToneLabel(in model.LinePersonaInput) string {
 	return "口調: " + cell
 }
 
-// personaMetaOf は注入入力から、UI 表示用の基底口調セル名と性質文を引く（判定結果の表示）。
-func personaMetaOf(in model.LinePersonaInput) (cell, trait string) {
+// PersonaMetaOf は注入入力から、UI 表示用の基底口調セル名と性質文を引く（判定結果の表示）。
+func PersonaMetaOf(in model.LinePersonaInput) (cell, trait string) {
 	return tone.CellName(in.AttitudeBand, in.EmotionBand), toneTraitOf(in.AttitudeBand, in.EmotionBand)
 }

@@ -88,7 +88,8 @@ flowchart TB
 ### Backend（Go・薄い）
 
 - `api`: Wails Bind の公開面。辞書・ルール・設定の CRUD を `store` へ素通しし、翻訳ジョブを `engine` の goroutine として起動し、進捗を runtime events で push する。
-- `engine`: 翻訳手続きの本体。中心データを読み、取込段で抽出生テーブルを種別ごとに箱別テーブル（叙述文・固有名・定型句・台詞）へ振り分け（重複排除を含む）、辞書解決・ペルソナ生成のうえ、固有名を本文より先に訳す固有名フェーズ→叙述文・定型句・台詞の本文フェーズの順に AI 翻訳し、配置へ書き戻し、xTranslator XML を出力する純 Go の手続き。GUI から切り離して単体テストでき、CLI からも起動できる。翻訳プロンプトの組み立て（base 指示・REC:FIELD ごとの directive・機械置換済み原文の合成）は `engine` の純粋関数が持ち、完成プロンプトを `provider` へ渡す。
+- `engine`: 翻訳手続きの本体（orchestration）。中心データを読み、取込段で抽出生テーブルを種別ごとに箱別テーブル（叙述文・固有名・定型句・台詞）へ振り分け（重複排除を含む）、辞書解決・ペルソナ生成のうえ、固有名を本文より先に訳す固有名フェーズ→叙述文・定型句・台詞の本文フェーズの順に AI 翻訳し、配置へ書き戻し、xTranslator XML を出力する純 Go の手続き。GUI から切り離して単体テストでき、CLI からも起動できる。翻訳プロンプトの組み立て・固有名派生・役割語照合などの純粋不変ルールは `core` が持ち、`engine` は store・provider・os の IO を伴ってそれらを束ねる。完成プロンプトを `provider` へ渡す。
+- `core`: 副作用のない決定的な計算ロジック（functional core）の集積。`internal/core/<name>` に純粋不変ルールを 1 つずつ別 package で持つ（辞書置換 `dictionary`、プロンプト組立 `prompt`、固有名派生 `termderive`・用法集計 `termusage`・XML 解析 `termxml`、役割語 `rolespeech`、行特徴抽出 `linefeatures`、口調指示組立 `personatone`、基底口調分類 `tone`）。os・provider・store・engine を import せず、`engine`・`api` 等が一方向に import する。不変ルールはユニットテスト 100% カバレッジを基準にする。
 - `store`: SQLite への薄いデータアクセス。sqlx を使い、entity ごとの repository interface は作らず関数で持つ。プロンプトテンプレート（base 指示・口調指示の雛形）の CRUD を含む。残存の keyring secret store を secret 子に置く。
 - `provider`: AI クライアントの interface と 4 実装（Gemini / xAI / OpenAI 互換 / Claude）。本構成で唯一の port。`engine` が組んだ完成プロンプトを受け取って送るだけで、プロンプトの文面構築はしない。
 - `model`: [`concept-model.md`](./concept-model.md) の箱に対応するデータ構造。`engine` と `store` が参照する。
@@ -119,13 +120,14 @@ flowchart TB
 
 - import 方向の検査（`.go-arch-lint.yml`、go-arch-lint）。component を実ディレクトリへ対応づけ、`mayDependOn` で許す import 先を固定する。現状の対応は次のとおり。
     - `main`（root）→ `bootstrap`。
-    - `bootstrap` → `api`・`engine`・`provider`・`store`・`lexicon`（concrete を new する唯一の層）。
-    - `api` → `model`・`provider`・`engine`。
-    - `engine` → `model`・`provider`・`tone`（`tone` は基底口調分類器の engine 子パッケージ）。
+    - `bootstrap` → `api`・`engine`・`provider`・`store`・`lexicon`・`rolespeech`（concrete を new し、asset の os 読みを行う唯一の層）。
+    - `api` → `model`・`provider`・`engine`・`dictionary`・`prompt`。
+    - `engine` → `model`・`provider`・`core/*`（`dictionary`・`prompt`・`termderive`・`termxml`・`rolespeech`・`linefeatures`・`personatone`・`tone`）。`engine` は orchestration として core の純粋ルールを一方向に import する。
+    - `core/*`（`internal/core/<name>`、functional core）は純粋ルール。内部依存は一方向のみ（`prompt`→`provider`、`termusage`→`termderive`、`termxml`→`termderive`・`termusage`、`linefeatures`→`tone`、`personatone`→`tone`・`model`・`rolespeech`）。`dictionary`・`termderive`・`rolespeech`・`tone` は leaf。core は engine・store・os を import しない。
     - `store` → `model`・`migrations`。`secret` は store 子（残存の keyring）。
-    - `lexicon`（感情辞書 NRC の concrete アダプタ）は leaf。`engine` は `EmotionLexicon` interface に依存し `lexicon` を import しない。
-    - `harness`（合成 golden のテスト基盤）→ `api`・`engine`・`provider`・`store`。テスト用の composition root として層をまたぐことを明示的に許す。
-    - `goldcap`（実データ golden 捕獲ツール）→ `api`・`engine`・`harness`・`lexicon`。
+    - `lexicon`（感情辞書 NRC の concrete アダプタ、os 読みを持つ）は leaf。`engine` は `core/linefeatures.EmotionLexicon` interface に依存し `lexicon` を import しない。
+    - `harness`（合成 golden のテスト基盤）→ `api`・`engine`・`provider`・`store`・`linefeatures`・`rolespeech`。テスト用の composition root として層をまたぐことを明示的に許す。
+    - `goldcap`（実データ golden 捕獲ツール）→ `api`・`engine`・`harness`・`lexicon`・`rolespeech`。
     - 現状、この依存グラフに対し違反 0（`OK - No warnings found`）。
 - 責務違反の走査（`scripts/lint/run-boundary-scan.sh`）。arch-lint は vendor import をどの層でも許す設定（`depOnAnyVendor: true`）のため、vendor の閉じ込めは本走査で強制する。
     - Wails runtime（`github.com/wailsapp/wails`）は `api`・`bootstrap`・root `main` だけ（§5 の runtime handle 閉じ込め）。
@@ -156,7 +158,8 @@ flowchart TB
 
 - `internal/bootstrap`: composition root
 - `internal/api`: Wails Bind 公開面
-- `internal/engine`: 翻訳手続き pipeline
+- `internal/engine`: 翻訳手続き pipeline（orchestration）。純粋ルールは `internal/core/*` を import して束ねる
+- `internal/core/`: 副作用のない純粋不変ルールの集積（functional core）。1 ルール 1 package（`dictionary`・`prompt`・`termderive`・`termusage`・`termxml`・`rolespeech`・`linefeatures`・`personatone`・`tone`）。os・provider・store・engine を import しない
 - `internal/store`: SQLite アクセス（sqlx）。keyring secret store は secret 子（`internal/store/secret`）に置く
 - `internal/provider`: AI クライアント interface と 4 実装
 - `internal/model`: [`concept-model.md`](./concept-model.md) 対応のデータ構造

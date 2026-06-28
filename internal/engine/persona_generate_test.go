@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"aitranslationenginejp/internal/engine/tone"
+	"aitranslationenginejp/internal/core/linefeatures"
+	"aitranslationenginejp/internal/core/tone"
 	"aitranslationenginejp/internal/model"
 )
 
@@ -44,12 +45,12 @@ func (f *fakeGenStore) UpsertPersonaCharacter(_ context.Context, pc model.Person
 
 // seedRude はキャッシュへ粗野（命令 1）な行解析を入れる。
 func seedRude(cache map[string]model.LineAnalysis, src string) {
-	cache[SourceHash(src)] = model.LineAnalysis{SourceHash: SourceHash(src), SentenceCount: 1, IsImperative: 1}
+	cache[linefeatures.SourceHash(src)] = model.LineAnalysis{SourceHash: linefeatures.SourceHash(src), SentenceCount: 1, IsImperative: 1}
 }
 
 // seedPolite はキャッシュへ丁寧（丁寧定型 1）な行解析を入れる。
 func seedPolite(cache map[string]model.LineAnalysis, src string) {
-	cache[SourceHash(src)] = model.LineAnalysis{SourceHash: SourceHash(src), SentenceCount: 1, PoliteCount: 1}
+	cache[linefeatures.SourceHash(src)] = model.LineAnalysis{SourceHash: linefeatures.SourceHash(src), SentenceCount: 1, PoliteCount: 1}
 }
 
 // findPC は plugin・form_id で保存済みペルソナを探す。
@@ -124,7 +125,7 @@ func TestGenerateComputesMissingAndCaches(t *testing.T) {
 	if n != 1 {
 		t.Fatalf("生成話者数 = %d, want 1", n)
 	}
-	if len(store.upsertedLA) != 1 || store.upsertedLA[0].SourceHash != SourceHash(src) {
+	if len(store.upsertedLA) != 1 || store.upsertedLA[0].SourceHash != linefeatures.SourceHash(src) {
 		t.Fatalf("未命中本文の行解析キャッシュ保存 = %+v, want 1 件（本文ハッシュ一致）", store.upsertedLA)
 	}
 	// 印不足（マーカー無し）で voice 中立のため、voice 経路の中立になる。

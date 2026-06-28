@@ -1,4 +1,6 @@
-package engine
+// Package linefeatures は 1 本文から機械検出特徴量（文数・命令・丁寧/罵倒・感情語数など）を抽出する純粋ルール。
+// 口調分類器（tone.Classifier）の入力を作る。prose の品詞解析と差し替え可能な感情辞書に依存する。
+package linefeatures
 
 import (
 	"crypto/sha256"
@@ -7,7 +9,7 @@ import (
 	"strings"
 	"unicode"
 
-	"aitranslationenginejp/internal/engine/tone"
+	"aitranslationenginejp/internal/core/tone"
 
 	"github.com/jdkato/prose/v2"
 )

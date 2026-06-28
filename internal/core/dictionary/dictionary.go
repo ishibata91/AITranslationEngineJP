@@ -1,4 +1,6 @@
-package engine
+// Package dictionary は固有名の機械置換（原語→確定訳語）を行う純粋ルール。
+// 叙述文・台詞の原文へ辞書を貪欲最長一致で当て、副作用なく置換結果と内訳を返す。
+package dictionary
 
 import (
 	"regexp"
@@ -6,9 +8,9 @@ import (
 	"strings"
 )
 
-// DictionaryTerm は固有名辞書の 1 件。原語（英語 FULL）を確定訳語（日本語の公式既訳）へ
+// Term は固有名辞書の 1 件。原語（英語 FULL）を確定訳語（日本語の公式既訳）へ
 // 機械置換するための対。
-type DictionaryTerm struct {
+type Term struct {
 	Source string // 原語（英語）
 	Dest   string // 確定訳語（日本語）
 }
@@ -23,7 +25,7 @@ type Dictionary struct {
 
 // NewDictionary は辞書語の対から置換器を作る。原語または確定訳語が空の対は捨てる。
 // 同一原語に複数の確定訳語が来た場合は最初の 1 つを採る（同綴り異義は概念モデル弱点1 として許容）。
-func NewDictionary(terms []DictionaryTerm) *Dictionary {
+func NewDictionary(terms []Term) *Dictionary {
 	bySource := make(map[string]string, len(terms))
 	sources := make([]string, 0, len(terms))
 	for _, t := range terms {
@@ -60,11 +62,11 @@ func NewDictionary(terms []DictionaryTerm) *Dictionary {
 
 // Apply は原文中の固有名を確定訳語へ置換し、置換後の原文と置換した語の一覧を返す。
 // 置換した語は出現順で、同じ語の重複は畳む（結果行への併記用）。辞書が空なら原文をそのまま返す。
-func (d *Dictionary) Apply(source string) (string, []DictionaryTerm) {
+func (d *Dictionary) Apply(source string) (string, []Term) {
 	if d.re == nil {
 		return source, nil
 	}
-	var used []DictionaryTerm
+	var used []Term
 	seen := make(map[string]bool)
 	replaced := d.re.ReplaceAllStringFunc(source, func(match string) string {
 		// d.re は bySource のキー（QuoteMeta 済み原語）だけを alternation に並べて組むため、
@@ -72,7 +74,7 @@ func (d *Dictionary) Apply(source string) (string, []DictionaryTerm) {
 		dest := d.bySource[match]
 		if !seen[match] {
 			seen[match] = true
-			used = append(used, DictionaryTerm{Source: match, Dest: dest})
+			used = append(used, Term{Source: match, Dest: dest})
 		}
 		return dest
 	})

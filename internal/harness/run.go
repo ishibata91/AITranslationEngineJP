@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"aitranslationenginejp/internal/api"
+	"aitranslationenginejp/internal/core/linefeatures"
+	"aitranslationenginejp/internal/core/rolespeech"
 	"aitranslationenginejp/internal/engine"
 	"aitranslationenginejp/internal/store"
 
@@ -19,8 +21,8 @@ import (
 type RunConfig struct {
 	DBPath      string        // 中心 DB（temp ファイル）のパス
 	Extractor   api.Extractor // 抽出段の注入（合成は SeedExtractor、実データは api.DotnetExtractor）
-	Lexicon     engine.EmotionLexicon
-	RoleSpeech  *engine.RoleSpeechTable
+	Lexicon     linefeatures.EmotionLexicon
+	RoleSpeech  *rolespeech.Table
 	TermsXMLDir string // 固有名派生が読む xTranslator XML ディレクトリ
 	PluginPath  string // 抽出対象 plugin のパス
 	Model       string // 送信モデル名（fake provider は記録のみ）
@@ -65,7 +67,7 @@ func SyntheticRun(dbPath, xmlDir string) (Capture, error) {
 	if err := os.WriteFile(filepath.Join(xmlDir, "Skyrim_Synthetic.xml"), []byte(f.TermsXML), 0o600); err != nil {
 		return Capture{}, fmt.Errorf("合成 XML の書き出し: %w", err)
 	}
-	roleSpeech, err := engine.ParseRoleSpeech(strings.NewReader(syntheticRoleSpeech))
+	roleSpeech, err := rolespeech.ParseRoleSpeech(strings.NewReader(syntheticRoleSpeech))
 	if err != nil {
 		return Capture{}, fmt.Errorf("合成役割語の構築: %w", err)
 	}

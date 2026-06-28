@@ -5,7 +5,16 @@ package engine
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
 
+	"aitranslationenginejp/internal/core/dictionary"
+	"aitranslationenginejp/internal/core/linefeatures"
+	"aitranslationenginejp/internal/core/personatone"
+	"aitranslationenginejp/internal/core/prompt"
+	"aitranslationenginejp/internal/core/rolespeech"
+	"aitranslationenginejp/internal/core/termxml"
 	"aitranslationenginejp/internal/model"
 	"aitranslationenginejp/internal/provider"
 )
@@ -90,13 +99,13 @@ type Store interface {
 type Engine struct {
 	store      Store
 	provider   provider.Translator
-	lexicon    EmotionLexicon
-	roleSpeech *RoleSpeechTable
+	lexicon    linefeatures.EmotionLexicon
+	roleSpeech *rolespeech.Table
 }
 
 // New は engine を生成する。provider は AI 翻訳の port、lexicon は口調生成の感情辞書（差し替え可能な境界）、
 // roleSpeech は注入時に引く一人称・語尾テンプレート（差し替え可能な参照データ。nil なら役割語を付けない）。
-func New(store Store, p provider.Translator, lexicon EmotionLexicon, roleSpeech *RoleSpeechTable) *Engine {
+func New(store Store, p provider.Translator, lexicon linefeatures.EmotionLexicon, roleSpeech *rolespeech.Table) *Engine {
 	return &Engine{store: store, provider: p, lexicon: lexicon, roleSpeech: roleSpeech}
 }
 
@@ -177,7 +186,7 @@ func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string
 		source, _ := dict.Apply(row.Source)
 		// 叙述文・定型句は、その REC:FIELD に割り当てた文体・定型句 directive の指示文を base へ合成して訳す。
 		instruction := instructionByKey[keyByRF[RecordKey{Rec: row.Rec, Field: row.Field}]]
-		dest, err := e.provider.Translate(ctx, conn, model, ComposePrompt(tmpl.BaseDirective, instruction, source))
+		dest, err := e.provider.Translate(ctx, conn, model, prompt.ComposePrompt(tmpl.BaseDirective, instruction, source))
 		if err != nil {
 			return done, fmt.Errorf("叙述文の翻訳: %w", err)
 		}
@@ -191,7 +200,7 @@ func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string
 	for _, row := range lines {
 		source, _ := dict.Apply(row.Source)
 		// 台詞は口調 directive（{traits} を話者の性質で埋めたもの）を base へ合成して訳す。話者なしなら口調指示は空。
-		dest, err := e.provider.Translate(ctx, conn, model, ComposePrompt(tmpl.BaseDirective, personas[row.ID].Directive, source))
+		dest, err := e.provider.Translate(ctx, conn, model, prompt.ComposePrompt(tmpl.BaseDirective, personas[row.ID].Directive, source))
 		if err != nil {
 			return done, fmt.Errorf("台詞の翻訳: %w", err)
 		}
@@ -250,7 +259,7 @@ func (e *Engine) authoritativeTerms(ctx context.Context) (map[string]string, err
 // LoadDictionary は master_term と確定済みの proper_noun を合流し、固有名の機械置換辞書を組む。
 // 翻訳実行（Run の本文フェーズ）と結果取得（api の内訳・実プロンプト再構成）が、ページ単位で 1 度だけ組んで使う。
 // master_term（権威訳）を先に積み、同綴りの proper_noun より優先する（NewDictionary は先勝ち）。
-func (e *Engine) LoadDictionary(ctx context.Context) (*Dictionary, error) {
+func (e *Engine) LoadDictionary(ctx context.Context) (*dictionary.Dictionary, error) {
 	terms, err := e.store.ListMasterTerms(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("マスター辞書の取得: %w", err)
@@ -259,14 +268,14 @@ func (e *Engine) LoadDictionary(ctx context.Context) (*Dictionary, error) {
 	if err != nil {
 		return nil, fmt.Errorf("固有名の取得: %w", err)
 	}
-	pairs := make([]DictionaryTerm, 0, len(terms)+len(propers))
+	pairs := make([]dictionary.Term, 0, len(terms)+len(propers))
 	for _, term := range terms {
-		pairs = append(pairs, DictionaryTerm{Source: term.Source, Dest: term.Dest})
+		pairs = append(pairs, dictionary.Term{Source: term.Source, Dest: term.Dest})
 	}
 	for _, pn := range propers {
-		pairs = append(pairs, DictionaryTerm{Source: pn.Source, Dest: pn.Dest})
+		pairs = append(pairs, dictionary.Term{Source: pn.Source, Dest: pn.Dest})
 	}
-	return NewDictionary(pairs), nil
+	return dictionary.NewDictionary(pairs), nil
 }
 
 // DeriveMasterTerms は xTranslator 英日 XML から人名の部分形（名のみ・短名）の確定訳語を派生し、
@@ -282,7 +291,11 @@ func (e *Engine) DeriveMasterTerms(ctx context.Context, xmlDir string) (int, err
 	for _, t := range terms {
 		baseSources[t.Source] = true
 	}
-	derived, err := DeriveTermsFromXMLDir(xmlDir, baseSources)
+	files, err := readXMLDir(xmlDir)
+	if err != nil {
+		return 0, err
+	}
+	derived, err := termxml.DeriveTermsFromFiles(files, baseSources)
 	if err != nil {
 		return 0, fmt.Errorf("固有名の派生: %w", err)
 	}
@@ -291,6 +304,28 @@ func (e *Engine) DeriveMasterTerms(ctx context.Context, xmlDir string) (int, err
 		rows[i] = model.MasterTerm{Source: d.Source, Dest: d.Dest, Category: "derive:" + d.Kind}
 	}
 	return e.store.InsertDerivedTerms(ctx, rows)
+}
+
+// readXMLDir はディレクトリ内の全 XML を読み込み、ファイル名昇順で termxml.XMLFile 群にして返す。
+// 純粋な派生（termxml.DeriveTermsFromFiles）へ渡す前段の os 読み。決定性のため名前順に並べる。
+func readXMLDir(xmlDir string) ([]termxml.XMLFile, error) {
+	entries, err := filepath.Glob(filepath.Join(xmlDir, "*.xml"))
+	if err != nil {
+		return nil, fmt.Errorf("XML の列挙: %w", err)
+	}
+	if len(entries) == 0 {
+		return nil, fmt.Errorf("XML が無い: %s", xmlDir)
+	}
+	sort.Strings(entries)
+	files := make([]termxml.XMLFile, 0, len(entries))
+	for _, path := range entries {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("%s の読み込み: %w", path, err)
+		}
+		files = append(files, termxml.XMLFile{Name: filepath.Base(path), Data: data})
+	}
+	return files, nil
 }
 
 // LinePersonas は台詞 id 群へ生成済みの基底口調を一括で引き、各台詞の口調指示文（全文）と一覧用の短い要約を map で返す。
@@ -304,14 +339,14 @@ func (e *Engine) LinePersonas(ctx context.Context, lineIDs []int64, personaTempl
 	}
 	out := make(map[int64]Persona, len(inputs))
 	for lineID, in := range inputs {
-		directive := buildToneDirective(personaTemplate, buildToneTraits(in, e.roleSpeech))
+		directive := personatone.BuildToneDirective(personaTemplate, personatone.BuildToneTraits(in, e.roleSpeech))
 		if directive == "" {
 			continue // 段階が範囲外で性質文が組めない場合は口調なし扱い。
 		}
-		cell, trait := personaMetaOf(in)
+		cell, trait := personatone.PersonaMetaOf(in)
 		out[lineID] = Persona{
 			Directive:    directive,
-			Label:        buildToneLabel(in),
+			Label:        personatone.BuildToneLabel(in),
 			Cell:         cell,
 			Trait:        trait,
 			AttitudeBand: in.AttitudeBand,

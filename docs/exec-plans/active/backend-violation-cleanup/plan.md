@@ -12,7 +12,8 @@ backend-refactor-test-foundation（完了）が安全網として整えた検査
 ### 動かす範囲
 
 1. 認知複雑度ゲートの解除。実測 >15 の 6 関数を分割し、`//nolint:gocognit` を 1 つも残さず gocognit を緑にする。各関数の外部から観測できる振る舞い（戻り値・golden）は変えない。
-2. static baseline の解消。golangci-lint static の既存 11 件（wrapcheck 4・gosec 3・errcheck 2・staticcheck 1・errorlint 1）を直し、`lint:backend:static` を緑にする。
+2. static baseline の解消。golangci-lint static の既存 9 件（wrapcheck 4・gosec 2・errcheck 1・staticcheck 1・errorlint 1）を直し、`lint:backend:static` を緑にする。
+   注: 当初 11 件だったが、`engine-pure-rule-split`（純粋ルールの core/ 別 package 化）で `engine.LoadRoleSpeech` を廃止したため、`role_speech.go` 由来の gosec G304 1 件と errcheck 1 件が消え 9 件になった。残りの違反の所在も core/ へ移った（下表）。
 3. 非劣化の保証。上記の内部変更後も、②の合成入力 golden（`internal/harness`）が一致し、`npm run verify:backend` が緑であること。
 
 ### 観測点
@@ -27,10 +28,10 @@ backend-refactor-test-foundation（完了）が安全網として整えた検査
 
 | 関数 | 場所 | 複雑度 | 分割方針 |
 | --- | --- | --- | --- |
-| `(*Engine).Run` | `internal/engine/engine.go:114` | 22 | 翻訳手続きの段階（固有名フェーズ・叙述文/定型句フェーズ・台詞フェーズ）を私的メソッドへ切り出し、`Run` は段階の連結と進捗集計に絞る。 |
-| `DeriveTerms` | `internal/engine/termderive.go:85` | 26 | 派生規則（姓名分割 two・二つ名前部 byname・短名）ごとに helper を切り出し、`add` クロージャの分岐を規則関数へ移す。⑤の純粋部括り出しと整合させる。 |
-| `parseTermXML` | `internal/engine/termxml.go:73` | 23 | XML トークン走査の状態分岐（StartElement の種別判定・CharData 収集）をハンドラ関数へ切り出す。 |
-| `BuildUsage` | `internal/engine/termusage.go:26` | 16 | 文分割の外側ループと、文内トークンの大小・文頭判定を別関数へ切り出す。 |
+| `(*Engine).Run` | `internal/engine/engine.go`（`//nolint:gocognit` 付き） | 22 | 翻訳手続きの段階（固有名フェーズ・叙述文/定型句フェーズ・台詞フェーズ）を私的メソッドへ切り出し、`Run` は段階の連結と進捗集計に絞る。 |
+| `DeriveTerms` | `internal/core/termderive/termderive.go` | 26 | 派生規則（姓名分割 two・二つ名前部 byname・短名）ごとに helper を切り出し、`add` クロージャの分岐を規則関数へ移す。純粋部は既に core/termderive へ別 package 化済み。 |
+| `ParseTermXML` | `internal/core/termxml/termxml.go` | 23 | XML トークン走査の状態分岐（StartElement の種別判定・CharData 収集）をハンドラ関数へ切り出す。`engine-pure-rule-split` で `parseTermXML`→`ParseTermXML` に公開・移設済み。 |
+| `BuildUsage` | `internal/core/termusage/termusage.go` | 16 | 文分割の外側ループと、文内トークンの大小・文頭判定を別関数へ切り出す。 |
 | `(*App).pageRows` | `internal/api/app.go:569` | 26 | 叙述文・台詞・固有名の区間ごとの取得とカーソル境界判定を区間別 helper へ切り出し、`pageRows` は連結に絞る。 |
 | `captureDBState` | `internal/harness/golden.go:40` | 21 | テーブル別ダンプを `{table, orderNote, query, format}` の spec スライスへ表化し、1 ループで回す。golden の出力順は spec の並びで保つ（テスト基盤側の負債）。 |
 
@@ -41,11 +42,11 @@ backend-refactor-test-foundation（完了）が安全網として整えた検査
 
 | linter | 件数 | 箇所 | 方針 |
 | --- | --- | --- | --- |
-| wrapcheck | 4 | `engine.go:293`（`InsertDerivedTerms`）、`persona_generate.go:69`（`UpsertPersonaCharacter`）、`termxml.go:82`（xml `Token`）、`termxml.go:90`（xml `DecodeElement`） | 返すエラーを `fmt.Errorf("...: %w", err)` で文脈づけて wrap する。store 呼び出しと外部 xml 呼び出しのいずれも日本語の文脈文を足す。 |
-| gosec G304 | 3 | `role_speech.go:36`、`termxml.go:47`、`nrc.go:21`（変数パスでの file open） | 入力パスを `filepath.Clean` で正規化し、許容範囲を明示するか、意図的な外部入力であることを `#nosec G304` ＋ 理由コメントで限定許可する。読み込み元は利用者が選ぶ参照データのため、限定許可が妥当な見込み（要確認）。 |
-| errcheck | 2 | `role_speech.go:40`、`nrc.go:25`（`f.Close` 未チェック） | `defer func() { _ = f.Close() }()` へ替え、読み取り専用 open の Close エラーを明示的に無視する（harness の `dumpRows` と同じ作法）。 |
-| staticcheck QF1001 | 1 | `termderive.go:153`（De Morgan） | 条件式を De Morgan 則で書き換え、可読な肯定形にする。真理値は保つ。 |
-| errorlint | 1 | `termxml.go:78`（`==` での error 比較） | `err == io.EOF` を `errors.Is(err, io.EOF)` へ替える。 |
+| wrapcheck | 4 | `internal/engine/engine.go`（`InsertDerivedTerms`）、`internal/engine/persona_generate.go`（`UpsertPersonaCharacter`）、`internal/core/termxml/termxml.go`（xml `Token`）、`internal/core/termxml/termxml.go`（xml `DecodeElement`） | 返すエラーを `fmt.Errorf("...: %w", err)` で文脈づけて wrap する。store 呼び出しと外部 xml 呼び出しのいずれも日本語の文脈文を足す。 |
+| gosec G304 | 2 | `internal/engine/engine.go`（`readXMLDir` の `os.ReadFile`）、`internal/lexicon/nrc.go`（`os.Open`） | 入力パスを `filepath.Clean` で正規化し、許容範囲を明示するか、意図的な外部入力であることを `#nosec G304` ＋ 理由コメントで限定許可する。読み込み元は利用者が選ぶ参照データのため、限定許可が妥当な見込み（要確認）。 |
+| errcheck | 1 | `internal/lexicon/nrc.go`（`f.Close` 未チェック） | `defer func() { _ = f.Close() }()` へ替え、読み取り専用 open の Close エラーを明示的に無視する（harness の `dumpRows` と同じ作法）。 |
+| staticcheck QF1001 | 1 | `internal/core/termderive/termderive.go`（De Morgan） | 条件式を De Morgan 則で書き換え、可読な肯定形にする。真理値は保つ。 |
+| errorlint | 1 | `internal/core/termxml/termxml.go`（`==` での error 比較） | `err == io.EOF` を `errors.Is(err, io.EOF)` へ替える。 |
 
 - 進め方: linter 種別ごとにまとめて直し、各種別の修正後に static を回して件数が減ることを確認する。
 - 不変: 振る舞いを変えない修正に限る。`io.EOF` 判定や Close 無視は意味を変えないことを確認する。

@@ -4,9 +4,11 @@ package bootstrap
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"aitranslationenginejp/internal/api"
+	"aitranslationenginejp/internal/core/rolespeech"
 	"aitranslationenginejp/internal/engine"
 	"aitranslationenginejp/internal/lexicon"
 	"aitranslationenginejp/internal/provider"
@@ -45,7 +47,14 @@ func NewApp() (*api.App, *store.Store, error) {
 	}
 
 	// 注入時に引く一人称・語尾テンプレートを読む。性別・年齢・基底口調で役割語を引く参照データ。
-	roles, err := engine.LoadRoleSpeech(roleSpeechPath)
+	// asset のファイル open は composition root の責務。純粋な解析は core/rolespeech が行う。
+	rolesFile, err := os.Open(roleSpeechPath)
+	if err != nil {
+		_ = s.Close()
+		return nil, nil, fmt.Errorf("役割語テンプレートを開けない (%s): %w", roleSpeechPath, err)
+	}
+	defer rolesFile.Close() //nolint:errcheck // 読み取り後の後始末。
+	roles, err := rolespeech.ParseRoleSpeech(rolesFile)
 	if err != nil {
 		_ = s.Close()
 		return nil, nil, fmt.Errorf("役割語テンプレートの読み込み: %w", err)
