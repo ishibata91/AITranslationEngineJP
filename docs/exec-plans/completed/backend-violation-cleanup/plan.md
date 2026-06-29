@@ -109,3 +109,20 @@ backend-refactor-test-foundation（完了）が安全網として整えた検査
 
 - `docs/architecture.md` 反映: 不要。軽 task（preparation-module で画面 N・architecture N）。関数内の helper 切り出しと lint の局所修正に限り、層構成・依存方向・Bootstrap・Wails 境界・強い制約は不変。
 - 人間承認: 不要（正本反映なし）。
+
+### 作業 commit
+
+- commit: `a055e3fc`（branch `claude/backend-violation-cleanup`）。
+- 変更ファイル: コード 8（termderive・termxml・termusage・engine・persona_generate・api/app・harness/golden・lexicon/nrc）＋ 本 plan.md ＋ 新規 backlog plan。
+- remote は未変更。
+
+### local merge
+
+- command: `git merge --no-ff claude/backend-violation-cleanup`（target: `master`）。
+- merge commit: `812dfbeb`。conflict なし。
+
+### merge 後検証
+
+- `npm run verify:backend`: exit 0（go test ./... ＋ arch ＋ boundary、いずれも OK）。
+- `sh ./scripts/lint/run-go-backend-lint.sh static`: `0 issues.` exit 0。gocognit 指摘 0。
+- `grep -rn "nolint:gocognit" internal`: 空。
