@@ -568,81 +568,138 @@ func termViews(used []dictionary.Term) []TermView {
 // pageRows は keyset cursor から当該ページの叙述文・台詞・固有名、総件数、次 cursor、続きの有無を決める。
 // 区間は叙述文 → 台詞 → 固有名 の順に連結し、ある区間がページに満たなければ次区間の先頭から補充する。
 // 口調・種別バッジは付けない（呼び出し側が付ける）。
-func (a *App) pageRows(ctx context.Context, cursor string, limit int) ( //nolint:gocognit // TODO(refactor): 叙述文→台詞→固有名の連結とカーソル境界の集約。リファクタ本体で区間ごとに分割する。
+func (a *App) pageRows(ctx context.Context, cursor string, limit int) (
 	narrations []model.Narration, lines []model.Line, propers []model.ProperNoun,
 	total int, nextCursor string, hasMore bool, err error) {
+	total, err = a.countAll(ctx)
+	if err != nil {
+		return nil, nil, nil, 0, "", false, err
+	}
+
+	section, afterID := parseCursor(cursor)
+	pb := &pageBuilder{remaining: limit, afterID: afterID, cur: section}
+	// 叙述文 → 台詞 → 固有名 の順に区間を埋める。ある区間でページが確定（done）したらそこで打ち切る。
+	for _, fill := range []sectionFiller{a.fillNarrations, a.fillLines, a.fillPropers} {
+		var done bool
+		done, err = fill(ctx, pb)
+		if err != nil {
+			return nil, nil, nil, 0, "", false, err
+		}
+		if done {
+			break
+		}
+	}
+	return pb.narrations, pb.lines, pb.propers, total, pb.nextCursor, pb.hasMore, nil
+}
+
+// countAll は叙述文・台詞・固有名の総件数を合算して返す。ページングの total に使う。
+func (a *App) countAll(ctx context.Context) (int, error) {
 	nTotal, err := a.store.CountNarrations(ctx)
 	if err != nil {
-		return nil, nil, nil, 0, "", false, fmt.Errorf("叙述文の件数: %w", err)
+		return 0, fmt.Errorf("叙述文の件数: %w", err)
 	}
 	lTotal, err := a.store.CountLines(ctx)
 	if err != nil {
-		return nil, nil, nil, 0, "", false, fmt.Errorf("台詞の件数: %w", err)
+		return 0, fmt.Errorf("台詞の件数: %w", err)
 	}
 	pTotal, err := a.store.CountProperNouns(ctx)
 	if err != nil {
-		return nil, nil, nil, 0, "", false, fmt.Errorf("固有名の件数: %w", err)
+		return 0, fmt.Errorf("固有名の件数: %w", err)
 	}
-	total = nTotal + lTotal + pTotal
+	return nTotal + lTotal + pTotal, nil
+}
 
-	section, afterID := parseCursor(cursor)
-	remaining := limit
-	cur := section
+// pageBuilder は pageRows が区間をまたいで持ち回る蓄積と進行状態。各 fill メソッドが変異させる。
+// remaining は残り取得枠、afterID は現区間の keyset カーソル位置、cur は現在の区間種別。
+// nextCursor / hasMore はページ確定時に各 fill メソッドがセットする。
+type pageBuilder struct {
+	narrations []model.Narration
+	lines      []model.Line
+	propers    []model.ProperNoun
+	remaining  int
+	afterID    int64
+	cur        string
+	nextCursor string
+	hasMore    bool
+}
 
-	// 叙述文区間: cursor がここから始まるときだけ取る。limit を超えたらこの区間で切る。
-	if cur == cursorNarration {
-		narrations, err = a.store.NarrationsAfter(ctx, afterID, remaining+1)
-		if err != nil {
-			return nil, nil, nil, 0, "", false, fmt.Errorf("叙述文ページの取得: %w", err)
-		}
-		if len(narrations) > remaining {
-			narrations = narrations[:remaining]
-			return narrations, nil, nil, total, makeCursor(cursorNarration, narrations[len(narrations)-1].ID), true, nil
-		}
-		remaining -= len(narrations)
-		cur, afterID = cursorLine, 0
+// sectionFiller は 1 区間を埋める関数の型。ページが確定したら done=true を返し、pageRows はそこで打ち切る。
+type sectionFiller func(ctx context.Context, pb *pageBuilder) (done bool, err error)
+
+// fillNarrations は叙述文区間を埋める。cursor がここから始まるときだけ取り、limit を超えたらこの区間で切る。
+func (a *App) fillNarrations(ctx context.Context, pb *pageBuilder) (bool, error) {
+	if pb.cur != cursorNarration {
+		return false, nil
 	}
-
-	// 台詞区間: 叙述文の残りを台詞で補充する。remaining が 0 ちょうどなら、台詞があれば次ページへ送る。
-	if cur == cursorLine {
-		lines, err = a.store.LinesAfter(ctx, afterID, remaining+1)
-		if err != nil {
-			return nil, nil, nil, 0, "", false, fmt.Errorf("台詞ページの取得: %w", err)
-		}
-		switch {
-		case remaining == 0:
-			if len(lines) > 0 {
-				return narrations, nil, nil, total, makeCursor(cursorLine, afterID), true, nil
-			}
-			lines = nil
-		case len(lines) > remaining:
-			lines = lines[:remaining]
-			return narrations, lines, nil, total, makeCursor(cursorLine, lines[len(lines)-1].ID), true, nil
-		default:
-			remaining -= len(lines)
-		}
-		cur, afterID = cursorProper, 0
+	rows, err := a.store.NarrationsAfter(ctx, pb.afterID, pb.remaining+1)
+	if err != nil {
+		return false, fmt.Errorf("叙述文ページの取得: %w", err)
 	}
-
-	// 固有名区間（末尾）: 台詞の残りを固有名で補充する。ここで尽きれば続きなし。
-	if cur == cursorProper {
-		propers, err = a.store.ProperNounsAfter(ctx, afterID, remaining+1)
-		if err != nil {
-			return nil, nil, nil, 0, "", false, fmt.Errorf("固有名ページの取得: %w", err)
-		}
-		if remaining == 0 {
-			if len(propers) > 0 {
-				return narrations, lines, nil, total, makeCursor(cursorProper, afterID), true, nil
-			}
-			return narrations, lines, nil, total, "", false, nil
-		}
-		if len(propers) > remaining {
-			propers = propers[:remaining]
-			return narrations, lines, propers, total, makeCursor(cursorProper, propers[len(propers)-1].ID), true, nil
-		}
-		return narrations, lines, propers, total, "", false, nil
+	if len(rows) > pb.remaining {
+		pb.narrations = rows[:pb.remaining]
+		pb.nextCursor = makeCursor(cursorNarration, pb.narrations[len(pb.narrations)-1].ID)
+		pb.hasMore = true
+		return true, nil
 	}
-	return narrations, lines, propers, total, "", false, nil
+	pb.narrations = rows
+	pb.remaining -= len(rows)
+	pb.cur, pb.afterID = cursorLine, 0
+	return false, nil
+}
+
+// fillLines は台詞区間を埋める。叙述文の残りを台詞で補充する。remaining が 0 ちょうどなら、台詞があれば次ページへ送る。
+func (a *App) fillLines(ctx context.Context, pb *pageBuilder) (bool, error) {
+	if pb.cur != cursorLine {
+		return false, nil
+	}
+	rows, err := a.store.LinesAfter(ctx, pb.afterID, pb.remaining+1)
+	if err != nil {
+		return false, fmt.Errorf("台詞ページの取得: %w", err)
+	}
+	switch {
+	case pb.remaining == 0:
+		if len(rows) > 0 {
+			pb.nextCursor = makeCursor(cursorLine, pb.afterID)
+			pb.hasMore = true
+			return true, nil
+		}
+	case len(rows) > pb.remaining:
+		pb.lines = rows[:pb.remaining]
+		pb.nextCursor = makeCursor(cursorLine, pb.lines[len(pb.lines)-1].ID)
+		pb.hasMore = true
+		return true, nil
+	default:
+		pb.lines = rows
+		pb.remaining -= len(rows)
+	}
+	pb.cur, pb.afterID = cursorProper, 0
+	return false, nil
+}
+
+// fillPropers は固有名区間（末尾）を埋める。台詞の残りを固有名で補充する。ここで尽きれば続きなし。
+func (a *App) fillPropers(ctx context.Context, pb *pageBuilder) (bool, error) {
+	if pb.cur != cursorProper {
+		return false, nil
+	}
+	rows, err := a.store.ProperNounsAfter(ctx, pb.afterID, pb.remaining+1)
+	if err != nil {
+		return false, fmt.Errorf("固有名ページの取得: %w", err)
+	}
+	if pb.remaining == 0 {
+		if len(rows) > 0 {
+			pb.nextCursor = makeCursor(cursorProper, pb.afterID)
+			pb.hasMore = true
+		}
+		return true, nil
+	}
+	if len(rows) > pb.remaining {
+		pb.propers = rows[:pb.remaining]
+		pb.nextCursor = makeCursor(cursorProper, pb.propers[len(pb.propers)-1].ID)
+		pb.hasMore = true
+		return true, nil
+	}
+	pb.propers = rows
+	return true, nil
 }
 
 // lineIDs は台詞行から id 列を取り出す（口調の一括生成の入力用）。

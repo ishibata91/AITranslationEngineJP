@@ -6,6 +6,8 @@ package termxml
 import (
 	"bytes"
 	"encoding/xml"
+	"errors"
+	"fmt"
 	"io"
 	"strings"
 
@@ -63,16 +65,17 @@ type xmlString struct {
 // ParseTermXML は 1 つの XML から NPC のフルネーム対・短名対と会話文の英語原文を取り出す。
 // baseGame は供給元が base ゲームかを示し、フルネーム対へ印を付ける（two の base ゲーム限定判定用）。
 // encoding/xml はエンティティ（&lt; など）を復号する。先頭 UTF-8 BOM は除いてから解析する。
-func ParseTermXML(data []byte, baseGame bool) (fulls, shrts []termderive.NamePair, dialogues []string, err error) { //nolint:gocognit // TODO(refactor): XML トークン走査の状態分岐（要素種別×収集先）。リファクタ本体で分割する。
+func ParseTermXML(data []byte, baseGame bool) (fulls, shrts []termderive.NamePair, dialogues []string, err error) {
 	data = bytes.TrimPrefix(data, []byte("\uFEFF"))
 	dec := xml.NewDecoder(bytes.NewReader(data))
+	var acc termAccum
 	for {
 		tok, tokErr := dec.Token()
-		if tokErr == io.EOF {
+		if errors.Is(tokErr, io.EOF) {
 			break
 		}
 		if tokErr != nil {
-			return nil, nil, nil, tokErr
+			return nil, nil, nil, fmt.Errorf("XML トークンの取得に失敗した: %w", tokErr)
 		}
 		start, ok := tok.(xml.StartElement)
 		if !ok || start.Name.Local != "String" {
@@ -80,25 +83,38 @@ func ParseTermXML(data []byte, baseGame bool) (fulls, shrts []termderive.NamePai
 		}
 		var s xmlString
 		if decErr := dec.DecodeElement(&s, &start); decErr != nil {
-			return nil, nil, nil, decErr
+			return nil, nil, nil, fmt.Errorf("XML の String 要素の復号に失敗した: %w", decErr)
 		}
-		rec := strings.ToUpper(strings.TrimSpace(s.REC))
-		src := strings.TrimSpace(s.Source)
-		dst := strings.TrimSpace(s.Dest)
-		switch rec {
-		case "NPC_:FULL":
-			if src != "" && dst != "" {
-				fulls = append(fulls, termderive.NamePair{Source: src, Dest: dst, BaseGame: baseGame})
-			}
-		case "NPC_:SHRT":
-			if src != "" && dst != "" {
-				shrts = append(shrts, termderive.NamePair{Source: src, Dest: dst, BaseGame: baseGame})
-			}
-		case "INFO:NAM1":
-			if src != "" {
-				dialogues = append(dialogues, src)
-			}
+		acc.collect(s, baseGame)
+	}
+	return acc.fulls, acc.shrts, acc.dialogues, nil
+}
+
+// termAccum は ParseTermXML の走査中に種別ごとの収集先を束ねる。1 レコードの振り分けを collect に閉じ込め、
+// トークン走査ループ本体（ParseTermXML）から要素種別の分岐を分離する。
+type termAccum struct {
+	fulls, shrts []termderive.NamePair
+	dialogues    []string
+}
+
+// collect は 1 つの <String> レコードを REC 種別で振り分け、対応する収集先へ足す。
+// NPC_:FULL と NPC_:SHRT は原語・訳語の両方が空でない時だけ、INFO:NAM1 は原語が空でない時だけ採る。
+func (acc *termAccum) collect(s xmlString, baseGame bool) {
+	rec := strings.ToUpper(strings.TrimSpace(s.REC))
+	src := strings.TrimSpace(s.Source)
+	dst := strings.TrimSpace(s.Dest)
+	switch rec {
+	case "NPC_:FULL":
+		if src != "" && dst != "" {
+			acc.fulls = append(acc.fulls, termderive.NamePair{Source: src, Dest: dst, BaseGame: baseGame})
+		}
+	case "NPC_:SHRT":
+		if src != "" && dst != "" {
+			acc.shrts = append(acc.shrts, termderive.NamePair{Source: src, Dest: dst, BaseGame: baseGame})
+		}
+	case "INFO:NAM1":
+		if src != "" {
+			acc.dialogues = append(acc.dialogues, src)
 		}
 	}
-	return fulls, shrts, dialogues, nil
 }

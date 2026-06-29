@@ -5,6 +5,8 @@
 backend-refactor-test-foundation（完了）が安全網として整えた検査が表面化させた残債を解消する。具体的には、認知複雑度ゲート（gocognit）で baseline 除外した 6 関数を分割して `//nolint:gocognit` を外し、golangci-lint static の既存 baseline 11 件を解消する。テスト基盤（golden harness・arch-lint・境界走査）は不変に保ち、非劣化を保証したうえで内部を直す。
 
 - 分岐元 branch: master（backend-refactor-test-foundation の merge 後）
+- 分岐元 commit: 877077b5
+- 作業 branch: claude/backend-violation-cleanup
 - 起動条件: backend-refactor-test-foundation が完了・merge 済みであること。本書はその done を前提にした backlog。
 
 ## 完了定義
@@ -21,6 +23,15 @@ backend-refactor-test-foundation（完了）が安全網として整えた検査
 - 複雑度: `npm run lint:backend:static` で gocognit 指摘 0、かつコードに `//nolint:gocognit` が 0 件（`grep -rn "nolint:gocognit" internal` が空）。
 - static: `sh ./scripts/lint/run-go-backend-lint.sh static` が exit 0（issues 0）。
 - 非劣化: `go test ./internal/harness/...` の golden 一致、`npm run verify:backend` が exit 0。
+
+## 軽 / 重判定
+
+| 軸 | 判定 | 根拠 |
+| --- | --- | --- |
+| 画面が動くか | N | 変更対象は backend のみ（gocognit の関数分割、golangci-lint static 違反の解消）。layout・文言・style・表示構造・svelte 表示コンポーネント・props・story・fixture のいずれも変えない。frontend 変更は除外範囲。 |
+| `docs/architecture.md` 反映が要るか | N | 関数内部の段階・分岐の helper 切り出しと lint 違反の局所修正に限る。層構成・依存方向・Bootstrap・Wails 境界・強い制約のいずれも変えない。`.go-arch-lint.yml` の依存方向ルールは不変に保つ。 |
+
+判定結果: 両方 N のため軽 task。`design-module` と `storybook-module` を bypass し、`preparation-module` → `implementation-module` → `finalization-module` で進める。
 
 ## 1. 認知複雑度ゲートの解除（gocognit `//nolint` の撤去）
 
@@ -56,8 +67,45 @@ backend-refactor-test-foundation（完了）が安全網として整えた検査
 - engine 内部構造の作り変え・store/DB の作り直し（包括的リファクタ本体の別 scope）。本書は「複雑度の分割」と「lint 違反の解消」に限る。
 - まだ純粋でないルールの純粋部括り出しと新規ユニット追加。これは backend-refactor-test-foundation ⑤の [`unit-test-plan.md`](../backend-refactor-test-foundation/unit-test-plan.md)（finalize 後は completed 配下）を入力にする別 scope。ただし §1 の `DeriveTerms`・`parseTermXML` の分割は⑤の括り出しと動きが重なるため、着手時に整合させる。
 - frontend・C# 抽出器の変更。
+- 汎用ボイス NPC（衛兵など）の話者未解決台詞への口調 fallback。本タスクの実画面確認（Innocence Lost - Quest Expansion.esp）で観測した別 scope。`docs/exec-plans/active/generic-voice-tone-fallback/plan.md` に backlog 化した。着手時に preparation-module で正式化する。
 
 ## 関連
 
 - 前提タスク: backend-refactor-test-foundation（安全網と検証ハーネスの整備。完了）。
 - 安全網: `.go-arch-lint.yml`（依存方向）、`scripts/lint/run-boundary-scan.sh`（責務違反走査）、`internal/harness`（合成 golden）。
+
+## 実装・検証結果
+
+### 変更ファイル（1 行 1 ファイル）
+
+- `internal/core/termderive/termderive.go`: `DeriveTerms` を派生規則ごとの helper（`deriveShrt`・`deriveByname`・`deriveTwo`）へ分割し `//nolint:gocognit` を撤去。`safePair` の許可文字判定を肯定形へ書き換え QF1001 を解消。
+- `internal/core/termxml/termxml.go`: `ParseTermXML` のレコード振り分けを `termAccum.collect` へ分割し `//nolint:gocognit` を撤去。`io.EOF` 比較を `errors.Is` へ（errorlint）。xml `Token`・`DecodeElement` の error を `fmt.Errorf("...: %w")` で wrap（wrapcheck 2）。
+- `internal/core/termusage/termusage.go`: `BuildUsage` を `accumulateSentence`・`accumulateToken` へ分割し `//nolint:gocognit` を撤去。
+- `internal/engine/engine.go`: `Run` を進捗集約 `runProgress` と段階メソッド `translateNarrations`・`translateLines` へ分割し `//nolint:gocognit` を撤去。`InsertDerivedTerms` の error を wrap（wrapcheck）。`readXMLDir` の `os.ReadFile` に G304 限定許可コメントを付与（gosec）。
+- `internal/api/app.go`: `pageRows` を `pageBuilder` と区間メソッド（`countAll`・`fillNarrations`・`fillLines`・`fillPropers`）へ分割し `//nolint:gocognit` を撤去。早期 return の境界条件は不変。
+- `internal/harness/golden.go`: `captureDBState` を `dbStateTables` 仕様列の 1 ループへ表化し `//nolint:gocognit` を撤去。各テーブルの format をパッケージ関数へ切り出す。出力順は仕様列の並びで維持。
+- `internal/lexicon/nrc.go`: `f.Close` を `defer func() { _ = f.Close() }()` へ（errcheck）。`os.Open` に G304 限定許可コメントを付与（gosec）。
+- `internal/engine/persona_generate.go`: `UpsertPersonaCharacter` の error を wrap（wrapcheck）。
+
+### 最終検証（観測点）
+
+- 複雑度: `sh ./scripts/lint/run-go-backend-lint.sh static` で gocognit 指摘 0。`grep -rn "nolint:gocognit" internal` は空（exit 1）。
+- static: 同 static コマンドが `0 issues.` exit 0。当初 baseline 9 件（wrapcheck 4・gosec 2・errcheck 1・staticcheck 1・errorlint 1）を全解消。
+- 非劣化: `go test ./internal/harness/...` の golden 一致。`npm run verify:backend`（go test ./... ＋ arch ＋ boundary）が exit 0。
+
+### 作業中に混入し解消した違反
+
+- termxml の wrap 文を当初「String 要素の…」と書き、先頭大文字で staticcheck ST1005 を 1 件混入させた。先頭を「XML の…」へ直して解消した（最終 static は 0 issues）。
+
+## 実画面確認
+
+- 確認環境: `npm run dev:wails:run`（http://localhost:34115）、実 LLM 別マシン `http://192.168.0.226:1234`（モデル hy-mt2-7b）、plugin は `dictionaries/Data/Innocence Lost - Quest Expansion.esp`（小規模 plugin で全フローを短時間確認）。
+- 確認結果: 抽出 → 翻訳 → 結果一覧まで通過。叙述文・定型句・台詞が訳出され（engine.Run の段階分割が動作）、結果一覧 197 件が叙述文→定型句→台詞→固有名の順でページング表示（pageRows の区間分割とカーソル境界が動作）。固有名は本文へ一貫機械置換（termxml・termderive・termusage の派生が動作、master_term に派生反映）。主要 NPC 台詞に口調付与（persona 生成が動作）。
+- 観測した別 scope: 汎用ボイス NPC（衛兵）の話者未解決台詞が口調なしになる既存挙動を観測。本タスク無関係（口調生成・話者連関・voice fallback のロジックは未変更、golden 一致）。`docs/exec-plans/active/generic-voice-tone-fallback/plan.md` に backlog 化した。
+
+## finalization
+
+### 正本化判断
+
+- `docs/architecture.md` 反映: 不要。軽 task（preparation-module で画面 N・architecture N）。関数内の helper 切り出しと lint の局所修正に限り、層構成・依存方向・Bootstrap・Wails 境界・強い制約は不変。
+- 人間承認: 不要（正本反映なし）。

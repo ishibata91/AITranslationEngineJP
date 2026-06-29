@@ -67,7 +67,7 @@ func (g *PersonaGenerator) Generate(ctx context.Context) (int, error) {
 			Marked:        persona.Marked,
 			DecisionPath:  persona.DecisionPath,
 		}); err != nil {
-			return count, err
+			return count, fmt.Errorf("口調ペルソナ（persona_character）の保存: %w", err)
 		}
 		count++
 		i = j

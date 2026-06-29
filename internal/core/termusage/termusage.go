@@ -27,22 +27,36 @@ var (
 // BuildUsage は会話文の英語原文から各英単語の用法分布（LC / UC）を作る。
 // 文ごとに語を取り、小文字始まりの語は一般語用法として小文字連を LC に積み、
 // 文頭以外で大文字始まりの語は固有名用法として小文字化した語を UC に積む。文頭語（i==0）の大文字は数えない。
-func BuildUsage(dialogues []string) termderive.Usage { //nolint:gocognit // TODO(refactor): 用法分布の集計ループ（文分割×トークン走査）。リファクタ本体で簡素化する。
+func BuildUsage(dialogues []string) termderive.Usage {
 	u := termderive.Usage{LC: map[string]int{}, UC: map[string]int{}}
 	for _, line := range dialogues {
 		for _, sent := range sentSplitRe.Split(line, -1) {
-			toks := wordRe.FindAllString(sent, -1)
-			for i, tok := range toks {
-				first, _ := utf8.DecodeRuneInString(tok)
-				if unicode.IsLower(first) {
-					for _, w := range lowerRunRe.FindAllString(tok, -1) {
-						u.LC[w]++
-					}
-				} else if i > 0 {
-					u.UC[strings.Trim(strings.ToLower(tok), "'")]++
-				}
-			}
+			accumulateSentence(sent, u)
 		}
 	}
 	return u
+}
+
+// accumulateSentence は 1 文のトークンを走査し、各トークンの用法を分布 u へ積む。
+// u は map を持つため値渡しでも積み足しは呼び出し元へ反映される。
+func accumulateSentence(sent string, u termderive.Usage) {
+	for i, tok := range wordRe.FindAllString(sent, -1) {
+		accumulateToken(i, tok, u)
+	}
+}
+
+// accumulateToken は 1 トークンを大小・文頭で振り分けて用法分布 u へ積む。
+// 小文字始まりは一般語用法として小文字連を LC に積み、文頭以外（i>0）の大文字始まりは固有名用法として UC に積む。
+// 文頭語（i==0）の大文字は数えない。
+func accumulateToken(i int, tok string, u termderive.Usage) {
+	first, _ := utf8.DecodeRuneInString(tok)
+	if unicode.IsLower(first) {
+		for _, w := range lowerRunRe.FindAllString(tok, -1) {
+			u.LC[w]++
+		}
+		return
+	}
+	if i > 0 {
+		u.UC[strings.Trim(strings.ToLower(tok), "'")]++
+	}
 }
