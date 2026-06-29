@@ -18,11 +18,11 @@ type NRC struct{ words map[string]struct{} }
 // LoadNRC は NRC EmoLex のファイル（タブ区切り: 語・感情・0|1）を読み、
 // 強い感情のいずれかが 1 の語を集合にする。ファイルが読めなければエラーを返す。
 func LoadNRC(path string) (*NRC, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(path) //nolint:gosec // G304: path は感情辞書（NRC EmoLex）の参照データのパス。差し替え可能な境界の意図的な読み込みのため限定許可する。
 	if err != nil {
 		return nil, fmt.Errorf("NRC 辞書を開けない (%s): %w", path, err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	words := make(map[string]struct{})
 	sc := bufio.NewScanner(f)

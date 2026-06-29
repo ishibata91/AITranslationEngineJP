@@ -120,7 +120,7 @@ func (e *Engine) GeneratePersonas(ctx context.Context) (int, error) {
 // 段階順序は固有名フェーズ（本文より先に固有名を確定）→ 本文フェーズ（叙述文・定型句・台詞）。
 // プロンプトは Base 指示 ＋ その REC:FIELD に割り当てた directive の指示文（台詞は口調 directive の {traits} を埋める）で組む。
 // onProgress が非 nil なら、固有名・本文を通した進捗（処理済み件数 done、総件数 total）を都度通知する。
-func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string, onProgress func(done, total int)) (int, error) { //nolint:gocognit // TODO(refactor): 翻訳手続きの段階連結（固有名→叙述文/定型句→台詞）。リファクタ本体で段階を関数へ分割する。
+func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string, onProgress func(done, total int)) (int, error) {
 	propers, err := e.store.ListUntranslatedProperNouns(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("未訳固有名の取得: %w", err)
@@ -160,57 +160,86 @@ func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string
 		return 0, err
 	}
 
-	total := len(propers) + len(narrations) + len(lines)
-	done := 0
-	report := func() {
-		if onProgress != nil {
-			onProgress(done, total)
-		}
-	}
-	report()
+	p := &runProgress{total: len(propers) + len(narrations) + len(lines), onProgress: onProgress}
+	p.notify()
 
 	// 固有名フェーズ: 本文より先に固有名を確定する。既訳ありは権威訳、既訳なしは固有名 directive で AI 訳。
 	if err = e.translateProperNouns(ctx, conn, model, propers, authoritative,
-		tmpl.BaseDirective, instructionByKey[directiveProperNoun], func() { done++; report() }); err != nil {
-		return done, err
+		tmpl.BaseDirective, instructionByKey[directiveProperNoun], p.step); err != nil {
+		return p.done, err
 	}
 
 	// 本文フェーズの機械置換辞書は固有名フェーズ後に組む（master_term ∪ 確定した proper_noun）。
 	dict, err := e.LoadDictionary(ctx)
 	if err != nil {
-		return done, err
+		return p.done, err
 	}
 
+	// 叙述文・定型句フェーズ。
+	if err = e.translateNarrations(ctx, conn, model, narrations, dict, tmpl, instructionByKey, keyByRF, p); err != nil {
+		return p.done, err
+	}
+	// 台詞フェーズ。
+	if err = e.translateLines(ctx, conn, model, lines, dict, tmpl, personas, p); err != nil {
+		return p.done, err
+	}
+	return p.done, nil
+}
+
+// runProgress は Run の進捗（処理済み done・総数 total）を集計し onProgress へ通知する。
+// 段階メソッド（translateProperNouns・translateNarrations・translateLines）へ渡し、各段階が 1 件処理ごとに step を呼ぶ。
+type runProgress struct {
+	done, total int
+	onProgress  func(done, total int)
+}
+
+// step は処理済み件数を 1 増やし、進捗を通知する。
+func (p *runProgress) step() {
+	p.done++
+	p.notify()
+}
+
+// notify は onProgress が非 nil なら現在の進捗を通知する。
+func (p *runProgress) notify() {
+	if p.onProgress != nil {
+		p.onProgress(p.done, p.total)
+	}
+}
+
+// translateNarrations は叙述文・定型句を辞書で機械置換してから AI 翻訳し、仮訳として書き戻す。
+// 各行は REC:FIELD に割り当てた文体・定型句 directive の指示文を base へ合成して訳す。1 件ごとに進捗を 1 歩進める。
+func (e *Engine) translateNarrations(ctx context.Context, conn provider.Connection, modelName string, narrations []model.Narration, dict *dictionary.Dictionary, tmpl model.PromptTemplate, instructionByKey map[string]string, keyByRF map[RecordKey]string, p *runProgress) error {
 	for _, row := range narrations {
 		// 本文中の固有名を辞書の確定訳語へ機械置換してから AI 翻訳する。AI は周りの英語だけを訳す。
 		source, _ := dict.Apply(row.Source)
-		// 叙述文・定型句は、その REC:FIELD に割り当てた文体・定型句 directive の指示文を base へ合成して訳す。
 		instruction := instructionByKey[keyByRF[RecordKey{Rec: row.Rec, Field: row.Field}]]
-		dest, err := e.provider.Translate(ctx, conn, model, prompt.ComposePrompt(tmpl.BaseDirective, instruction, source))
+		dest, err := e.provider.Translate(ctx, conn, modelName, prompt.ComposePrompt(tmpl.BaseDirective, instruction, source))
 		if err != nil {
-			return done, fmt.Errorf("叙述文の翻訳: %w", err)
+			return fmt.Errorf("叙述文の翻訳: %w", err)
 		}
 		if err := e.store.UpdateNarrationDest(ctx, row.ID, dest, statusProvisional); err != nil {
-			return done, fmt.Errorf("叙述文の書き戻し: %w", err)
+			return fmt.Errorf("叙述文の書き戻し: %w", err)
 		}
-		done++
-		report()
+		p.step()
 	}
+	return nil
+}
 
+// translateLines は台詞を辞書で機械置換してから口調指示つきで AI 翻訳し、仮訳として書き戻す。
+// 台詞は口調 directive（{traits} を話者の性質で埋めたもの）を base へ合成して訳す。話者なしなら口調指示は空。1 件ごとに進捗を 1 歩進める。
+func (e *Engine) translateLines(ctx context.Context, conn provider.Connection, modelName string, lines []model.Line, dict *dictionary.Dictionary, tmpl model.PromptTemplate, personas map[int64]Persona, p *runProgress) error {
 	for _, row := range lines {
 		source, _ := dict.Apply(row.Source)
-		// 台詞は口調 directive（{traits} を話者の性質で埋めたもの）を base へ合成して訳す。話者なしなら口調指示は空。
-		dest, err := e.provider.Translate(ctx, conn, model, prompt.ComposePrompt(tmpl.BaseDirective, personas[row.ID].Directive, source))
+		dest, err := e.provider.Translate(ctx, conn, modelName, prompt.ComposePrompt(tmpl.BaseDirective, personas[row.ID].Directive, source))
 		if err != nil {
-			return done, fmt.Errorf("台詞の翻訳: %w", err)
+			return fmt.Errorf("台詞の翻訳: %w", err)
 		}
 		if err := e.store.UpdateLineDest(ctx, row.ID, dest, statusProvisional); err != nil {
-			return done, fmt.Errorf("台詞の書き戻し: %w", err)
+			return fmt.Errorf("台詞の書き戻し: %w", err)
 		}
-		done++
-		report()
+		p.step()
 	}
-	return done, nil
+	return nil
 }
 
 // directive のキー定数。本文フェーズが口調・固有名 directive を引くために使う（record_type_master.directive と一致）。
@@ -303,7 +332,11 @@ func (e *Engine) DeriveMasterTerms(ctx context.Context, xmlDir string) (int, err
 	for i, d := range derived {
 		rows[i] = model.MasterTerm{Source: d.Source, Dest: d.Dest, Category: "derive:" + d.Kind}
 	}
-	return e.store.InsertDerivedTerms(ctx, rows)
+	inserted, err := e.store.InsertDerivedTerms(ctx, rows)
+	if err != nil {
+		return inserted, fmt.Errorf("派生固有名の追記: %w", err)
+	}
+	return inserted, nil
 }
 
 // readXMLDir はディレクトリ内の全 XML を読み込み、ファイル名昇順で termxml.XMLFile 群にして返す。
@@ -319,7 +352,7 @@ func readXMLDir(xmlDir string) ([]termxml.XMLFile, error) {
 	sort.Strings(entries)
 	files := make([]termxml.XMLFile, 0, len(entries))
 	for _, path := range entries {
-		data, err := os.ReadFile(path)
+		data, err := os.ReadFile(path) //nolint:gosec // G304: path は利用者が指定したディレクトリ配下の *.xml を Glob で列挙した結果。参照データの意図的な読み込みのため限定許可する。
 		if err != nil {
 			return nil, fmt.Errorf("%s の読み込み: %w", path, err)
 		}

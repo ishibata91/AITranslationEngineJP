@@ -84,7 +84,7 @@ func wordSet(s string) map[string]bool {
 // DeriveTerms は NPC 対から人名の部分形の訳を派生し、安全フィルタを通った対だけを返す。
 // 同一原語に複数の由来が当たる場合は最初に採れた由来を保つ（shrt → byname → two の順）。
 // base 辞書に既にある原語は base を優先して派生に含めない。
-func DeriveTerms(fullPairs, shrtPairs []NamePair, usage Usage, baseSources map[string]bool, cfg DeriveConfig) []DerivedTerm { //nolint:gocognit // TODO(refactor): 派生規則の分岐集約（姓名分割/二つ名前部/短名と地雷除外）。リファクタ本体で規則ごとに分割する。
+func DeriveTerms(fullPairs, shrtPairs []NamePair, usage Usage, baseSources map[string]bool, cfg DeriveConfig) []DerivedTerm {
 	out := []DerivedTerm{}
 	seen := map[string]bool{}
 	add := func(source, dest, kind string) {
@@ -95,14 +95,25 @@ func DeriveTerms(fullPairs, shrtPairs []NamePair, usage Usage, baseSources map[s
 		out = append(out, DerivedTerm{Source: source, Dest: dest, Kind: kind})
 	}
 
-	// shrt: 作者記述の短縮別名をそのまま通す。
+	// 派生規則ごとに helper を呼ぶ。同一原語は最初に採れた由来を保つため shrt → byname → two の順で適用する。
+	deriveShrt(shrtPairs, usage, cfg, add)
+	deriveByname(fullPairs, usage, cfg, add)
+	deriveTwo(fullPairs, usage, cfg, add)
+	return out
+}
+
+// deriveShrt は shrt 由来（作者記述の短縮別名）の安全な対を add へ渡す。
+func deriveShrt(shrtPairs []NamePair, usage Usage, cfg DeriveConfig, add func(source, dest, kind string)) {
 	for _, p := range shrtPairs {
 		if safePair(p.Source, p.Dest, usage, cfg) {
 			add(p.Source, p.Dest, KindShrt)
 		}
 	}
+}
 
-	// byname: " the " を含む名の前部（英）と、Dest 末尾のカタカナ連（日）を対にする。
+// deriveByname は byname 由来の安全な対を add へ渡す。
+// " the " を含む名の前部（英）と、Dest 末尾のカタカナ連（日）を対にする。
+func deriveByname(fullPairs []NamePair, usage Usage, cfg DeriveConfig, add func(source, dest, kind string)) {
 	for _, p := range fullPairs {
 		if !hasByname(p.Source) {
 			continue
@@ -116,8 +127,11 @@ func DeriveTerms(fullPairs, shrtPairs []NamePair, usage Usage, baseSources map[s
 			add(en, ja, KindByname)
 		}
 	}
+}
 
-	// two: base ゲーム限定。空白 2 語の姓名を、漢字を含まない中黒区切りの Dest と同数で整列する。
+// deriveTwo は two 由来（姓名分割）の安全な対を add へ渡す。
+// base ゲーム限定。空白 2 語の姓名を、漢字を含まない中黒区切りの Dest と同数で整列する。
+func deriveTwo(fullPairs []NamePair, usage Usage, cfg DeriveConfig, add func(source, dest, kind string)) {
 	for _, p := range fullPairs {
 		if !p.BaseGame || hasByname(p.Source) {
 			continue
@@ -135,7 +149,6 @@ func DeriveTerms(fullPairs, shrtPairs []NamePair, usage Usage, baseSources map[s
 			}
 		}
 	}
-	return out
 }
 
 // safePair は派生候補（英原語 source、日訳 dest）を採るかを判定する。観測した失敗の手書き除外でなく、
@@ -152,7 +165,8 @@ func safePair(source, dest string, usage Usage, cfg DeriveConfig) bool {
 		return false
 	}
 	for _, r := range source { // ASCII の英字・アポストロフィ・ハイフンだけを許す。
-		if !(r >= 'A' && r <= 'Z') && !(r >= 'a' && r <= 'z') && r != '\'' && r != '-' {
+		allowed := (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') || r == '\'' || r == '-'
+		if !allowed {
 			return false
 		}
 	}
