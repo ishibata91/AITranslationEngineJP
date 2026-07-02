@@ -4,6 +4,7 @@
   // state・保存・validation は持たない。値は props、入力 event は callback prop で上へ返す。
   // レコード別の props は任意。配線前（Container 未更新）でも壊れないようにする。
   import TemplateBasePane from "./TemplateBasePane.svelte"
+  import ToneDefaultPane from "./ToneDefaultPane.svelte"
   import DirectiveEditor from "./DirectiveEditor.svelte"
   import { buildDirectiveSections } from "./directive-presentation"
   import type {
@@ -94,6 +95,11 @@
         </div>
       </div>
     {:else}
+      <div class="card bg-base-200/55 border border-base-300/70 shadow-xl u-edge-top">
+        <div class="card-body gap-4">
+          <ToneDefaultPane {form} {onFieldInput} />
+        </div>
+      </div>
       <div class="card bg-base-200/55 border border-base-300/70 shadow-xl u-edge-top">
         <div class="card-body gap-4">
           <h2 class="u-display text-sm tracking-widest uppercase text-base-content/60">

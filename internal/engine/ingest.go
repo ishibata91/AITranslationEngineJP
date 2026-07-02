@@ -79,6 +79,7 @@ type IngestStore interface {
 	IngestProperNouns(ctx context.Context, rows []model.ProperNoun) (int, error)
 	IngestLines(ctx context.Context, rows []model.Line) (int, error)
 	LinkLineSpeakersFromStaging(ctx context.Context) error
+	LinkLineConditionsFromStaging(ctx context.Context) error
 }
 
 // IngestCounts は取込段で各箱へ実際に追加した件数（再取込での冪等を観測できるよう件数を返す）。
@@ -116,6 +117,10 @@ func (e *Engine) Ingest(ctx context.Context) (IngestCounts, error) {
 	}
 	if err := e.store.LinkLineSpeakersFromStaging(ctx); err != nil {
 		return IngestCounts{}, fmt.Errorf("話者連関の解決: %w", err)
+	}
+	// 条件由来の性別（汎用台詞の一人称・語尾の根拠）を line_condition へ解決する（話者連関と対称）。
+	if err := e.store.LinkLineConditionsFromStaging(ctx); err != nil {
+		return IngestCounts{}, fmt.Errorf("条件由来の性別の解決: %w", err)
 	}
 	return IngestCounts{Narrations: nr, ProperNouns: pn, Lines: ln, Skipped: d.Skipped}, nil
 }

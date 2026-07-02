@@ -5,6 +5,7 @@ import type {
   DecisionPath,
   EmotionBand,
   FormFieldDescriptor,
+  PersonaMeta,
   ProgressStage,
   RunPhase
 } from "./translation-run-view"
@@ -58,30 +59,54 @@ export function statusTone(statusLabel: string): BadgeTone {
   }
 }
 
-// 対人段階の表示ラベル。
-export const ATTITUDE_LABEL: Record<AttitudeBand, string> = {
+// 対人段階の表示ラベル。口調メタの根拠行の組み立て（personaMetaParts）でだけ使う。
+const ATTITUDE_LABEL: Record<AttitudeBand, string> = {
   0: "尊大",
   1: "中立",
   2: "丁寧"
 }
 
-// 感情段階の表示ラベル。
-export const EMOTION_LABEL: Record<EmotionBand, string> = {
+// 感情段階の表示ラベル。口調メタの根拠行の組み立て（personaMetaParts）でだけ使う。
+const EMOTION_LABEL: Record<EmotionBand, string> = {
   0: "抑制",
   1: "中",
   2: "激情"
 }
 
 // 決定経路の表示ラベル。voice は「声質」と読み替えて出す。
+// 汎用 / PC は話者を解決できない台詞で、利用者の自由記述の口調指示文を当てた経路。
 export const DECISION_PATH_LABEL: Record<DecisionPath, string> = {
   本文: "本文",
   voice: "声質",
-  保留: "保留"
+  保留: "保留",
+  汎用: "汎用台詞",
+  PC: "PC発話"
 }
 
 // 決定経路の補足説明。根拠を title 属性で読めるようにする。
 export const DECISION_PATH_HINT: Record<DecisionPath, string> = {
   本文: "印（対人マーカーを含む台詞数）が十分で、本文 2 軸から対人段階を決めた。",
   voice: "印が不足のため、声質の気質を prior として対人段階を決めた。",
-  保留: "印が不足で固有声質に気質も無いため、薄い本文値を低信頼で保持した。"
+  保留: "印が不足で固有声質に気質も無いため、薄い本文値を低信頼で保持した。",
+  汎用: "話者を特定できない汎用台詞のため、利用者が書いた汎用の口調指示文を当て、感情段階を本文 1 行から、性別を INFO の条件から重ねた。",
+  PC: "プレイヤーの選択肢の台詞のため、利用者が書いた PC の口調指示文を当て、感情段階を本文 1 行から、性別を利用者選択の PC 性別から重ねた。"
+}
+
+// personaMetaParts は口調メタの根拠行を区切り表示用の文字列列にする。
+// 名指し話者は 決定経路・対人・感情・(性別)・印 を出す。汎用・PC は 感情・(性別) だけを出し、
+// 決定経路（汎用台詞 / PC発話）は呼び出し側が見出しに出すため重複させない。
+export function personaMetaParts(p: PersonaMeta): string[] {
+  if (p.cell) {
+    return [
+      DECISION_PATH_LABEL[p.decisionPath],
+      `対人 ${ATTITUDE_LABEL[p.attitudeBand ?? 1]}`,
+      `感情 ${EMOTION_LABEL[p.emotionBand]}`,
+      p.sex ? `性別 ${p.sex}` : "",
+      `印 ${p.marked ?? 0}`
+    ].filter(Boolean)
+  }
+  return [
+    `感情 ${EMOTION_LABEL[p.emotionBand]}`,
+    p.sex ? `性別 ${p.sex}` : ""
+  ].filter(Boolean)
 }

@@ -5,10 +5,9 @@
   // details/summary の開閉は利用者操作で、state は持たない。defaultOpen は story 表示用。
   import StatusBadge from "@ui/components/StatusBadge.svelte"
   import {
-    ATTITUDE_LABEL,
     DECISION_PATH_HINT,
     DECISION_PATH_LABEL,
-    EMOTION_LABEL,
+    personaMetaParts,
     statusTone
   } from "./translation-run-presentation"
   import type { NarrationResultRow } from "./translation-run-view"
@@ -35,6 +34,8 @@
           .join(" ・ ")
       : ""
   )
+  // 口調メタの根拠行。名指し話者は決定経路・対人・感情・印、汎用・PC は感情・性別だけを出す。
+  let metaParts = $derived(row.persona ? personaMetaParts(row.persona) : [])
 </script>
 
 <details
@@ -129,18 +130,24 @@
         <span class="u-mono text-[0.6rem] uppercase tracking-widest text-primary/60">
           口調
         </span>
-        <p class="mt-0.5 text-lg font-semibold text-primary">{row.persona.cell}</p>
-        <p class="mt-1 text-sm leading-relaxed text-base-content/75">
-          {row.persona.trait}
-        </p>
+        {#if row.persona.cell}
+          <p class="mt-0.5 text-lg font-semibold text-primary">{row.persona.cell}</p>
+          <p class="mt-1 text-sm leading-relaxed text-base-content/75">
+            {row.persona.trait}
+          </p>
+        {:else}
+          <p class="mt-0.5 text-lg font-semibold text-primary">
+            {DECISION_PATH_LABEL[row.persona.decisionPath]}
+          </p>
+          <p class="mt-1 text-sm leading-relaxed text-base-content/75">
+            自由記述の口調指示文に、台詞ごとの感情と性別を重ねる。指示文の全文は実プロンプトで確かめる。
+          </p>
+        {/if}
         <p
           class="mt-2 u-mono text-[0.65rem] text-base-content/40"
           title={DECISION_PATH_HINT[row.persona.decisionPath]}
         >
-          {DECISION_PATH_LABEL[row.persona.decisionPath]} ・ 対人 {ATTITUDE_LABEL[
-            row.persona.attitudeBand
-          ]} ・ 感情 {EMOTION_LABEL[row.persona.emotionBand]} ・ 印 {row.persona
-            .marked}
+          {metaParts.join(" ・ ")}
         </p>
       </div>
     {/if}

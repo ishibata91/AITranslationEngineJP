@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"aitranslationenginejp/internal/core/dictionary"
 	"aitranslationenginejp/internal/core/linefeatures"
@@ -15,8 +16,18 @@ import (
 	"aitranslationenginejp/internal/core/prompt"
 	"aitranslationenginejp/internal/core/rolespeech"
 	"aitranslationenginejp/internal/core/termxml"
+	"aitranslationenginejp/internal/core/tone"
 	"aitranslationenginejp/internal/model"
 	"aitranslationenginejp/internal/provider"
+)
+
+// 台詞のレコード種別キー。注入の経路振り分けに使う（record_type_master の台詞 3 種に対応）。
+const (
+	recInfo   = "INFO"
+	recDial   = "DIAL"
+	fieldNam1 = "NAM1" // NPC の返答
+	fieldRnam = "RNAM" // 選択肢の条件別上書き（PC 発話）
+	fieldFull = "FULL" // 選択肢の既定文（PC 発話）
 )
 
 // statusProvisional は xTranslator の訳状態 3（仮）。AI 翻訳は仮訳として書き戻す。
@@ -43,19 +54,22 @@ type PersonaStore interface {
 	UpsertLineAnalysis(ctx context.Context, a model.LineAnalysis) error
 	UpsertPersonaCharacter(ctx context.Context, pc model.PersonaCharacter) error
 	LoadLinePersonas(ctx context.Context, lineIDs []int64) (map[int64]model.LinePersonaInput, error)
+	LoadLineConditions(ctx context.Context, lineIDs []int64) (map[int64]string, error)
 }
 
-// Persona は台詞 1 件へ与える口調指示文（全文）と、UI 表示用の口調メタデータ。話者を解決できた台詞だけ持つ。
+// Persona は台詞 1 件へ与える口調指示文（全文）と、UI 表示用の口調メタデータ。口調が付いた台詞だけ持つ。
 // Directive・Label は翻訳と一覧チップ用。Cell 以降は結果行を展開したときに出す判定結果と根拠。
+// 名指し話者は Cell・AttitudeBand・Marked を持つ。汎用台詞・PC 発話はそれらを持たず、EmotionBand・Sex を持つ。
 type Persona struct {
 	Directive    string
 	Label        string
-	Cell         string // 基底口調セル名（判定結果）
-	Trait        string // 基底口調の性質文（口調を普通の言葉で説明した一文）
-	AttitudeBand int    // 対人段階 0尊大/1中立/2丁寧
+	Cell         string // 基底口調セル名（判定結果）。名指し話者だけ。汎用・PC は空。
+	Trait        string // 基底口調の性質文（口調を普通の言葉で説明した一文）。名指し話者だけ。
+	AttitudeBand int    // 対人段階 0尊大/1中立/2丁寧。名指し話者だけ。
 	EmotionBand  int    // 感情段階 0抑制/1中/2激情
-	Marked       int    // 印（信頼度の目安）
-	DecisionPath string // 本文/voice/保留
+	Marked       int    // 印（信頼度の目安）。名指し話者だけ。
+	DecisionPath string // 本文/voice/保留/汎用/PC
+	Sex          string // 性別（Female/Male/空）。汎用・PC の一人称・語尾の根拠。名指し話者は空（話者欄が出す）。
 }
 
 // DictStore は engine が固有名の機械置換辞書（master_term）を読み書きするための中心データアクセス。
@@ -101,12 +115,14 @@ type Engine struct {
 	provider   provider.Translator
 	lexicon    linefeatures.EmotionLexicon
 	roleSpeech *rolespeech.Table
+	classifier *tone.Classifier
 }
 
 // New は engine を生成する。provider は AI 翻訳の port、lexicon は口調生成の感情辞書（差し替え可能な境界）、
 // roleSpeech は注入時に引く一人称・語尾テンプレート（差し替え可能な参照データ。nil なら役割語を付けない）。
+// classifier は口調分類の不変ルール。汎用台詞・PC 発話の感情段階を本文 1 行から出すのに使う。
 func New(store Store, p provider.Translator, lexicon linefeatures.EmotionLexicon, roleSpeech *rolespeech.Table) *Engine {
-	return &Engine{store: store, provider: p, lexicon: lexicon, roleSpeech: roleSpeech}
+	return &Engine{store: store, provider: p, lexicon: lexicon, roleSpeech: roleSpeech, classifier: tone.NewClassifier()}
 }
 
 // GeneratePersonas は台詞を持つ全話者の基底口調を一括生成し persona_character へ保存する。保存した話者数を返す。
@@ -155,7 +171,12 @@ func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string
 		return 0, err
 	}
 	// 台詞ごとの口調指示をループ前に 1 度だけ一括で組む。口調 directive の指示文（{traits} を含む）へ性質を差し込む。
-	personas, err := e.LinePersonas(ctx, lineIDsOf(lines), instructionByKey[directiveTone])
+	// 話者なし台詞（汎用・PC）は prompt_template 由来の自由記述口調へ感情と性別を重ねる。
+	personas, err := e.LinePersonas(ctx, lines, instructionByKey[directiveTone], ToneDefaults{
+		Generic: tmpl.GenericToneText,
+		PC:      tmpl.PcToneText,
+		PcSex:   tmpl.PcSex,
+	})
 	if err != nil {
 		return 0, err
 	}
@@ -361,32 +382,160 @@ func readXMLDir(xmlDir string) ([]termxml.XMLFile, error) {
 	return files, nil
 }
 
-// LinePersonas は台詞 id 群へ生成済みの基底口調を一括で引き、各台詞の口調指示文（全文）と一覧用の短い要約を map で返す。
-// personaTemplate は口調指示の雛形（{traits} を含む）で、基底口調の性質文と種族訛りを差し込んで口調指示文を組む。
-// 生成済みペルソナが無い台詞、および段階が範囲外で性質文が空になる台詞は map に現れない
-// （呼び出し側は欠落を「口調なし」として扱う）。引きを 1 度の一括問い合わせにまとめ、台詞数に依存させない。
-func (e *Engine) LinePersonas(ctx context.Context, lineIDs []int64, personaTemplate string) (map[int64]Persona, error) {
-	inputs, err := e.store.LoadLinePersonas(ctx, lineIDs)
+// ToneDefaults は話者なし台詞（汎用・PC）の口調設定。利用者が編集する自由記述の口調と PC 性別。
+type ToneDefaults struct {
+	Generic string // 汎用台詞の自由記述口調
+	PC      string // PC 発話の自由記述口調
+	PcSex   string // PC の性別（Female/Male/空）。一人称・語尾の根拠
+}
+
+// LinePersonas は台詞群へ口調指示文（全文）と一覧用の短い要約を組み、lineID→口調 の map で返す。
+// 経路は 3 つ。①名指し話者は生成済みの基底口調（話者集計）、②汎用台詞（INFO・話者なし）は自由記述の
+// 汎用口調へ本文 1 行の感情段階と条件由来の性別を重ねる、③PC 発話（選択肢）は自由記述の PC 口調へ
+// 本文 1 行の感情段階と利用者選択の PC 性別を重ねる。口調指示が空になる台詞は map に現れない（口調なし）。
+// personaTemplate は口調指示の雛形（{traits} を含む）で、3 経路すべての性質列を差し込む共通の枠。
+func (e *Engine) LinePersonas(ctx context.Context, lines []model.Line, personaTemplate string, defaults ToneDefaults) (map[int64]Persona, error) {
+	ids := lineIDsOf(lines)
+	resolved, err := e.store.LoadLinePersonas(ctx, ids)
 	if err != nil {
 		return nil, fmt.Errorf("注入入力（生成ペルソナ）の一括取得: %w", err)
 	}
-	out := make(map[int64]Persona, len(inputs))
-	for lineID, in := range inputs {
-		directive := personatone.BuildToneDirective(personaTemplate, personatone.BuildToneTraits(in, e.roleSpeech))
-		if directive == "" {
-			continue // 段階が範囲外で性質文が組めない場合は口調なし扱い。
+	conds, err := e.store.LoadLineConditions(ctx, ids)
+	if err != nil {
+		return nil, fmt.Errorf("条件由来の性別の一括取得: %w", err)
+	}
+	// 話者を解決できない台詞（汎用・PC）の本文特徴をまとめて確保する（line_analysis に本文ハッシュでキャッシュ）。
+	features, err := e.ensureFeatures(ctx, pendingLines(lines, resolved))
+	if err != nil {
+		return nil, err
+	}
+
+	out := make(map[int64]Persona, len(lines))
+	for _, l := range lines {
+		if p, ok := e.personaForLine(l, resolved, conds, features, personaTemplate, defaults); ok {
+			out[l.ID] = p
 		}
-		cell, trait := personatone.PersonaMetaOf(in)
-		out[lineID] = Persona{
-			Directive:    directive,
-			Label:        personatone.BuildToneLabel(in),
-			Cell:         cell,
-			Trait:        trait,
-			AttitudeBand: in.AttitudeBand,
-			EmotionBand:  in.EmotionBand,
-			Marked:       in.Marked,
-			DecisionPath: in.DecisionPath,
+	}
+	return out, nil
+}
+
+// pendingLines は自由記述の口調へ回す台詞（本文特徴が要る行）を抜き出す。
+// PC 発話（選択肢）は INFO 由来で NPC 話者が結ばれ得るが、話者を無視して PC 経路へ回すため常に含める。
+// それ以外は話者を解決できない台詞（汎用経路）だけ含める。
+func pendingLines(lines []model.Line, resolved map[int64]model.LinePersonaInput) []model.Line {
+	var pending []model.Line
+	for _, l := range lines {
+		if isPCRecord(l.Rec, l.Field) {
+			pending = append(pending, l)
+			continue
 		}
+		if _, ok := resolved[l.ID]; !ok {
+			pending = append(pending, l)
+		}
+	}
+	return pending
+}
+
+// personaForLine は 1 台詞の口調を経路①②③で決める。
+// PC 発話（選択肢）は NPC 話者が結ばれていても PC 既定の口調を優先する（③、話者を無視）。
+// それ以外は ①名指し話者なら集計済みペルソナ、②話者なし汎用台詞なら本文特徴から自由記述の口調を組む。
+// 口調が付かないなら ok=false。
+func (e *Engine) personaForLine(l model.Line, resolved map[int64]model.LinePersonaInput, conds map[int64]string, features map[string]tone.Features, personaTemplate string, defaults ToneDefaults) (Persona, bool) {
+	if !isPCRecord(l.Rec, l.Field) {
+		if in, ok := resolved[l.ID]; ok {
+			return e.namedPersona(in, personaTemplate)
+		}
+	}
+	f, ok := features[linefeatures.SourceHash(l.Source)]
+	if !ok {
+		return Persona{}, false // 本文が空などで特徴が無い → 口調なし。
+	}
+	return e.freeTonePersona(l, f, conds[l.ID], personaTemplate, defaults)
+}
+
+// namedPersona は名指し話者（経路①）の口調指示と要約を組む。段階が範囲外で性質文が空なら built=false。
+func (e *Engine) namedPersona(in model.LinePersonaInput, personaTemplate string) (Persona, bool) {
+	directive := personatone.BuildToneDirective(personaTemplate, personatone.BuildToneTraits(in, e.roleSpeech))
+	if directive == "" {
+		return Persona{}, false
+	}
+	cell, trait := personatone.PersonaMetaOf(in)
+	return Persona{
+		Directive:    directive,
+		Label:        personatone.BuildToneLabel(in),
+		Cell:         cell,
+		Trait:        trait,
+		AttitudeBand: in.AttitudeBand,
+		EmotionBand:  in.EmotionBand,
+		Marked:       in.Marked,
+		DecisionPath: in.DecisionPath,
+	}, true
+}
+
+// freeTonePersona は話者なし台詞（経路②③）の口調指示と要約を組む。
+// (rec, field) で汎用・PC を振り分け、自由記述の口調へ本文 1 行の感情と性別の一人称・語尾を重ねる。
+// 台詞の 3 種以外、または自由記述が空なら built=false。
+func (e *Engine) freeTonePersona(l model.Line, f tone.Features, condSex, personaTemplate string, defaults ToneDefaults) (Persona, bool) {
+	var label, path, sex, baseText string
+	switch {
+	case isPCRecord(l.Rec, l.Field):
+		label, path, sex, baseText = "口調: PC発話", tone.PathPC, defaults.PcSex, defaults.PC
+	case l.Rec == recInfo && l.Field == fieldNam1:
+		label, path, sex, baseText = "口調: 汎用台詞", tone.PathGeneric, condSex, defaults.Generic
+	default:
+		return Persona{}, false // 台詞の 3 種以外は来ない想定。来ても口調なし。
+	}
+	emotion := e.classifier.EmotionBandOfLine(f)
+	directive := personatone.BuildToneDirective(personaTemplate, personatone.BuildFreeToneTraits(baseText, emotion, sex, e.roleSpeech))
+	if directive == "" {
+		return Persona{}, false // 自由記述が空 → 口調なし。
+	}
+	return Persona{
+		Directive:    directive,
+		Label:        label,
+		EmotionBand:  emotion,
+		DecisionPath: path,
+		Sex:          sex,
+	}, true
+}
+
+// isPCRecord はプレイヤーの選択肢の台詞か（PC 発話）を返す。
+// DIAL:FULL（選択肢の既定文）と INFO:RNAM（選択肢の条件別上書き）が PC 発話。
+func isPCRecord(rec, field string) bool {
+	return (rec == recDial && field == fieldFull) || (rec == recInfo && field == fieldRnam)
+}
+
+// ensureFeatures は台詞群の本文を、line_analysis に無い分だけ prose で解析して保存し、source_hash→Features を返す。
+// 汎用・PC 台詞の感情段階を出すために使う。重複本文は 1 度だけ解析する（プール台詞も 1 回で済む）。
+func (e *Engine) ensureFeatures(ctx context.Context, lines []model.Line) (map[string]tone.Features, error) {
+	hashToText := make(map[string]string)
+	for _, l := range lines {
+		if strings.TrimSpace(l.Source) == "" {
+			continue
+		}
+		hashToText[linefeatures.SourceHash(l.Source)] = l.Source
+	}
+	// hash 群を昇順に固定し、UpsertLineAnalysis の書き込み順を決定的にする（採番 id の非決定を避ける）。
+	hashes := make([]string, 0, len(hashToText))
+	for h := range hashToText {
+		hashes = append(hashes, h)
+	}
+	sort.Strings(hashes)
+	cached, err := e.store.GetLineAnalyses(ctx, hashes)
+	if err != nil {
+		return nil, fmt.Errorf("行解析キャッシュの取得: %w", err)
+	}
+	out := make(map[string]tone.Features, len(hashes))
+	for _, h := range hashes {
+		if row, ok := cached[h]; ok {
+			out[h] = featuresFromAnalysis(row)
+			continue
+		}
+		f := linefeatures.ExtractFeatures(hashToText[h], e.lexicon) // prose（重い）。キャッシュ未命中の本文だけ実行する。
+		if err := e.store.UpsertLineAnalysis(ctx, analysisFromFeatures(h, f)); err != nil {
+			return nil, fmt.Errorf("行解析キャッシュの保存: %w", err)
+		}
+		out[h] = f
 	}
 	return out, nil
 }

@@ -2,9 +2,10 @@ import type { Meta, StoryObj } from "@storybook/svelte-vite"
 import TranslationResultRow from "./TranslationResultRow.svelte"
 import type { NarrationResultRow } from "./translation-run-view"
 
-// record-type-translation-expansion で元レコード種別バッジ（箱 ・ REC:FIELD）を畳んだ行へ追加した。
-// Storybook 人間レビュー承認済み（2026-06-25）。通常分類（UI Components）に置く。
 // 結果行を展開すると、台詞の話者の生成済み基底口調を「口調」メタデータとして強調表示する（判定結果＋性質文を大きく、根拠は小さく）。
+// generic-voice-tone-fallback で、話者を解決できない汎用台詞と PC 発話へも口調を付ける表示を追加した。
+// 汎用・PC は対人段階・セル・印を持たず、見出し（汎用台詞／PC発話）＋感情＋性別を出す。
+// Storybook 人間レビュー承認済み（2026-06-30）。通常分類（UI Components）に置く。
 const meta = {
   title: "UI Components/TranslationResultRow",
   component: TranslationResultRow,
@@ -91,6 +92,43 @@ const HELD_ROW: NarrationResultRow = {
     "この台詞の話者の人物像:\n- 口調: ぶっきらぼうで乱暴な口調。命令的に言い、相手を立てない。\nこの人物像に合う口調と人称で訳すこと。"
 }
 
+// 汎用台詞（話者を特定できない衛兵の汎用セリフ）。自由記述の汎用口調指示文＋本文 1 行の感情段階（中）
+// ＋条件由来の性別（男性）。対人段階・セル・印は持たない。話者欄は出ず、口調メタは「感情 中 ・ 性別 男性」。
+// 単発の感嘆符で激情へ振れないよう、感情段階は「中」に留まる（渋めしきい値）。
+const GENERIC_ROW: NarrationResultRow = {
+  edid: "RiftenGuardGenericHalt",
+  recordType: { box: "台詞", recField: "INFO:NAM1" },
+  source: "Halt! State your business.",
+  dest: "止まれ！ 用件を述べろ。",
+  statusLabel: "仮訳",
+  personaLabel: "口調: 汎用台詞",
+  persona: {
+    emotionBand: 1,
+    decisionPath: "汎用",
+    sex: "男性"
+  },
+  directive:
+    "この台詞の話者の人物像:\n- 口調: 衛兵などの不特定多数が話す汎用的な台詞。職務的で簡潔な口調で訳す。\n- 人称と言い回し: 一人称は「俺」。\nこの人物像に合う口調と人称で訳すこと。"
+}
+
+// PC 発話（プレイヤーの選択肢文、DIAL:FULL）。自由記述の PC 口調指示文＋本文 1 行の感情段階（抑制）
+// ＋利用者選択の PC 性別（男性）。対人段階・セル・印は持たない。口調メタは「感情 抑制 ・ 性別 男性」。
+const PC_ROW: NarrationResultRow = {
+  edid: "DialogueRiftenThievesGuildJoin",
+  recordType: { box: "台詞", recField: "DIAL:FULL" },
+  source: "I'm looking to join the Thieves Guild.",
+  dest: "盗賊ギルドに入りたいんだが。",
+  statusLabel: "仮訳",
+  personaLabel: "口調: PC発話",
+  persona: {
+    emotionBand: 0,
+    decisionPath: "PC",
+    sex: "男性"
+  },
+  directive:
+    "この台詞の話者の人物像:\n- 口調: プレイヤーキャラクターの選択肢。自然な口語で訳す。\n- 人称と言い回し: 一人称は「俺」。\nこの人物像に合う口調と人称で訳すこと。"
+}
+
 // 叙述文。口調は無く（台詞ではない）、置換固有名と実プロンプトだけが並ぶ。
 const NARRATION_ROW: NarrationResultRow = {
   edid: "DLC1BookSerana",
@@ -156,6 +194,24 @@ export const ExpandedVoicePersona: Story = {
 export const ExpandedHeldPersona: Story = {
   name: "展開（保留・口調メタ）",
   args: { row: HELD_ROW, defaultOpen: true }
+}
+
+// 汎用台詞を展開。話者欄は出ず、決定経路が「汎用既定」、根拠に「性別 男性」を出し、印は出さない。
+export const ExpandedGenericPersona: Story = {
+  name: "展開（汎用既定・口調メタ）",
+  args: { row: GENERIC_ROW, defaultOpen: true }
+}
+
+// PC 発話を展開。話者欄は出ず、決定経路が「PC既定」、性別・印は出ない。
+export const ExpandedPcPersona: Story = {
+  name: "展開（PC既定・口調メタ）",
+  args: { row: PC_ROW, defaultOpen: true }
+}
+
+// 汎用台詞の畳んだ行。口調チップ（基底口調セル）が付き、話者を特定できなくても口調が決まることを示す。
+export const CollapsedGeneric: Story = {
+  name: "畳む（汎用台詞）",
+  args: { row: GENERIC_ROW, defaultOpen: false }
 }
 
 // 叙述文を展開。口調メタ節は出ず、置換固有名と実プロンプトが並ぶ。

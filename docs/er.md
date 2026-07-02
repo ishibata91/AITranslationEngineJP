@@ -163,9 +163,25 @@ erDiagram
         TEXT info_form_id FK
         INTEGER speaker_id FK
     }
+    line_condition {
+        INTEGER line_id PK,FK
+        TEXT sex "条件由来"
+    }
+    extracted_info_condition {
+        TEXT info_plugin
+        TEXT info_form_id
+        TEXT sex
+    }
+    tone_default {
+        INTEGER id PK
+        TEXT generic_tone_text
+        TEXT pc_tone_text
+        TEXT pc_sex
+    }
 
     record_type_master }o--|| directive : "割り当て"
     line ||--o{ line_speaker : "e6"
+    line ||--o| line_condition : "条件由来の性別"
     speaker ||--o{ line_speaker : "発する話者 e6"
     speaker }o--o| race : "生まれの種族 e9"
     speaker ||--o{ speaker_faction : "所属 e10"
@@ -213,9 +229,13 @@ erDiagram
 | line_analysis | 台詞本文の解析キャッシュ（口調生成の中間、本文ハッシュで 1 度だけ） | source_hash, sentence_count, polite_count, insult_count, is_imperative, exclaim_count, elong_count, emotion_count | UNIQUE(source_hash) |
 | extracted_field | C# 抽出の生バッファ（箱判定前）。取込段が `record_type_master` で `narration`/`proper_noun`/`line` へ振り分ける | plugin, form_id, edid, rec, field, ordinal, source | UNIQUE(plugin, form_id, rec, field, ordinal) |
 | extracted_info_speaker | INFO→speaker の橋渡し staging。`line` 作成後に `line_speaker` へ解決する | info_plugin, info_form_id, speaker_id(FK) | PK(info_plugin, info_form_id, speaker_id) |
+| extracted_info_condition | INFO→条件由来の性別の橋渡し staging。`line` 作成後に `line_condition` へ解決する | info_plugin, info_form_id, sex | PK(info_plugin, info_form_id) |
+| line_condition | 台詞の条件由来の性別（話者を解決できない汎用台詞の一人称・語尾の根拠）。台詞 1 件あたり 0..1 | line_id(PK,FK), sex | PK(line_id) |
+| tone_default | 話者なし台詞（汎用・PC）の口調設定。汎用・PC の自由記述口調と PC 性別。単一行。app だけが編集 | generic_tone_text, pc_tone_text, pc_sex | PK(id=1) |
 
 - `prompt_template.persona_template` は旧経路の口調雛形。口調指示の供給は口調 `directive`（`{traits}` 入り）へ移行済みで、現状の本文フェーズは `directive` を引く（`architecture.md` §8 参照）。
 - `directive` と `record_type_master` の seed（指示文 7・REC:FIELD 割り当て 65）は migration 0006 が持つ。
+- `extracted_info_condition`・`line_condition`・`tone_default` は migration 0007（generic-voice-tone-fallback）が持つ。話者を解決できない汎用台詞・PC 発話へ口調を付けるための実現テーブル。`extracted_info_speaker`→`line_speaker` と対称に、INFO の条件由来の性別を staging から domain へ解決する。
 
 ### 3. 未実装（概念モデル由来・後続 task）
 

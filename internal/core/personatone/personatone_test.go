@@ -95,6 +95,66 @@ func TestBuildToneTraitsWithRoleSpeech(t *testing.T) {
 	}
 }
 
+// buildFreeToneTraits は自由記述の口調へ、感情段階の助言と性別の一人称・語尾を重ねる（汎用・PC 用）。
+func TestBuildFreeToneTraits(t *testing.T) {
+	roles, err := rolespeech.ParseRoleSpeech(strings.NewReader(
+		"adult\tfemale\t*\tわたし\t女性らしいやわらかな言い回し。\n"))
+	if err != nil {
+		t.Fatalf("ParseRoleSpeech: %v", err)
+	}
+
+	// 自由記述が空なら口調指示なし（空）。
+	if got := BuildFreeToneTraits("", tone.EmotionMid, "Female", roles); got != nil {
+		t.Errorf("自由記述が空で traits = %v, want nil", got)
+	}
+
+	// 感情が中（1）は助言を出さない。女性は一人称・語尾が付く。口調 ＋ 人称 の 2 行。
+	mid := BuildFreeToneTraits("衛兵の汎用台詞。", tone.EmotionMid, "Female", roles)
+	if len(mid) != 2 {
+		t.Fatalf("中・女性の口調指示行 = %d, want 2: %v", len(mid), mid)
+	}
+	if !strings.HasPrefix(mid[0], "- 口調: ") || !strings.Contains(mid[1], "わたし") {
+		t.Errorf("行の組み立てが想定外: %v", mid)
+	}
+
+	// 感情が激情（2）は助言を出す。性別なしは一人称・語尾を付けない。口調 ＋ 感情 の 2 行。
+	intense := BuildFreeToneTraits("汎用台詞。", tone.EmotionIntense, "", roles)
+	if len(intense) != 2 {
+		t.Fatalf("激情・性別なしの口調指示行 = %d, want 2: %v", len(intense), intense)
+	}
+	if !strings.HasPrefix(intense[1], "- 感情: ") {
+		t.Errorf("感情助言の行が想定外: %v", intense)
+	}
+
+	// 抑制（0）＋ 性別なし ＋ roles nil は口調 ＋ 感情 の 2 行（一人称・語尾なし）。
+	suppressed := BuildFreeToneTraits("PC の選択肢。", tone.EmotionSuppressed, "Male", nil)
+	if len(suppressed) != 2 {
+		t.Fatalf("抑制の口調指示行 = %d, want 2: %v", len(suppressed), suppressed)
+	}
+
+	// テンプレートに当たらない成人男（adult/male、行なし）は一人称・語尾を付けず、中なら口調行のみ。
+	maleMid := BuildFreeToneTraits("汎用台詞。", tone.EmotionMid, "Male", roles)
+	if len(maleMid) != 1 {
+		t.Fatalf("中・成人男の口調指示行 = %d, want 1: %v", len(maleMid), maleMid)
+	}
+}
+
+// freeRoleSpeechLine（formatRoleSpeech）は一人称のみ・言い回しのみ・両方空を出し分ける。
+func TestFreeRoleSpeechFormatting(t *testing.T) {
+	firstOnly, _ := rolespeech.ParseRoleSpeech(strings.NewReader("adult\tmale\t*\t俺\t\n"))
+	if got := freeRoleSpeechLine("Male", firstOnly); got != "- 人称と言い回し: 一人称は「俺」。" {
+		t.Errorf("一人称のみ = %q", got)
+	}
+	registerOnly, _ := rolespeech.ParseRoleSpeech(strings.NewReader("adult\tmale\t*\t\t男性らしい言い回し。\n"))
+	if got := freeRoleSpeechLine("Male", registerOnly); got != "- 言い回し: 男性らしい言い回し。" {
+		t.Errorf("言い回しのみ = %q", got)
+	}
+	bothEmpty, _ := rolespeech.ParseRoleSpeech(strings.NewReader("adult\tmale\t*\t\t\n"))
+	if got := freeRoleSpeechLine("Male", bothEmpty); got != "" {
+		t.Errorf("一人称も言い回しも空で = %q, want 空", got)
+	}
+}
+
 // buildToneDirective は traits があればテンプレートの {traits} を置換し、無ければ空を返す。
 func TestBuildToneDirective(t *testing.T) {
 	tmpl := "口調指示:\n{traits}"

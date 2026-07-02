@@ -59,6 +59,11 @@ I fear アベンタス will not come back to town.
 [006] model=fake-model
 --- system ---
 あなたは Skyrim Mod の翻訳者です。与えられた英語の本文を、原文の意味と語調を保った自然な日本語へ翻訳してください。訳文だけを出力し、説明や注釈は加えないでください。
+
+この台詞の話者の人物像:
+- 口調: 衛兵などの不特定多数が話す汎用的な台詞。職務的で簡潔な口調で訳す。
+- 感情: 落ち着いた、感情を抑えた調子にする。
+この人物像に合う口調と人称で訳すこと。
 --- user ---
 グレロッド will not return here, of course.
 
@@ -94,4 +99,5 @@ source="Aventus" dest="アベンタス" category="derive:two"
 -- line_analysis (order by source_hash) --
 hash=41152ba03749c5bfe989cec87da63523dd4d960bf5baf439e20b80041b5e8296 sent=1 polite=0 insult=0 imper=0 exclaim=0 elong=0 emotion=1
 hash=79256c80ed790c3e391ed8d5df9f1bdfa64746c94ee8c355377d9199842295c8 sent=1 polite=0 insult=0 imper=0 exclaim=0 elong=0 emotion=0
+hash=d7b8403c58736ea8b75daf2e17c4eeea21c15b0c52e6b9cb4f56131f40c85766 sent=1 polite=0 insult=0 imper=0 exclaim=0 elong=0 emotion=0
 

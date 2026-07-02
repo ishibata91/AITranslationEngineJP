@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"aitranslationenginejp/internal/core/rolespeech"
+	"aitranslationenginejp/internal/core/tone"
 	"aitranslationenginejp/internal/model"
 	"aitranslationenginejp/internal/provider"
 )
@@ -18,23 +20,25 @@ const (
 )
 
 type fakeStore struct {
-	untranslated  []model.Narration
-	lines         []model.Line
-	proper        []model.ProperNoun               // 固有名（ListProperNouns / 未訳は status=0 を ListUntranslatedProperNouns）
-	linePersonas  map[int64]model.LinePersonaInput // lineID → 生成済み基底口調（無ければ口調なし）
-	terms         []model.MasterTerm               // 固有名の機械置換辞書（無ければ置換なし）
-	tmpl          model.PromptTemplate             // プロンプトテンプレート（未設定ならテスト用既定値を返す）
-	directives    []model.Directive                // 指示文（nil ならテスト用既定: 口調=testPersonaTemplate）
-	recordTypes   []model.RecordType               // REC:FIELD 割り当て（既定は空。叙述文 directive テストで設定）
-	extracted     []model.ExtractedField           // 取込段の入力（既定は空）
-	genSources    []model.SpeakerLineSource        // 一括生成が読む入力（Run テストでは空で生成 no-op）
-	updates       []update
-	lineUpdates   []update
-	properUpdates []update           // UpdateProperNounDest の記録（固有名フェーズの観測）
-	ingestedNarr  []model.Narration  // IngestNarrations で投入された行
-	ingestedPN    []model.ProperNoun // IngestProperNouns で投入された行
-	ingestedLine  []model.Line       // IngestLines で投入された行
-	linkCalled    bool               // LinkLineSpeakersFromStaging が呼ばれたか
+	untranslated   []model.Narration
+	lines          []model.Line
+	proper         []model.ProperNoun               // 固有名（ListProperNouns / 未訳は status=0 を ListUntranslatedProperNouns）
+	linePersonas   map[int64]model.LinePersonaInput // lineID → 生成済み基底口調（無ければ口調なし）
+	terms          []model.MasterTerm               // 固有名の機械置換辞書（無ければ置換なし）
+	tmpl           model.PromptTemplate             // プロンプトテンプレート（未設定ならテスト用既定値を返す）
+	directives     []model.Directive                // 指示文（nil ならテスト用既定: 口調=testPersonaTemplate）
+	recordTypes    []model.RecordType               // REC:FIELD 割り当て（既定は空。叙述文 directive テストで設定）
+	extracted      []model.ExtractedField           // 取込段の入力（既定は空）
+	genSources     []model.SpeakerLineSource        // 一括生成が読む入力（Run テストでは空で生成 no-op）
+	updates        []update
+	lineUpdates    []update
+	properUpdates  []update           // UpdateProperNounDest の記録（固有名フェーズの観測）
+	ingestedNarr   []model.Narration  // IngestNarrations で投入された行
+	ingestedPN     []model.ProperNoun // IngestProperNouns で投入された行
+	ingestedLine   []model.Line       // IngestLines で投入された行
+	linkCalled     bool               // LinkLineSpeakersFromStaging が呼ばれたか
+	condLinkCalled bool               // LinkLineConditionsFromStaging が呼ばれたか
+	lineConditions map[int64]string   // LoadLineConditions が返す条件由来の性別（lineID→sex）
 	// loadPersonasCalls は LoadLinePersonas の呼び出し回数。注入の引きが台詞数 N 非依存（N+1 廃止）の観測に使う。
 	loadPersonasCalls int
 }
@@ -88,6 +92,11 @@ func (f *fakeStore) IngestLines(_ context.Context, rows []model.Line) (int, erro
 
 func (f *fakeStore) LinkLineSpeakersFromStaging(_ context.Context) error {
 	f.linkCalled = true
+	return nil
+}
+
+func (f *fakeStore) LinkLineConditionsFromStaging(_ context.Context) error {
+	f.condLinkCalled = true
 	return nil
 }
 
@@ -171,6 +180,16 @@ func (f *fakeStore) LoadLinePersonas(_ context.Context, lineIDs []int64) (map[in
 	for _, id := range lineIDs {
 		if in, ok := f.linePersonas[id]; ok {
 			out[id] = in
+		}
+	}
+	return out, nil
+}
+
+func (f *fakeStore) LoadLineConditions(_ context.Context, lineIDs []int64) (map[int64]string, error) {
+	out := make(map[int64]string)
+	for _, id := range lineIDs {
+		if sex, ok := f.lineConditions[id]; ok {
+			out[id] = sex
 		}
 	}
 	return out, nil
@@ -363,7 +382,9 @@ func TestLinePersonas(t *testing.T) {
 	}
 	eng := New(store, &fakeTranslator{}, fakeLexicon{}, nil)
 
-	personas, err := eng.LinePersonas(context.Background(), []int64{10, 99}, testPersonaTemplate) // 99 はペルソナなし
+	// 10 はペルソナあり（経路①）。99 はペルソナなしで本文も rec/field も無いため口調なし。
+	personas, err := eng.LinePersonas(context.Background(),
+		[]model.Line{{ID: 10}, {ID: 99}}, testPersonaTemplate, ToneDefaults{})
 	if err != nil {
 		t.Fatalf("LinePersonas: %v", err)
 	}
@@ -382,18 +403,86 @@ func TestLinePersonas(t *testing.T) {
 	}
 }
 
+// LinePersonas は話者を解決できない台詞を (rec, field) で汎用・PC へ振り分け、自由記述の口調へ
+// 本文 1 行の感情と性別の一人称・語尾を重ねること。名指し話者は持たない経路②③の組み立てを確かめる。
+func TestLinePersonasGenericAndPC(t *testing.T) {
+	store := &fakeStore{
+		// 40 は INFO:RNAM だが NPC 話者が結ばれている（line_speaker が INFO を解決するため起こる）。
+		// それでも PC 発話として扱い、PC 既定の口調を優先する（名指しの口調を付けない）。
+		linePersonas:   map[int64]model.LinePersonaInput{40: {AttitudeBand: 2, EmotionBand: 1, RaceEDID: "NordRace"}},
+		lineConditions: map[int64]string{10: "Female"}, // 汎用台詞 10 は条件由来で女性
+	}
+	roles, err := rolespeech.ParseRoleSpeech(strings.NewReader("adult\tfemale\t*\tわたし\t女性らしく。\n"))
+	if err != nil {
+		t.Fatalf("ParseRoleSpeech: %v", err)
+	}
+	eng := New(store, &fakeTranslator{}, fakeLexicon{}, roles)
+	defaults := ToneDefaults{Generic: "衛兵の汎用台詞。", PC: "PCの選択肢。", PcSex: "Male"}
+	lines := []model.Line{
+		{ID: 10, Source: "Halt.", Rec: "INFO", Field: "NAM1"},  // 汎用（話者なし）
+		{ID: 20, Source: "Yes.", Rec: "DIAL", Field: "FULL"},   // PC（選択肢の既定文）
+		{ID: 30, Source: "Maybe.", Rec: "INFO", Field: "RNAM"}, // PC（選択肢の条件別上書き、話者なし）
+		{ID: 40, Source: "Sure.", Rec: "INFO", Field: "RNAM"},  // PC（条件別上書き、NPC 話者が結ばれている）
+	}
+	personas, err := eng.LinePersonas(context.Background(), lines, testPersonaTemplate, defaults)
+	if err != nil {
+		t.Fatalf("LinePersonas: %v", err)
+	}
+
+	// 汎用: 決定経路=汎用、条件由来の女性、自由記述口調＋女性の一人称。
+	g, ok := personas[10]
+	if !ok {
+		t.Fatal("汎用台詞 10 が persona map に無い")
+	}
+	if g.DecisionPath != tone.PathGeneric || g.Sex != "Female" || g.Label != "口調: 汎用台詞" {
+		t.Errorf("汎用の口調メタが想定外: path=%q sex=%q label=%q", g.DecisionPath, g.Sex, g.Label)
+	}
+	if !strings.Contains(g.Directive, "衛兵の汎用台詞") || !strings.Contains(g.Directive, "わたし") {
+		t.Errorf("汎用の directive が想定外: %q", g.Directive)
+	}
+
+	// PC（DIAL:FULL）: 決定経路=PC、利用者選択の男性。男性は役割語テンプレートに当たらず一人称なし。
+	p, ok := personas[20]
+	if !ok {
+		t.Fatal("PC 発話 20 が persona map に無い")
+	}
+	if p.DecisionPath != tone.PathPC || p.Sex != "Male" || p.Label != "口調: PC発話" {
+		t.Errorf("PC の口調メタが想定外: path=%q sex=%q label=%q", p.DecisionPath, p.Sex, p.Label)
+	}
+	if !strings.Contains(p.Directive, "PCの選択肢") {
+		t.Errorf("PC の directive が想定外: %q", p.Directive)
+	}
+
+	// PC（INFO:RNAM・話者なし）も PC 経路へ振り分けること。
+	if personas[30].DecisionPath != tone.PathPC {
+		t.Errorf("INFO:RNAM（話者なし）の決定経路 = %q, want PC", personas[30].DecisionPath)
+	}
+
+	// PC（INFO:RNAM）に NPC 話者が結ばれていても、名指しでなく PC 既定の口調を優先すること。
+	r, ok := personas[40]
+	if !ok {
+		t.Fatal("INFO:RNAM（話者あり）40 が persona map に無い")
+	}
+	if r.DecisionPath != tone.PathPC || r.Cell != "" {
+		t.Errorf("INFO:RNAM（話者あり）の決定経路 = %q cell = %q, want PC・セルなし", r.DecisionPath, r.Cell)
+	}
+	if !strings.Contains(r.Directive, "PCの選択肢") {
+		t.Errorf("INFO:RNAM（話者あり）の directive が PC 既定でない: %q", r.Directive)
+	}
+}
+
 // 注入の引きの DB 呼び出しが台詞数 N に依存せず一括（定数 1 回）であること（N+1 廃止の観測）。
 func TestLinePersonasBulkLoadsOnce(t *testing.T) {
 	for _, n := range []int{2, 50} {
 		store := &fakeStore{linePersonas: map[int64]model.LinePersonaInput{}}
-		ids := make([]int64, n)
+		lines := make([]model.Line, n)
 		for i := range n {
 			id := int64(i + 1)
-			ids[i] = id
+			lines[i] = model.Line{ID: id}
 			store.linePersonas[id] = model.LinePersonaInput{AttitudeBand: 1, EmotionBand: 1}
 		}
 		eng := New(store, &fakeTranslator{}, fakeLexicon{}, nil)
-		if _, err := eng.LinePersonas(context.Background(), ids, testPersonaTemplate); err != nil {
+		if _, err := eng.LinePersonas(context.Background(), lines, testPersonaTemplate, ToneDefaults{}); err != nil {
 			t.Fatalf("LinePersonas(N=%d): %v", n, err)
 		}
 		if store.loadPersonasCalls != 1 {

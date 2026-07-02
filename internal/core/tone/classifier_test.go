@@ -135,6 +135,32 @@ func TestArousalBand(t *testing.T) {
 	}
 }
 
+// EmotionBandOfLine は 1 台詞の特徴量から感情段階だけを出す。激情の下限は集計より渋く（1.5）、
+// 単発の感嘆符（密度 1.0）では激情へ振れない。文数 0 は 1 文として扱う。
+func TestEmotionBandOfLine(t *testing.T) {
+	c := NewClassifier()
+	cases := []struct {
+		name string
+		in   Features
+		want int
+	}{
+		{"単発の感嘆符は中（激情にしない）", Features{Sentences: 1, Exclaim: 1}, EmotionMid},
+		{"感嘆符2つで激情", Features{Sentences: 1, Exclaim: 2}, EmotionIntense},
+		{"1台詞の激情閾値ちょうどは中", Features{Sentences: 2, Exclaim: 3}, EmotionMid},
+		{"中閾値超で中", Features{Sentences: 2, Exclaim: 1}, EmotionMid},
+		{"低密度は抑制", Features{Sentences: 2}, EmotionSuppressed},
+		{"強感情語と引き伸ばしで激情", Features{Sentences: 1, Emotion: 1, Elong: 1}, EmotionIntense},
+		{"文数0は1文扱い", Features{Sentences: 0, Exclaim: 2}, EmotionIntense},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := c.EmotionBandOfLine(tc.in); got != tc.want {
+				t.Fatalf("EmotionBandOfLine(%+v) = %d, want %d", tc.in, got, tc.want)
+			}
+		})
+	}
+}
+
 // isUniqueVoice は固有・特殊 voice を判定する。気質 prior を持たない voice を分ける。
 func TestIsUniqueVoice(t *testing.T) {
 	cases := []struct {

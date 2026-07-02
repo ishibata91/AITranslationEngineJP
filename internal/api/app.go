@@ -140,16 +140,18 @@ type TermView struct {
 	Dest   string `json:"dest"`
 }
 
-// PersonaView は結果行の口調メタデータ。台詞の話者の生成済み基底口調（判定結果と根拠）。
-// 結果行を展開したときに、判定結果（Cell・Trait）を強調し、根拠（段階・印・経路）を小さく出す。
-// 話者を解決できた台詞だけ持つ（叙述文や話者なしの台詞は nil で省略）。
+// PersonaView は結果行の口調メタデータ。口調が付いた台詞の判定結果と根拠。
+// 結果行を展開したときに、判定結果（Cell・Trait）を強調し、根拠（段階・印・経路・性別）を小さく出す。
+// 口調が付いた台詞だけ持つ（叙述文や口調なしの台詞は nil で省略）。
+// 名指し話者は Cell・AttitudeBand・Marked を持つ。汎用台詞・PC 発話はそれらが空で、EmotionBand・Sex を持つ。
 type PersonaView struct {
-	Cell         string `json:"cell"`         // 基底口調セル名（判定結果）
-	Trait        string `json:"trait"`        // 基底口調の性質文（口調を普通の言葉で説明した一文）
-	AttitudeBand int    `json:"attitudeBand"` // 対人段階 0尊大/1中立/2丁寧
+	Cell         string `json:"cell"`         // 基底口調セル名（判定結果）。汎用・PC は空
+	Trait        string `json:"trait"`        // 基底口調の性質文（口調を普通の言葉で説明した一文）。汎用・PC は空
+	AttitudeBand int    `json:"attitudeBand"` // 対人段階 0尊大/1中立/2丁寧。汎用・PC は持たない
 	EmotionBand  int    `json:"emotionBand"`  // 感情段階 0抑制/1中/2激情
-	Marked       int    `json:"marked"`       // 印（信頼度の目安）
-	DecisionPath string `json:"decisionPath"` // 本文/voice/保留
+	Marked       int    `json:"marked"`       // 印（信頼度の目安）。汎用・PC は持たない
+	DecisionPath string `json:"decisionPath"` // 本文/voice/保留/汎用/PC
+	Sex          string `json:"sex"`          // 性別ラベル（女性/男性/空）。汎用・PC の一人称・語尾の根拠
 }
 
 // SpeakerView は結果行の話者識別と属性。誰の台詞かと、口調指示の根拠（性別・年齢・声型）を結果詳細で出す。
@@ -243,26 +245,39 @@ func (a *App) ListResultsPage(cursor string, limit int) (ResultPage, error) {
 
 // PromptTemplateView はプロンプトテンプレート編集画面の表示用 DTO。
 // BaseDirective は叙述文・台詞の両方に付く base 翻訳指示文、PersonaTemplate は話者のいる台詞に付く口調指示の雛形。
+// GenericToneText・PcToneText・PcSex は話者なし台詞（汎用・PC）の口調設定（自由記述 2 つと PC 性別）。
 type PromptTemplateView struct {
 	BaseDirective   string `json:"baseDirective"`
 	PersonaTemplate string `json:"personaTemplate"`
+	GenericToneText string `json:"genericToneText"`
+	PcToneText      string `json:"pcToneText"`
+	PcSex           string `json:"pcSex"`
 }
 
-// GetPromptTemplate は編集画面の初期表示用に、現在保存されているプロンプトテンプレートを返す。
+// GetPromptTemplate は編集画面の初期表示用に、現在保存されているプロンプトテンプレートと口調設定を返す。
 func (a *App) GetPromptTemplate() (PromptTemplateView, error) {
 	t, err := a.store.GetPromptTemplate(a.baseCtx())
 	if err != nil {
 		return PromptTemplateView{}, fmt.Errorf("プロンプトテンプレートの取得: %w", err)
 	}
-	return PromptTemplateView{BaseDirective: t.BaseDirective, PersonaTemplate: t.PersonaTemplate}, nil
+	return PromptTemplateView{
+		BaseDirective:   t.BaseDirective,
+		PersonaTemplate: t.PersonaTemplate,
+		GenericToneText: t.GenericToneText,
+		PcToneText:      t.PcToneText,
+		PcSex:           t.PcSex,
+	}, nil
 }
 
-// SavePromptTemplate は編集したプロンプトテンプレートを保存する。
+// SavePromptTemplate は編集したプロンプトテンプレートと口調設定を保存する。
 // 保存後の翻訳実行と、結果行の実プロンプト再構成は、この保存値を読んで反映する。
 func (a *App) SavePromptTemplate(req PromptTemplateView) error {
 	if err := a.store.SavePromptTemplate(a.baseCtx(), model.PromptTemplate{
 		BaseDirective:   req.BaseDirective,
 		PersonaTemplate: req.PersonaTemplate,
+		GenericToneText: req.GenericToneText,
+		PcToneText:      req.PcToneText,
+		PcSex:           req.PcSex,
 	}); err != nil {
 		return fmt.Errorf("プロンプトテンプレートの保存: %w", err)
 	}
@@ -440,7 +455,12 @@ func (a *App) buildResultsPage(ctx context.Context, cursor string, limit int) (R
 	instructionByKey, boxByRF, directiveByRF := resultLookups(directives, masterRows)
 
 	// ページの台詞ぶんだけ口調を 1 度に一括生成する（台詞ごとの DB 問い合わせを避ける）。口調 directive の指示文を雛形にする。
-	personas, err := a.engine.LinePersonas(ctx, lineIDs(lines), instructionByKey["口調"])
+	// 話者なし台詞（汎用・PC）は prompt_template 由来の自由記述口調へ感情と性別を重ねる。
+	personas, err := a.engine.LinePersonas(ctx, lines, instructionByKey["口調"], engine.ToneDefaults{
+		Generic: tmpl.GenericToneText,
+		PC:      tmpl.PcToneText,
+		PcSex:   tmpl.PcSex,
+	})
 	if err != nil {
 		return ResultPage{}, fmt.Errorf("口調の一括生成: %w", err)
 	}
@@ -493,7 +513,8 @@ func (a *App) buildResultsPage(ctx context.Context, cursor string, limit int) (R
 				Voice: sp.VoiceEDID,
 			}
 		}
-		// 話者を解決できた台詞は、展開時に出す口調メタ（判定結果と根拠）を付ける。
+		// 口調が付いた台詞は、展開時に出す口調メタ（判定結果と根拠）を付ける。
+		// 汎用・PC は Cell・AttitudeBand・Marked が空で、感情段階と性別（条件由来 or 利用者選択）を出す。
 		if hasPersona {
 			view.Persona = &PersonaView{
 				Cell:         p.Cell,
@@ -502,6 +523,7 @@ func (a *App) buildResultsPage(ctx context.Context, cursor string, limit int) (R
 				EmotionBand:  p.EmotionBand,
 				Marked:       p.Marked,
 				DecisionPath: p.DecisionPath,
+				Sex:          sexLabel(p.Sex),
 			}
 		}
 		views = append(views, view)

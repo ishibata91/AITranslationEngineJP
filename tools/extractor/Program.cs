@@ -63,6 +63,11 @@ if (sqlitePath != null)
     var linkCount = SpeakerSqliteWriter.Write(sqlitePath, schemaSql, result, env.LinkCache);
     Console.WriteLine($"[sqlite] 話者属性と INFO→speaker 橋渡し {linkCount} 件を {sqlitePath} へ書き込み（{sw.ElapsedMilliseconds} ms）");
 
+    // INFO の条件から導いた性別（汎用台詞の一人称・語尾の根拠）を書く。話者解決の有無に依らず性別を定められる INFO を書き、
+    // line 行は Go 取込段が作るため安定キー（INFO の plugin・form_id）で一時保持する（line_condition へ Go 取込段が解決する）。
+    var condCount = InfoConditionSqliteWriter.Write(sqlitePath, schemaSql, env, result.TargetPlugin);
+    Console.WriteLine($"[sqlite] INFO→条件由来の性別 {condCount} 件を {sqlitePath} へ書き込み（{sw.ElapsedMilliseconds} ms）");
+
     // T3 の固有名辞書（master_term）。xTranslator 英日辞書 XML（公式日本語版既訳）から FULL を読み、
     // 叙述文・台詞の本文へ機械置換するための「原語 → 確定訳語」を書く。
     // 既定は data folder の兄弟 xTranslatorXMLs、--terms-xml で上書きできる。

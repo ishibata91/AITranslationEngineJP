@@ -125,3 +125,46 @@ func TestSeedToneDirectiveHasTraitsVariable(t *testing.T) {
 	}
 	t.Error("口調 directive が seed に無い")
 }
+
+// GetPromptTemplate は prompt_template（0004）と tone_default（0007）を結合して読む。
+// migration 0007 の口調設定 seed が入り、SavePromptTemplate で往復保存できることを確かめる。
+func TestPromptTemplateToneDefaultsRoundTrip(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "seed3.sqlite3")
+	s, err := Open(dbPath)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer func() { _ = s.Close() }()
+	ctx := context.Background()
+
+	got, err := s.GetPromptTemplate(ctx)
+	if err != nil {
+		t.Fatalf("GetPromptTemplate: %v", err)
+	}
+	if !strings.Contains(got.GenericToneText, "衛兵") {
+		t.Errorf("汎用口調の seed が想定外: %q", got.GenericToneText)
+	}
+	if !strings.Contains(got.PcToneText, "プレイヤー") {
+		t.Errorf("PC 口調の seed が想定外: %q", got.PcToneText)
+	}
+	if got.PcSex != "" {
+		t.Errorf("PC 性別の既定 = %q, want 空", got.PcSex)
+	}
+
+	// 口調設定を書き換えて保存し、読み直して反映を確かめる（base 指示は据え置き）。
+	got.GenericToneText = "威厳のある口調で訳す。"
+	got.PcSex = "Male"
+	if err = s.SavePromptTemplate(ctx, got); err != nil {
+		t.Fatalf("SavePromptTemplate: %v", err)
+	}
+	after, err := s.GetPromptTemplate(ctx)
+	if err != nil {
+		t.Fatalf("GetPromptTemplate(再取得): %v", err)
+	}
+	if after.GenericToneText != "威厳のある口調で訳す。" || after.PcSex != "Male" {
+		t.Errorf("保存が反映されない: generic=%q pcSex=%q", after.GenericToneText, after.PcSex)
+	}
+	if after.BaseDirective != got.BaseDirective {
+		t.Errorf("base 指示が変わった: %q != %q", after.BaseDirective, got.BaseDirective)
+	}
+}

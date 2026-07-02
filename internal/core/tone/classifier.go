@@ -39,6 +39,8 @@ const (
 	PathDialogue = "本文"    // 印が閾値以上。本文 2 軸で対人を決めた
 	PathVoice    = "voice" // 印不足。voice 気質 prior で対人を決めた
 	PathHold     = "保留"    // 印不足かつ固有 voice で prior も無い。薄い本文値は当てにならず対人を中立へ寄せる
+	PathGeneric  = "汎用"    // 話者を解決できない汎用台詞。利用者の自由記述口調へ本文 1 行の感情と条件由来の性別を重ねる
+	PathPC       = "PC"    // プレイヤーの選択肢。利用者の自由記述口調へ本文 1 行の感情と利用者選択の性別を重ねる
 )
 
 // Persona は Classifier の出力。基底口調（対人段階・感情段階・セル名）と、品質指標（印・決定経路・voice 気質名）。
@@ -56,13 +58,14 @@ type Persona struct {
 // Classifier は口調分類の不変ルールを閉じた純粋 IO クラス（R10）。
 // しきい値と辞書を持ち、較正で差し替える。DB・prose・ハッシュには依存しない。
 type Classifier struct {
-	markedThreshold int          // 本文経路に要る印の下限。未満は voice prior へ畳む
-	attitudePolite  float64      // 丁寧帯の下限スコア（これを超えたら丁寧）
-	attitudeArrog   float64      // 尊大帯の上限スコア（これを下回ったら尊大）
-	arousalIntense  float64      // 激情帯の下限スコア
-	arousalMid      float64      // 中帯の下限スコア
-	voiceTraits     []voiceTrait // voice 気質 prior の辞書
-	cellNames       [3][3]string // 感情段階×対人段階 → 基底口調セル名
+	markedThreshold    int          // 本文経路に要る印の下限。未満は voice prior へ畳む
+	attitudePolite     float64      // 丁寧帯の下限スコア（これを超えたら丁寧）
+	attitudeArrog      float64      // 尊大帯の上限スコア（これを下回ったら尊大）
+	arousalIntense     float64      // 激情帯の下限スコア（話者集計。複数台詞の中央値に当てる）
+	arousalIntenseLine float64      // 激情帯の下限スコア（1 台詞用。集計より渋く、単発の感嘆符で激情へ振れない）
+	arousalMid         float64      // 中帯の下限スコア
+	voiceTraits        []voiceTrait // voice 気質 prior の辞書
+	cellNames          [3][3]string // 感情段階×対人段階 → 基底口調セル名
 }
 
 // defaultCellNames は 感情段階×対人段階 → 基底口調セル名。行が感情段階、列が対人段階。
@@ -88,13 +91,14 @@ func CellName(attitudeBand, emotionBand int) string {
 // NewClassifier は PoC（poc-tone-report.md）で較正したしきい値と気質辞書で Classifier を作る。
 func NewClassifier() *Classifier {
 	return &Classifier{
-		markedThreshold: 10,
-		attitudePolite:  0.15,
-		attitudeArrog:   -0.15,
-		arousalIntense:  1.0,
-		arousalMid:      0.4,
-		voiceTraits:     defaultVoiceTraits,
-		cellNames:       defaultCellNames,
+		markedThreshold:    10,
+		attitudePolite:     0.15,
+		attitudeArrog:      -0.15,
+		arousalIntense:     1.0,
+		arousalIntenseLine: 1.5,
+		arousalMid:         0.4,
+		voiceTraits:        defaultVoiceTraits,
+		cellNames:          defaultCellNames,
 	}
 }
 
@@ -187,6 +191,21 @@ func (c *Classifier) attitudeBand(p float64) int {
 func (c *Classifier) arousalBand(a float64) int {
 	switch {
 	case a > c.arousalIntense:
+		return EmotionIntense
+	case a > c.arousalMid:
+		return EmotionMid
+	default:
+		return EmotionSuppressed
+	}
+}
+
+// EmotionBandOfLine は 1 台詞の特徴量から感情段階だけを出す。対人段階は持たない。
+// 汎用台詞・PC 発話の口調へ重ねる用途で、話者集計を経ず本文 1 行から段階化する。
+// 激情の下限は 1 台詞用の渋い値（arousalIntenseLine）にし、単発の感嘆符で激情へ振れないようにする。
+func (c *Classifier) EmotionBandOfLine(f Features) int {
+	_, a := scoreAxes(f)
+	switch {
+	case a > c.arousalIntenseLine:
 		return EmotionIntense
 	case a > c.arousalMid:
 		return EmotionMid
