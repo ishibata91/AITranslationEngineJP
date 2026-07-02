@@ -4,11 +4,13 @@ import {
   DEFAULT_TEMPLATE_FORM,
   DIRECTIVES,
   EDITED_DIRECTIVES,
-  RECORD_ASSIGNMENTS
+  RECORD_ASSIGNMENTS,
+  TONE_DEFAULT_EDITED_FORM
 } from "./template-editor.fixtures"
 
-// プロンプトテンプレート画面。record-type-translation-expansion で「Base + 種別ごとの指示文」モデルへ作り直した。
-// Storybook 人間レビュー承認済み（2026-06-25）。通常分類（Screens）に置く。
+// プロンプトテンプレート画面。Base + 種別ごとの指示文モデルに、話者なし台詞の口調設定を足した。
+// generic-voice-tone-fallback で、汎用台詞・PC 発話の口調を自由記述で書き、PC の性別を選べるようにした。
+// Storybook 人間レビュー承認済み（2026-06-30）。通常分類（Screens）に置く。
 const meta = {
   title: "Screens/プロンプトテンプレート",
   component: TemplateEditorScreen,
@@ -38,7 +40,7 @@ export const BaseTab: Story = {
   }
 }
 
-// レコード別タブ。種別ごとの指示文（口調・文体・固有名・定型句）を同じ形で並べる。未保存の変更なし。
+// レコード別タブ。話者なし台詞の口調（汎用・PC の自由記述と PC 性別）と、種別ごとの指示文を並べる。
 export const RecordTab: Story = {
   name: "レコード別タブ",
   args: {
@@ -47,6 +49,24 @@ export const RecordTab: Story = {
     directives: DIRECTIVES,
     assignments: RECORD_ASSIGNMENTS,
     dirty: false,
+    saving: false,
+    onFieldInput: noop,
+    onInstructionInput: noop,
+    onTabChange: noop,
+    onSave: noop,
+    onReset: noop
+  }
+}
+
+// レコード別タブで汎用口調を書き換え、PC 性別を男性に選んだ状態。自由記述の編集と PC 性別選択が反映される。
+export const RecordTabToneDefaultEdited: Story = {
+  name: "レコード別タブ（口調と PC 性別を変更）",
+  args: {
+    form: TONE_DEFAULT_EDITED_FORM,
+    activeTab: "record",
+    directives: DIRECTIVES,
+    assignments: RECORD_ASSIGNMENTS,
+    dirty: true,
     saving: false,
     onFieldInput: noop,
     onInstructionInput: noop,

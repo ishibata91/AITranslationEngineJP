@@ -9,10 +9,14 @@ import {
 } from "../../wailsjs/go/api/App"
 import { api } from "../../wailsjs/go/models"
 
-// 編集対象のプロンプトテンプレート。base 翻訳指示文と口調指示テンプレート。
+// 編集対象のプロンプトテンプレート。base 翻訳指示文・口調指示テンプレートと、話者なし台詞の口調設定。
+// genericToneText=汎用台詞の自由記述口調、pcToneText=PC 発話の自由記述口調、pcSex=PC の性別（Female/Male/空）。
 export interface PromptTemplate {
   baseDirective: string
   personaTemplate: string
+  genericToneText: string
+  pcToneText: string
+  pcSex: string
 }
 
 // 指示文が実行時に埋める変数 1 件（例: {traits}）。
@@ -41,16 +45,19 @@ export interface DirectiveEditing {
   assignments: RecordAssignmentRow[]
 }
 
-// 現在保存されているプロンプトテンプレートを取得する（編集画面の初期表示用）。
+// 現在保存されているプロンプトテンプレートと口調設定を取得する（編集画面の初期表示用）。
 export async function getPromptTemplate(): Promise<PromptTemplate> {
   const view = await GetPromptTemplate()
   return {
     baseDirective: view.baseDirective,
-    personaTemplate: view.personaTemplate
+    personaTemplate: view.personaTemplate,
+    genericToneText: view.genericToneText,
+    pcToneText: view.pcToneText,
+    pcSex: view.pcSex
   }
 }
 
-// 編集したプロンプトテンプレートを保存する。保存後の翻訳と実プロンプト参照へ反映される。
+// 編集したプロンプトテンプレートと口調設定を保存する。保存後の翻訳と実プロンプト参照へ反映される。
 export async function savePromptTemplate(template: PromptTemplate): Promise<void> {
   await SavePromptTemplate(api.PromptTemplateView.createFrom(template))
 }

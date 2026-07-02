@@ -12,9 +12,24 @@ const DEFAULT_PERSONA = `この台詞の話者の人物像:
 {traits}
 この人物像に合う口調と人称で訳すこと。`
 
+// 話者なし台詞の口調の既定文。汎用台詞・PC 発話それぞれの自由記述の口調指示。
+const DEFAULT_GENERIC_TONE = `衛兵などの不特定多数が話す汎用的な台詞。職務的で簡潔な口調で訳す。`
+const DEFAULT_PC_TONE = `プレイヤーキャラクターの選択肢。自然な口語で訳す。`
+
 export const DEFAULT_TEMPLATE_FORM: PromptTemplateForm = {
   baseDirective: DEFAULT_BASE,
-  personaTemplate: DEFAULT_PERSONA
+  personaTemplate: DEFAULT_PERSONA,
+  // 話者なし台詞の口調。汎用・PC それぞれの自由記述と、PC の性別（既定は未指定）。
+  genericToneText: DEFAULT_GENERIC_TONE,
+  pcToneText: DEFAULT_PC_TONE,
+  pcSex: ""
+}
+
+// 口調の自由記述を書き換え、PC 性別を男性に選んだ form。未保存＋PC 性別選択の表示確認に使う。
+export const TONE_DEFAULT_EDITED_FORM: PromptTemplateForm = {
+  ...DEFAULT_TEMPLATE_FORM,
+  genericToneText: "衛兵の汎用台詞。威厳を込めた、やや突き放した口調で訳す。",
+  pcSex: "Male"
 }
 
 // 種別ごとの指示文。口調・文体・固有名・定型句をすべて同じ形で持つ。口調だけ {traits} 変数を持つ。

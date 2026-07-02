@@ -27,14 +27,16 @@ export interface TermRow {
   dest: string
 }
 
-// 結果行の口調メタデータ。判定された基底口調（cell・trait）と根拠（段階・印・経路）。話者を解決できた台詞だけ持つ。
+// 結果行の口調メタデータ。判定された基底口調（cell・trait）と根拠（段階・印・経路・性別）。口調が付いた台詞だけ持つ。
+// 名指し話者は cell・attitudeBand・marked を持つ。汎用台詞・PC 発話はそれらが空（cell="" / 0）で、emotionBand・sex を持つ。
 export interface PersonaRow {
   cell: string
   trait: string
   attitudeBand: 0 | 1 | 2
   emotionBand: 0 | 1 | 2
   marked: number
-  decisionPath: "本文" | "voice" | "保留"
+  decisionPath: "本文" | "voice" | "保留" | "汎用" | "PC"
+  sex: string
 }
 
 // 結果行の話者識別と属性。誰の台詞かと、口調指示の根拠（性別・年齢・声型）。話者を解決できた台詞だけ持つ。
@@ -151,7 +153,7 @@ function toSpeakerRow(s: api.SpeakerView): SpeakerRow {
   return { edid: s.edid, sex: s.sex, age: s.age, voice: s.voice }
 }
 
-// 口調メタの DTO を結果行へ写す。段階（0..2）と決定経路（本文・voice・保留）は backend が妥当な値を保証する境界のため、union へ確定する。
+// 口調メタの DTO を結果行へ写す。段階（0..2）と決定経路（本文・voice・保留・汎用・PC）は backend が妥当な値を保証する境界のため、union へ確定する。
 function toPersonaRow(p: api.PersonaView): PersonaRow {
   return {
     cell: p.cell,
@@ -159,6 +161,7 @@ function toPersonaRow(p: api.PersonaView): PersonaRow {
     attitudeBand: p.attitudeBand as 0 | 1 | 2,
     emotionBand: p.emotionBand as 0 | 1 | 2,
     marked: p.marked,
-    decisionPath: p.decisionPath as "本文" | "voice" | "保留"
+    decisionPath: p.decisionPath as "本文" | "voice" | "保留" | "汎用" | "PC",
+    sex: p.sex
   }
 }

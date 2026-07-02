@@ -88,6 +88,12 @@ func roleSpeechLine(in model.LinePersonaInput, roles *rolespeech.Table) string {
 	if !ok {
 		return ""
 	}
+	return formatRoleSpeech(tmpl)
+}
+
+// formatRoleSpeech は役割語テンプレート（一人称・言い回し）を口調指示の 1 行へ整える。
+// 一人称も言い回しも空なら空文字を返す。名指し話者と汎用・PC で共通の整形。
+func formatRoleSpeech(tmpl rolespeech.Template) string {
 	switch {
 	case tmpl.FirstPerson != "" && tmpl.Register != "":
 		return "- 人称と言い回し: 一人称は「" + tmpl.FirstPerson + "」。" + tmpl.Register
@@ -98,6 +104,51 @@ func roleSpeechLine(in model.LinePersonaInput, roles *rolespeech.Table) string {
 	default:
 		return ""
 	}
+}
+
+// emotionAdvice は感情段階を口調指示へ重ねる助言文を返す。上書き命令でなく助言にとどめ、
+// 翻訳モデルが本文から読み取る余地を残す。中（1）は雑音を避けるため助言を出さない。
+func emotionAdvice(emotionBand int) string {
+	switch emotionBand {
+	case tone.EmotionSuppressed:
+		return "落ち着いた、感情を抑えた調子にする。"
+	case tone.EmotionIntense:
+		return "感情が高ぶった、勢いのある調子にする。"
+	default:
+		return ""
+	}
+}
+
+// freeRoleSpeechLine は性別だけから一人称・語尾の 1 行を引く（汎用・PC 用）。
+// 汎用・PC は対人段階・セルを持たないため、年齢区分は成人、セルはワイルドカードで照合する。
+// 性別が空、または一致が無いなら空文字を返す（一人称・語尾の指定なし）。
+func freeRoleSpeechLine(sex string, roles *rolespeech.Table) string {
+	if strings.TrimSpace(sex) == "" {
+		return ""
+	}
+	tmpl, ok := roles.Lookup(rolespeech.RoleClassOfRace(""), strings.ToLower(sex), "")
+	if !ok {
+		return ""
+	}
+	return formatRoleSpeech(tmpl)
+}
+
+// BuildFreeToneTraits は汎用台詞・PC 発話の口調指示の箇条書きを組む。
+// 利用者の自由記述の口調（baseText）→ 感情段階の助言 → 性別の一人称・語尾 の順に並べる。
+// baseText が空なら空（口調指示なし）。対人段階・セルは持たず、本文 1 行の感情と性別だけを重ねる。
+func BuildFreeToneTraits(baseText string, emotionBand int, sex string, roles *rolespeech.Table) []string {
+	base := strings.TrimSpace(baseText)
+	if base == "" {
+		return nil
+	}
+	traits := []string{"- 口調: " + base}
+	if adv := emotionAdvice(emotionBand); adv != "" {
+		traits = append(traits, "- 感情: "+adv)
+	}
+	if line := freeRoleSpeechLine(sex, roles); line != "" {
+		traits = append(traits, line)
+	}
+	return traits
 }
 
 // BuildToneDirective は口調指示テンプレートの {traits} へ口調指示の箇条書きを差し込む。

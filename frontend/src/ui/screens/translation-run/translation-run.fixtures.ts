@@ -115,8 +115,20 @@ const LINE_RESULT_ROWS: NarrationResultRow[] = [
   {
     edid: "RiftenGuardGenericHalt",
     source: "Halt! State your business.",
-    dest: "",
-    statusLabel: "未訳"
+    dest: "止まれ！ 用件を述べろ。",
+    statusLabel: "仮訳",
+    personaLabel: "口調: 汎用台詞",
+    directive:
+      "この台詞の話者の人物像:\n- 口調: 衛兵などの不特定多数が話す汎用的な台詞。職務的で簡潔な口調で訳す。\n- 人称と言い回し: 一人称は「俺」。\nこの人物像に合う口調と人称で訳すこと。"
+  },
+  {
+    edid: "DialogueRiftenThievesGuildJoin",
+    source: "I'm looking to join the Thieves Guild.",
+    dest: "盗賊ギルドに入りたいんだが。",
+    statusLabel: "仮訳",
+    personaLabel: "口調: PC発話",
+    directive:
+      "この台詞の話者の人物像:\n- 口調: プレイヤーキャラクターの選択肢。自然な口語で訳す。\n- 人称と言い回し: 一人称は「俺」。\nこの人物像に合う口調と人称で訳すこと。"
   }
 ]
 

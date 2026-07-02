@@ -6,6 +6,7 @@
   import { onMount } from "svelte"
   import TemplateEditorScreen from "./TemplateEditorScreen.svelte"
   import type {
+    PcSex,
     PromptTemplateForm,
     PromptTemplateField,
     TemplateTab
@@ -29,6 +30,14 @@
   let personaTemplate = $state("")
   let savedBase = $state("")
 
+  // 話者なし台詞の口調設定（汎用・PC の自由記述口調と PC 性別）。saved は dirty 判定と「戻す」の基準。
+  let genericToneText = $state("")
+  let pcToneText = $state("")
+  let pcSex = $state<PcSex>("")
+  let savedGenericToneText = $state("")
+  let savedPcToneText = $state("")
+  let savedPcSex = $state<PcSex>("")
+
   // 編集中の指示文（レコード別タブ）。saved は dirty 判定と「戻す」の基準。
   let directives = $state<Directive[]>([])
   let savedDirectives = $state<Directive[]>([])
@@ -37,13 +46,25 @@
 
   let saving = $state(false)
 
-  const form: PromptTemplateForm = $derived({ baseDirective, personaTemplate })
+  const form: PromptTemplateForm = $derived({
+    baseDirective,
+    personaTemplate,
+    genericToneText,
+    pcToneText,
+    pcSex
+  })
   const baseDirty = $derived(baseDirective !== savedBase)
+  // 口調設定の dirty は、汎用口調・PC 口調・PC 性別のいずれかが保存済みと異なるか。
+  const toneDirty = $derived(
+    genericToneText !== savedGenericToneText ||
+      pcToneText !== savedPcToneText ||
+      pcSex !== savedPcSex
+  )
   // 指示文の dirty は、いずれかの key の instruction が保存済みと異なるか。
   const directivesDirty = $derived(
     directives.some((d) => d.instruction !== savedInstructionOf(d.key))
   )
-  const dirty = $derived(baseDirty || directivesDirty)
+  const dirty = $derived(baseDirty || toneDirty || directivesDirty)
 
   function savedInstructionOf(key: string): string {
     return savedDirectives.find((d) => d.key === key)?.instruction ?? ""
@@ -52,6 +73,9 @@
   function onFieldInput(field: PromptTemplateField, value: string) {
     if (field === "baseDirective") baseDirective = value
     else if (field === "personaTemplate") personaTemplate = value
+    else if (field === "genericToneText") genericToneText = value
+    else if (field === "pcToneText") pcToneText = value
+    else if (field === "pcSex") pcSex = value as PcSex
   }
 
   function onInstructionInput(key: string, instruction: string) {
@@ -79,6 +103,12 @@
       baseDirective = template.baseDirective
       personaTemplate = template.personaTemplate
       savedBase = template.baseDirective
+      genericToneText = template.genericToneText
+      pcToneText = template.pcToneText
+      pcSex = template.pcSex as PcSex
+      savedGenericToneText = template.genericToneText
+      savedPcToneText = template.pcToneText
+      savedPcSex = template.pcSex as PcSex
     } catch (error) {
       log.error("プロンプトテンプレートの読み込みに失敗", { reason: messageOf(error) })
     }
@@ -96,9 +126,18 @@
     if (!dirty || saving) return
     saving = true
     try {
-      if (baseDirty) {
-        await savePromptTemplate({ baseDirective, personaTemplate })
+      if (baseDirty || toneDirty) {
+        await savePromptTemplate({
+          baseDirective,
+          personaTemplate,
+          genericToneText,
+          pcToneText,
+          pcSex
+        })
         savedBase = baseDirective
+        savedGenericToneText = genericToneText
+        savedPcToneText = pcToneText
+        savedPcSex = pcSex
       }
       // 変更された指示文だけを保存する（割り当ては固定のため触らない）。
       for (const d of directives) {
@@ -114,9 +153,12 @@
     }
   }
 
-  // 編集を保存済みの値へ戻す（base と指示文の両方）。
+  // 編集を保存済みの値へ戻す（base・口調設定・指示文）。
   function onReset() {
     baseDirective = savedBase
+    genericToneText = savedGenericToneText
+    pcToneText = savedPcToneText
+    pcSex = savedPcSex
     directives = cloneDirectives(savedDirectives)
   }
 
