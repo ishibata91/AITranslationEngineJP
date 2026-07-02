@@ -2,7 +2,11 @@
 
 ## 状態
 
-着手中。preparation-module で作業 branch と完了定義を固定し、design-module で人間設計レビューを通過して実装範囲とテスト設計を固定した。設計は `./design.md`（brainstorming 成果物）、確定した実装範囲・テスト設計は `./implementation-scope.md` にある。次工程は storybook-module（画面が動くため）。
+完了（finalization-module で master へ local merge、completed へ移動）。
+
+- 作業 commit: `ed540ff`（branch `claude/generic-voice-tone-fallback`）
+- merge commit: `015fe48`（master へ `--no-ff`）
+- 設計は `./design.md`（brainstorming 成果物）、確定した実装範囲・テスト設計は `./implementation-scope.md`。
 
 ## 分岐情報
 
