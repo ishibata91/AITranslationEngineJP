@@ -141,6 +141,11 @@ Hidden from PC flag 基準の成立確認の観測結果:
 - 判断: 反映不要。層構成・Wails 境界・C#↔Go schema は不変で、import の追加は「core の純粋ルールを上位層が一方向に import する」既存パターン内に収まる。依存の機械正本は `.go-arch-lint.yml` で固定済み（違反 0）。前 task narration-line-mention-linking が engine → mention の追加で §4.1 の列挙を更新しなかった前例に従う。
 - 人間承認状態: 承認依頼なし（構造不変のため正本反映を起こさない。恒久仕様の承認対象なし）。
 
+### local merge・merge 後検証
+
+- merge: `master` へ `git merge --no-ff claude/dictionary-false-positive-guard`（merge commit `a38f4bf2`）。conflict なし。
+- merge 後検証: master 上で `npm run verify:backend` 通過（exit 0）。conflict が無く code は作業 branch と同一のため、実データ golden の再捕獲は行わない。
+
 ### 残留リスク
 
 - 「名前全体が一般語 1 語」でも stopwords-en に無い語（例: inigo.esp の階級称号 Summonable・Close・Ranged・Health、Skyrim 由来の Chest・Door 等）は従来どおり辞書へ載り、文頭の大文字出現に当たり得る。リスト独自拡張は本 task の除外範囲（利用者指示でリスト選定で賄う）。
