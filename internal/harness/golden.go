@@ -69,6 +69,29 @@ var dbStateTables = []dbStateTable{
 		 JOIN speaker s ON s.id = ls.speaker_id
 		 ORDER BY l.form_id, s.form_id`,
 		formatLineSpeakerRow},
+	// 言及テーブル（e4/e5）は注入の忠実な記録。stoplist の供給源選別が注入と言及の両方へ同じに
+	// 効くこと（stoplist 語は言及されず、stoplist 外は従来どおり残ること）を golden で凍結する。
+	// 行は raw な数値 id でなく、言及元（narration / line の自然キー）と相手（語彙の原語と供給源種別）で捕獲する。
+	{"narration_mention", "narration の自然キー, 相手の原語",
+		`SELECT n.rec, n.field, n.form_id, n.ordinal,
+		        COALESCE(pn.source, mt.source) AS term_source,
+		        CASE WHEN nm.proper_noun_id IS NOT NULL THEN 'proper_noun' ELSE 'master_term' END AS kind
+		 FROM narration_mention nm
+		 JOIN narration n ON n.id = nm.narration_id
+		 LEFT JOIN proper_noun pn ON pn.id = nm.proper_noun_id
+		 LEFT JOIN master_term mt ON mt.id = nm.master_term_id
+		 ORDER BY n.plugin, n.form_id, n.rec, n.field, n.ordinal, term_source`,
+		formatMentionRow},
+	{"line_mention", "line の自然キー, 相手の原語",
+		`SELECT l.rec, l.field, l.form_id, l.ordinal,
+		        COALESCE(pn.source, mt.source) AS term_source,
+		        CASE WHEN lm.proper_noun_id IS NOT NULL THEN 'proper_noun' ELSE 'master_term' END AS kind
+		 FROM line_mention lm
+		 JOIN line l ON l.id = lm.line_id
+		 LEFT JOIN proper_noun pn ON pn.id = lm.proper_noun_id
+		 LEFT JOIN master_term mt ON mt.id = lm.master_term_id
+		 ORDER BY l.plugin, l.form_id, l.rec, l.field, l.ordinal, term_source`,
+		formatMentionRow},
 	{"persona_character", "speaker_plugin, speaker_form_id",
 		`SELECT speaker_plugin, speaker_form_id, attitude_band, emotion_band, marked, decision_path FROM persona_character ORDER BY speaker_plugin, speaker_form_id`,
 		formatPersonaCharacterRow},
@@ -131,6 +154,16 @@ func formatLineSpeakerRow(rows *sqlx.Rows) (string, error) {
 		return "", fmt.Errorf("行の読み取り: %w", err)
 	}
 	return fmt.Sprintf("line=%s speaker_edid=%q speaker_form=%s", lineForm, speakerEDID, speakerForm), nil
+}
+
+// formatMentionRow は narration_mention / line_mention の 1 行を描く（言及元の自然キーと相手の語彙）。
+func formatMentionRow(rows *sqlx.Rows) (string, error) {
+	var ordinal int
+	var rec, field, formID, termSource, kind string
+	if err := rows.Scan(&rec, &field, &formID, &ordinal, &termSource, &kind); err != nil {
+		return "", fmt.Errorf("行の読み取り: %w", err)
+	}
+	return fmt.Sprintf("%s:%s form=%s ord=%d term=%q kind=%s", rec, field, formID, ordinal, termSource, kind), nil
 }
 
 // formatPersonaCharacterRow は persona_character の 1 行を描く。

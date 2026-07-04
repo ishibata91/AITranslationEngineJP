@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"aitranslationenginejp/internal/api"
+	"aitranslationenginejp/internal/core/dictionary"
 	"aitranslationenginejp/internal/core/rolespeech"
 	"aitranslationenginejp/internal/harness"
 	"aitranslationenginejp/internal/lexicon"
@@ -38,6 +39,7 @@ type options struct {
 	xmlDir    string
 	nrcPath   string
 	rolePath  string
+	stopPath  string
 	project   string
 	schemaDir string
 	model     string
@@ -51,6 +53,7 @@ func parseFlags() options {
 	flag.StringVar(&o.xmlDir, "xml", "dictionaries/xTranslatorXMLs", "固有名派生が読む xTranslator XML ディレクトリ")
 	flag.StringVar(&o.nrcPath, "nrc", "dictionaries/nrc-emolex.txt", "感情辞書（NRC）のパス")
 	flag.StringVar(&o.rolePath, "roles", "assets/role-speech.tsv", "役割語テンプレートのパス")
+	flag.StringVar(&o.stopPath, "stopwords", "assets/stopwords-en.txt", "一般語 stoplist（stopwords-iso 配布）のパス")
 	flag.StringVar(&o.project, "extractor-project", "tools/extractor", "C# 抽出器の dotnet project パス")
 	flag.StringVar(&o.schemaDir, "schema", "db/migrations", "schema migration のディレクトリ")
 	flag.StringVar(&o.model, "model", "goldcap-fake", "送信モデル名（fake provider は記録のみ）")
@@ -79,6 +82,15 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("役割語テンプレートの読み込み: %w", err)
 	}
+	stopFile, err := os.Open(o.stopPath)
+	if err != nil {
+		return fmt.Errorf("一般語 stoplist を開けない (%s): %w", o.stopPath, err)
+	}
+	defer stopFile.Close() //nolint:errcheck // 読み取り後の後始末。
+	stop, err := dictionary.ParseStoplist(stopFile)
+	if err != nil {
+		return fmt.Errorf("一般語 stoplist の読み込み: %w", err)
+	}
 
 	// 実行ごとに使い捨ての temp DB を開く。抽出子は同じ temp DB へ書き込む（DBPath を揃える）。
 	tmpDir, err := os.MkdirTemp("", "goldcap-")
@@ -99,6 +111,7 @@ func run() error {
 		Extractor:   extractor,
 		Lexicon:     lex,
 		RoleSpeech:  roles,
+		Stoplist:    stop,
 		TermsXMLDir: o.xmlDir,
 		PluginPath:  o.plugin,
 		Model:       o.model,

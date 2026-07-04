@@ -2,8 +2,10 @@ package engine
 
 import (
 	"context"
+	"strings"
 	"testing"
 
+	"aitranslationenginejp/internal/core/dictionary"
 	"aitranslationenginejp/internal/model"
 )
 
@@ -22,7 +24,7 @@ func TestIngestRecordsMentions(t *testing.T) {
 			{ID: 5, Source: "Take Dragonbane and run."}, // proper_noun の言及
 		},
 	}
-	eng := New(store, &fakeTranslator{}, fakeLexicon{}, nil)
+	eng := New(store, &fakeTranslator{}, fakeLexicon{}, nil, nil)
 
 	counts, err := eng.Ingest(context.Background())
 	if err != nil {
@@ -57,7 +59,7 @@ func TestIngestMentionPrefersMasterTermOnDuplicateSource(t *testing.T) {
 		proper:        []model.ProperNoun{{ID: 20, Source: "Dragonbane", Category: "WEAP"}},
 		allNarrations: []model.Narration{{ID: 1, Source: "Dragonbane hums."}},
 	}
-	eng := New(store, &fakeTranslator{}, fakeLexicon{}, nil)
+	eng := New(store, &fakeTranslator{}, fakeLexicon{}, nil, nil)
 
 	if _, err := eng.Ingest(context.Background()); err != nil {
 		t.Fatalf("Ingest: %v", err)
@@ -66,5 +68,47 @@ func TestIngestMentionPrefersMasterTermOnDuplicateSource(t *testing.T) {
 	want := model.NarrationMention{NarrationID: 1, MasterTermID: 10}
 	if len(store.narrationMentions) != 1 || store.narrationMentions[0] != want {
 		t.Errorf("narration_mention = %+v, want [%+v]（master_term 先勝ち）", store.narrationMentions, want)
+	}
+}
+
+// 一般語 stoplist が注入（機械置換辞書）と言及（検出語彙）の供給を同じ選別で除くこと。
+// 供給源は master_term・proper_noun の両方を跨ぎ、stoplist 語（Yes・No）は置換も言及もされない。
+// stoplist に無い固有名（Riften）は両方に残る。片側だけに効く除外が無いことをこの 1 つの store で固定する。
+func TestStoplistFiltersInjectionAndMentionAlike(t *testing.T) {
+	const narrationText = "Yes and No, said the guard of Riften."
+	store := &fakeStore{
+		terms: []model.MasterTerm{
+			{ID: 10, Source: "Yes", Dest: "はい"},
+			{ID: 11, Source: "Riften", Dest: "リフテン"},
+		},
+		proper:        []model.ProperNoun{{ID: 20, Source: "No", Category: "FACT", Dest: "いいえ"}},
+		allNarrations: []model.Narration{{ID: 1, Source: narrationText}},
+	}
+	stop, err := dictionary.ParseStoplist(strings.NewReader("yes\nno\n"))
+	if err != nil {
+		t.Fatalf("ParseStoplist: %v", err)
+	}
+	eng := New(store, &fakeTranslator{}, fakeLexicon{}, nil, stop)
+
+	// 言及側: Ingest の言及段が stoplist 外の Riften だけを記録する。
+	if _, ingestErr := eng.Ingest(context.Background()); ingestErr != nil {
+		t.Fatalf("Ingest: %v", ingestErr)
+	}
+	wantMention := model.NarrationMention{NarrationID: 1, MasterTermID: 11}
+	if len(store.narrationMentions) != 1 || store.narrationMentions[0] != wantMention {
+		t.Errorf("narration_mention = %+v, want [%+v]（stoplist 語は言及されない）", store.narrationMentions, wantMention)
+	}
+
+	// 注入側: LoadDictionary の辞書も stoplist 外の Riften だけを置換する。
+	dict, err := eng.LoadDictionary(context.Background())
+	if err != nil {
+		t.Fatalf("LoadDictionary: %v", err)
+	}
+	got, used := dict.Apply(narrationText)
+	if want := "Yes and No, said the guard of リフテン."; got != want {
+		t.Errorf("Apply = %q, want %q（stoplist 語は置換されない）", got, want)
+	}
+	if len(used) != 1 || used[0].Source != "Riften" {
+		t.Errorf("Apply used = %+v, want [Riften]", used)
 	}
 }

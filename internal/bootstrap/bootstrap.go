@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"aitranslationenginejp/internal/api"
+	"aitranslationenginejp/internal/core/dictionary"
 	"aitranslationenginejp/internal/core/rolespeech"
 	"aitranslationenginejp/internal/engine"
 	"aitranslationenginejp/internal/lexicon"
@@ -24,6 +25,9 @@ const (
 	nrcDictPath = "dictionaries/nrc-emolex.txt"
 	// roleSpeechPath は注入時に引く一人称・語尾テンプレート。中身は実画面確認で見直すため外部ファイルに置く。
 	roleSpeechPath = "assets/role-speech.tsv"
+	// stopwordsPath は機械置換辞書・言及語彙の供給から除く一般語リスト（stopwords-iso 配布、MIT）。
+	// 出典・checksum は併置の assets/stopwords-en.LICENSE に記録する。
+	stopwordsPath = "assets/stopwords-en.txt"
 	// termsXMLDir は固有名辞書（master_term）の供給元 xTranslator 英日 XML。抽出後の人名部分形の派生で読む。
 	termsXMLDir = "dictionaries/xTranslatorXMLs"
 )
@@ -60,7 +64,20 @@ func NewApp() (*api.App, *store.Store, error) {
 		return nil, nil, fmt.Errorf("役割語テンプレートの読み込み: %w", err)
 	}
 
-	eng := engine.New(s, p, lex, roles)
+	// 一般語 stoplist を読む。固有名の供給が本文の通常語（Yes・No 等）へ誤って当たるのを供給側で止める。
+	stopFile, err := os.Open(stopwordsPath)
+	if err != nil {
+		_ = s.Close()
+		return nil, nil, fmt.Errorf("一般語 stoplist を開けない (%s): %w", stopwordsPath, err)
+	}
+	defer stopFile.Close() //nolint:errcheck // 読み取り後の後始末。
+	stop, err := dictionary.ParseStoplist(stopFile)
+	if err != nil {
+		_ = s.Close()
+		return nil, nil, fmt.Errorf("一般語 stoplist の読み込み: %w", err)
+	}
+
+	eng := engine.New(s, p, lex, roles, stop)
 	ext := api.ExtractorConfig{
 		ProjectPath: extractorProject,
 		SchemaDir:   migrationsDir,
