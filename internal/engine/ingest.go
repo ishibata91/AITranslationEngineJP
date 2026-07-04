@@ -83,15 +83,18 @@ type IngestStore interface {
 }
 
 // IngestCounts は取込段で各箱へ実際に追加した件数（再取込での冪等を観測できるよう件数を返す）。
+// Mentions は取込の最後に記録した言及・説明対象の追加件数。
 type IngestCounts struct {
 	Narrations  int
 	ProperNouns int
 	Lines       int
 	Skipped     int
+	Mentions    MentionCounts
 }
 
 // Ingest は extracted_field を読み、record_type_master の box で narration/proper_noun/line へ振り分けて投入する。
-// 本文フェーズ・固有名フェーズより前に 1 度呼ぶ。話者連関は line 投入後に staging から解決する。
+// 本文フェーズ・固有名フェーズより前に 1 度呼ぶ。話者連関は line 投入後に staging から解決し、
+// 最後に本文中の固有名言及（e4/e5）と叙述文の説明対象（e3）を記録する。
 func (e *Engine) Ingest(ctx context.Context) (IngestCounts, error) {
 	fields, err := e.store.ListExtractedFields(ctx)
 	if err != nil {
@@ -115,12 +118,18 @@ func (e *Engine) Ingest(ctx context.Context) (IngestCounts, error) {
 	if err != nil {
 		return IngestCounts{}, fmt.Errorf("台詞の投入: %w", err)
 	}
-	if err := e.store.LinkLineSpeakersFromStaging(ctx); err != nil {
+	if err = e.store.LinkLineSpeakersFromStaging(ctx); err != nil {
 		return IngestCounts{}, fmt.Errorf("話者連関の解決: %w", err)
 	}
 	// 条件由来の性別（汎用台詞の一人称・語尾の根拠）を line_condition へ解決する（話者連関と対称）。
-	if err := e.store.LinkLineConditionsFromStaging(ctx); err != nil {
+	if err = e.store.LinkLineConditionsFromStaging(ctx); err != nil {
 		return IngestCounts{}, fmt.Errorf("条件由来の性別の解決: %w", err)
 	}
-	return IngestCounts{Narrations: nr, ProperNouns: pn, Lines: ln, Skipped: d.Skipped}, nil
+	// 言及段: 本文中の既知固有名の言及（e4/e5）と叙述文の説明対象（e3）を新規テーブルへ記録する。
+	// 既存テーブルへは読みだけで、翻訳出力（dest・status・プロンプト）に影響しない。
+	mentions, err := e.recordMentions(ctx)
+	if err != nil {
+		return IngestCounts{}, fmt.Errorf("言及の記録: %w", err)
+	}
+	return IngestCounts{Narrations: nr, ProperNouns: pn, Lines: ln, Skipped: d.Skipped, Mentions: mentions}, nil
 }

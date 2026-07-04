@@ -22,6 +22,8 @@
 ## 2. 記録システムの扱い
 
 - 業務要件は `requirements.md`、システム要件は `system_requirements.md` に記録する
+- 未解決の課題・未確定の判断・未実装の後続 task は `known-issues.md` に記録する
+- 残作業項目と着手順は `roadmap.md` に記録する
 - 内部境界と依存方向は `architecture.md` に記録する
 - 実装技術の選択は `tech-selection.md` に記録する
 - 実装規約の入口は `coding-guidelines.md` に記録し、frontend、backend、test の詳細は分割文書に記録する

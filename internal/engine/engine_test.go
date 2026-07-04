@@ -39,6 +39,12 @@ type fakeStore struct {
 	linkCalled     bool               // LinkLineSpeakersFromStaging が呼ばれたか
 	condLinkCalled bool               // LinkLineConditionsFromStaging が呼ばれたか
 	lineConditions map[int64]string   // LoadLineConditions が返す条件由来の性別（lineID→sex）
+	// 言及段の観測。allNarrations / allLines は ListNarrations / ListLines が返す全行（nil なら空）。
+	allNarrations     []model.Narration
+	allLines          []model.Line
+	narrationMentions []model.NarrationMention // InsertNarrationMentions で投入された行
+	lineMentions      []model.LineMention      // InsertLineMentions で投入された行
+	describedCalled   bool                     // LinkNarrationDescribed が呼ばれたか
 	// loadPersonasCalls は LoadLinePersonas の呼び出し回数。注入の引きが台詞数 N 非依存（N+1 廃止）の観測に使う。
 	loadPersonasCalls int
 }
@@ -98,6 +104,31 @@ func (f *fakeStore) LinkLineSpeakersFromStaging(_ context.Context) error {
 func (f *fakeStore) LinkLineConditionsFromStaging(_ context.Context) error {
 	f.condLinkCalled = true
 	return nil
+}
+
+// --- MentionStore（言及段の全行取得・言及投入・説明対象解決） ---
+
+func (f *fakeStore) ListNarrations(_ context.Context) ([]model.Narration, error) {
+	return f.allNarrations, nil
+}
+
+func (f *fakeStore) ListLines(_ context.Context) ([]model.Line, error) {
+	return f.allLines, nil
+}
+
+func (f *fakeStore) InsertNarrationMentions(_ context.Context, rows []model.NarrationMention) (int, error) {
+	f.narrationMentions = append(f.narrationMentions, rows...)
+	return len(rows), nil
+}
+
+func (f *fakeStore) InsertLineMentions(_ context.Context, rows []model.LineMention) (int, error) {
+	f.lineMentions = append(f.lineMentions, rows...)
+	return len(rows), nil
+}
+
+func (f *fakeStore) LinkNarrationDescribed(_ context.Context) (int, error) {
+	f.describedCalled = true
+	return 0, nil
 }
 
 func (f *fakeStore) ListProperNouns(_ context.Context) ([]model.ProperNoun, error) {

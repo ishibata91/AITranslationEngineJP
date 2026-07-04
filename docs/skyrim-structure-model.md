@@ -3,11 +3,11 @@
 本書は、AITranslationEngineJp が扱う **Skyrim 世界**を、翻訳判定が要る context という基準で構造化した Skyrim 構造体モデルを固定する。「概念モデル」は別書で扱う。
 
 実 architecture（layer 名、port、ディレクトリ）はここでは扱わない。`architecture.md` の責務。
-`extractData.pas`（xEdit script）の現在の emit 状況はここでは扱わない。末尾の `実装の制約` 節で実装側の取得状況を別途整理する。
+抽出器の現在の emit 状況はここでは扱わない。末尾の `実装の制約` 節で実装側の取得状況を別途整理する。
 
 ## 採用原則
 
-- **class** = Skyrim 世界において翻訳判定 context に効く entity を捉える。世界に存在し翻訳に効くものは class に書く。`extractData.pas` の現状 emit 状況は raw data 取得の制約であり、class の存在を縛る根拠ではない（制約は制約、golden ではない）。
+- **class** = Skyrim 世界において翻訳判定 context に効く entity を捉える。世界に存在し翻訳に効くものは class に書く。抽出器の現状 emit 状況は raw data 取得の制約であり、class の存在を縛る根拠ではない（制約は制約、golden ではない）。
 - **class の split 基準**: 次のいずれかを満たす時に分ける。
     - **属性集合が翻訳上 違う**: name/desc 以外に必要な field が違う。
     - **世界観として別 category**: その世界の中でカテゴリが異なる。
@@ -252,18 +252,14 @@ rT の多重度（`Speaker "0..*" -- "0..1" Speaker`）は形態 record の本�
 - **Word.龍語綴り**: WOOP.FULL。龍語の綴り（例 `Fus` / `Zol`）。龍文字フォントで表示するため翻訳しない（xTranslator でも Source = Dest 固定の翻訳禁止対象）。
 - **Word.意味の訳**: WOOP.TNAM。その言葉が表す意味（例 `Tear`→`涙`、`Health`→`体力`）。翻訳対象はこちらで、WOOP の primary translation target は TNAM。
 
-## 既知の弱点（指摘の入口）
+## 既知の課題
 
-| # | 論点 |
-|---|---|
-| 1 | **Dialogue 配下の応答 tree（r7）の context 長さ**: LLM に Dialogue 単位で tree 全体を投入する設計を取った場合、長い Dialogue（数百 InfoNode を含む quest 中心 dialogue）は context 上限を超える。tree subtree 単位の分割 or root path 抜粋などの工夫が翻訳実装で要る |
-| 2 | **集合での話者絞り込み（r2b/r2c/r2d）の実体化**: 翻訳では集合を個体に展開しない方針だが、純汎用 response（声型のみで話者が決まる）では候補話者が広く、ペルソナ context をどこまで具体化するかは翻訳実装の判断が要る |
-| 3 | **声型代表 Speaker と VoiceType の二重性**: `VoiceTypeNPCFemaleEvenToned`（声型代表 Speaker、NPC_ record）と `FemaleEvenToned`（VoiceType、VTYP record）が併存する。前者は個体、後者は集合定義で別 class だが、指す声型が同じため、翻訳実装でどちらを優先するかの整理が要る |
+翻訳実装に残る未解決の課題（長い Dialogue tree（r7）の context 長さ対策）は [`known-issues.md`](./known-issues.md) に集約する。
 
-## 実装の制約（pas 抽出状況）
+## 実装の制約（抽出状況）
 
-本書 class / edge / attribute のうち、現 `extractData.v2.pas` で raw data を populate できる範囲と、できない範囲を整理する。
-本書は世界の構造を表すものであり、現 pas で populate されないからといって class や edge を削らない。pas を拡張するか、別 source（手作業 dictionary、別 script、SSEEdit プラグイン等）で補う方針は実装側で決める。
+本書 class / edge / attribute のうち、C# / Mutagen 抽出器（`tools/extractor/`）が raw data を populate できる範囲を整理する。
+本書は世界の構造を表すものであり、抽出器が populate しないからといって class や edge を削らない。抽出器を拡張するか、別 source（手作業 dictionary、別 script、SSEEdit プラグイン等）で補う方針は実装側で決める。
 
 ### 話者解決の as-is（5 plugin の実測で確認）
 
@@ -274,13 +270,13 @@ rT の多重度（`Speaker "0..*" -- "0..1" Speaker`）は形態 record の本�
 - **名前空話者は必ずペルソナ名に解決できる**（`editor_only` = 0）。形態（TPLT 本体名）/ プール（LVLN 役割名）/ 声型代表（声型名）のいずれか。
 - **VTYP は FULL を持たない独立 record**。汎用声型・生物声・キャラ専用 voice の 3 種があり、キャラ専用 voice は単一 Speaker に直結する。
 
-### pas が現在 populate するもの
+### 抽出器が現在 populate するもの
 
 - Dialogue（DIAL）の `プレーヤー発話`、`用途種別`、`サービス分岐`、`r1`、`r5`
 - InfoNode（INFO）の `プレイヤー選択肢`（RNAM）、`並び順`、`条件一覧`（CTDA）、`r7` 両側（PNAM / TCLT）
 - ResponseLine（NAM1）の `応答本文`、`応答番号`（TRDT）
 - Speaker（NPC_）の `名称`（FULL）、`短名`（SHRT）、`性別`、`声型識別子`（VTCK）、`階級識別子`（CNAM）、`r3`（種族）
-- Speaker の voice 解決結果（候補話者が持つ声型の集約）。現 pas は voice_types として InfoNode に集約出力する。これは「InfoNode → Speaker → VoiceType」の導出射影であり、世界の一次構造は本書の rV（Speaker → VoiceType）にある。
+- Speaker の voice 解決結果（候補話者が持つ声型の集約）。抽出器は voice_types として InfoNode に集約出力する。これは「InfoNode → Speaker → VoiceType」の導出射影であり、世界の一次構造は本書の rV（Speaker → VoiceType）にある。
 - Race（RACE）、Faction（FACT）の `名称`
 - Quest（QUST）の `名称`、`任務種別`、QuestStage / QuestObjective
 - Message（MESG）の `題名`（FULL）/ `本文`（DESC）/ `選択肢一覧`（ITXT 配列）、LoadingScreen（LSCR）、Perk（PERK）の各 text
@@ -288,15 +284,3 @@ rT の多重度（`Speaker "0..*" -- "0..1" Speaker`）は形態 record の本�
 - Book（BOOK）の `著者`（CNAM、`題名` / `本文` と併せて出力）
 - Activator（ACTI / FLOR / TREE）の `名称`（FULL）/ `起動動作`（RNAM）/ `種別`（signature）。FLOR は v18 で items から Activator へ移動。
 - Item / Equipment / Consumable / Book / Magic / Enchantment / MagicEffect / Shout / Location の各 name / desc / 種別と、解決済みの参照（r9〜r12）
-
-### pas が現在 populate しない / 設計と差がある もの
-
-- **InfoNode / ResponseLine の 2 階層化**: 現 pas は INFO の各 NAM1 を 1 つの response 行として並べ、INFO 単位属性（prompt / 条件 / 話者 / 前後）を各行に複製している。本書 v19 の「InfoNode（INFO）と ResponseLine（NAM1）の分離」は未反映。複製は書き戻し / 比較で id 単位の重複排除を要する。
-- **Player（固定モデル）の話者付け（rP）**: 未反映。プレイヤー選択肢（DIAL:FULL / INFO:RNAM）の話者は Player だが、現 pas は話者を区別せず、Player のペルソナ設定経路（翻訳側）も未整備。
-- **r2a/r2b/r2c/r2d の構造的分離**: 現 pas は speaker_id（単一）と speaker_kind（specific/generic 二分）と voice_types（集約）で話者を表す。本書の「名指し（r2a）と集合絞り込み（r2b/c/d）の分離」は未反映。特に speaker_id が voice 解決経由で名前空テンプレ NPC を拾い、speaker_kind を誤って specific にする不具合がある。
-- **rT（形態 record の本体参照、NPC_.TPLT）**: 未抽出。
-- **rV をキャラ専用 voice 経由で単一 Speaker に解決する経路**: 未整理。
-- **VoiceType の独立 class 化と種別（汎用 / 生物 / キャラ専用）**: 未反映。
-- **TACT（喋るオブジェクト）を Speaker に含める**: 未反映。
-- **r8 Word / r9〜r12 の一部参照解決**、**Faction ↔ Speaker（r4）**: pas 側の拡張または別 source で補う。
-- **master plugin の同時取り込み**: ESP header の MAST 宣言で参照される master record（Skyrim.esm 等）を一緒に emit していない。SSEEdit は master を先に load するため、pas を MAST 走査するよう拡張すれば取り込める。

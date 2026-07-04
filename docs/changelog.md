@@ -4,6 +4,53 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-07-04 言及テーブル（e3/e4/e5）の実装
+
+### 変更
+
+- `db/migrations/0008_mention.sql`: `narration_mention`（e4 叙述文→固有名の言及）・`line_mention`（e5 台詞→固有名の言及）・`narration_described`（e3 叙述文→説明対象の固有名、0..1）を新設した。
+- `internal/core/mention`: 言及検出の純粋 package を新設した。照合規則は機械置換（`internal/core/dictionary`）と同じ（貪欲最長一致・語境界・大小区別・同一原語は先勝ち）。
+- `internal/engine`・`internal/store`: 取込段（`Ingest`）の最終ステップで、本文中の言及と叙述文の説明対象を検出して新規テーブルへ記録する。既存テーブルへは読みだけ。
+- `docs/er.md`: 3 テーブルを実装済みへ反映し、正規化根拠 5（言及の相手の排他 2 列）・6（e3 の専用テーブル化）を追加した。
+- `docs/known-issues.md`: 1 番から e3/e4/e5 を除き、残り（e7・e8/e14・e13、漏れ語の第 2 層）へ整理した。2 番へ「照合対象は言及テーブルが持つ」を追記した。
+- `docs/concept-model.md`: 言及 note の未実装注記を実装参照へ置き換えた。
+
+### 判断
+
+- 検出方式（`known-issues.md` が実装判断に委ねた点）: 機械置換と同じ照合規則にした。言及レコードと注入語が一致することを、注入語の保持検証（`known-issues.md` 2 番）の前提にするため。
+- 言及の相手: 概念上は固有名箱（`proper_noun`）だが、base ゲーム由来の名前は横断辞書 `master_term` にしか載らないため、排他 2 列（`proper_noun_id` / `master_term_id`）で両供給源を指せる形にした。
+- e3 の物理形: 計画時の想定は `narration.described_proper_noun_id` 列の追加だったが、C# 抽出器が全 migration SQL を毎回冪等 ensure する契約で `ALTER TABLE` が使えず、`line_condition`（migration 0007）と同型の専用テーブル `narration_described` へ切り替えた。
+- 検出時機: 取込段の最終ステップにした。言及は原語の出現で決まる関連で、訳の確定状態に依存しないため（固有名フェーズを待たない）。
+- 非劣化の確認: 合成 golden（`internal/harness`）と実データ golden（inigo.esp、分岐元 `cf5d4038` で捕獲し本変更と比較）が一致。既存の dest・機械置換内訳・実プロンプトは変わらない。
+
+## 2026-07-03 known-issues.md 新設と散在した既知課題の集約
+
+### 変更
+
+- `docs/known-issues.md`: 新設。docs 全体に散らばっていた「未解決の課題・未確定の設計判断・未実装の後続 task」を 1 か所へ集約した。現在開いている課題（言及テーブル未実装、辞書に無い漏れ語の拾い上げ、固有名一貫性の事後検証、Dialogue tree の context 長さ）だけを載せる。
+- `docs/index.md`: Directory Contract と Choose The Right Record に `known-issues.md` を登録した。
+- `docs/core-beliefs.md`: §2 記録システムへ「未解決の課題・未確定の判断・未実装の後続 task は `known-issues.md` に記録する」を追加した。
+- `docs/system_requirements.md`: §2 の未確定のうち訳語供給方式（既訳 `master_term` と AI 訳 `proper_noun` の併用）と辞書適用方式（機械置換注入）を確定済みへ書き換え、漏れ語拾い上げと一貫性検証を `known-issues.md` へ移した。§3 の属性選定・衝突優先順位の「未確定」を確定済みへ書き換えた。
+- `docs/concept-model.md`: 「既知の弱点」節を `known-issues.md` への集約に置き換え、同一ファイル内の弱点 1/2/3 への相互参照を現状記述へ更新した。
+- `docs/skyrim-structure-model.md`: 「既知の弱点」節を `known-issues.md` への集約に置き換え、「実装の制約」節を C# / Mutagen 抽出器（`tools/extractor/`）参照へ改め、解消済みの「populate しない / 設計と差がある もの」一覧を削除した。
+- `docs/er.md`: §3「未実装」の後続 task（言及・会話の流れ・名乗る名）を `known-issues.md` へ移し、畳み込みの設計判断（定型句・配置・無訳片）だけ残した。「既知の論点」を「設計の範囲」へ改めた。
+- `docs/mutagen-migration-plan.md`: 削除。移行完了で全項目が解消済みのため（結果は完了 plan `mutagen-extractor` が持つ）。
+
+### 判断
+
+- 集約の範囲: 人間指示で、設計文書に組み込まれた「既知の弱点・未実装」節も含め、既知課題の記述を物理的に `known-issues.md` へ移す方針を採った。元文書には現在状態と `known-issues.md` への参照を残す。`core-beliefs.md` §3 の「同一責務を複数文書で別定義」を避けるため、開いている課題の正本は `known-issues.md` に一本化した。
+- 解決済みの扱い: 人間指示で、各項目の現状をコード・migration・完了 plan で確認し、未解決のものだけ `known-issues.md` に載せた。解決済みは元記述と「解消済み」注記を正本から全て削除し、経緯は本 entry にだけ残した。
+- 解決の確認根拠:
+    - 訳語供給・辞書適用（`system_requirements.md` §2）: `master_term`（migration 0003、既訳流用）と `proper_noun`（migration 0006、実行内 AI 訳）の併用を本文へ機械置換注入する形で確定（`er.md` の正規化根拠 4）。
+    - 属性選定・合成優先度（`system_requirements.md` §3、`concept-model.md` 弱点 3）: 口調段階の決定を本文優先・声型 prior・保留の 3 段階で `internal/core/tone/classifier.go` の `fuseAttitude` に実装。合成順は `internal/core/personatone/personatone.go`。
+    - 重複排除の境界（`concept-model.md` 弱点 4）: `record_type_master`（migration 0006）が REC:FIELD → box を割当し、排他・網羅を engine の seed 整合テストで担保。
+    - 固有名の同定単位（`concept-model.md` 弱点 1）: 種別（`proper_noun.category`）で粗く分ける決定を実装。同種別内の誤統合は受容済みの制約として `concept-model.md` の note に残す。
+    - 純汎用台詞・PC 発話の口調（`skyrim-structure-model.md` 弱点 2）: `tone_default`・`line_condition`（migration 0007、generic-voice-tone-fallback）で口調付与済み。
+    - 声型代表 Speaker と VoiceType の二重性（`skyrim-structure-model.md` 弱点 3）: 役割分担で解消（VoiceType は口調 prior、声型代表 Speaker は名前解決）。
+    - 抽出器と構造モデルの差分（`skyrim-structure-model.md`「populate しない」）: xEdit Pascal 版の全項目（会話の 2 階層化・r2a〜d の分離・TACT/TPLT・VoiceType 独立化・master plugin 取込・Skyrim 追加 record）は Mutagen 移行（完了 plan `mutagen-extractor`）で解消。Pascal 版ファイル `extractData.v2.pas` は削除済み。
+- 残す未解決: 言及テーブル（`narration_mention` e4・`line_mention` e5・`line_sequence` e7・`speaker_name` e8・`faction_name` e14）と関連 FK（e3・e13）は migration に無く未実装で、固有名一貫性は当面 `master_term` の機械置換で担保する。翻訳 runtime は台詞を 1 件ずつ翻訳し tree context を与えず、注入訳語の保持を照合する検証も無い。
+- `mutagen-migration-plan.md` の扱い: 当初は移行完了の状態バナーで履歴として残す案にしたが、人間指示「解消ずみは全て消す」で削除へ切り替えた。移行の結果と検証実績は完了 plan `mutagen-extractor` が持つ。
+
 ## 2026-06-27 dev 起動ごとに中心 DB を空にする
 
 ### 変更
