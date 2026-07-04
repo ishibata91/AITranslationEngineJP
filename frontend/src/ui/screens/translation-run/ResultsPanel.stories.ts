@@ -51,7 +51,7 @@ const meta = {
   title: "UI Components/ResultsPanel",
   component: ResultsPanel,
   parameters: { layout: "padded" },
-  args: { onPrev: () => {}, onNext: () => {} }
+  args: { onPrev: () => {}, onNext: () => {}, onExport: () => {} }
 } satisfies Meta<typeof ResultsPanel>
 
 export default meta
@@ -68,8 +68,14 @@ export const EmptyRunning: Story = {
 }
 
 export const WithResults: Story = {
-  name: "結果あり（単一ページ）",
+  name: "結果あり（書き出し可能）",
   args: { phase: "done", results: ROWS }
+}
+
+// 書き出し実行中。ボタンは無効化され、スピナーと「書き出し中…」を出す。
+export const Exporting: Story = {
+  name: "書き出し中",
+  args: { phase: "done", results: ROWS, exporting: true }
 }
 
 // 複数ページの先頭。総件数 121、前へ無効・次へ有効。

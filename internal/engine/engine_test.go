@@ -226,6 +226,22 @@ func (f *fakeStore) LoadLineConditions(_ context.Context, lineIDs []int64) (map[
 	return out, nil
 }
 
+// ExportStore（書き出し用読み出し）は engine 側の翻訳テストでは使わないため、空実装で interface を満たす。
+// 書き出し経路は DB 込みのため単体では検証せず実画面 E2E に委ねる（テスト設計のとおり）。
+func (f *fakeStore) ExportPlugins(_ context.Context) ([]string, error) { return nil, nil }
+
+func (f *fakeStore) NarrationsForExport(_ context.Context, _ string) ([]model.Narration, error) {
+	return nil, nil
+}
+
+func (f *fakeStore) LinesForExport(_ context.Context, _ string) ([]model.Line, error) {
+	return nil, nil
+}
+
+func (f *fakeStore) ProperNounPlacementsForExport(_ context.Context, _ string) ([]model.ProperNounPlacement, error) {
+	return nil, nil
+}
+
 type fakeTranslator struct {
 	out        map[string]string // user メッセージ（機械置換済み原文）→ 訳文
 	gotModel   string

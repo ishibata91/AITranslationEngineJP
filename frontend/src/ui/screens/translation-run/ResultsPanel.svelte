@@ -18,6 +18,10 @@
     canNext?: boolean
     onPrev?: () => void
     onNext?: () => void
+    // xTranslator XML への書き出し操作。結果があるときだけ押せる。実処理は callback で上へ返す。
+    onExport?: () => void
+    // 書き出し中フラグ。true の間はボタンを無効化しスピナーを出す。
+    exporting?: boolean
   }
 
   let {
@@ -28,19 +32,36 @@
     canPrev = false,
     canNext = false,
     onPrev = () => {},
-    onNext = () => {}
+    onNext = () => {},
+    onExport = () => {},
+    exporting = false
   }: Props = $props()
 </script>
 
 <div class="card bg-base-200/40 border border-base-300/60">
   <div class="card-body gap-5">
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between gap-3">
       <h2 class="u-display text-sm tracking-widest uppercase text-base-content/60">
         結果一覧
       </h2>
-      {#if total > 0}
-        <span class="badge badge-outline badge-sm u-mono">{total} 件</span>
-      {/if}
+      <div class="flex items-center gap-3">
+        {#if total > 0}
+          <span class="badge badge-outline badge-sm u-mono">{total} 件</span>
+        {/if}
+        {#if results.length > 0}
+          <button
+            type="button"
+            class="btn btn-sm btn-outline btn-primary"
+            disabled={exporting}
+            onclick={onExport}
+          >
+            {#if exporting}
+              <span class="loading loading-spinner loading-xs"></span>
+            {/if}
+            {exporting ? "書き出し中…" : "xTranslator へ書き出し"}
+          </button>
+        {/if}
+      </div>
     </div>
 
     {#if results.length === 0}
