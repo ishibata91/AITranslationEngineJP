@@ -129,6 +129,12 @@ Hidden from PC flag 基準の成立確認の観測結果:
 
 ## 出口記録（finalization、2026-07-04）
 
+### 作業 commit
+
+- commit hash: `9ce4cdb1`（`claude/dictionary-false-positive-guard`、17 files、feat(dictionary)）。
+- 検証結果: `npm run verify:backend`・`npm run lint:backend` 通過（最終検証節のとおり）。
+- 残留リスク: 残留リスク節のとおり（stopwords-en に無い一般語 1 語の固有名、複数語の管理用文字列）。
+
 ### 正本化判断
 
 - 反映対象候補: `docs/architecture.md` §4.1（`.go-arch-lint.yml` へ bootstrap・harness・goldcap → dictionary の import 許可を追加した）。
