@@ -86,6 +86,17 @@ LLM（AI 抽出）は使わない方針を確定した。理由は、決定性�
   lint 対応のリファクタ後も dev（recall 96.7%・候補 1,989）・held-out（recall 95.4%・候補 1,267）の
   数値が完全一致し、挙動が保存されていることを確認した。
 
+## 作業 commit（finalization-module）
+
+- 作業 branch: `claude/dictionary-missing-term-detection`
+- 作業 commit hash: `0b36d179feb28f325ff5629492bcc0d96d29d930`
+- 変更ファイル: `internal/core/mention/{candidate.go, prose.go, candidate_test.go, mention.go}`、
+  `cmd/poc-missing-term/main.go`、`.go-arch-lint.yml`、
+  `docs/{changelog.md, known-issues.md, roadmap.md}`、本 plan folder（goal.md・plan.md・results.md）。
+- 検証結果: backend 全 16 package ok・lint 全モード OK（詳細は「検証記録」）。
+- 残留リスク: 評価 DB（`tmp/missing-term-eval/`、git 管理外）は再生成可能（results.md の再現手順）。
+  prose のモデル読込失敗の防御分岐 2 箇所はテスト未到達（実運用で失敗し得ない防御）。
+
 ## 正本化判断（finalization-module）
 
 - `docs/architecture.md` への反映: 不要。層構成・依存方向・Wails 境界に変化がない
