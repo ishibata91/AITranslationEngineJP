@@ -104,3 +104,10 @@
 - `docs/architecture.md` への反映: 不要。`internal/core/mention` は既存の core package 群と同型の純粋 package 追加、`store`・`engine` の変更も既存層内の追加であり、層構成・依存方向・Bootstrap・Wails 境界・強い制約を変えない（軽/重判定どおり。`feedback-architecture-reflection-structural-only` に従い、構造不変のため人間承認も求めない）。import 方向の実制約は `.go-arch-lint.yml` へ `mention` component として追加済み。
 - 恒久仕様の正本反映: 対象なし（仕様変更・仕様追加なし）。
 - docs の現在状態反映（正本反映とは別の、実装済み状態への記録更新）: `docs/er.md`（3 テーブルの実装済み化・ER 図・正規化根拠 5/6 追加）、`docs/known-issues.md`（1 番から e3/e4/e5 を除去、2 番へ照合対象の追記）、`docs/concept-model.md`（言及 note の未実装注記を実装参照へ）、`docs/changelog.md`（2026-07-04 entry に経緯と判断を記録）。前 task（`ed540ff8` の `docs/er.md` 反映）と同じ扱いで作業 commit に含める。
+
+### 作業 commit
+
+- branch: `claude/narration-line-mention-linking`（分岐元 `master` @ `cf5d4038`）
+- commit: `37e07076`（23 files, +1045 / -185）
+- 検証結果: 実装記録の「最終検証（2026-07-04 通過）」のとおり（verify:backend・lint 一式・合成/実データ golden 一致・実データ DB 確認・カバレッジ 100%）。
+- 残留リスク: 短い一般語と同綴りの固有名（例: MESG:FULL の "Yes"/"No"）が本文へ言及として当たる。これは既存の機械置換注入が持つ同じ弱点の写しで、言及テーブルは注入の実態を忠実に記録する（概念モデル弱点 1 の受容範囲）。
