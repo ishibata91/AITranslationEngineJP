@@ -5,12 +5,13 @@
 
 ## 残作業項目
 
-1. 固有名一貫性の後続 task（言及テーブル未実装）: 詳細は [`known-issues.md`](./known-issues.md) 1
+1. 固有名一貫性の後続 task（残りの言及関連: 会話の流れ e7、名乗る名 e8/e14、種族名 FK e13）: 詳細は [`known-issues.md`](./known-issues.md) 1
 2. 対話木の context 扱い（Dialogue tree の文脈利用）: 詳細は [`known-issues.md`](./known-issues.md) 2
 3. 固有名一貫性の事後検証（注入語の保持確認）: 詳細は [`known-issues.md`](./known-issues.md) 2
 4. クラウド AI プロバイダの未実装（Gemini・xAI・Claude）: 詳細は [`known-issues.md`](./known-issues.md) 3
 5. xTranslator 形式への書き出し未実装: 詳細は [`known-issues.md`](./known-issues.md) 4
 6. 翻訳結果表示画面の編集・絞り込み機能未実装: 詳細は [`known-issues.md`](./known-issues.md) 5
+7. 機械置換辞書の誤爆対策の残り（stoplist 外の一般語 1 語、管理用勢力の判定基準）: 詳細は [`known-issues.md`](./known-issues.md) 6
 
 ## 着手順
 

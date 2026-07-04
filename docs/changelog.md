@@ -4,6 +4,24 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-07-04 機械置換辞書の誤爆対策（一般語 stoplist）
+
+### 変更
+
+- `assets/stopwords-en.txt`: stopwords-iso の英語 stopword リスト（MIT、1297 語）を追加した。上流と byte 一致を保ち、出典・取得日・sha256・ライセンス全文は `assets/stopwords-en.LICENSE` に記録した。
+- `internal/core/dictionary`: 供給源選別の純粋ルール `Stoplist`（`ParseStoplist`・`Blocks`）を追加した。判定は原語全体を小文字化した一語一致で、複数語の固有名には当てない。
+- `internal/engine`: 共通供給点 `translationVocabulary` を新設し、機械置換辞書（`LoadDictionary`）と言及語彙（`mentionDetector`）が同じ選別を通る形にした。
+- `internal/bootstrap`・`cmd/goldcap`・`internal/harness`: stoplist の読み込みと注入を配線した。合成 harness は最小リスト（yes・no）を使い、実ファイルの内容変化から切り離す。
+- `internal/harness`: 合成 fixture へ FACT:MNAM の "Yes"・"No" と文頭 Yes/No の本文を追加し、golden の DB ダンプへ `narration_mention`・`line_mention` の観測点を追加した。
+- `docs/known-issues.md`: 6 番（機械置換辞書の誤爆対策の残り）を新設した。`docs/roadmap.md`: 7 番として追記し、1 番の古い注記（言及テーブル未実装）を現状（残りの言及関連）へ訂正した。
+
+### 判断
+
+- stoplist の実装位置: 新 package を作らず置換コア `internal/core/dictionary` へ統合した（利用者指示）。供給源選別は辞書の意味の一部であり、独立 package は構成と arch-lint 設定を無駄に増やすため。
+- 誤爆の実態の訂正: inigo.esp の "Yes"・"No" は FACT:FULL でなく FACT:MNAM（階級称号）由来だった（前 plan の記録を実測で訂正）。誤爆の経路（固有名 box → AI 訳 → 機械置換）は変わらず、対策の設計へ影響しない。
+- 内部フラグ勢力の除外（第 2 層）は不成立で停止: 候補基準 FACT の Hidden from PC flag は、Yes/No の供給源勢力に立っておらず、Skyrim.esm では hidden=1 の 163 勢力中 154 件に master_term 既訳があり "Thieves Guild" 等の実在名まで落ちる。抽出器（tools/extractor）は変更しない。観測記録は completed plan（dictionary-false-positive-guard）にある。
+- 意図的な出力変更の確認: 実データ（inigo.esp）で分岐元 golden と比較し、差分を単語レベルで機械分類した。すべて stoplist 語の還元（訳031→Yes 約 205 箇所、訳030→No 約 172 箇所、master_term 側の Hello→やあ・Mine→鉱山・Fire→炎・Turn→吸血鬼化・Down→下へ）で、translated_count は 8803 で不変。stoplist 外の固有名の置換・言及（Riften 等）は維持された。
+
 ## 2026-07-04 言及テーブル（e3/e4/e5）の実装
 
 ### 変更

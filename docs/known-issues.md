@@ -45,3 +45,10 @@
 - 複数行の一括操作が無い。
 - ページングは前へ／次への順送りのみで、ページ番号ジャンプが無い（`ResultsPager.svelte`）。
 - `2026-06-14-results-paging-bulk-persona` plan は N+1 解消と keyset ページング追加が目的で、上記機能は scope 外として明示的に除外されている。
+
+## 6. 機械置換辞書の誤爆対策の残り
+
+一般語 stoplist（stopwords-en による機械置換辞書・言及語彙の供給源選別）は実装済みである（経緯は `changelog.md` 2026-07-04）。残る誤爆リスクと未確定の判断は以下。
+
+- **stoplist 外の一般語 1 語の固有名**: stopwords-en に無い「名前全体が一般語 1 語」の固有名（例: Chest・Door・Summonable・Close・Health）は従来どおり辞書へ載る。本文の文頭・文中の大文字出現に当たり得る。stopword リストの独自拡張はしない方針（外部配布リストで賄う）のため、対策するなら注入方式の変更（本文置換をやめ、用語対訳ヒントをプロンプトへ添付する方式）の検討になる。プロンプト設計の再検討を伴うため未着手である。
+- **管理用勢力・階級称号の機械判定基準**: 画面に出ない管理用の勢力名・階級称号（対話状態の内部フラグ用。実例 inigo.esp の FACT:MNAM "Yes"・"No"）を翻訳対象から機械的に除く基準は未確定である。候補だった FACT の Hidden from PC flag は実データ観測で不成立と確定した（Yes/No の供給源勢力に flag が無く、Skyrim.esm では既訳ありの実在勢力名 154 件が誤って落ちる。観測は `docs/exec-plans/completed/dictionary-false-positive-guard/plan.md`）。現状は stoplist が同綴りの一般語だけを止めている。
