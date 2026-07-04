@@ -16,7 +16,8 @@
     fetchModels,
     runExtractAndTranslate,
     listResultsPage,
-    onRunProgress
+    onRunProgress,
+    exportXTranslatorXml
   } from "../../../gateway/translation-gateway"
 
   // 結果一覧は keyset cursor ページングで 1 ページずつ取得する。1 ページの件数。
@@ -32,6 +33,8 @@
   let results = $state<NarrationResultRow[]>([])
   let progress = $state<RunProgress | undefined>(undefined)
   let errorMessage = $state("")
+  // xTranslator 書き出し中フラグ。書き出しボタンの無効化とスピナー表示に使う。
+  let exporting = $state(false)
 
   // keyset ページング state。cursorStack[i] はページ i を取得した cursor（"" 始まり）。
   // 順次送りのため、次へで nextCursor を積み、前へで履歴を 1 つ戻して再取得する。
@@ -146,6 +149,19 @@
     }
   }
 
+  // 訳出済みの翻訳結果を xTranslator XML へ書き出す。出力先フォルダ選択と結果通知（成功の出力先・失敗）は
+  // backend のネイティブダイアログで行うため、ここでは書き出し中フラグの制御だけを持つ。
+  async function onExportXml() {
+    exporting = true
+    try {
+      await exportXTranslatorXml()
+    } catch {
+      // 失敗は backend のネイティブダイアログで通知済みのため、二重表示を避けてここでは握る。
+    } finally {
+      exporting = false
+    }
+  }
+
   function messageOf(error: unknown): string {
     if (error instanceof Error) return error.message
     if (typeof error === "string") return error
@@ -187,4 +203,6 @@
   {onRun}
   {onPagePrev}
   {onPageNext}
+  {exporting}
+  {onExportXml}
 />

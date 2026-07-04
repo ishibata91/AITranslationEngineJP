@@ -108,6 +108,7 @@ type Store interface {
 	ProperNounStore
 	ProperNounDictStore
 	DirectiveStore
+	ExportStore
 }
 
 // Engine は翻訳手続きを実行する。

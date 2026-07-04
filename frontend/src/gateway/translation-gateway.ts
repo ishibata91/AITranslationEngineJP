@@ -1,6 +1,7 @@
 // Wails generated bindings のラッパ。generated wailsjs の import はこの gateway 境界にだけ閉じ込める。
 // View・Container からは本 gateway 経由で backend を呼ぶ。
 import {
+  ExportXTranslatorXml,
   GetModels,
   ListResultsPage,
   RunExtractAndTranslate,
@@ -97,6 +98,13 @@ const PROGRESS_EVENT = "translation:progress"
 // plugin ファイル選択ダイアログを開き、選んだフルパスを返す。
 export async function selectPluginFile(): Promise<string> {
   return SelectPluginFile()
+}
+
+// 訳出済みの翻訳結果を xTranslator 互換 XML として書き出す。
+// 出力先フォルダ選択と結果通知（成功の出力先・失敗）は backend のネイティブダイアログで行うため、
+// この関数は完了、または失敗時の throw だけを返す。
+export async function exportXTranslatorXml(): Promise<void> {
+  await ExportXTranslatorXml()
 }
 
 // 接続先の利用可能モデル一覧を取得する（getModels）。

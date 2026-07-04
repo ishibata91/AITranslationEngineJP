@@ -21,56 +21,72 @@
 
 ---
 
-## 3. XML エクスポート形式
+## 3. XML エクスポート/インポート形式（SSTXMLRessources）
+
+xTranslator の `File -> Export -> xTranslator XML` が出力し、`File -> Import Translation -> XML File` が読み込む形式。本 repo が読み書きするのはこの形式で、base 辞書 `dictionaries/xTranslatorXMLs/*_english_japanese.xml` も同形式である。仕様の根拠は xTranslator ソース `TESVT_XMLFunc.pas`（GitHub MGuffin/xTranslator）と、実 base 辞書ファイルの実測。
+
+以前この節に記していた `SSETranslator` ルート・`FIELD`/`FORMID`/`Status` 独立要素の形式は xTranslator README 由来で、実物のエクスポートと一致しなかったため、実物形式へ訂正した（`xtranslator-export` task の実画面確認で判明）。
 
 ### 3.1 基本構造
 
-`File -> Extract Translation -> XML File` で出力される標準フォーマット。
+先頭に UTF-8 BOM を付け、宣言は `encoding="UTF-8" standalone="yes"`。
 
 ```xml
-<?xml version="1.0" encoding="utf-8"?>
-<SSETranslator>
-  <String>
-    <EDID>RecordEditorID</EDID>
-    <REC>REC_TYPE</REC>
-    <FIELD>FULL</FIELD>
-    <FORMID>0x00012345</FORMID>
-    <Source>Original English text</Source>
-    <Dest>翻訳後テキスト</Dest>
-    <Status>4</Status>
-  </String>
-</SSETranslator>
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<SSTXMLRessources>
+  <Params>
+    <Addon>PluginName</Addon>
+    <Source>english</Source>
+    <Dest>japanese</Dest>
+    <Version>2</Version>
+  </Params>
+  <Content>
+    <String List="0" sID="000001" Partial="1">
+      <EDID>RecordEditorID</EDID>
+      <REC>WEAP:FULL</REC>
+      <Source>Original English text</Source>
+      <Dest>翻訳後テキスト</Dest>
+    </String>
+  </Content>
+</SSTXMLRessources>
 ```
 
-### 3.2 ルート要素
+### 3.2 ルート要素と Params
 
-| 要素名 | 説明 |
+- ルート要素は `SSTXMLRessources`。
+- `Params` は書き出しの前提情報を持つ。`Addon`（対象 plugin 名）、`Source`（原文言語、例 english）、`Dest`（訳文言語、例 japanese）、`Version`（現行は 2）。
+- `Content` が `String` 群を包む。
+
+### 3.3 `<String>` の属性と子要素
+
+属性:
+
+| 属性 | 説明 |
 |---|---|
-| `SSETranslator` | Skyrim SE 向けのルート要素 |
-| `TESVTranslator` | Skyrim LE 向けのルート要素 |
-| `FO4Translator` | Fallout 4 向けのルート要素 |
+| `List` | 文字列の分類インデックス（0〜2。STRINGS/DLSTRINGS/ILSTRINGS の区分に対応）。インポートの照合は EDID・REC・原文で行われ、List は分類の記録。 |
+| `sID` | 文字列の識別子（6 桁 hex）。string（strings ファイル直接編集）モードでのみ照合に使う。 |
+| `Partial` | 訳状態フラグ（後述）。確定訳では属性ごと省略する。 |
 
-### 3.3 `<String>` 子要素一覧
+子要素:
 
-| タグ | 型 | 必須 | 説明 |
-|---|---|---|---|
-| `<EDID>` | string | ○ | レコードのエディタ ID |
-| `<REC>` | string (4文字) | ○ | レコードタイプ（例: `FULL`, `DESC`, `DIAL`） |
-| `<FIELD>` | string | ○ | フィールド名 |
-| `<FORMID>` | hex string | ○ | レコードの FormID（`0x` プレフィックス付き） |
-| `<Source>` | string | ○ | 原文テキスト |
-| `<Dest>` | string | ○ | 翻訳テキスト（未翻訳時は原文と同一またはブランク） |
-| `<Status>` | integer | ○ | 翻訳ステータスコード（後述） |
-
-### 3.4 Status コード
-
-| 値 | 意味 | UI 表示色 |
+| タグ | 必須 | 説明 |
 |---|---|---|
-| `0` | 未翻訳 (Untranslated) | 赤 |
-| `1` | 翻訳済み (Translated) | 白 |
-| `2` | 部分翻訳 (Partial) | オレンジ |
-| `3` | 仮翻訳 (Provisional) | 紫 |
-| `4` | 承認済み (Validated/Approved) | 青 |
+| `<EDID>` | ○ | レコードのエディタ ID。インポート照合の第一キー。 |
+| `<REC>` | ○ | `REC:FIELD`（4文字:4文字、例 `WEAP:FULL`・`INFO:NAM1`）。インポート照合の副キー。 |
+| `<Source>` | ○ | 原文テキスト。EDID・REC で照合できない場合の第三キー。 |
+| `<Dest>` | ○ | 訳文テキスト。 |
+
+`FIELD`・`FORMID`・`Status` の独立要素は持たない。フィールドは `REC` に結合し、訳状態は `Partial` 属性で表す。
+
+### 3.4 訳状態（`Partial` 属性）
+
+xTranslator は独立した Status 要素を持たず、`String` の `Partial` 属性で訳状態を表す。
+
+| Partial | 意味 |
+|---|---|
+| （属性なし） | 確定訳（translated） |
+| `1` | 未完了訳（incompleteTrans） |
+| `2` | ロック訳（lockedTrans） |
 
 ---
 

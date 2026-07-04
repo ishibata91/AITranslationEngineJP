@@ -39,6 +39,10 @@
     // ページ送り操作。state は container が持つ。
     onPagePrev?: () => void
     onPageNext?: () => void
+    // xTranslator XML への書き出し操作。結果一覧パネルの書き出しボタンから起動する。
+    onExportXml?: () => void
+    // 書き出し中フラグ。true の間は書き出しボタンを無効化する。
+    exporting?: boolean
   }
 
   let {
@@ -57,7 +61,9 @@
     onLoadModels,
     onRun,
     onPagePrev = () => {},
-    onPageNext = () => {}
+    onPageNext = () => {},
+    onExportXml = () => {},
+    exporting = false
   }: Props = $props()
 </script>
 
@@ -174,6 +180,8 @@
       canNext={paging?.canNext}
       onPrev={onPagePrev}
       onNext={onPageNext}
+      onExport={onExportXml}
+      {exporting}
     />
   </section>
 </div>
