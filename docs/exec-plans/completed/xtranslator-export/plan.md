@@ -165,3 +165,12 @@ frontend:
 - 恒久仕様の architecture 正本反映: なし。
 - `docs/references/xtranslator_ref.md` の訂正（README 由来の誤形式 → 実物 SSTXMLRessources 形式）は参照資料の是正であり、architecture 正本反映の対象外。作業 commit に含める。
 - 人間承認: architecture 反映が無いため正本反映の人間承認は不要（構造不変）。
+
+## finalization 結果
+
+- 作業 commit: `5b032cba`（16 files changed、branch `claude/xtranslator-export`）。
+- local merge: `master` へ `git merge --no-ff`。merge commit `06b077c7`。conflict なし。
+- merge 後検証: `npm run verify:backend` 通過（exit 0）、`npm --prefix frontend run test` ＋ `npm --prefix frontend run lint` 通過（exit 0）。
+- completed 移動: `docs/exec-plans/active/xtranslator-export/` → `docs/exec-plans/completed/xtranslator-export/`。
+- merge 結果 commit: 本 completed 移動と finalization 記録を master へ commit する。
+- remote への push は行わない。
