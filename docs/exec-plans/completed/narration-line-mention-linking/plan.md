@@ -111,3 +111,9 @@
 - commit: `37e07076`（23 files, +1045 / -185）
 - 検証結果: 実装記録の「最終検証（2026-07-04 通過）」のとおり（verify:backend・lint 一式・合成/実データ golden 一致・実データ DB 確認・カバレッジ 100%）。
 - 残留リスク: 短い一般語と同綴りの固有名（例: MESG:FULL の "Yes"/"No"）が本文へ言及として当たる。これは既存の機械置換注入が持つ同じ弱点の写しで、言及テーブルは注入の実態を忠実に記録する（概念モデル弱点 1 の受容範囲）。
+
+### local merge・merge 後検証・completed 移動
+
+- local merge: `master` へ `git merge --no-ff claude/narration-line-mention-linking`。merge commit `d257a517`。conflict なし。
+- merge 後検証: `master` 上で `npm run verify:backend` 通過（go test 全体・arch-lint・境界走査）。
+- completed 移動: 本 plan folder を `docs/exec-plans/completed/narration-line-mention-linking/` へ移動。
