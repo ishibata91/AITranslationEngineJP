@@ -76,6 +76,10 @@ components:
   # poc-tone は口調抽出の旧 PoC（stdlib のみ・自 module 非依存の独立 main）。
   poc-tone:
     in: cmd/poc-tone
+  # poc-missing-term は辞書漏れ語抽出の評価ハーネス（既知語 held-out 方式の PoC・研究用 CLI）。
+  # 取込段と同じ振り分け（engine.Dispatch）と候補検出（mention）を評価 DB へ直接掛ける。
+  poc-missing-term:
+    in: cmd/poc-missing-term
 
 deps:
   main:
@@ -151,4 +155,11 @@ deps:
       - lexicon
       - rolespeech
       # 実 stoplist（assets/stopwords-en.txt）を読み harness へ注入する責務。
+      - dictionary
+  poc-missing-term:
+    mayDependOn:
+      - engine
+      - model
+      - mention
+      # 実 stoplist（assets/stopwords-en.txt）を読み、供給選別と候補検出へ注入する責務。
       - dictionary

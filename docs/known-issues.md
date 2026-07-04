@@ -14,13 +14,14 @@
 | `speaker_name`（e8）, `faction_name`（e14） | 話者・勢力 → 固有名（名乗る名） | 未実装。話者名は `master_term`・人名派生で代替 |
 | `race.name_proper_noun_id`（e13） | 種族 → 固有名（名称） | 未実装の FK。現テーブルに列を持たない |
 
-- 辞書に無い漏れ語（本文・会話文中にだけ現れ、名前付きレコードに出ない語）の拾い上げ方式は未確定である。AI 抽出・頻度抽出による第2層は保留する（`changelog.md` 参照）。言及テーブルは辞書に載る語の言及だけを持つ。
+- 辞書に無い漏れ語（本文・会話文中にだけ現れ、名前付きレコードに出ない語）の候補検出方式は確定・実装済みである（`internal/core/mention` の `CandidateDetector`。決定的ヒューリスティック＋prose の固有表現・品詞解析。held-out 評価で再現率 95.4%・重複 0。経緯と実測は `changelog.md` と completed plan の dictionary-missing-term-detection）。残るのは候補の製品パイプラインへの統合（候補の永続・レビュー提示・機械置換辞書への取り込み）と訳語の供給方式で、いずれも未実装である。言及テーブルは辞書に載る語の言及だけを持つ。
 - 各テーブルの設計は [`er.md`](./er.md)、概念上の位置づけは [`concept-model.md`](./concept-model.md) にある。
 
 ## 2. 翻訳 runtime の未整備
 
 - **Dialogue tree の context 長さ**: 現状は台詞を 1 件ずつ翻訳し（`engine` の台詞翻訳）、会話 tree の context を与えない。長い Dialogue の文脈利用（tree 分割・root path 抜粋・chunk 化）は未着手である。
 - **固有名一貫性の事後検証**: 注入した確定訳語がモデル出力で保持されたかを照合する仕組みは無い。弱い小型モデルは注入したカタカナを書き換える場合があるため、検証方式は未確定である（`project-injected-token-fidelity` の観測を参照）。照合対象（どの行がどの語を含むか）は言及テーブル（`narration_mention`・`line_mention`）が持つため、残るのは照合方式の設計である。
+- **本文中の記法保護**: 本文（`narration`・`line` の `source`）には、動的な値に置き換わるタグ（例: `<Alias=...>`）や改行等の制御文字が含まれ得るが、これらを AI 翻訳時に改変・欠落させずに保持する仕組みが無い。`internal/core/prompt`（`ComposePrompt`・`RenderPrompt`）は本文をそのままプロンプトへ渡すだけで、タグ・制御文字を抽出して訳文へ戻す前処理・後処理を持たない。
 
 ## 3. クラウド AI プロバイダの未実装（Gemini・xAI・Claude）
 
