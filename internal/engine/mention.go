@@ -89,14 +89,11 @@ func (e *Engine) recordMentions(ctx context.Context) (MentionCounts, error) {
 
 // mentionDetector は言及検出器を組む。機械置換辞書（LoadDictionary）と同じ供給源・同じ順序
 // （master_term → proper_noun、同一原語は先勝ち）で語彙を積み、注入と言及の相手を一致させる。
+// 供給源は共通の translationVocabulary で読むため、一般語 stoplist の選別も注入と同じに通る。
 func (e *Engine) mentionDetector(ctx context.Context) (*mention.Detector, error) {
-	terms, err := e.store.ListMasterTerms(ctx)
+	terms, propers, err := e.translationVocabulary(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("言及語彙（master_term）の取得: %w", err)
-	}
-	propers, err := e.store.ListProperNouns(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("言及語彙（proper_noun）の取得: %w", err)
+		return nil, err
 	}
 	vocab := make([]mention.Term, 0, len(terms)+len(propers))
 	for _, t := range terms {

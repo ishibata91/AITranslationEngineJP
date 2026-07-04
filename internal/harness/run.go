@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"aitranslationenginejp/internal/api"
+	"aitranslationenginejp/internal/core/dictionary"
 	"aitranslationenginejp/internal/core/linefeatures"
 	"aitranslationenginejp/internal/core/rolespeech"
 	"aitranslationenginejp/internal/engine"
@@ -23,9 +24,10 @@ type RunConfig struct {
 	Extractor   api.Extractor // 抽出段の注入（合成は SeedExtractor、実データは api.DotnetExtractor）
 	Lexicon     linefeatures.EmotionLexicon
 	RoleSpeech  *rolespeech.Table
-	TermsXMLDir string // 固有名派生が読む xTranslator XML ディレクトリ
-	PluginPath  string // 抽出対象 plugin のパス
-	Model       string // 送信モデル名（fake provider は記録のみ）
+	Stoplist    *dictionary.Stoplist // 機械置換辞書・言及語彙の供給から一般語を除く選別（nil なら選別なし）
+	TermsXMLDir string               // 固有名派生が読む xTranslator XML ディレクトリ
+	PluginPath  string               // 抽出対象 plugin のパス
+	Model       string               // 送信モデル名（fake provider は記録のみ）
 }
 
 // Run は store・engine・provider・api を束ね、RunExtractAndTranslate を端から端まで通し、観測結果を捕獲する。
@@ -38,7 +40,7 @@ func Run(cfg RunConfig) (Capture, error) {
 	defer s.Close() //nolint:errcheck // 実行後の後始末。観測は別接続で行う。
 
 	rec := &RecordingProvider{}
-	eng := engine.New(s, rec, cfg.Lexicon, cfg.RoleSpeech)
+	eng := engine.New(s, rec, cfg.Lexicon, cfg.RoleSpeech, cfg.Stoplist)
 	app := api.New(s, eng, rec, cfg.TermsXMLDir, cfg.Extractor)
 
 	runResult, runErr := app.RunExtractAndTranslate(api.RunRequest{PluginPath: cfg.PluginPath, Model: cfg.Model})
@@ -71,11 +73,16 @@ func SyntheticRun(dbPath, xmlDir string) (Capture, error) {
 	if err != nil {
 		return Capture{}, fmt.Errorf("合成役割語の構築: %w", err)
 	}
+	stop, err := dictionary.ParseStoplist(strings.NewReader(syntheticStopwords))
+	if err != nil {
+		return Capture{}, fmt.Errorf("合成 stoplist の構築: %w", err)
+	}
 	return Run(RunConfig{
 		DBPath:      dbPath,
 		Extractor:   &SeedExtractor{DBPath: dbPath, Fixture: f},
 		Lexicon:     fakeLexicon{},
 		RoleSpeech:  roleSpeech,
+		Stoplist:    stop,
 		TermsXMLDir: xmlDir,
 		PluginPath:  f.PluginName,
 		Model:       "fake-model",
@@ -85,6 +92,10 @@ func SyntheticRun(dbPath, xmlDir string) (Capture, error) {
 // syntheticRoleSpeech は合成入力用の最小役割語表（タブ区切り 5 列、全ワイルドカード 1 行）。
 // 実 assets/role-speech.tsv の内容変化から harness を切り離し、口調注入が決定的に通ることだけを保証する。
 var syntheticRoleSpeech = strings.Join([]string{"*", "*", "*", "わたし", "落ち着いた言い回しにする。"}, "\t") + "\n"
+
+// syntheticStopwords は合成入力用の最小一般語リスト。実 assets/stopwords-en.txt の内容変化から
+// harness を切り離し、fixture の管理用文字列（Yes・No）が置換も言及もされないことだけを golden で凍結する。
+const syntheticStopwords = "yes\nno\n"
 
 // fakeLexicon は合成入力用の最小感情辞書。少数の強感情語だけを真とし、口調生成の感情経路を決定的に通す。
 type fakeLexicon struct{}

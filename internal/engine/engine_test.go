@@ -256,7 +256,7 @@ func TestRunTranslatesUntranslatedAsProvisional(t *testing.T) {
 		{ID: 2, Source: "cairn"},
 	}}
 	tr := &fakeTranslator{out: map[string]string{"halls": "広間", "cairn": "ケルン"}}
-	eng := New(store, tr, fakeLexicon{}, nil)
+	eng := New(store, tr, fakeLexicon{}, nil, nil)
 
 	count, err := eng.Run(context.Background(), provider.Connection{Endpoint: "http://x"}, "model-x", nil)
 	if err != nil {
@@ -292,7 +292,7 @@ func TestRunReplacesTermsBeforeTranslate(t *testing.T) {
 	tr := &fakeTranslator{out: map[string]string{
 		"The リフテン guard waited.": "リフテンの衛兵が待っていた。",
 	}}
-	eng := New(store, tr, fakeLexicon{}, nil)
+	eng := New(store, tr, fakeLexicon{}, nil, nil)
 
 	if _, err := eng.Run(context.Background(), provider.Connection{}, "m", nil); err != nil {
 		t.Fatalf("Run: %v", err)
@@ -312,7 +312,7 @@ func TestRunReplacesTermsBeforeTranslate(t *testing.T) {
 func TestRunReturnsProviderError(t *testing.T) {
 	store := &fakeStore{untranslated: []model.Narration{{ID: 1, Source: "x"}}}
 	tr := &fakeTranslator{err: errors.New("connection refused")}
-	eng := New(store, tr, fakeLexicon{}, nil)
+	eng := New(store, tr, fakeLexicon{}, nil, nil)
 
 	_, err := eng.Run(context.Background(), provider.Connection{}, "m", nil)
 	if err == nil {
@@ -333,7 +333,7 @@ func TestRunTranslatesLinesWithPersonaDirective(t *testing.T) {
 		},
 	}
 	tr := &fakeTranslator{out: map[string]string{"mother?": "母さん？"}}
-	eng := New(store, tr, fakeLexicon{}, nil)
+	eng := New(store, tr, fakeLexicon{}, nil, nil)
 
 	count, err := eng.Run(context.Background(), provider.Connection{}, "m", nil)
 	if err != nil {
@@ -364,7 +364,7 @@ func TestRunTranslatesLinesWithPersonaDirective(t *testing.T) {
 func TestRunTranslatesLineWithoutSpeaker(t *testing.T) {
 	store := &fakeStore{lines: []model.Line{{ID: 20, Source: "door"}}}
 	tr := &fakeTranslator{out: map[string]string{"door": "扉"}}
-	eng := New(store, tr, fakeLexicon{}, nil)
+	eng := New(store, tr, fakeLexicon{}, nil, nil)
 
 	if _, err := eng.Run(context.Background(), provider.Connection{}, "m", nil); err != nil {
 		t.Fatalf("Run: %v", err)
@@ -382,7 +382,7 @@ func TestRunReportsProgress(t *testing.T) {
 		lines:        []model.Line{{ID: 10, Source: "b"}, {ID: 11, Source: "c"}},
 	}
 	tr := &fakeTranslator{out: map[string]string{"a": "あ", "b": "び", "c": "し"}}
-	eng := New(store, tr, fakeLexicon{}, nil)
+	eng := New(store, tr, fakeLexicon{}, nil, nil)
 
 	var seen [][2]int
 	_, err := eng.Run(context.Background(), provider.Connection{}, "m", func(done, total int) {
@@ -411,7 +411,7 @@ func TestLinePersonas(t *testing.T) {
 			10: {AttitudeBand: 0, EmotionBand: 0, RaceEDID: "NordRace"},
 		},
 	}
-	eng := New(store, &fakeTranslator{}, fakeLexicon{}, nil)
+	eng := New(store, &fakeTranslator{}, fakeLexicon{}, nil, nil)
 
 	// 10 はペルソナあり（経路①）。99 はペルソナなしで本文も rec/field も無いため口調なし。
 	personas, err := eng.LinePersonas(context.Background(),
@@ -447,7 +447,7 @@ func TestLinePersonasGenericAndPC(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ParseRoleSpeech: %v", err)
 	}
-	eng := New(store, &fakeTranslator{}, fakeLexicon{}, roles)
+	eng := New(store, &fakeTranslator{}, fakeLexicon{}, roles, nil)
 	defaults := ToneDefaults{Generic: "衛兵の汎用台詞。", PC: "PCの選択肢。", PcSex: "Male"}
 	lines := []model.Line{
 		{ID: 10, Source: "Halt.", Rec: "INFO", Field: "NAM1"},  // 汎用（話者なし）
@@ -512,7 +512,7 @@ func TestLinePersonasBulkLoadsOnce(t *testing.T) {
 			lines[i] = model.Line{ID: id}
 			store.linePersonas[id] = model.LinePersonaInput{AttitudeBand: 1, EmotionBand: 1}
 		}
-		eng := New(store, &fakeTranslator{}, fakeLexicon{}, nil)
+		eng := New(store, &fakeTranslator{}, fakeLexicon{}, nil, nil)
 		if _, err := eng.LinePersonas(context.Background(), lines, testPersonaTemplate, ToneDefaults{}); err != nil {
 			t.Fatalf("LinePersonas(N=%d): %v", n, err)
 		}

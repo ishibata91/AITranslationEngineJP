@@ -62,6 +62,16 @@ func SyntheticFixture() Fixture {
 			{Plugin: plugin, FormID: "0x600", EDID: "OrphanGreet", Rec: "INFO", Field: "NAM1", Source: "Grelod will not return here, of course."},
 			// 翻訳対象外: record_type_master に無い REC:FIELD は取込段が読み込まず skip する。
 			{Plugin: plugin, FormID: "0x700", EDID: "Ignored", Rec: "ZZZZ", Field: "FULL", Source: "should be skipped"},
+			// 一般語と同綴りの管理用文字列: Mod 制作では勢力の階級称号（FACT:MNAM）を対話状態の
+			// 内部フラグに使う慣行があり（実例 inigo.esp）、固有名 box へ Yes/No が入る。
+			// 固有名フェーズで AI 訳は付くが、stoplist が供給を選別し置換も言及も起きないことを golden で凍結する。
+			{Plugin: plugin, FormID: "0x800", EDID: "OptionFaction", Rec: "FACT", Field: "MNAM", Ordinal: 0, Source: "Yes"},
+			{Plugin: plugin, FormID: "0x800", EDID: "OptionFaction", Rec: "FACT", Field: "MNAM", Ordinal: 1, Source: "No"},
+			// 台詞（話者なし・文頭 Yes）: stoplist 語が本文で置換されないことをプロンプトで観測する。
+			{Plugin: plugin, FormID: "0x820", EDID: "ScoutReply", Rec: "INFO", Field: "NAM1", Source: "Yes, the road is clear now."},
+			// 叙述文（文頭 No）: 実データで観測した誤爆（No matter → 訳NNN matter）の形を再現し、
+			// stoplist 選別後は原文のままプロンプトへ渡ることを観測する。
+			{Plugin: plugin, FormID: "0x830", EDID: "TestDagger", Rec: "WEAP", Field: "DESC", Source: "No matter what the weather, this blade holds its edge."},
 		},
 		// 各話者は声型を 1 つだけ持つ（speaker.voice_type_id は 1 対 1 の FK）。複数声型の話者は作らない。
 		Speakers: []SeedSpeaker{

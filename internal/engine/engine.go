@@ -116,14 +116,16 @@ type Engine struct {
 	provider   provider.Translator
 	lexicon    linefeatures.EmotionLexicon
 	roleSpeech *rolespeech.Table
+	stoplist   *dictionary.Stoplist
 	classifier *tone.Classifier
 }
 
 // New は engine を生成する。provider は AI 翻訳の port、lexicon は口調生成の感情辞書（差し替え可能な境界）、
 // roleSpeech は注入時に引く一人称・語尾テンプレート（差し替え可能な参照データ。nil なら役割語を付けない）。
+// stoplist は機械置換辞書・言及語彙の供給から一般語を除く選別規則（nil なら選別しない）。
 // classifier は口調分類の不変ルール。汎用台詞・PC 発話の感情段階を本文 1 行から出すのに使う。
-func New(store Store, p provider.Translator, lexicon linefeatures.EmotionLexicon, roleSpeech *rolespeech.Table) *Engine {
-	return &Engine{store: store, provider: p, lexicon: lexicon, roleSpeech: roleSpeech, classifier: tone.NewClassifier()}
+func New(store Store, p provider.Translator, lexicon linefeatures.EmotionLexicon, roleSpeech *rolespeech.Table, stoplist *dictionary.Stoplist) *Engine {
+	return &Engine{store: store, provider: p, lexicon: lexicon, roleSpeech: roleSpeech, stoplist: stoplist, classifier: tone.NewClassifier()}
 }
 
 // GeneratePersonas は台詞を持つ全話者の基底口調を一括生成し persona_character へ保存する。保存した話者数を返す。
@@ -310,14 +312,11 @@ func (e *Engine) authoritativeTerms(ctx context.Context) (map[string]string, err
 // LoadDictionary は master_term と確定済みの proper_noun を合流し、固有名の機械置換辞書を組む。
 // 翻訳実行（Run の本文フェーズ）と結果取得（api の内訳・実プロンプト再構成）が、ページ単位で 1 度だけ組んで使う。
 // master_term（権威訳）を先に積み、同綴りの proper_noun より優先する（NewDictionary は先勝ち）。
+// 供給源は言及検出（mentionDetector）と共通の translationVocabulary で読み、一般語 stoplist の選別を通す。
 func (e *Engine) LoadDictionary(ctx context.Context) (*dictionary.Dictionary, error) {
-	terms, err := e.store.ListMasterTerms(ctx)
+	terms, propers, err := e.translationVocabulary(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("マスター辞書の取得: %w", err)
-	}
-	propers, err := e.store.ListProperNouns(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("固有名の取得: %w", err)
+		return nil, err
 	}
 	pairs := make([]dictionary.Term, 0, len(terms)+len(propers))
 	for _, term := range terms {
@@ -327,6 +326,35 @@ func (e *Engine) LoadDictionary(ctx context.Context) (*dictionary.Dictionary, er
 		pairs = append(pairs, dictionary.Term{Source: pn.Source, Dest: pn.Dest})
 	}
 	return dictionary.NewDictionary(pairs), nil
+}
+
+// translationVocabulary は機械置換辞書（LoadDictionary）と言及検出（mentionDetector）が共有する語彙の供給源。
+// master_term → proper_noun の順で読み、一般語 stoplist の選別をこの 1 箇所で通す。
+// 言及レコードは注入の忠実な記録という不変条件を保つため、片側だけに効く除外を作らない。
+func (e *Engine) translationVocabulary(ctx context.Context) ([]model.MasterTerm, []model.ProperNoun, error) {
+	terms, err := e.store.ListMasterTerms(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("置換・言及語彙（master_term）の取得: %w", err)
+	}
+	propers, err := e.store.ListProperNouns(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("置換・言及語彙（proper_noun）の取得: %w", err)
+	}
+	keptTerms := make([]model.MasterTerm, 0, len(terms))
+	for _, t := range terms {
+		if e.stoplist.Blocks(t.Source) {
+			continue
+		}
+		keptTerms = append(keptTerms, t)
+	}
+	keptPropers := make([]model.ProperNoun, 0, len(propers))
+	for _, pn := range propers {
+		if e.stoplist.Blocks(pn.Source) {
+			continue
+		}
+		keptPropers = append(keptPropers, pn)
+	}
+	return keptTerms, keptPropers, nil
 }
 
 // DeriveMasterTerms は xTranslator 英日 XML から人名の部分形（名のみ・短名）の確定訳語を派生し、

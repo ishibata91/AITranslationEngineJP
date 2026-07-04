@@ -89,6 +89,8 @@ deps:
       - store
       - lexicon
       - rolespeech
+      # 一般語 stoplist（dictionary.ParseStoplist）の asset 読み込みと注入は composition root の責務。
+      - dictionary
   api:
     mayDependOn:
       - model
@@ -139,6 +141,8 @@ deps:
       - store
       - linefeatures
       - rolespeech
+      # 合成 stoplist（dictionary.ParseStoplist）を組むテスト用 composition root の責務。
+      - dictionary
   goldcap:
     mayDependOn:
       - api
@@ -146,3 +150,5 @@ deps:
       - harness
       - lexicon
       - rolespeech
+      # 実 stoplist（assets/stopwords-en.txt）を読み harness へ注入する責務。
+      - dictionary
