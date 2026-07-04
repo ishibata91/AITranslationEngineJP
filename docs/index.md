@@ -29,6 +29,8 @@ backend は `greenfield-reset` task（2026-06-06）で削減済み。新 archite
 - [`requirements.md`](./requirements.md): 業務要件（何をしたいか）。システム要件は含めない
 - [`system_requirements.md`](./system_requirements.md): システム要件（業務要件をどう達成するか）。業務要件番号に対応させる
 - [`changelog.md`](./changelog.md): 変更・判断履歴。正本に残さない判断の経緯を記録する
+- [`known-issues.md`](./known-issues.md): 未解決の課題・未確定の設計判断・未実装の後続 task を集約。解決したら除き、経緯は `changelog.md` に残す
+- [`roadmap.md`](./roadmap.md): 残作業項目の列挙と着手順。技術的な未解決事実は `known-issues.md` が正本
 - [`skyrim-structure-model.md`](./skyrim-structure-model.md): Skyrim 世界を翻訳判定 context で再分類した Skyrim 構造体モデル
 - [`concept-model.md`](./concept-model.md): 翻訳という営みに登場する概念（訳の単位・配置・話者など）の概念モデル。`skyrim-structure-model.md` を入力にする
 - [`architecture.md`](./architecture.md): 層構成、transport boundary、依存方向の骨格
@@ -51,6 +53,8 @@ backend は `greenfield-reset` task（2026-06-06）で削減済み。新 archite
 - 業務要件（何をしたいか）が変わった場合: [`requirements.md`](./requirements.md) を更新する
 - システム要件（どう達成するか）が変わった場合: [`system_requirements.md`](./system_requirements.md) を更新する
 - 正本を変更した、または判断の経緯（なぜ変えたか、何を落としたか、残課題）を残す場合: [`changelog.md`](./changelog.md) に entry を追記する
+- 未解決の課題・未確定の判断・未実装の後続 task が生じた、または解決した場合: [`known-issues.md`](./known-issues.md) を更新する
+- 残作業項目や着手順が変わった場合: [`roadmap.md`](./roadmap.md) を更新する
 - Skyrim 構造体モデル（class、関連、関連端）が変わった場合: [`skyrim-structure-model.md`](./skyrim-structure-model.md) を更新する
 - 翻訳の概念モデル（訳の単位・配置・話者などの class、関連）が変わった場合: [`concept-model.md`](./concept-model.md) を更新する
 - Dependency rule or layering changed: update [`architecture.md`](./architecture.md)

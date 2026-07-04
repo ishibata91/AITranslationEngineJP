@@ -46,6 +46,8 @@ components:
   # 純粋ルールは os・provider・store・engine を import しない（IO は engine 側へ寄せる）。
   dictionary:
     in: internal/core/dictionary
+  mention:
+    in: internal/core/mention
   prompt:
     in: internal/core/prompt
   termderive:
@@ -100,6 +102,7 @@ deps:
       - provider
       - tone
       - dictionary
+      - mention
       - prompt
       - termxml
       - rolespeech

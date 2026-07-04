@@ -110,6 +110,20 @@ erDiagram
         TEXT dest "確定訳"
         TEXT category "種別"
     }
+    narration_mention {
+        INTEGER narration_id FK "e4"
+        INTEGER proper_noun_id FK "排他: どちらか一方"
+        INTEGER master_term_id FK "排他: どちらか一方"
+    }
+    line_mention {
+        INTEGER line_id FK "e5"
+        INTEGER proper_noun_id FK "排他: どちらか一方"
+        INTEGER master_term_id FK "排他: どちらか一方"
+    }
+    narration_described {
+        INTEGER narration_id PK "e3"
+        INTEGER proper_noun_id FK
+    }
     prompt_template {
         INTEGER id PK "=1"
         TEXT base_directive "base 指示"
@@ -189,6 +203,14 @@ erDiagram
     speaker }o--o| voice_type : "持ち声 e11"
     speaker }o--o| speaker : "形態の元 e12"
     speaker ||--o{ extracted_info_speaker : "INFO 橋渡し"
+    narration ||--o{ narration_mention : "言及 e4"
+    proper_noun ||--o{ narration_mention : "言及される名 e4"
+    master_term ||--o{ narration_mention : "言及される語 e4"
+    line ||--o{ line_mention : "言及 e5"
+    proper_noun ||--o{ line_mention : "言及される名 e5"
+    master_term ||--o{ line_mention : "言及される語 e5"
+    narration ||--o| narration_described : "説明対象 e3"
+    proper_noun ||--o{ narration_described : "名の説明文 e3"
 ```
 
 ## テーブル定義
@@ -210,10 +232,15 @@ erDiagram
 | voice_type | 声型 | voice_id, voice_kind, nature, plugin, form_id, edid | UNIQUE(plugin, form_id) |
 | line_speaker | e6 台詞→話者（発話、1..*） | line_id, speaker_id | PK(line_id, speaker_id) |
 | speaker_faction | e10 話者↔勢力（所属） | speaker_id, faction_id | PK(speaker_id, faction_id) |
+| narration_mention | e4 叙述文→固有名（言及、0..*→0..*） | narration_id, proper_noun_id, master_term_id | 部分 UNIQUE(narration_id, proper_noun_id)・(narration_id, master_term_id) |
+| line_mention | e5 台詞→固有名（言及、0..*→0..*） | line_id, proper_noun_id, master_term_id | 部分 UNIQUE(line_id, proper_noun_id)・(line_id, master_term_id) |
+| narration_described | e3 叙述文→固有名（説明、0..*→0..1） | narration_id, proper_noun_id | PK(narration_id) |
 
 - 正規化の判断: `proper_noun` は `UNIQUE(category, source)` で同綴り異義を種別で分ける（`concept-model.md` 弱点 1）。
 - 統合（正規化）: 概念の `定型句` 箱は独立テーブルにせず `narration` へ収容し、`style`（割り当て directive のキー）で文体・定型句を区別する。理由は §4。
 - `proper_noun` は実行内で AI 翻訳した固有名訳を持つ。横断・権威の確定訳は `master_term`（§2）に分ける。
+- 言及（e4/e5）の相手は排他 2 列（`proper_noun_id` / `master_term_id` のどちらか一方だけ非 NULL）で持つ。理由は §5。
+- e3 は `narration` の FK 列でなく専用テーブル `narration_described` で持つ。理由は §6。取込段（`engine` の `Ingest`）が言及・説明対象を検出して書く。
 
 ### 2. 実装・運用テーブル（正規化・実現方式・横断機構）
 
@@ -239,17 +266,15 @@ erDiagram
 
 ### 3. 未実装（概念モデル由来・後続 task）
 
-`concept-model.md` の箱・関連だが、現時点で物理テーブルを持たない。概念のロードマップとして残す。実装する時に §1/§2 へ移す。
+`concept-model.md` の箱・関連だが、現時点で物理テーブルを持たない。設計判断で畳んだものはそのまま残し、後続 task で実装するものの開放条件は [`known-issues.md`](./known-issues.md) に集約する。
 
 | 概念要素 | 概念モデル | 現状 |
 |---|---|---|
 | set_phrase（定型句の独立箱） | 定型句 | `narration` へ畳んで収容（§1）。独立テーブルは作らない |
 | placement（配置, e1/e2） | 配置→固有名/定型句 | 物理テーブル無し。固有名は `proper_noun.category` で直接識別する |
 | untranslated_fragment（無訳片） | 無訳片 | 物理テーブル無し（`WOOP:FULL` 等は翻訳対象外として除外） |
-| narration_mention（e4）, line_mention（e5） | 叙述文/台詞↔固有名（言及） | 未実装。固有名一貫性は当面マスター辞書の機械置換注入で担保 |
-| line_sequence（e7） | 台詞→台詞（会話の流れ） | 未実装 |
-| speaker_name（e8）, faction_name（e14） | 話者/勢力→固有名（名乗る名） | 未実装。話者名は `master_term`・人名派生で代替 |
-| narration.described_proper_noun_id（e3）, race.name_proper_noun_id（e13） | 叙述文→固有名（説明）, 種族→固有名（名称） | 未実装の FK。現テーブルに列を持たない |
+
+会話の流れ（line_sequence e7）・名乗る名（speaker_name e8・faction_name e14）と関連 FK（e13）は未実装の後続 task で、開放条件を [`known-issues.md`](./known-issues.md) に集約する。各関連の実装状態は次の「concept-model 関連端との対応」表に載せる。
 
 ## concept-model 関連端との対応
 
@@ -257,9 +282,9 @@ erDiagram
 |---|---|---|---|
 | e1 | 配置→固有名（0..*→0..1） | （placement 未実装。`proper_noun.category` で識別） | 未実装 |
 | e2 | 配置→定型句（0..*→0..1） | （placement 未実装。定型句は narration へ収容） | 未実装 |
-| e3 | 叙述文→固有名（説明、0..*→0..1） | narration の FK（未追加） | 未実装 |
-| e4 | 叙述文↔固有名（言及、0..*→0..*） | narration_mention（連関） | 未実装 |
-| e5 | 台詞↔固有名（言及、0..*→0..*） | line_mention（連関） | 未実装 |
+| e3 | 叙述文→固有名（説明、0..*→0..1） | narration_described（専用テーブル、§6） | 実装済み |
+| e4 | 叙述文↔固有名（言及、0..*→0..*） | narration_mention（連関、排他 2 列 §5） | 実装済み |
+| e5 | 台詞↔固有名（言及、0..*→0..*） | line_mention（連関、排他 2 列 §5） | 実装済み |
 | e6 | 台詞→話者（0..*→1..*） | line_speaker（連関） | 実装済み |
 | e7 | 台詞→台詞（自己、0..*→0..*） | line_sequence（連関） | 未実装 |
 | e8 | 話者→固有名（0..*→1..2） | speaker_name（連関、role） | 未実装 |
@@ -294,7 +319,19 @@ ER は概念モデルを出発点にしつつ、実装のため正規化・統�
 - 対象: 固有名の確定訳を `master_term`（権威・横断・永続）と `proper_noun`（実行内・AI 訳）へ分ける。
 - 根拠: 既訳の権威訳は Mod をまたいで一貫させるため横断辞書に置き、実行ごとの AI 訳は実行内テーブルに置く。本文フェーズの機械置換は両者の和（`master_term` ∪ `proper_noun`）を注入する。供給源を分けることで、AI 訳が権威訳を上書きしない（`architecture.md` §8）。
 
-## 既知の論点
+### 5. 言及の相手を排他 2 列で持つ（e4/e5 と横断辞書の合流）
 
-- 言及（e4/e5）の検出方式、純汎用台詞の話者群の口調決定は、いずれも `concept-model.md` の「既知の弱点」に対応する。言及テーブルは未実装で、固有名一貫性は当面マスター辞書の機械置換注入で担保する。
+- 対象: `narration_mention`・`line_mention` の相手を `proper_noun_id` / `master_term_id` の排他 2 列（CHECK で片方だけ非 NULL）で持つ。
+- 根拠: 概念の言及（e4/e5）は固有名箱（`proper_noun`）への関連だが、本文の機械置換は `master_term` ∪ `proper_noun` を注入する（§4）。base ゲーム由来の名前は `master_term` にしか載らず、注入語の事後検証（`known-issues.md` 2 番）にはその言及も要る。言及の相手を注入の供給源と一致させるため、どちらか一方を指す排他 2 列にした。同一原語が両方にある場合は機械置換辞書と同じ先勝ち（`master_term` 優先）で片方だけを指す。
+- 一意性: SQLite の UNIQUE 索引は NULL 同士を別値と扱うため、排他 2 列は複合 UNIQUE で重複を止められない。片列ずつの部分 UNIQUE 索引（非 NULL の行だけ対象）で `INSERT OR IGNORE` の冪等を成立させる。
+
+### 6. e3 を FK 列でなく専用テーブルで持つ
+
+- 対象: 概念の e3（叙述文→説明対象の固有名、0..*→0..1）を `narration.described_proper_noun_id` 列でなく `narration_described` テーブルで持つ。
+- 根拠: C# 抽出器は全 migration SQL を毎回冪等 ensure する（C#↔Go 契約）ため、`ALTER TABLE ADD COLUMN` は再実行で失敗し使えない（migration 0007 の注記と同じ制約）。`line_condition` と同型の専用テーブルにし、`narration_id` を PRIMARY KEY にして 0..1 の多重度を schema で強制する。
+- 導出: 説明対象は本文でなくレコード構造から決まる。同一レコード（plugin, form_id, rec）の FULL（`extracted_field`）を `proper_noun`（category, source）へ結んで解決する。box='叙述文' の行だけが持ち、定型句は持たない。
+
+## 設計の範囲
+
 - 実 SQL DDL（PRIMARY KEY 型、index、外部キーの `ON DELETE`、schema version 刻み）は `db/` migration が固定する（`architecture.md` §6/§7）。本書は論理 ER に限定する。
+- 未実装テーブル（言及 e4/e5・会話の流れ e7・名乗る名 e8/e14 など）の開放条件は [`known-issues.md`](./known-issues.md) に集約する。

@@ -104,6 +104,7 @@ type Store interface {
 	TemplateStore
 	PersonaStore
 	IngestStore
+	MentionStore
 	ProperNounStore
 	ProperNounDictStore
 	DirectiveStore
