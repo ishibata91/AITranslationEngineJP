@@ -59,3 +59,11 @@
 - proper_noun のテーブル行: カラムへ `plugin` を追加、一意制約を `UNIQUE(category, source)` → `UNIQUE(plugin, category, source)` へ。
 - 正規化の判断: plugin スコープの非共有にする理由（本文機械置換のノイズ・Job 境界）を追記。
 - 根拠 active plan: 本 plan（`design.md` §2・§5）。
+
+### commit と統合
+
+- 作業 commit: `d8c32c39`（`feat(proper-noun): 固有名辞書を plugin スコープの非共有にする`）。11 ファイル（code 6・migration 1・test 1・`docs/er.md`・plan/design）。
+- local merge: `master` へ `git merge --no-ff`。merge commit `0953b0ce`。conflict 無し。
+- merge 後検証: `npm run test:backend` 全 package 通過。
+- 残留（本 task 範囲外）: backend lint の既存 6 件（xtranslator-export 由来）は未修正。concept-model.md の line 142 例は人間判断で無変更のまま。
+- remote 操作なし（push しない）。
