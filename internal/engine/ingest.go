@@ -44,7 +44,8 @@ func Dispatch(fields []model.ExtractedField, master map[RecordKey]model.RecordTy
 		}
 		switch rt.Box {
 		case boxProperNoun:
-			d.ProperNouns = append(d.ProperNouns, model.ProperNoun{Source: f.Source, Category: f.Rec})
+			// Plugin を保持して固有名を plugin スコープへ閉じる（横断共有をやめる）。Category は種別＝rec。
+			d.ProperNouns = append(d.ProperNouns, model.ProperNoun{Plugin: f.Plugin, Source: f.Source, Category: f.Rec})
 		case boxNarration, boxSetPhrase:
 			d.Narrations = append(d.Narrations, model.Narration{
 				Source: f.Source, Style: rt.Directive,

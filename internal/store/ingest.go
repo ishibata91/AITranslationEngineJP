@@ -39,12 +39,13 @@ func (s *Store) IngestNarrations(ctx context.Context, rows []model.Narration) (i
 }
 
 // IngestProperNouns は取込段が振り分けた固有名を proper_noun へ一括投入する。実際に追加した件数を返す。
-// UNIQUE(category, source) と INSERT OR IGNORE で同一固有名は 1 つにまとまる（重複排除）。
+// UNIQUE(plugin, category, source) と INSERT OR IGNORE で同一 plugin 内の同一固有名は 1 つにまとまる（plugin 内で重複排除）。
+// 別 plugin の同綴り固有名は別行になる（横断の非共有）。
 func (s *Store) IngestProperNouns(ctx context.Context, rows []model.ProperNoun) (int, error) {
 	return batchInsert(ctx, s, rows, func(tx *sqlx.Tx, r model.ProperNoun) (int64, error) {
 		res, err := tx.ExecContext(ctx,
-			`INSERT OR IGNORE INTO proper_noun (source, category) VALUES (?, ?)`,
-			r.Source, r.Category)
+			`INSERT OR IGNORE INTO proper_noun (plugin, source, category) VALUES (?, ?, ?)`,
+			r.Plugin, r.Source, r.Category)
 		if err != nil {
 			return 0, fmt.Errorf("proper_noun 行の投入: %w", err)
 		}

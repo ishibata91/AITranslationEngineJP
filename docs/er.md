@@ -27,6 +27,7 @@ concept-model の `配置`・`叙述文`・`台詞`・`無訳片` が持つ `レ
 erDiagram
     proper_noun {
         INTEGER id PK
+        TEXT plugin "非共有スコープ"
         TEXT source "原文"
         TEXT category "種別"
         TEXT dest "訳文"
@@ -223,7 +224,7 @@ erDiagram
 
 | テーブル | 概念箱 | カラム | 一意制約 |
 |---|---|---|---|
-| proper_noun | 固有名 | source, category, dest, status | UNIQUE(category, source) |
+| proper_noun | 固有名 | plugin, source, category, dest, status | UNIQUE(plugin, category, source) |
 | narration | 叙述文（＋定型句を収容） | source, dest, status, style, plugin, form_id, edid, rec, field, ordinal | UNIQUE(plugin, form_id, rec, field, ordinal) |
 | line | 台詞 | source, dest, status, response_order, plugin, form_id, edid, rec, field, ordinal | UNIQUE(plugin, form_id, rec, field, ordinal) |
 | speaker | 話者 | speaker_kind, sex, occupation, person, tone, background, race_id(FK e9), voice_type_id(FK e11), template_speaker_id(FK e12), plugin, form_id, edid | UNIQUE(plugin, form_id) |
@@ -236,7 +237,7 @@ erDiagram
 | line_mention | e5 台詞→固有名（言及、0..*→0..*） | line_id, proper_noun_id, master_term_id | 部分 UNIQUE(line_id, proper_noun_id)・(line_id, master_term_id) |
 | narration_described | e3 叙述文→固有名（説明、0..*→0..1） | narration_id, proper_noun_id | PK(narration_id) |
 
-- 正規化の判断: `proper_noun` は `UNIQUE(category, source)` で同綴り異義を種別で分ける（`concept-model.md` 弱点 1）。
+- 正規化の判断: `proper_noun` は `UNIQUE(plugin, category, source)` で plugin スコープの非共有にする。同綴り異義は種別（`category`）で分け（`concept-model.md` 弱点 1）、mod 固有の AI 訳は plugin ごとに別行にして横断共有しない（本文機械置換のノイズと Job 境界の緩みを避ける）。
 - 統合（正規化）: 概念の `定型句` 箱は独立テーブルにせず `narration` へ収容し、`style`（割り当て directive のキー）で文体・定型句を区別する。理由は §4。
 - `proper_noun` は実行内で AI 翻訳した固有名訳を持つ。横断・権威の確定訳は `master_term`（§2）に分ける。
 - 言及（e4/e5）の相手は排他 2 列（`proper_noun_id` / `master_term_id` のどちらか一方だけ非 NULL）で持つ。理由は §5。

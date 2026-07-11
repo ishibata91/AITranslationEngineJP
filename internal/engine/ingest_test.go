@@ -31,6 +31,10 @@ func TestDispatch(t *testing.T) {
 	if len(d.ProperNouns) != 1 || d.ProperNouns[0].Source != "Dragonbane" || d.ProperNouns[0].Category != "WEAP" {
 		t.Errorf("固有名 = %+v, want [Dragonbane/WEAP]", d.ProperNouns)
 	}
+	// 固有名は plugin スコープの非共有のため、取込段が f.Plugin を保持すること。
+	if d.ProperNouns[0].Plugin != "P.esm" {
+		t.Errorf("固有名の plugin = %q, want P.esm", d.ProperNouns[0].Plugin)
+	}
 	if len(d.Narrations) != 2 {
 		t.Fatalf("叙述文・定型句 = %d 件, want 2", len(d.Narrations))
 	}
