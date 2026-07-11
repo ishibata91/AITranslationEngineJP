@@ -39,7 +39,8 @@ func (s *Store) LinesForExport(ctx context.Context, plugin string) ([]model.Line
 
 // ProperNounPlacementsForExport は指定 plugin の固有名を、原文出現位置（extracted_field）へ確定訳（proper_noun）を
 // 結んで返す。box='固有名' の行だけを対象にし、確定訳（status != 0）のあるものだけ返す。
-// 結合キーは LinkNarrationDescribed（叙述文の説明対象解決）と同じ「category = rec かつ source 一致」で、
+// 結合キーは「plugin 一致かつ category = rec かつ source 一致」。proper_noun が plugin スコープの非共有に
+// なったため、pn.plugin = ef.plugin を足して当該 plugin の固有名だけを位置解決する（別 plugin の同綴り訳を混ぜない）。
 // category を rec で絞るため同綴り異義（人名と地名など）を取り違えない。box 判定は record_type_master を rec・field で引く。
 func (s *Store) ProperNounPlacementsForExport(ctx context.Context, plugin string) ([]model.ProperNounPlacement, error) {
 	var rows []model.ProperNounPlacement
@@ -49,7 +50,7 @@ func (s *Store) ProperNounPlacementsForExport(ctx context.Context, plugin string
 		 JOIN record_type_master rtm
 		   ON rtm.rec = ef.rec AND rtm.field = ef.field AND rtm.box = '固有名'
 		 JOIN proper_noun pn
-		   ON pn.category = ef.rec AND pn.source = ef.source
+		   ON pn.plugin = ef.plugin AND pn.category = ef.rec AND pn.source = ef.source
 		 WHERE ef.plugin = ? AND pn.status != 0
 		 ORDER BY ef.form_id, ef.rec, ef.field, ef.ordinal`, plugin); err != nil {
 		return nil, fmt.Errorf("書き出し用 固有名の位置解決: %w", err)

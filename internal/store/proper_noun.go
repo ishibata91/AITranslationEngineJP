@@ -8,7 +8,7 @@ import (
 )
 
 // properNounColumns は proper_noun の SELECT 列。model.ProperNoun の db タグと対応する。
-const properNounColumns = `id, source, category, dest, status`
+const properNounColumns = `id, plugin, source, category, dest, status`
 
 // ListProperNouns は固有名の訳の単位を全件返す。本文フェーズの機械置換辞書（master_term と合流）に使う。
 func (s *Store) ListProperNouns(ctx context.Context) ([]model.ProperNoun, error) {
