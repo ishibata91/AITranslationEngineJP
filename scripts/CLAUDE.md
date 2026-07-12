@@ -10,13 +10,13 @@
 - `npm run lint:backend:arch` — import 方向の検査（`.go-arch-lint.yml`、architecture.md §4）。
 - `npm run lint:backend:boundary` — 境界違反走査。arch-lint で表せない責務違反（Wails runtime handle の漏れ、SQLite driver の漏れ）を検出する。
 - `npm run test:frontend` / `npm run lint:frontend` — frontend のテストと lint（`frontend/` 配下へ委譲）。
-- `npm run dev:wails:run` — 実 app を dev 起動する。実画面確認の既定。起動ごとに中心 DB を空から始める。
+- `npm run dev:wails:run` — 実 app を dev 起動する。実画面確認の既定。中心 DB は起動をまたいで持ち越し、やり直しは翻訳対象プラグイン画面の削除で行う（translation-persistence 以降、起動時の DB 全消去は廃止）。
 
 純粋ルールの 100% は `go test -cover` の手元確認で見る。常設の coverage ゲートは持たない。
 
 ## スクリプト構成（直下1段）
 
-- `dev/run-wails.sh` — 実 app の dev 起動。devserver ポートの既存 process を停止し、中心 DB を消してから `wails dev` を起動する。
+- `dev/run-wails.sh` — 実 app の dev 起動。devserver ポートの既存 process を停止して `wails dev` を起動する。中心 DB は消さず持ち越す（C# 抽出器は SchemaMigrator が user_version で schema を 1 度だけ適用する）。
 - `lint/run-go-backend-lint.sh` — backend lint の入口（`format-check`・`vet`・`static`・`arch`・`boundary`・`module`）。
 - `lint/run-boundary-scan.sh` — 境界違反走査の本体。禁止 import を層ごとに固定し、許可層以外での出現を検出する。
 - `test/run-go-backend-test.sh` — backend の `go test`。

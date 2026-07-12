@@ -41,6 +41,10 @@
 
 - 正本化判断: `docs/architecture.md` 反映は **不要**。層・依存・Wails 境界は不変（新 package 無し、追加は既存 `internal/store`・`internal/api` 内、C# `SchemaMigrator` は extractor tool 内、frontend ルーティングは既存構造内）。Wails Bind への 2 メソッド追加と `ListResultsPage` 署名変更は公開面の追加で、境界構造の変化ではない。人間承認済みの恒久仕様のうち architecture.md へ反映すべきものは無い。
 - er.md 同期: データモデル追加のため `docs/er.md` §2（実装・運用テーブル）へ `target_plugin` を feature commit で追加した（memory `feedback-er-conceptmodel-reflection-routing` の分担に従う。concept-model 対応 §へは足さない）。
+- doc 同期: `scripts/CLAUDE.md` の「起動ごとに中心 DB を空から始める」記述を flush 廃止後の実態（持ち越し・削除でやり直し）へ修正した。
+- 作業 commit: `84d3f7a5`（branch `claude/translation-persistence`）。無関係な pending 変更（`README`・`known-issues`・`roadmap`・`gemini-xai-batch-translation`）は別件のため本 commit に含めない。
+- local merge: `git merge --no-ff` で `master` へ統合、merge commit `3bffc62e`、conflict 無し。
+- merge 後検証: `master` 上で `verify:backend`（go test 全パッケージ・arch・boundary）・frontend lint・C# テスト 20 件、すべて通過。
 
 ## 実装と検証（implementation-module、2026-07-12）
 
