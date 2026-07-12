@@ -57,13 +57,18 @@ type fakePageStore struct {
 	propers    []model.ProperNoun
 }
 
-func (f *fakePageStore) CountNarrations(_ context.Context) (int, error) {
+// plugin フィルタは pageRows の cursor 境界ロジック確認には使わないため無視する（呼び出しは "" を渡す）。
+func (f *fakePageStore) CountNarrations(_ context.Context, _ string) (int, error) {
 	return len(f.narrations), nil
 }
-func (f *fakePageStore) CountLines(_ context.Context) (int, error)       { return len(f.lines), nil }
-func (f *fakePageStore) CountProperNouns(_ context.Context) (int, error) { return len(f.propers), nil }
+func (f *fakePageStore) CountLines(_ context.Context, _ string) (int, error) {
+	return len(f.lines), nil
+}
+func (f *fakePageStore) CountProperNouns(_ context.Context, _ string) (int, error) {
+	return len(f.propers), nil
+}
 
-func (f *fakePageStore) NarrationsAfter(_ context.Context, afterID int64, limit int) ([]model.Narration, error) {
+func (f *fakePageStore) NarrationsAfter(_ context.Context, _ string, afterID int64, limit int) ([]model.Narration, error) {
 	var out []model.Narration
 	for _, n := range f.narrations {
 		if n.ID > afterID {
@@ -76,7 +81,7 @@ func (f *fakePageStore) NarrationsAfter(_ context.Context, afterID int64, limit 
 	return out, nil
 }
 
-func (f *fakePageStore) LinesAfter(_ context.Context, afterID int64, limit int) ([]model.Line, error) {
+func (f *fakePageStore) LinesAfter(_ context.Context, _ string, afterID int64, limit int) ([]model.Line, error) {
 	var out []model.Line
 	for _, l := range f.lines {
 		if l.ID > afterID {
@@ -89,7 +94,7 @@ func (f *fakePageStore) LinesAfter(_ context.Context, afterID int64, limit int) 
 	return out, nil
 }
 
-func (f *fakePageStore) ProperNounsAfter(_ context.Context, afterID int64, limit int) ([]model.ProperNoun, error) {
+func (f *fakePageStore) ProperNounsAfter(_ context.Context, _ string, afterID int64, limit int) ([]model.ProperNoun, error) {
 	var out []model.ProperNoun
 	for _, p := range f.propers {
 		if p.ID > afterID {
@@ -101,6 +106,13 @@ func (f *fakePageStore) ProperNounsAfter(_ context.Context, afterID int64, limit
 	}
 	return out, nil
 }
+
+// 翻訳対象プラグインの CRUD は pageRows テストで未使用のスタブ（interface を満たすためだけ）。
+func (f *fakePageStore) UpsertTargetPlugin(_ context.Context, _, _ string) error { return nil }
+func (f *fakePageStore) ListTargetPlugins(_ context.Context) ([]model.TargetPlugin, error) {
+	return nil, nil
+}
+func (f *fakePageStore) DeleteTargetPlugin(_ context.Context, _ string) error { return nil }
 
 // pageRows の cursor 境界ロジックだけを確かめる fake のため、テンプレート・directive CRUD は未使用のスタブにする。
 func (f *fakePageStore) GetPromptTemplate(_ context.Context) (model.PromptTemplate, error) {
@@ -162,7 +174,7 @@ func TestPageRowsWalk(t *testing.T) {
 	cursor := ""
 	pages := 0
 	for {
-		narrations, lines, _, total, next, hasMore, err := app.pageRows(context.Background(), cursor, 2)
+		narrations, lines, _, total, next, hasMore, err := app.pageRows(context.Background(), "", cursor, 2)
 		if err != nil {
 			t.Fatalf("pageRows: %v", err)
 		}
@@ -201,7 +213,7 @@ func TestPageRowsCrossBoundary(t *testing.T) {
 		lines:      linesWithIDs(1, 2, 3, 4, 5),
 	}}
 
-	narrations, lines, _, _, next, hasMore, err := app.pageRows(context.Background(), "n:2", 2)
+	narrations, lines, _, _, next, hasMore, err := app.pageRows(context.Background(), "", "n:2", 2)
 	if err != nil {
 		t.Fatalf("pageRows: %v", err)
 	}
@@ -226,7 +238,7 @@ func TestPageRowsNarrationsExactlyFill(t *testing.T) {
 		lines:      linesWithIDs(1, 2, 3),
 	}}
 
-	narrations, lines, _, total, next, hasMore, err := app.pageRows(context.Background(), "", 2)
+	narrations, lines, _, total, next, hasMore, err := app.pageRows(context.Background(), "", "", 2)
 	if err != nil {
 		t.Fatalf("pageRows: %v", err)
 	}
@@ -244,7 +256,7 @@ func TestPageRowsNarrationsExactlyFill(t *testing.T) {
 	}
 
 	// 続く l:0 から台詞先頭が取れること。
-	_, lines2, _, _, _, _, err := app.pageRows(context.Background(), next, 2)
+	_, lines2, _, _, _, _, err := app.pageRows(context.Background(), "", next, 2)
 	if err != nil {
 		t.Fatalf("pageRows(l:0): %v", err)
 	}
@@ -257,7 +269,7 @@ func TestPageRowsNarrationsExactlyFill(t *testing.T) {
 func TestPageRowsEmpty(t *testing.T) {
 	app := &App{store: &fakePageStore{}}
 
-	narrations, lines, propers, total, next, hasMore, err := app.pageRows(context.Background(), "", 2)
+	narrations, lines, propers, total, next, hasMore, err := app.pageRows(context.Background(), "", "", 2)
 	if err != nil {
 		t.Fatalf("pageRows: %v", err)
 	}
@@ -280,7 +292,7 @@ func TestPageRowsProperNounSection(t *testing.T) {
 	var got []string
 	cursor := ""
 	for pages := 0; ; pages++ {
-		narrations, lines, propers, total, next, hasMore, err := app.pageRows(context.Background(), cursor, 2)
+		narrations, lines, propers, total, next, hasMore, err := app.pageRows(context.Background(), "", cursor, 2)
 		if err != nil {
 			t.Fatalf("pageRows: %v", err)
 		}

@@ -52,7 +52,9 @@ func (s *Store) InsertLineMentions(ctx context.Context, rows []model.LineMention
 
 // LinkNarrationDescribed は叙述文の説明対象（e3）を narration_described へ解決する。追加できた件数を返す。
 // 説明対象は「同一レコード（plugin, form_id, rec）の FULL に載る固有名」で、box='叙述文' の行だけが持つ
-// （定型句は説明対象を持たない）。extracted_field の FULL を proper_noun (category, source) へ結んで導く。
+// （定型句は説明対象を持たない）。extracted_field の FULL を proper_noun (plugin, category, source) へ結んで導く。
+// proper_noun が plugin スコープの非共有になったため、pn.plugin = ef.plugin を足して当該 plugin の固有名だけへ結ぶ
+// （別 plugin の同綴り訳を混ぜない。export.go の ProperNounPlacementsForExport と同じ理由）。
 // PRIMARY KEY(narration_id) と INSERT OR IGNORE で叙述文 1 件あたり 0..1 に保ち、再実行でも冪等。
 // SELECT の順序を固定し、万一 FULL が複数あっても先勝ちが決定的になるようにする。
 func (s *Store) LinkNarrationDescribed(ctx context.Context) (int, error) {
@@ -65,7 +67,7 @@ func (s *Store) LinkNarrationDescribed(ctx context.Context) (int, error) {
 		 JOIN extracted_field ef
 		   ON ef.plugin = n.plugin AND ef.form_id = n.form_id AND ef.rec = n.rec AND ef.field = 'FULL'
 		 JOIN proper_noun pn
-		   ON pn.category = ef.rec AND pn.source = ef.source
+		   ON pn.plugin = ef.plugin AND pn.category = ef.rec AND pn.source = ef.source
 		 ORDER BY n.id, ef.ordinal, pn.id`)
 	if err != nil {
 		return 0, fmt.Errorf("narration_described の解決: %w", err)

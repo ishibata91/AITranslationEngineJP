@@ -89,6 +89,8 @@
       "src/ui/screens/translation-run/translation-run.fixtures.ts",
       "src/ui/screens/translation-run/TranslationRunNavPreview.svelte",
       "src/ui/screens/template-editor/template-editor.fixtures.ts",
+      "src/ui/screens/target-plugins/target-plugins.fixtures.ts",
+      "src/ui/screens/target-plugins/TargetPluginsNavPreview.svelte",
       "src/application/diagnostic/frontend-diagnostic-logger.ts",
       "src/application/diagnostic/index.ts",
       "src/ui/stores/shell-state.ts",

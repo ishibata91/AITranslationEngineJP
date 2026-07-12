@@ -13,16 +13,12 @@ namespace Extractor;
 public static class SpeakerSqliteWriter
 {
     // dbPath の SQLite に schema を ensure し、話者属性と INFO→speaker の橋渡しを書く。書いた橋渡し行数を返す。
-    public static int Write(string dbPath, string schemaSql, ExtractionResult result, ILinkCache linkCache)
+    public static int Write(string dbPath, string migrationsDir, ExtractionResult result, ILinkCache linkCache)
     {
         using var conn = new SqliteConnection($"Data Source={dbPath}");
         conn.Open();
 
-        using (var ddl = conn.CreateCommand())
-        {
-            ddl.CommandText = schemaSql;
-            ddl.ExecuteNonQuery();
-        }
+        SchemaMigrator.Ensure(conn, migrationsDir);
 
         using var tx = conn.BeginTransaction();
         var w = new Writer(conn, tx, result.TargetPlugin);

@@ -30,16 +30,25 @@ func (s *Store) ListUntranslatedProperNouns(ctx context.Context) ([]model.Proper
 	return rows, nil
 }
 
-// CountProperNouns は固有名の総件数を返す（結果一覧の総件数表示用）。
-func (s *Store) CountProperNouns(ctx context.Context) (int, error) {
-	return s.count(ctx, `SELECT COUNT(*) FROM proper_noun`)
+// CountProperNouns は固有名の総件数を返す（結果一覧の総件数表示用）。plugin が空でなければその対象 plugin に絞る。
+func (s *Store) CountProperNouns(ctx context.Context, plugin string) (int, error) {
+	if plugin == "" {
+		return s.count(ctx, `SELECT COUNT(*) FROM proper_noun`)
+	}
+	return s.count(ctx, `SELECT COUNT(*) FROM proper_noun WHERE plugin = ?`, plugin)
 }
 
 // ProperNounsAfter は id が afterID より大きい固有名を id 昇順で最大 limit 件返す（keyset ページング用）。
-func (s *Store) ProperNounsAfter(ctx context.Context, afterID int64, limit int) ([]model.ProperNoun, error) {
+// plugin が空でなければその対象 plugin の行だけに絞る（空なら全 plugin）。
+func (s *Store) ProperNounsAfter(ctx context.Context, plugin string, afterID int64, limit int) ([]model.ProperNoun, error) {
 	var rows []model.ProperNoun
-	if err := s.db.SelectContext(ctx, &rows,
-		`SELECT `+properNounColumns+` FROM proper_noun WHERE id > ? ORDER BY id LIMIT ?`, afterID, limit); err != nil {
+	query := `SELECT ` + properNounColumns + ` FROM proper_noun WHERE id > ? ORDER BY id LIMIT ?`
+	args := []any{afterID, limit}
+	if plugin != "" {
+		query = `SELECT ` + properNounColumns + ` FROM proper_noun WHERE plugin = ? AND id > ? ORDER BY id LIMIT ?`
+		args = []any{plugin, afterID, limit}
+	}
+	if err := s.db.SelectContext(ctx, &rows, query, args...); err != nil {
 		return nil, fmt.Errorf("proper_noun ページの取得: %w", err)
 	}
 	return rows, nil

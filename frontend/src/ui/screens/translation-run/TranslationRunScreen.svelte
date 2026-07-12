@@ -4,7 +4,6 @@
   import StatusBadge from "@ui/components/StatusBadge.svelte"
   import TextField from "@ui/components/TextField.svelte"
   import SelectField from "@ui/components/SelectField.svelte"
-  import FileSelectField from "@ui/components/FileSelectField.svelte"
   import ResultsPanel from "./ResultsPanel.svelte"
   import TranslationProgress from "./TranslationProgress.svelte"
   import { PROVIDER_FIELDS, PHASE_PRESENTATION } from "./translation-run-presentation"
@@ -31,9 +30,6 @@
     // 結果一覧のページング表示値。未指定なら単一ページ（前後無効）として扱う。
     paging?: ResultsPaging
     onFieldInput: (field: TranslationRunFormField, value: string) => void
-    onSelectPlugin: () => void
-    // plugin パスの直接入力。ネイティブダイアログに加え、パスを手で入れて実行できるようにする。
-    onPluginPathInput: (value: string) => void
     onLoadModels: () => void
     onRun: () => void
     // ページ送り操作。state は container が持つ。
@@ -56,8 +52,6 @@
     progress,
     paging,
     onFieldInput,
-    onSelectPlugin,
-    onPluginPathInput,
     onLoadModels,
     onRun,
     onPagePrev = () => {},
@@ -65,19 +59,25 @@
     onExportXml = () => {},
     exporting = false
   }: Props = $props()
+
+  // 翻訳対象のプラグイン名（フルパスの末尾）。選択は翻訳対象プラグイン画面で行い、ここは表示専用。
+  const pluginName = $derived.by(() => {
+    const segments = form.pluginPath.split(/[\\/]/)
+    return segments[segments.length - 1] ?? ""
+  })
 </script>
 
 <div class="min-h-screen w-full px-6 py-12 flex justify-center">
   <section class="w-full max-w-4xl flex flex-col gap-8" aria-labelledby="screen-title">
     <header class="flex flex-col gap-3">
-      <span class="u-mono text-xs tracking-[0.32em] uppercase text-accent">
-        Skyrim mod translation
+      <span class="u-mono text-xs tracking-[0.32em] text-accent">
+        翻訳の実行
       </span>
       <h1 id="screen-title" class="u-display text-4xl font-semibold text-base-content">
         翻訳実行
       </h1>
       <p class="max-w-2xl text-base-content/70 leading-relaxed">
-        plugin を選んで叙述文を抽出し、AI 翻訳を実行して、原文と訳文を 1 つの画面で確かめます。
+        選んだプラグインを AI 翻訳し、原文と訳文を 1 つの画面で確かめます。翻訳対象は翻訳対象プラグイン画面で選びます。
       </p>
       <div
         class="h-px w-full bg-gradient-to-r from-transparent via-primary/50 to-transparent"
@@ -90,16 +90,14 @@
           <h2 class="u-display text-sm tracking-widest uppercase text-base-content/60">
             翻訳対象
           </h2>
-          <FileSelectField
-            label="plugin"
-            buttonLabel="plugin を選択"
-            path={form.pluginPath}
-            placeholder="/path/to/Data/Mod.esp"
-            emptyText="plugin ファイルが未選択です。"
-            hint="master と Strings がある Data フォルダ内の plugin を選ぶか、フルパスを直接入力します。Data フォルダはこのファイルの場所から判断します。"
-            onSelect={onSelectPlugin}
-            onPathInput={onPluginPathInput}
-          />
+          {#if form.pluginPath.length > 0}
+            <div class="flex flex-col gap-1">
+              <span class="u-mono text-sm text-base-content">{pluginName}</span>
+              <span class="u-mono text-xs text-base-content/45 truncate">{form.pluginPath}</span>
+            </div>
+          {:else}
+            <span class="text-base-content/45">翻訳対象プラグインが選ばれていません。</span>
+          {/if}
         </div>
 
         <div class="flex flex-col gap-4">

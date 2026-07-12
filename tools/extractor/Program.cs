@@ -50,22 +50,21 @@ Console.WriteLine($"[extract] {plugin} を {sw.ElapsedMilliseconds} ms で抽出
 if (sqlitePath != null)
 {
     // 中心 DB（SQLite）へ翻訳対象を書く。schema は db/migrations の SQL を ensure する（C#↔Go 契約 1 本）。
+    // 適用は SchemaMigrator が user_version で 1 度だけ行い、適用済み migration（0009 の作り直し等）を毎抽出で再実行しない。
     var dir = schemaDir ?? FindSchemaDir();
-    var schemaSql = string.Join("\n",
-        Directory.GetFiles(dir, "*.sql").OrderBy(p => p, StringComparer.Ordinal).Select(File.ReadAllText));
     // 全 REC:FIELD の原文を extracted_field へ素朴に書く（箱・directive の判定は持たない）。
     // 箱の振り分けは Go 取込段が record_type_master を引いて narration/proper_noun/line へ行う。
-    var written = ExtractedFieldSqliteWriter.Write(sqlitePath, schemaSql, result);
+    var written = ExtractedFieldSqliteWriter.Write(sqlitePath, dir, result);
     Console.WriteLine($"[sqlite] extracted_field {written} 件を {sqlitePath} へ書き込み（{sw.ElapsedMilliseconds} ms）");
 
     // 台詞の話者属性と INFO→speaker の橋渡し。話者は master 側 NPC を LinkCache で解決して書く。
     // 台詞本文は extracted_field 側に入り、line 行と line_speaker は Go 取込段が作る。
-    var linkCount = SpeakerSqliteWriter.Write(sqlitePath, schemaSql, result, env.LinkCache);
+    var linkCount = SpeakerSqliteWriter.Write(sqlitePath, dir, result, env.LinkCache);
     Console.WriteLine($"[sqlite] 話者属性と INFO→speaker 橋渡し {linkCount} 件を {sqlitePath} へ書き込み（{sw.ElapsedMilliseconds} ms）");
 
     // INFO の条件から導いた性別（汎用台詞の一人称・語尾の根拠）を書く。話者解決の有無に依らず性別を定められる INFO を書き、
     // line 行は Go 取込段が作るため安定キー（INFO の plugin・form_id）で一時保持する（line_condition へ Go 取込段が解決する）。
-    var condCount = InfoConditionSqliteWriter.Write(sqlitePath, schemaSql, env, result.TargetPlugin);
+    var condCount = InfoConditionSqliteWriter.Write(sqlitePath, dir, env, result.TargetPlugin);
     Console.WriteLine($"[sqlite] INFO→条件由来の性別 {condCount} 件を {sqlitePath} へ書き込み（{sw.ElapsedMilliseconds} ms）");
 
     // T3 の固有名辞書（master_term）。xTranslator 英日辞書 XML（公式日本語版既訳）から FULL を読み、
@@ -75,7 +74,7 @@ if (sqlitePath != null)
     if (Directory.Exists(xmlDir))
     {
         var termXmls = Directory.GetFiles(xmlDir, "*.xml");
-        var termCount = MasterTermXmlWriter.Write(sqlitePath, schemaSql, termXmls);
+        var termCount = MasterTermXmlWriter.Write(sqlitePath, dir, termXmls);
         Console.WriteLine($"[sqlite] master_term {termCount} 件を {termXmls.Length} 個の XML から {sqlitePath} へ書き込み（{sw.ElapsedMilliseconds} ms）");
     }
     else

@@ -22,12 +22,8 @@ public class SpeakerSqliteWriterTests
         return dir!.FullName;
     }
 
-    private static string Schema()
-    {
-        var migrations = Path.Combine(RepoRoot(), "db", "migrations");
-        return string.Join("\n",
-            Directory.GetFiles(migrations, "*.sql").OrderBy(p => p, StringComparer.Ordinal).Select(File.ReadAllText));
-    }
+    // migrations ディレクトリ。Writer が SchemaMigrator で ensure する。
+    private static string MigrationsDir() => Path.Combine(RepoRoot(), "db", "migrations");
 
     private static ILinkCache EmptyLinkCache()
         => new SkyrimMod(ModKey.FromFileName("Empty.esm"), SkyrimRelease.SkyrimSE).ToImmutableLinkCache();
@@ -64,7 +60,7 @@ public class SpeakerSqliteWriterTests
         try
         {
             // 空 LinkCache では話者 NPC を解決できない（info.SpeakerIds も空）。橋渡し 0 件で落ちないこと。
-            var count = SpeakerSqliteWriter.Write(dbPath, Schema(), WithInfo("InfoA", 0x800, "Hello.", "Goodbye."), EmptyLinkCache());
+            var count = SpeakerSqliteWriter.Write(dbPath, MigrationsDir(), WithInfo("InfoA", 0x800, "Hello.", "Goodbye."), EmptyLinkCache());
             Assert.Equal(0, count);
 
             using var conn = new SqliteConnection($"Data Source={dbPath}");
@@ -85,8 +81,8 @@ public class SpeakerSqliteWriterTests
         var dbPath = Path.Combine(Path.GetTempPath(), $"sp-{Guid.NewGuid():N}.sqlite3");
         try
         {
-            SpeakerSqliteWriter.Write(dbPath, Schema(), WithInfo("InfoA", 0x800, "Hello."), EmptyLinkCache());
-            SpeakerSqliteWriter.Write(dbPath, Schema(), WithInfo("InfoA", 0x800, "Hello."), EmptyLinkCache());
+            SpeakerSqliteWriter.Write(dbPath, MigrationsDir(), WithInfo("InfoA", 0x800, "Hello."), EmptyLinkCache());
+            SpeakerSqliteWriter.Write(dbPath, MigrationsDir(), WithInfo("InfoA", 0x800, "Hello."), EmptyLinkCache());
 
             using var conn = new SqliteConnection($"Data Source={dbPath}");
             conn.Open();

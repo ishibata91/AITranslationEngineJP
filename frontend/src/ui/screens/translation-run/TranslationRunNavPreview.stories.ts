@@ -3,9 +3,9 @@ import TranslationRunNavPreview from "./TranslationRunNavPreview.svelte"
 
 // 翻訳実行画面の最上部に画面間ナビゲーションが乗った状態。
 // 翻訳実行からプロンプトテンプレート編集へ飛ぶ導線を、画面の文脈で確認する。
-// 作業中分類（Review/Changed Screens）に置く。承認後に Screens へ戻す。
+// Storybook 人間レビュー承認済み（通常分類 Screens）。
 const meta = {
-  title: "Review/Changed Screens/翻訳実行（ナビ付き）",
+  title: "Screens/翻訳実行（ナビ付き）",
   component: TranslationRunNavPreview,
   parameters: { layout: "fullscreen" }
 } satisfies Meta<typeof TranslationRunNavPreview>

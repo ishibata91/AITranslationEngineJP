@@ -11,7 +11,8 @@ import {
   ERROR_STATE
 } from "./translation-run.fixtures"
 
-// Storybook 人間レビュー承認済み。通常分類（Screens）に置く。
+// プラグイン選択を外し、翻訳対象プラグイン画面へ移した実行・結果画面。翻訳対象は読み取り専用表示。
+// Storybook 人間レビュー承認済み（通常分類 Screens）。
 const meta = {
   title: "Screens/翻訳実行",
   component: TranslationRunScreen,
@@ -20,8 +21,6 @@ const meta = {
   },
   args: {
     onFieldInput: () => {},
-    onSelectPlugin: () => {},
-    onPluginPathInput: () => {},
     onLoadModels: () => {},
     onRun: () => {},
     onPagePrev: () => {},
