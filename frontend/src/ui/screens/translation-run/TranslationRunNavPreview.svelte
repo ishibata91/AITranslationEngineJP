@@ -18,8 +18,6 @@
   <TranslationRunScreen
     {...DONE_PERSONA_STATE}
     onFieldInput={noop}
-    onSelectPlugin={noop}
-    onPluginPathInput={noop}
     onLoadModels={noop}
     onRun={noop}
     onPagePrev={noop}

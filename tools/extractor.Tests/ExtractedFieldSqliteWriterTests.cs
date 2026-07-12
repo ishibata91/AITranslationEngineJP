@@ -18,13 +18,8 @@ public class ExtractedFieldSqliteWriterTests
         return dir!.FullName;
     }
 
-    // 全 migration を結合した schema（extracted_field は 0006）。
-    private static string Schema()
-    {
-        var migrations = Path.Combine(RepoRoot(), "db", "migrations");
-        return string.Join("\n",
-            Directory.GetFiles(migrations, "*.sql").OrderBy(p => p, StringComparer.Ordinal).Select(File.ReadAllText));
-    }
+    // migrations ディレクトリ（extracted_field は 0006）。Writer が SchemaMigrator で ensure する。
+    private static string MigrationsDir() => Path.Combine(RepoRoot(), "db", "migrations");
 
     private static ExtractionResult WithBook(string edid, uint id, string title, string body, string author)
     {
@@ -47,7 +42,7 @@ public class ExtractedFieldSqliteWriterTests
         var dbPath = Path.Combine(Path.GetTempPath(), $"ef-{Guid.NewGuid():N}.sqlite3");
         try
         {
-            var written = ExtractedFieldSqliteWriter.Write(dbPath, Schema(),
+            var written = ExtractedFieldSqliteWriter.Write(dbPath, MigrationsDir(),
                 WithBook("TestBook", 0x800, "Lusty Argonian Maid", "Ancient Nord prose", "Crassius Curio"));
             Assert.Equal(3, written); // FULL + DESC + CNAM
 
@@ -99,7 +94,7 @@ public class ExtractedFieldSqliteWriterTests
         var dbPath = Path.Combine(Path.GetTempPath(), $"ef-{Guid.NewGuid():N}.sqlite3");
         try
         {
-            var written = ExtractedFieldSqliteWriter.Write(dbPath, Schema(), result);
+            var written = ExtractedFieldSqliteWriter.Write(dbPath, MigrationsDir(), result);
             Assert.Equal(3, written);
 
             using var conn = new SqliteConnection($"Data Source={dbPath}");
@@ -130,8 +125,8 @@ public class ExtractedFieldSqliteWriterTests
         try
         {
             var r = WithBook("TestBook", 0x800, "Title", "prose", "Author");
-            ExtractedFieldSqliteWriter.Write(dbPath, Schema(), r);
-            ExtractedFieldSqliteWriter.Write(dbPath, Schema(), r);
+            ExtractedFieldSqliteWriter.Write(dbPath, MigrationsDir(), r);
+            ExtractedFieldSqliteWriter.Write(dbPath, MigrationsDir(), r);
 
             using var conn = new SqliteConnection($"Data Source={dbPath}");
             conn.Open();

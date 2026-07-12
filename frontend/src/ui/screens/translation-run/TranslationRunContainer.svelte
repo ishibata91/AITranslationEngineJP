@@ -12,7 +12,6 @@
     ResultsPaging
   } from "./translation-run-view"
   import {
-    selectPluginFile,
     fetchModels,
     runExtractAndTranslate,
     listResultsPage,
@@ -23,7 +22,10 @@
   // 結果一覧は keyset cursor ページングで 1 ページずつ取得する。1 ページの件数。
   const PAGE_SIZE = 50
 
-  let pluginPath = $state("")
+  // 翻訳対象のプラグインは翻訳対象プラグイン画面で選び、ルーティングで渡される。ここは受け取るだけ。
+  let { pluginPath = "" }: { pluginPath?: string } = $props()
+  // 結果一覧を絞る対象 plugin 名（フルパスの末尾）。backend の plugin 列（filepath.Base）と一致させる。
+  const pluginName = $derived(pluginPath.split(/[\\/]/).pop() ?? "")
   let endpoint = $state("http://127.0.0.1:1234")
   let apiKey = $state("")
   let model = $state("")
@@ -56,9 +58,9 @@
     canNext: hasMore
   })
 
-  // 指定 cursor のページを取得して現在ページへ反映する。
+  // 指定 cursor のページを取得して現在ページへ反映する。結果は選択中の plugin に絞る。
   async function loadPage(cursor: string) {
-    const page = await listResultsPage(cursor, PAGE_SIZE)
+    const page = await listResultsPage(pluginName, cursor, PAGE_SIZE)
     results = page.results
     total = page.total
     nextCursor = page.nextCursor
@@ -101,21 +103,6 @@
     if (field === "endpoint") endpoint = value
     else if (field === "apiKey") apiKey = value
     else if (field === "model") model = value
-  }
-
-  async function onSelectPlugin() {
-    try {
-      const path = await selectPluginFile()
-      if (path.length > 0) pluginPath = path
-    } catch (error) {
-      errorMessage = messageOf(error)
-      phase = "error"
-    }
-  }
-
-  // plugin パスの直接入力。ネイティブダイアログを使わず手でパスを入れて実行できるようにする。
-  function onPluginPathInput(value: string) {
-    pluginPath = value
   }
 
   async function onLoadModels() {
@@ -197,8 +184,6 @@
   {paging}
   {errorMessage}
   {onFieldInput}
-  {onSelectPlugin}
-  {onPluginPathInput}
   {onLoadModels}
   {onRun}
   {onPagePrev}

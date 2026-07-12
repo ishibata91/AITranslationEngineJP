@@ -100,7 +100,8 @@ func TestLinkNarrationDescribed(t *testing.T) {
 	// 同一レコード（P.esp/0x01 WEAP）の FULL（固有名）と DESC（叙述文）。この対だけが結ばれる。
 	execSQL(t, dbPath, `INSERT INTO extracted_field (plugin, form_id, edid, rec, field, ordinal, source)
 		VALUES ('P.esp', '0x01', 'Sword1', 'WEAP', 'FULL', 0, 'Dragonbane')`)
-	execSQL(t, dbPath, `INSERT INTO proper_noun (source, category) VALUES ('Dragonbane', 'WEAP')`)
+	// proper_noun.plugin は取込段が extracted_field.plugin を写す。位置解決は同一 plugin 内で結ぶ。
+	execSQL(t, dbPath, `INSERT INTO proper_noun (plugin, source, category) VALUES ('P.esp', 'Dragonbane', 'WEAP')`)
 	insertNarration(t, dbPath, model.Narration{
 		Plugin: "P.esp", FormID: "0x01", EDID: "Sword1",
 		Rec: "WEAP", Field: "DESC", Ordinal: 0, Source: "A blade of legend.", Status: 0,
@@ -108,7 +109,7 @@ func TestLinkNarrationDescribed(t *testing.T) {
 	// 定型句（ACTI:RNAM）は同一レコードに FULL（固有名）があっても説明対象を持たない。
 	execSQL(t, dbPath, `INSERT INTO extracted_field (plugin, form_id, edid, rec, field, ordinal, source)
 		VALUES ('P.esp', '0x02', 'Door1', 'ACTI', 'FULL', 0, 'Old Door')`)
-	execSQL(t, dbPath, `INSERT INTO proper_noun (source, category) VALUES ('Old Door', 'ACTI')`)
+	execSQL(t, dbPath, `INSERT INTO proper_noun (plugin, source, category) VALUES ('P.esp', 'Old Door', 'ACTI')`)
 	insertNarration(t, dbPath, model.Narration{
 		Plugin: "P.esp", FormID: "0x02", EDID: "Door1",
 		Rec: "ACTI", Field: "RNAM", Ordinal: 0, Source: "Open", Status: 0,

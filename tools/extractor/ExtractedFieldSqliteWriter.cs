@@ -11,16 +11,12 @@ public static class ExtractedFieldSqliteWriter
     // dbPath の SQLite に schema を ensure し、翻訳対象文字列を extracted_field へ UPSERT する。書いた行数を返す。
     // 同一 (form_id, rec, field) に複数値が出るフィールド（INFO:NAM1 の応答、QUST:CNAM のログ、MESG:ITXT のボタン、
     // FACT:MNAM/FNAM の階級）には出現順で ordinal を採番し、一意キーの衝突を避ける。
-    public static int Write(string dbPath, string schemaSql, ExtractionResult result)
+    public static int Write(string dbPath, string migrationsDir, ExtractionResult result)
     {
         using var conn = new SqliteConnection($"Data Source={dbPath}");
         conn.Open();
 
-        using (var ddl = conn.CreateCommand())
-        {
-            ddl.CommandText = schemaSql;
-            ddl.ExecuteNonQuery();
-        }
+        SchemaMigrator.Ensure(conn, migrationsDir);
 
         using var tx = conn.BeginTransaction();
         using var cmd = conn.CreateCommand();

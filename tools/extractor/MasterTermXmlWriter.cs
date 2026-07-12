@@ -12,16 +12,12 @@ public static class MasterTermXmlWriter
     private readonly record struct Term(string Source, string Dest, string Category);
 
     // 与えた XML 群から固有名の対を読み、master_term へ UPSERT する。書いた行数を返す。
-    public static int Write(string dbPath, string schemaSql, IEnumerable<string> xmlPaths)
+    public static int Write(string dbPath, string migrationsDir, IEnumerable<string> xmlPaths)
     {
         using var conn = new SqliteConnection($"Data Source={dbPath}");
         conn.Open();
 
-        using (var ddl = conn.CreateCommand())
-        {
-            ddl.CommandText = schemaSql;
-            ddl.ExecuteNonQuery();
-        }
+        SchemaMigrator.Ensure(conn, migrationsDir);
 
         using var tx = conn.BeginTransaction();
         using var cmd = conn.CreateCommand();

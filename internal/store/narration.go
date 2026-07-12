@@ -48,13 +48,20 @@ func (s *Store) ListUntranslatedNarrations(ctx context.Context) ([]model.Narrati
 
 // NarrationsAfter は id が afterID より大きい叙述文を id 昇順で最大 limit 件返す（keyset ページング用）。
 // afterID=0 で先頭から、最後に読んだ id を次回 afterID に渡して次ページを得る。
-func (s *Store) NarrationsAfter(ctx context.Context, afterID int64, limit int) ([]model.Narration, error) {
-	return s.queryNarrations(ctx, `SELECT `+narrationColumns+` FROM narration WHERE id > ? ORDER BY id LIMIT ?`, afterID, limit)
+// plugin が空でなければその対象 plugin の行だけに絞る（空なら全 plugin）。
+func (s *Store) NarrationsAfter(ctx context.Context, plugin string, afterID int64, limit int) ([]model.Narration, error) {
+	if plugin == "" {
+		return s.queryNarrations(ctx, `SELECT `+narrationColumns+` FROM narration WHERE id > ? ORDER BY id LIMIT ?`, afterID, limit)
+	}
+	return s.queryNarrations(ctx, `SELECT `+narrationColumns+` FROM narration WHERE plugin = ? AND id > ? ORDER BY id LIMIT ?`, plugin, afterID, limit)
 }
 
-// CountNarrations は叙述文の総件数を返す（ページャの総件数表示用）。
-func (s *Store) CountNarrations(ctx context.Context) (int, error) {
-	return s.count(ctx, `SELECT COUNT(*) FROM narration`)
+// CountNarrations は叙述文の総件数を返す（ページャの総件数表示用）。plugin が空でなければその対象 plugin に絞る。
+func (s *Store) CountNarrations(ctx context.Context, plugin string) (int, error) {
+	if plugin == "" {
+		return s.count(ctx, `SELECT COUNT(*) FROM narration`)
+	}
+	return s.count(ctx, `SELECT COUNT(*) FROM narration WHERE plugin = ?`, plugin)
 }
 
 func (s *Store) queryNarrations(ctx context.Context, query string, args ...any) ([]model.Narration, error) {

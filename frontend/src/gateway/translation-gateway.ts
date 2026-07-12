@@ -1,9 +1,11 @@
 // Wails generated bindings のラッパ。generated wailsjs の import はこの gateway 境界にだけ閉じ込める。
 // View・Container からは本 gateway 経由で backend を呼ぶ。
 import {
+  DeleteTargetPlugin,
   ExportXTranslatorXml,
   GetModels,
   ListResultsPage,
+  ListTargetPlugins,
   RunExtractAndTranslate,
   SelectPluginFile
 } from "../../wailsjs/go/api/App"
@@ -95,9 +97,37 @@ export interface RunProgress {
 // 進捗 event 名。backend の runtime event 名と一致させる。
 const PROGRESS_EVENT = "translation:progress"
 
-// plugin ファイル選択ダイアログを開き、選んだフルパスを返す。
+// 翻訳対象プラグイン一覧の 1 行。plugin=ファイル名（識別子）、sourcePath=選んだフルパス（再実行に使う）、
+// createdLabel=作成時刻の表示ラベル、total=束ねる翻訳対象の総数、translated=訳済み数。
+export interface TargetPluginSummary {
+  plugin: string
+  sourcePath: string
+  createdLabel: string
+  total: number
+  translated: number
+}
+
+// plugin ファイル選択ダイアログを開き、選んだフルパスを返す（選択なしは空文字）。
 export async function selectPluginFile(): Promise<string> {
   return SelectPluginFile()
+}
+
+// 翻訳した対象 plugin を新しい順で取得する（一覧・進捗・削除・再実行の入口）。
+// 作成時刻（backend の "YYYY-MM-DD HH:MM:SS"）は分までの表示ラベルへ整える。
+export async function listTargetPlugins(): Promise<TargetPluginSummary[]> {
+  const rows = await ListTargetPlugins()
+  return rows.map((r) => ({
+    plugin: r.plugin,
+    sourcePath: r.sourcePath,
+    createdLabel: r.createdAt.slice(0, 16),
+    total: r.total,
+    translated: r.translated
+  }))
+}
+
+// 対象 plugin の翻訳成果を消す（対象スコープの行と連関を消し、共有辞書・共有 entity は残す）。
+export async function deleteTargetPlugin(plugin: string): Promise<void> {
+  await DeleteTargetPlugin(plugin)
 }
 
 // 訳出済みの翻訳結果を xTranslator 互換 XML として書き出す。
@@ -119,12 +149,14 @@ export async function runExtractAndTranslate(input: RunInput): Promise<RunOutcom
 }
 
 // 中心 DB の叙述文と台詞を keyset cursor ページで取得する（起動時・ページ送り・実行後の取得を統一）。
+// plugin が空でなければその対象 plugin（plugin ファイル名）の結果だけに絞る。空なら全 plugin。
 // cursor は ""（先頭）/ "n:<id>" / "l:<id>"。limit はページ件数。
 export async function listResultsPage(
+  plugin: string,
   cursor: string,
   limit: number
 ): Promise<ResultPage> {
-  const page = await ListResultsPage(cursor, limit)
+  const page = await ListResultsPage(plugin, cursor, limit)
   return {
     total: page.total,
     results: page.results.map(toResultRow),

@@ -10,10 +10,10 @@ import (
 // SQLite の SQLITE_MAX_VARIABLE_NUMBER を十分に下回る値にする。
 const speakerChunkSize = 900
 
-// count は COUNT(*) の単一値クエリを実行して件数を返す。
-func (s *Store) count(ctx context.Context, query string) (int, error) {
+// count は COUNT(*) の単一値クエリを実行して件数を返す。plugin などの絞り込みは args で渡す。
+func (s *Store) count(ctx context.Context, query string, args ...any) (int, error) {
 	var n int
-	if err := s.db.GetContext(ctx, &n, query); err != nil {
+	if err := s.db.GetContext(ctx, &n, query, args...); err != nil {
 		return 0, fmt.Errorf("件数の取得: %w", err)
 	}
 	return n, nil

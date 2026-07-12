@@ -28,18 +28,21 @@ const defaultPageLimit = 50
 // Store は api が結果一覧の keyset ページング、プロンプトテンプレートの CRUD、
 // 指示文（directive）の編集と REC:FIELD 種別の参照に使う中心データアクセスの interface（使う分だけ宣言する）。
 type Store interface {
-	CountNarrations(ctx context.Context) (int, error)
-	CountLines(ctx context.Context) (int, error)
-	CountProperNouns(ctx context.Context) (int, error)
-	NarrationsAfter(ctx context.Context, afterID int64, limit int) ([]model.Narration, error)
-	LinesAfter(ctx context.Context, afterID int64, limit int) ([]model.Line, error)
-	ProperNounsAfter(ctx context.Context, afterID int64, limit int) ([]model.ProperNoun, error)
+	CountNarrations(ctx context.Context, plugin string) (int, error)
+	CountLines(ctx context.Context, plugin string) (int, error)
+	CountProperNouns(ctx context.Context, plugin string) (int, error)
+	NarrationsAfter(ctx context.Context, plugin string, afterID int64, limit int) ([]model.Narration, error)
+	LinesAfter(ctx context.Context, plugin string, afterID int64, limit int) ([]model.Line, error)
+	ProperNounsAfter(ctx context.Context, plugin string, afterID int64, limit int) ([]model.ProperNoun, error)
 	GetPromptTemplate(ctx context.Context) (model.PromptTemplate, error)
 	SavePromptTemplate(ctx context.Context, t model.PromptTemplate) error
 	LoadLineSpeakers(ctx context.Context, lineIDs []int64) (map[int64]model.LineSpeaker, error)
 	ListDirectives(ctx context.Context) ([]model.Directive, error)
 	SaveDirectiveInstruction(ctx context.Context, key, instruction string) error
 	ListRecordTypeMaster(ctx context.Context) ([]model.RecordType, error)
+	UpsertTargetPlugin(ctx context.Context, plugin, sourcePath string) error
+	ListTargetPlugins(ctx context.Context) ([]model.TargetPlugin, error)
+	DeleteTargetPlugin(ctx context.Context, plugin string) error
 }
 
 // ExtractorConfig は抽出子プロセス（C#）の起動設定。dotnet 起動に要するパスだけを持つ。
@@ -235,12 +238,52 @@ func (a *App) SelectPluginFile() (string, error) {
 }
 
 // ListResultsPage は中心 DB の叙述文と台詞を keyset cursor ページで返す（起動時・ページ送り・実行後の取得を統一）。
+// plugin が空でなければその対象 plugin（plugin ファイル名）の結果だけに絞る。空なら全 plugin。
 // cursor は ""（先頭）/ "n:<id>"（叙述文区間）/ "l:<id>"（台詞区間）。limit が 0 以下なら既定件数を使う。
-func (a *App) ListResultsPage(cursor string, limit int) (ResultPage, error) {
+func (a *App) ListResultsPage(plugin, cursor string, limit int) (ResultPage, error) {
 	if limit <= 0 {
 		limit = defaultPageLimit
 	}
-	return a.buildResultsPage(a.baseCtx(), cursor, limit)
+	return a.buildResultsPage(a.baseCtx(), plugin, cursor, limit)
+}
+
+// TargetPluginView は翻訳対象プラグイン一覧の 1 行の表示用 DTO。
+// Plugin は plugin ファイル名（識別子）、SourcePath は選んだ plugin のフルパス（再実行に使う）、
+// CreatedAt は初回登録時刻の文字列、Total はこの plugin が束ねる翻訳対象の総数、Translated は訳済み数。
+type TargetPluginView struct {
+	Plugin     string `json:"plugin"`
+	SourcePath string `json:"sourcePath"`
+	CreatedAt  string `json:"createdAt"`
+	Total      int    `json:"total"`
+	Translated int    `json:"translated"`
+}
+
+// ListTargetPlugins は翻訳した対象 plugin を新しい順で返す（一覧・進捗・削除・再実行の入口）。
+func (a *App) ListTargetPlugins() ([]TargetPluginView, error) {
+	rows, err := a.store.ListTargetPlugins(a.baseCtx())
+	if err != nil {
+		return nil, fmt.Errorf("翻訳対象プラグインの一覧取得: %w", err)
+	}
+	views := make([]TargetPluginView, len(rows))
+	for i, r := range rows {
+		views[i] = TargetPluginView{
+			Plugin:     r.Plugin,
+			SourcePath: r.SourcePath,
+			CreatedAt:  r.CreatedAt,
+			Total:      r.Total,
+			Translated: r.Translated,
+		}
+	}
+	return views, nil
+}
+
+// DeleteTargetPlugin は対象 plugin の翻訳成果を消す（対象スコープの行と連関を消し、共有資産は残す）。
+// 消した後の再実行で、その plugin だけまっさら再翻訳される。
+func (a *App) DeleteTargetPlugin(plugin string) error {
+	if err := a.store.DeleteTargetPlugin(a.baseCtx(), plugin); err != nil {
+		return fmt.Errorf("翻訳対象プラグインの削除: %w", err)
+	}
+	return nil
 }
 
 // PromptTemplateView はプロンプトテンプレート編集画面の表示用 DTO。
@@ -369,6 +412,13 @@ func assignmentViews(rows []model.RecordType) []RecordAssignmentView {
 func (a *App) RunExtractAndTranslate(req RunRequest) (RunResult, error) {
 	ctx := a.baseCtx()
 
+	// 抽出の前に、翻訳した対象 plugin を登録する（plugin ファイル名で 1 対 1、フルパスを再実行用に保つ）。
+	// 開始時に作るため、途中で失敗しても登録が残り、一覧からの削除でやり直せる。plugin 列（narration.plugin 等）と
+	// 同じ値（filepath.Base）で束ねる。冪等（2 回目以降は source_path だけ更新）。
+	if err := a.store.UpsertTargetPlugin(ctx, filepath.Base(req.PluginPath), req.PluginPath); err != nil {
+		return RunResult{}, fmt.Errorf("翻訳対象プラグインの登録に失敗: %w", err)
+	}
+
 	a.emitProgress(ProgressEvent{Stage: "extract"})
 	// 抽出子は注入点（本番は dotnet 子プロセス、テストは DB 直 seed の fake）。利用者が選んだ plugin を抽出する。
 	if err := a.extractor.Extract(ctx, req.PluginPath); err != nil {
@@ -432,9 +482,10 @@ func makeCursor(section string, id int64) string {
 }
 
 // buildResultsPage は cursor の指すページの叙述文・台詞・固有名を取り、台詞へ口調を一括で付けて ResultPage を返す。
+// plugin が空でなければその対象 plugin の結果だけに絞る。
 // 各行の原文へ機械置換辞書を当て直し、置換内訳（terms）と元レコード種別バッジ（recordType）を再構成して供給する。
-func (a *App) buildResultsPage(ctx context.Context, cursor string, limit int) (ResultPage, error) {
-	narrations, lines, propers, total, nextCursor, hasMore, err := a.pageRows(ctx, cursor, limit)
+func (a *App) buildResultsPage(ctx context.Context, plugin, cursor string, limit int) (ResultPage, error) {
+	narrations, lines, propers, total, nextCursor, hasMore, err := a.pageRows(ctx, plugin, cursor, limit)
 	if err != nil {
 		return ResultPage{}, err
 	}
@@ -590,16 +641,16 @@ func termViews(used []dictionary.Term) []TermView {
 // pageRows は keyset cursor から当該ページの叙述文・台詞・固有名、総件数、次 cursor、続きの有無を決める。
 // 区間は叙述文 → 台詞 → 固有名 の順に連結し、ある区間がページに満たなければ次区間の先頭から補充する。
 // 口調・種別バッジは付けない（呼び出し側が付ける）。
-func (a *App) pageRows(ctx context.Context, cursor string, limit int) (
+func (a *App) pageRows(ctx context.Context, plugin, cursor string, limit int) (
 	narrations []model.Narration, lines []model.Line, propers []model.ProperNoun,
 	total int, nextCursor string, hasMore bool, err error) {
-	total, err = a.countAll(ctx)
+	total, err = a.countAll(ctx, plugin)
 	if err != nil {
 		return nil, nil, nil, 0, "", false, err
 	}
 
 	section, afterID := parseCursor(cursor)
-	pb := &pageBuilder{remaining: limit, afterID: afterID, cur: section}
+	pb := &pageBuilder{remaining: limit, afterID: afterID, cur: section, plugin: plugin}
 	// 叙述文 → 台詞 → 固有名 の順に区間を埋める。ある区間でページが確定（done）したらそこで打ち切る。
 	for _, fill := range []sectionFiller{a.fillNarrations, a.fillLines, a.fillPropers} {
 		var done bool
@@ -614,17 +665,17 @@ func (a *App) pageRows(ctx context.Context, cursor string, limit int) (
 	return pb.narrations, pb.lines, pb.propers, total, pb.nextCursor, pb.hasMore, nil
 }
 
-// countAll は叙述文・台詞・固有名の総件数を合算して返す。ページングの total に使う。
-func (a *App) countAll(ctx context.Context) (int, error) {
-	nTotal, err := a.store.CountNarrations(ctx)
+// countAll は叙述文・台詞・固有名の総件数を合算して返す。ページングの total に使う。plugin が空でなければその対象 plugin に絞る。
+func (a *App) countAll(ctx context.Context, plugin string) (int, error) {
+	nTotal, err := a.store.CountNarrations(ctx, plugin)
 	if err != nil {
 		return 0, fmt.Errorf("叙述文の件数: %w", err)
 	}
-	lTotal, err := a.store.CountLines(ctx)
+	lTotal, err := a.store.CountLines(ctx, plugin)
 	if err != nil {
 		return 0, fmt.Errorf("台詞の件数: %w", err)
 	}
-	pTotal, err := a.store.CountProperNouns(ctx)
+	pTotal, err := a.store.CountProperNouns(ctx, plugin)
 	if err != nil {
 		return 0, fmt.Errorf("固有名の件数: %w", err)
 	}
@@ -641,6 +692,7 @@ type pageBuilder struct {
 	remaining  int
 	afterID    int64
 	cur        string
+	plugin     string // 空でなければ絞り込む対象 plugin（plugin ファイル名）。各 fill が store 問い合わせへ渡す。
 	nextCursor string
 	hasMore    bool
 }
@@ -653,7 +705,7 @@ func (a *App) fillNarrations(ctx context.Context, pb *pageBuilder) (bool, error)
 	if pb.cur != cursorNarration {
 		return false, nil
 	}
-	rows, err := a.store.NarrationsAfter(ctx, pb.afterID, pb.remaining+1)
+	rows, err := a.store.NarrationsAfter(ctx, pb.plugin, pb.afterID, pb.remaining+1)
 	if err != nil {
 		return false, fmt.Errorf("叙述文ページの取得: %w", err)
 	}
@@ -674,7 +726,7 @@ func (a *App) fillLines(ctx context.Context, pb *pageBuilder) (bool, error) {
 	if pb.cur != cursorLine {
 		return false, nil
 	}
-	rows, err := a.store.LinesAfter(ctx, pb.afterID, pb.remaining+1)
+	rows, err := a.store.LinesAfter(ctx, pb.plugin, pb.afterID, pb.remaining+1)
 	if err != nil {
 		return false, fmt.Errorf("台詞ページの取得: %w", err)
 	}
@@ -703,7 +755,7 @@ func (a *App) fillPropers(ctx context.Context, pb *pageBuilder) (bool, error) {
 	if pb.cur != cursorProper {
 		return false, nil
 	}
-	rows, err := a.store.ProperNounsAfter(ctx, pb.afterID, pb.remaining+1)
+	rows, err := a.store.ProperNounsAfter(ctx, pb.plugin, pb.afterID, pb.remaining+1)
 	if err != nil {
 		return false, fmt.Errorf("固有名ページの取得: %w", err)
 	}

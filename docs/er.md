@@ -260,8 +260,10 @@ erDiagram
 | extracted_info_condition | INFO→条件由来の性別の橋渡し staging。`line` 作成後に `line_condition` へ解決する | info_plugin, info_form_id, sex | PK(info_plugin, info_form_id) |
 | line_condition | 台詞の条件由来の性別（話者を解決できない汎用台詞の一人称・語尾の根拠）。台詞 1 件あたり 0..1 | line_id(PK,FK), sex | PK(line_id) |
 | tone_default | 話者なし台詞（汎用・PC）の口調設定。汎用・PC の自由記述口調と PC 性別。単一行。app だけが編集 | generic_tone_text, pc_tone_text, pc_sex | PK(id=1) |
+| target_plugin | 翻訳した対象 plugin の登録表（永続化単位）。plugin ファイル名で `plugin` 列（`narration`/`line`/`proper_noun`/`extracted_field`）と 1 対 1。plugin 単位のやり直しは削除で行う | plugin, source_path, created_at | PK(plugin) |
 
 - `prompt_template.persona_template` は旧経路の口調雛形。口調指示の供給は口調 `directive`（`{traits}` 入り）へ移行済みで、現状の本文フェーズは `directive` を引く（`architecture.md` §8 参照）。
+- `target_plugin` は翻訳成果を対象 plugin 単位で永続化・管理する登録表。翻訳開始時に upsert し、状態（未訳/訳済）は持たず既存行の `status` から導出する。削除は FK cascade でなく Go 側の手続き DELETE で、対象 plugin の `plugin`/`info_plugin` 行と連関を消す（共有 entity・横断辞書・seed は残す）。migration 0010 が持つ。
 - `directive` と `record_type_master` の seed（指示文 7・REC:FIELD 割り当て 65）は migration 0006 が持つ。
 - `extracted_info_condition`・`line_condition`・`tone_default` は migration 0007（generic-voice-tone-fallback）が持つ。話者を解決できない汎用台詞・PC 発話へ口調を付けるための実現テーブル。`extracted_info_speaker`→`line_speaker` と対称に、INFO の条件由来の性別を staging から domain へ解決する。
 

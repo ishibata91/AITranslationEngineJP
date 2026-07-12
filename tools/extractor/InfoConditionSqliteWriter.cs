@@ -12,16 +12,12 @@ namespace Extractor;
 public static class InfoConditionSqliteWriter
 {
     // dbPath の SQLite に schema を ensure し、INFO→条件由来の性別を書く。書いた行数を返す。
-    public static int Write(string dbPath, string schemaSql, PluginEnvironment env, string targetPlugin)
+    public static int Write(string dbPath, string migrationsDir, PluginEnvironment env, string targetPlugin)
     {
         using var conn = new SqliteConnection($"Data Source={dbPath}");
         conn.Open();
 
-        using (var ddl = conn.CreateCommand())
-        {
-            ddl.CommandText = schemaSql;
-            ddl.ExecuteNonQuery();
-        }
+        SchemaMigrator.Ensure(conn, migrationsDir);
 
         using var tx = conn.BeginTransaction();
         var written = 0;
