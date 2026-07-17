@@ -58,6 +58,7 @@ erDiagram
         TEXT rec "フィールド"
         TEXT field "フィールド"
         INTEGER ordinal "フィールド"
+        TEXT emotion_type "TRDT感情型"
     }
     speaker {
         INTEGER id PK
@@ -186,6 +187,12 @@ erDiagram
         TEXT info_plugin
         TEXT info_form_id
         TEXT sex
+    }
+    extracted_info_emotion {
+        TEXT info_plugin
+        TEXT info_form_id
+        INTEGER ordinal
+        TEXT emotion_type "TRDT感情型"
     }
     tone_default {
         INTEGER id PK

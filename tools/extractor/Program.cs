@@ -67,6 +67,11 @@ if (sqlitePath != null)
     var condCount = InfoConditionSqliteWriter.Write(sqlitePath, dir, env, result.TargetPlugin);
     Console.WriteLine($"[sqlite] INFO→条件由来の性別 {condCount} 件を {sqlitePath} へ書き込み（{sw.ElapsedMilliseconds} ms）");
 
+    // INFO 応答の感情型（TRDT。台詞の表情演出）を書く。ordinal は extracted_field の INFO:NAM1 と一致させ、
+    // Go 取込段が line_emotion へ (plugin, form_id, ordinal) で解決する。Neutral と stub INFO は書かない。
+    var emoCount = InfoEmotionSqliteWriter.Write(sqlitePath, dir, result);
+    Console.WriteLine($"[sqlite] INFO 応答の感情型 {emoCount} 件を {sqlitePath} へ書き込み（{sw.ElapsedMilliseconds} ms）");
+
     // T3 の固有名辞書（master_term）。xTranslator 英日辞書 XML（公式日本語版既訳）から FULL を読み、
     // 叙述文・台詞の本文へ機械置換するための「原語 → 確定訳語」を書く。
     // 既定は data folder の兄弟 xTranslatorXMLs、--terms-xml で上書きできる。

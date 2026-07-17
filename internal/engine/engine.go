@@ -473,6 +473,7 @@ func pendingLines(lines []model.Line, resolved map[int64]model.LinePersonaInput)
 func (e *Engine) personaForLine(l model.Line, resolved map[int64]model.LinePersonaInput, conds map[int64]string, features map[string]tone.Features, personaTemplate string, defaults ToneDefaults) (Persona, bool) {
 	if !isPCRecord(l.Rec, l.Field) {
 		if in, ok := resolved[l.ID]; ok {
+			in.EmotionType = l.EmotionType // 台詞の TRDT 感情を注入入力へ重ねる（ペルソナ基底は不変）。
 			return e.namedPersona(in, personaTemplate)
 		}
 	}
@@ -516,7 +517,7 @@ func (e *Engine) freeTonePersona(l model.Line, f tone.Features, condSex, persona
 		return Persona{}, false // 台詞の 3 種以外は来ない想定。来ても口調なし。
 	}
 	emotion := e.classifier.EmotionBandOfLine(f)
-	directive := personatone.BuildToneDirective(personaTemplate, personatone.BuildFreeToneTraits(baseText, emotion, sex, e.roleSpeech))
+	directive := personatone.BuildToneDirective(personaTemplate, personatone.BuildFreeToneTraits(baseText, emotion, sex, e.roleSpeech, l.EmotionType))
 	if directive == "" {
 		return Persona{}, false // 自由記述が空 → 口調なし。
 	}

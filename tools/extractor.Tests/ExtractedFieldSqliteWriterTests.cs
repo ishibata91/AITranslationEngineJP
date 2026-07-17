@@ -77,9 +77,9 @@ public class ExtractedFieldSqliteWriterTests
             EditorId = "InfoA",
             Prompt = "",
         };
-        info.Responses.Add(new ResponseLine(1, "First."));
-        info.Responses.Add(new ResponseLine(2, "Second."));
-        info.Responses.Add(new ResponseLine(3, "Third."));
+        info.Responses.Add(new ResponseLine(1, "First.", "Neutral"));
+        info.Responses.Add(new ResponseLine(2, "Second.", "Neutral"));
+        info.Responses.Add(new ResponseLine(3, "Third.", "Neutral"));
         result.Dialogues.Add(new DialogueTopic
         {
             Id = new FormKey(ModKey.FromFileName("Test.esp"), 0x901),

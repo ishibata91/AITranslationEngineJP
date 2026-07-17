@@ -14,4 +14,6 @@ type Line struct {
 	Rec           string `db:"rec"`
 	Field         string `db:"field"`
 	Ordinal       int    `db:"ordinal"`
+	// EmotionType は TRDT 由来の台詞感情型（非 Neutral のみ、line.emotion_type 列）。無しは空。
+	EmotionType string `db:"emotion_type"`
 }

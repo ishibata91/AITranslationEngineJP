@@ -76,6 +76,9 @@ func BuildToneTraits(in model.LinePersonaInput, roles *rolespeech.Table) []strin
 	if m := raceMarkerTrait(in.RaceEDID); m != "" {
 		traits = append(traits, "- 種族訛り: "+m)
 	}
+	if line := lineEmotionLine(in.EmotionType); line != "" {
+		traits = append(traits, line)
+	}
 	return traits
 }
 
@@ -119,6 +122,28 @@ func emotionAdvice(emotionBand int) string {
 	}
 }
 
+// lineEmotionWords は台詞感情型（TRDT）→ 日本語感情語。Neutral・型なしは持たず、加算しない。
+// 対人段階×感情段階の基底口調（9 セル）とは別軸で、台詞ごとの情動をプロンプトへ重ねる。
+var lineEmotionWords = map[string]string{
+	tone.LineEmotionAnger:    "怒り",
+	tone.LineEmotionDisgust:  "嫌悪",
+	tone.LineEmotionFear:     "恐れ",
+	tone.LineEmotionSad:      "悲しみ",
+	tone.LineEmotionHappy:    "喜び",
+	tone.LineEmotionSurprise: "驚き",
+	tone.LineEmotionPuzzled:  "戸惑い",
+}
+
+// lineEmotionLine は台詞感情型から口調指示の 1 行を組む。Neutral・型なし・未知型は空（加算なし）。
+// トーンは助言（上書きでなく助言）に揃え、翻訳モデルが本文からも情動を読む余地を残す。
+func lineEmotionLine(emotionType string) string {
+	word, ok := lineEmotionWords[emotionType]
+	if !ok {
+		return ""
+	}
+	return "- 感情: この台詞は" + word + "を込めた口調で話す。"
+}
+
 // freeRoleSpeechLine は性別だけから一人称・語尾の 1 行を引く（汎用・PC 用）。
 // 汎用・PC は対人段階・セルを持たないため、年齢区分は成人、セルはワイルドカードで照合する。
 // 性別が空、または一致が無いなら空文字を返す（一人称・語尾の指定なし）。
@@ -134,15 +159,18 @@ func freeRoleSpeechLine(sex string, roles *rolespeech.Table) string {
 }
 
 // BuildFreeToneTraits は汎用台詞・PC 発話の口調指示の箇条書きを組む。
-// 利用者の自由記述の口調（baseText）→ 感情段階の助言 → 性別の一人称・語尾 の順に並べる。
-// baseText が空なら空（口調指示なし）。対人段階・セルは持たず、本文 1 行の感情と性別だけを重ねる。
-func BuildFreeToneTraits(baseText string, emotionBand int, sex string, roles *rolespeech.Table) []string {
+// 自由記述の口調（baseText）→ 台詞の感情（TRDT 種別、無ければ本文 1 行の感情段階の助言）→ 性別の一人称・語尾 の順に並べる。
+// baseText が空なら空（口調指示なし）。対人段階・セルは持たず、台詞の感情と性別だけを重ねる。
+func BuildFreeToneTraits(baseText string, emotionBand int, sex string, roles *rolespeech.Table, emotionType string) []string {
 	base := strings.TrimSpace(baseText)
 	if base == "" {
 		return nil
 	}
 	traits := []string{"- 口調: " + base}
-	if adv := emotionAdvice(emotionBand); adv != "" {
+	// TRDT 種別があれば台詞の感情行を優先し、本文推定の強度助言は出さない（二重回避）。無ければ従来の強度助言を出す。
+	if line := lineEmotionLine(emotionType); line != "" {
+		traits = append(traits, line)
+	} else if adv := emotionAdvice(emotionBand); adv != "" {
 		traits = append(traits, "- 感情: "+adv)
 	}
 	if line := freeRoleSpeechLine(sex, roles); line != "" {
