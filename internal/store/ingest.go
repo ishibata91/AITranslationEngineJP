@@ -84,6 +84,26 @@ func (s *Store) LinkLineSpeakersFromStaging(ctx context.Context) error {
 	return nil
 }
 
+// LinkLineEmotionsFromStaging は extracted_info_emotion（INFO 応答→感情型の staging）から line.emotion_type を解決する。
+// 取込段が line を作った後に 1 度呼ぶ。INFO 応答由来の line を (plugin, form_id, ordinal) 一致で staging に結ぶ。
+// 感情は NAM1 応答の演出のため field='NAM1' に限る（RNAM や DIAL:FULL の PC 選択肢には結ばない）。
+// 対応する感情がある行だけ更新し、他は既定の空のまま残す。再実行でも同じ結果（冪等）。
+func (s *Store) LinkLineEmotionsFromStaging(ctx context.Context) error {
+	if _, err := s.db.ExecContext(ctx,
+		`UPDATE line SET emotion_type = (
+		   SELECT em.emotion_type FROM extracted_info_emotion em
+		   WHERE em.info_plugin = line.plugin AND em.info_form_id = line.form_id AND em.ordinal = line.ordinal
+		 )
+		 WHERE rec = 'INFO' AND field = 'NAM1'
+		   AND EXISTS (
+		     SELECT 1 FROM extracted_info_emotion em
+		     WHERE em.info_plugin = line.plugin AND em.info_form_id = line.form_id AND em.ordinal = line.ordinal
+		   )`); err != nil {
+		return fmt.Errorf("台詞の感情（line.emotion_type）の解決: %w", err)
+	}
+	return nil
+}
+
 // batchInsert は rows を 1 トランザクションで insertOne に順に通し、追加できた合計件数を返す。
 // 取込段の narration/proper_noun/line 投入で共通に使う（INSERT OR IGNORE で冪等）。
 func batchInsertGeneric[T any](ctx context.Context, db *sqlx.DB, rows []T, insertOne func(*sqlx.Tx, T) (int64, error)) (int, error) {

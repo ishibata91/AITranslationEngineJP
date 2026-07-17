@@ -8,7 +8,7 @@ import (
 )
 
 // lineColumns は line の SELECT 列。model.Line の db タグと対応する。1 箇所に集約する。
-const lineColumns = `id, source, dest, status, response_order, plugin, form_id, edid, rec, field, ordinal`
+const lineColumns = `id, source, dest, status, response_order, plugin, form_id, edid, rec, field, ordinal, emotion_type`
 
 // ListUntranslatedLines は未訳（status=0）の台詞を id 昇順で返す。
 func (s *Store) ListUntranslatedLines(ctx context.Context) ([]model.Line, error) {

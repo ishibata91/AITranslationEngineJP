@@ -38,6 +38,7 @@ type fakeStore struct {
 	ingestedLine   []model.Line       // IngestLines で投入された行
 	linkCalled     bool               // LinkLineSpeakersFromStaging が呼ばれたか
 	condLinkCalled bool               // LinkLineConditionsFromStaging が呼ばれたか
+	emoLinkCalled  bool               // LinkLineEmotionsFromStaging が呼ばれたか
 	lineConditions map[int64]string   // LoadLineConditions が返す条件由来の性別（lineID→sex）
 	// 言及段の観測。allNarrations / allLines は ListNarrations / ListLines が返す全行（nil なら空）。
 	allNarrations     []model.Narration
@@ -103,6 +104,11 @@ func (f *fakeStore) LinkLineSpeakersFromStaging(_ context.Context) error {
 
 func (f *fakeStore) LinkLineConditionsFromStaging(_ context.Context) error {
 	f.condLinkCalled = true
+	return nil
+}
+
+func (f *fakeStore) LinkLineEmotionsFromStaging(_ context.Context) error {
+	f.emoLinkCalled = true
 	return nil
 }
 

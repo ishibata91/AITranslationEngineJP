@@ -81,6 +81,7 @@ type IngestStore interface {
 	IngestLines(ctx context.Context, rows []model.Line) (int, error)
 	LinkLineSpeakersFromStaging(ctx context.Context) error
 	LinkLineConditionsFromStaging(ctx context.Context) error
+	LinkLineEmotionsFromStaging(ctx context.Context) error
 }
 
 // IngestCounts は取込段で各箱へ実際に追加した件数（再取込での冪等を観測できるよう件数を返す）。
@@ -125,6 +126,10 @@ func (e *Engine) Ingest(ctx context.Context) (IngestCounts, error) {
 	// 条件由来の性別（汎用台詞の一人称・語尾の根拠）を line_condition へ解決する（話者連関と対称）。
 	if err = e.store.LinkLineConditionsFromStaging(ctx); err != nil {
 		return IngestCounts{}, fmt.Errorf("条件由来の性別の解決: %w", err)
+	}
+	// 台詞の感情（TRDT）を line_emotion へ解決する（話者連関・条件と対称）。翻訳時に台詞ごとの感情を重ねる。
+	if err = e.store.LinkLineEmotionsFromStaging(ctx); err != nil {
+		return IngestCounts{}, fmt.Errorf("台詞の感情の解決: %w", err)
 	}
 	// 言及段: 本文中の既知固有名の言及（e4/e5）と叙述文の説明対象（e3）を新規テーブルへ記録する。
 	// 既存テーブルへは読みだけで、翻訳出力（dest・status・プロンプト）に影響しない。

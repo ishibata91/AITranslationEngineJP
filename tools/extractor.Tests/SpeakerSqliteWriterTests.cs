@@ -38,7 +38,7 @@ public class SpeakerSqliteWriterTests
             Prompt = "",
         };
         for (var i = 0; i < responses.Length; i++)
-            info.Responses.Add(new ResponseLine(i + 1, responses[i]));
+            info.Responses.Add(new ResponseLine(i + 1, responses[i], "Neutral"));
 
         result.Dialogues.Add(new DialogueTopic
         {

@@ -57,4 +57,6 @@ type LinePersonaInput struct {
 	DecisionPath string `db:"decision_path"`
 	Sex          string `db:"sex"` // 話者の性別（"Female"/"Male"/""）。役割語テンプレートの引きに使う。
 	RaceEDID     string `db:"race_edid"`
+	// EmotionType は台詞の TRDT 感情型（非 Neutral のみ）。engine が model.Line から重ねる。DB からは load しない。
+	EmotionType string
 }

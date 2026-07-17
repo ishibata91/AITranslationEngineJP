@@ -132,7 +132,7 @@ public static class PluginExtractor
             IdenticalToMaster = !env.OwnsRecord(info),
             Prompt = S(info.Prompt),
             Responses = info.Responses
-                .Select(r => new ResponseLine(r.ResponseNumber, S(r.Text)))
+                .Select(r => new ResponseLine(r.ResponseNumber, S(r.Text), r.Emotion.ToString()))
                 .Where(r => r.Text.Length > 0)
                 .ToList(),
             // 同じ対象が ANAM と条件の両方から来ても 1 回だけ持つ（重複排除）。

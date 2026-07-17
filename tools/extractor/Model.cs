@@ -186,6 +186,6 @@ public sealed class InfoNode
     public List<ConditionEntry> Conditions { get; init; } = [];
 }
 
-public sealed record ResponseLine(int Number, string Text);
+public sealed record ResponseLine(int Number, string Text, string Emotion);
 
 public sealed record ConditionEntry(string Function, string Operator, string Value, FormKey? RefId);

@@ -104,12 +104,12 @@ func TestBuildFreeToneTraits(t *testing.T) {
 	}
 
 	// 自由記述が空なら口調指示なし（空）。
-	if got := BuildFreeToneTraits("", tone.EmotionMid, "Female", roles); got != nil {
+	if got := BuildFreeToneTraits("", tone.EmotionMid, "Female", roles, ""); got != nil {
 		t.Errorf("自由記述が空で traits = %v, want nil", got)
 	}
 
 	// 感情が中（1）は助言を出さない。女性は一人称・語尾が付く。口調 ＋ 人称 の 2 行。
-	mid := BuildFreeToneTraits("衛兵の汎用台詞。", tone.EmotionMid, "Female", roles)
+	mid := BuildFreeToneTraits("衛兵の汎用台詞。", tone.EmotionMid, "Female", roles, "")
 	if len(mid) != 2 {
 		t.Fatalf("中・女性の口調指示行 = %d, want 2: %v", len(mid), mid)
 	}
@@ -118,7 +118,7 @@ func TestBuildFreeToneTraits(t *testing.T) {
 	}
 
 	// 感情が激情（2）は助言を出す。性別なしは一人称・語尾を付けない。口調 ＋ 感情 の 2 行。
-	intense := BuildFreeToneTraits("汎用台詞。", tone.EmotionIntense, "", roles)
+	intense := BuildFreeToneTraits("汎用台詞。", tone.EmotionIntense, "", roles, "")
 	if len(intense) != 2 {
 		t.Fatalf("激情・性別なしの口調指示行 = %d, want 2: %v", len(intense), intense)
 	}
@@ -127,15 +127,81 @@ func TestBuildFreeToneTraits(t *testing.T) {
 	}
 
 	// 抑制（0）＋ 性別なし ＋ roles nil は口調 ＋ 感情 の 2 行（一人称・語尾なし）。
-	suppressed := BuildFreeToneTraits("PC の選択肢。", tone.EmotionSuppressed, "Male", nil)
+	suppressed := BuildFreeToneTraits("PC の選択肢。", tone.EmotionSuppressed, "Male", nil, "")
 	if len(suppressed) != 2 {
 		t.Fatalf("抑制の口調指示行 = %d, want 2: %v", len(suppressed), suppressed)
 	}
 
 	// テンプレートに当たらない成人男（adult/male、行なし）は一人称・語尾を付けず、中なら口調行のみ。
-	maleMid := BuildFreeToneTraits("汎用台詞。", tone.EmotionMid, "Male", roles)
+	maleMid := BuildFreeToneTraits("汎用台詞。", tone.EmotionMid, "Male", roles, "")
 	if len(maleMid) != 1 {
 		t.Fatalf("中・成人男の口調指示行 = %d, want 1: %v", len(maleMid), maleMid)
+	}
+}
+
+// lineEmotionLine は TRDT 感情型を助言行へ写す。Neutral・空・未知型は空（加算なし）。
+func TestLineEmotionLine(t *testing.T) {
+	cases := map[string]string{
+		tone.LineEmotionAnger:    "怒り",
+		tone.LineEmotionDisgust:  "嫌悪",
+		tone.LineEmotionFear:     "恐れ",
+		tone.LineEmotionSad:      "悲しみ",
+		tone.LineEmotionHappy:    "喜び",
+		tone.LineEmotionSurprise: "驚き",
+		tone.LineEmotionPuzzled:  "戸惑い",
+	}
+	for typ, word := range cases {
+		got := lineEmotionLine(typ)
+		if !strings.HasPrefix(got, "- 感情: ") || !strings.Contains(got, word) {
+			t.Errorf("感情型 %q の行 = %q, 感情語 %q を期待", typ, got, word)
+		}
+	}
+	for _, none := range []string{tone.LineEmotionNeutral, "", "Unknown"} {
+		if got := lineEmotionLine(none); got != "" {
+			t.Errorf("加算しない型 %q で行 = %q, want 空", none, got)
+		}
+	}
+}
+
+// BuildToneTraits は非 Neutral の台詞感情を口調指示の末尾へ 1 行足し、Neutral では足さない（ペルソナ基底は不変）。
+func TestBuildToneTraitsLineEmotion(t *testing.T) {
+	base := model.LinePersonaInput{AttitudeBand: tone.AttitudeNeutral, EmotionBand: tone.EmotionMid}
+	plain := BuildToneTraits(base, nil)
+
+	angry := base
+	angry.EmotionType = tone.LineEmotionAnger
+	withEmo := BuildToneTraits(angry, nil)
+	if len(withEmo) != len(plain)+1 {
+		t.Fatalf("感情行の追加が想定外: plain=%v withEmo=%v", plain, withEmo)
+	}
+	last := withEmo[len(withEmo)-1]
+	if !strings.HasPrefix(last, "- 感情: ") || !strings.Contains(last, "怒り") {
+		t.Errorf("感情行が想定外: %q", last)
+	}
+
+	neutral := base
+	neutral.EmotionType = tone.LineEmotionNeutral
+	if got := BuildToneTraits(neutral, nil); len(got) != len(plain) {
+		t.Errorf("Neutral で感情行が増えた: %v", got)
+	}
+}
+
+// BuildFreeToneTraits は TRDT 種別があれば台詞感情行を出し、本文推定の強度助言を出さない（二重回避）。
+// TRDT が無ければ従来の強度助言へ落ちる。
+func TestBuildFreeToneTraitsLineEmotion(t *testing.T) {
+	// 本文は激情だが TRDT=悲しみ → TRDT 種別を出し、強度助言（「高ぶった」）は出さない。
+	got := BuildFreeToneTraits("汎用台詞。", tone.EmotionIntense, "", nil, tone.LineEmotionSad)
+	if len(got) != 2 {
+		t.Fatalf("口調 ＋ 感情の 2 行を期待: %v", got)
+	}
+	if !strings.Contains(got[1], "悲しみ") || strings.Contains(got[1], "高ぶった") {
+		t.Errorf("TRDT 種別でなく強度助言が出た: %q", got[1])
+	}
+
+	// TRDT 無し（空）＋ 激情 → 従来の強度助言へ落ちる。
+	fallback := BuildFreeToneTraits("汎用台詞。", tone.EmotionIntense, "", nil, "")
+	if len(fallback) != 2 || !strings.Contains(fallback[1], "高ぶった") {
+		t.Errorf("TRDT 無しで強度助言に落ちない: %v", fallback)
 	}
 }
 
