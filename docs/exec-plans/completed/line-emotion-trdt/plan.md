@@ -76,3 +76,10 @@ Q3 の承認通り `line.emotion_type` 列で持つ。当初 migration 慣習（
 
 - **docs/architecture.md 反映**: 不要。層構成・依存方向・Wails 境界は不変（既存の抽出→取込→core→プロンプト経路にデータが1つ増えるのみ）。§6 は契約方針（SQL schema 1 本）で具体テーブルを列挙せず、新テーブル追加で方針は変わらない。§8 は状態スナップショットで、構造不変のため churn しない（feedback-architecture-reflection-structural-only）。人間承認は不要。
 - **論理 ER（docs/er.md）**: 同期する（feature commit に含める）。`extracted_info_emotion` テーブルと `line.emotion_type` 列を追記した。
+
+## finalization commit
+
+- 作業 commit: `8dec3b26`（本 task 20 ファイル。別 task の docs は除外）。
+- local merge: `54b2665a`（master へ `--no-ff`、conflict なし）。
+- merge 後検証: `npm run test:backend` 全通過。
+- completed 移動: 本 commit で `docs/exec-plans/completed/line-emotion-trdt/` へ移動。
