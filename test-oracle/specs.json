@@ -1,0 +1,436 @@
+{
+  "specs": [
+    {
+      "id": "rec-field-exhaustive-extraction",
+      "stage": "extraction",
+      "attribute": "翻訳対象フィールド",
+      "category": "正常",
+      "given": "plugin が翻訳可能な多様な record（武器・本・台詞・地名など）を持つ",
+      "spec": "全ての翻訳可能な REC:FIELD 文字列を、箱の判定をせず素朴に吸い出す"
+    },
+    {
+      "id": "override-identical-not-counted",
+      "stage": "extraction",
+      "attribute": "翻訳対象フィールド",
+      "category": "異常",
+      "given": "master と同一内容の override record を含む",
+      "spec": "正規化データが master 版と同一の override は翻訳対象に数えない（xTranslator の非対象行に対応）"
+    },
+    {
+      "id": "container-owns-child-counted",
+      "stage": "extraction",
+      "attribute": "翻訳対象フィールド",
+      "category": "正常",
+      "given": "台詞を所有する会話（DIAL→INFO）や所有子を持つ CELL を含む",
+      "spec": "所有 INFO を持つ会話の FULL、所有子を持つ CELL は本文が master 不変でも翻訳対象にする"
+    },
+    {
+      "id": "dragon-word-untranslated",
+      "stage": "extraction",
+      "attribute": "無訳片",
+      "category": "正常",
+      "given": "龍語（WOOP）record を持つ",
+      "spec": "龍語の綴り（FULL）は翻訳禁止の無訳片として扱い、語義（TNAM）だけを訳対象の定型句にする"
+    },
+    {
+      "id": "localized-header-excluded",
+      "stage": "extraction",
+      "attribute": "翻訳対象フィールド",
+      "category": "異常",
+      "given": "localized plugin（文字列を strings table 経由で持つ）である",
+      "spec": "plugin header の作者名・説明は strings table を経由しないため翻訳対象にしない"
+    },
+    {
+      "id": "speaker-from-anam",
+      "stage": "extraction",
+      "attribute": "話者",
+      "category": "正常",
+      "given": "台詞（INFO）が話者を名指し（ANAM）で持つ",
+      "spec": "名指しの話者を、その台詞の発話者として結ぶ"
+    },
+    {
+      "id": "speaker-from-condition",
+      "stage": "extraction",
+      "attribute": "話者",
+      "category": "正常",
+      "given": "台詞が条件（種族・勢力・声型の GetIs 条件）で話者を絞る",
+      "spec": "真を主張する条件から、種族・勢力・声型を話者属性として採る"
+    },
+    {
+      "id": "speaker-negated-condition-ignored",
+      "stage": "extraction",
+      "attribute": "話者",
+      "category": "異常",
+      "given": "台詞の条件が否定形（「その話者ではない」）を含む",
+      "spec": "否定形の条件は話者の主張ではないため、話者解決に採らない"
+    },
+    {
+      "id": "voice-vtyp-only-not-flst",
+      "stage": "extraction",
+      "attribute": "声型",
+      "category": "異常",
+      "given": "台詞の声型条件が声型リスト（FLST）指定である",
+      "spec": "声型の直接指定（VTYP）だけを採り、リスト指定はプール扱いで採らない"
+    },
+    {
+      "id": "speaker-name-tplt-chain",
+      "stage": "extraction",
+      "attribute": "話者",
+      "category": "正常",
+      "given": "話者 NPC が自身の名前を持たず、継承元（TPLT 連鎖）を持つ",
+      "spec": "名前を 自名 → 継承元の名 → 役割名（EditorID）の順で解決する"
+    },
+    {
+      "id": "persona-sex-from-female-flag",
+      "stage": "extraction",
+      "attribute": "ペルソナ",
+      "category": "正常",
+      "given": "話者 NPC に女性フラグ（Female flag）が立つ",
+      "spec": "性別を女性フラグから確定する（喋るオブジェクト TACT は性別を持たない）"
+    },
+    {
+      "id": "line-emotion-extracted",
+      "stage": "extraction",
+      "attribute": "台詞感情",
+      "category": "正常",
+      "given": "台詞（INFO 応答）が非 Neutral の感情型（TRDT）を持つ",
+      "spec": "非 Neutral の感情型を、応答順（ordinal）を台詞本文と一致させて記録する"
+    },
+    {
+      "id": "line-emotion-neutral-skipped",
+      "stage": "extraction",
+      "attribute": "台詞感情",
+      "category": "異常",
+      "given": "台詞の感情型が Neutral である",
+      "spec": "Neutral は加算しないため記録しないが、応答順は進めて本文との一致を保つ"
+    },
+    {
+      "id": "condition-sex-from-getissex",
+      "stage": "extraction",
+      "attribute": "ペルソナ",
+      "category": "正常",
+      "given": "台詞（INFO）が性別条件（GetIsSex）を持つ",
+      "spec": "性別条件から実効性別を導き、否定形は極性を畳んで反転する（話者解決の有無に依らず定める）"
+    },
+    {
+      "id": "condition-sex-voicelist-mixed",
+      "stage": "extraction",
+      "attribute": "ペルソナ",
+      "category": "異常",
+      "given": "台詞の声型リスト（FLST）に異性または性別不明の声型が混在する",
+      "spec": "混在なら性別を定めない（同性のみで揃うリストだけ性別を採る）"
+    },
+    {
+      "id": "multivalue-ordinal-numbering",
+      "stage": "extraction",
+      "attribute": "翻訳対象フィールド",
+      "category": "正常",
+      "given": "同一レコードの同一フィールドに複数値が出る（応答・クエストログ・ボタン・階級称号）",
+      "spec": "出現順で ordinal を採番し、感情・話者・性別の結線が正しい値へ対応できるようにする"
+    },
+    {
+      "id": "box-routing-by-record-type",
+      "stage": "ingest",
+      "attribute": "箱振り分け",
+      "category": "正常",
+      "given": "抽出生データに多様な REC:FIELD が混在する",
+      "spec": "REC:FIELD の分類で、叙述文・固有名・台詞・定型句の箱へ振り分ける"
+    },
+    {
+      "id": "box-routing-unknown-skipped",
+      "stage": "ingest",
+      "attribute": "箱振り分け",
+      "category": "異常",
+      "given": "分類表（record_type_master）に載らない REC:FIELD が抽出生データに含まれる",
+      "spec": "どの箱へも振り分けず、翻訳対象外として数える（Skipped）"
+    },
+    {
+      "id": "dedup-same-term-one-unit",
+      "stage": "ingest",
+      "attribute": "固有名",
+      "category": "正常",
+      "given": "同じ固有名が複数のレコードに現れる",
+      "spec": "同一原文（同一種別）を 1 つの訳の単位にまとめ、複数の配置がそれを指す（重複排除）"
+    },
+    {
+      "id": "dedup-homograph-separated",
+      "stage": "ingest",
+      "attribute": "固有名",
+      "category": "異常",
+      "given": "同綴りで意味が違う語（Chest＝宝箱／胸）が別種別で現れる",
+      "spec": "種別を併せ持って区別し、誤った統合を避ける"
+    },
+    {
+      "id": "proper-noun-plugin-scope",
+      "stage": "ingest",
+      "attribute": "固有名",
+      "category": "異常",
+      "given": "別 plugin に同綴りの固有名がある",
+      "spec": "同綴りでも plugin ごとに別の固有名として保ち、混同しない（非共有スコープ）"
+    },
+    {
+      "id": "line-emotion-linked-by-ordinal",
+      "stage": "ingest",
+      "attribute": "台詞感情",
+      "category": "正常",
+      "given": "台詞本文と感情型が、同じ応答順（ordinal）で抽出済み",
+      "spec": "応答順で台詞本文と感情型を結び、正しい台詞へ感情を対応づける"
+    },
+    {
+      "id": "proper-noun-authoritative",
+      "stage": "prompt-build",
+      "attribute": "固有名",
+      "category": "正常",
+      "given": "固有名がマスター辞書に既訳を持つ",
+      "spec": "既訳（権威訳）を使い、AI 翻訳しない"
+    },
+    {
+      "id": "proper-noun-ai-translate",
+      "stage": "prompt-build",
+      "attribute": "固有名",
+      "category": "正常",
+      "given": "固有名がマスター辞書に既訳を持たない",
+      "spec": "AI 訳を実行内固有名として保ち、横断マスター辞書へは昇格しない（方針A）"
+    },
+    {
+      "id": "proper-noun-phase-before-body",
+      "stage": "prompt-build",
+      "attribute": "固有名",
+      "category": "正常",
+      "given": "本文（叙述文・台詞）に固有名が現れる",
+      "spec": "固有名を本文より先に確定し、本文フェーズの機械置換辞書へ合流する"
+    },
+    {
+      "id": "dictionary-merge-master-first",
+      "stage": "prompt-build",
+      "attribute": "固有名",
+      "category": "正常",
+      "given": "マスター辞書と実行内固有名に同綴りがある",
+      "spec": "マスター辞書（権威訳）を先に積み、実行内固有名より優先する"
+    },
+    {
+      "id": "termderive-partial-name",
+      "stage": "prompt-build",
+      "attribute": "固有名派生",
+      "category": "正常",
+      "given": "マスター辞書がフルネームを持ち、本文で名のみ・短名が出る",
+      "spec": "名のみ・短名の訳を機械派生して辞書へ足す（例 二つ名つきの名の前部を単独名として派生）"
+    },
+    {
+      "id": "termderive-safe-filter",
+      "stage": "prompt-build",
+      "attribute": "固有名派生",
+      "category": "異常",
+      "given": "派生候補が一般語（称号・種族語・用法分布が一般語）に該当する",
+      "spec": "安全フィルタで一般語との衝突を弾き、派生に含めない"
+    },
+    {
+      "id": "termderive-two-base-only",
+      "stage": "prompt-build",
+      "attribute": "固有名派生",
+      "category": "異常",
+      "given": "姓名分割の候補が第三者 mod 由来の辞書にある",
+      "spec": "姓名分割（two）は base ゲーム由来に限り、原文と訳の対応が信頼できない第三者 mod では派生しない"
+    },
+    {
+      "id": "stoplist-blocks-common-word",
+      "stage": "prompt-build",
+      "attribute": "固有名",
+      "category": "異常",
+      "given": "一般語と同綴りの固有名（Yes・No 等の管理用文字列）が辞書供給に来る",
+      "spec": "一語一致で一般語を供給から除き、本文の一般語出現を壊さない"
+    },
+    {
+      "id": "stoplist-multiword-kept",
+      "stage": "prompt-build",
+      "attribute": "固有名",
+      "category": "正常",
+      "given": "複数語の固有名の一部が一般語である",
+      "spec": "複数語の固有名は全体が固有の並びなので、stoplist で当てない"
+    },
+    {
+      "id": "tone-from-dialogue",
+      "stage": "prompt-build",
+      "attribute": "基底口調",
+      "category": "正常",
+      "given": "話者が対人マーカー（丁寧・罵倒・命令）を十分な数の台詞に持つ",
+      "spec": "印が閾値以上なら、本文の 2 軸から対人段階を決める"
+    },
+    {
+      "id": "tone-voice-prior-fallback",
+      "stage": "prompt-build",
+      "attribute": "基底口調",
+      "category": "異常",
+      "given": "話者の対人マーカーが閾値未満で、声型に気質 prior がある",
+      "spec": "印が不足なら、声型の気質 prior で対人段階を補う"
+    },
+    {
+      "id": "tone-hold-to-neutral",
+      "stage": "prompt-build",
+      "attribute": "基底口調",
+      "category": "異常",
+      "given": "対人マーカーが閾値未満で、固有声型のため気質 prior も無い",
+      "spec": "prior が無いとき薄い本文値を当てにせず、対人を中立へ寄せる（保留）"
+    },
+    {
+      "id": "emotion-band-always-from-body",
+      "stage": "prompt-build",
+      "attribute": "基底口調",
+      "category": "正常",
+      "given": "話者の台詞群がある",
+      "spec": "感情段階は印に依らず、常に本文の感情スコア中央値から決める"
+    },
+    {
+      "id": "persona-age-from-race",
+      "stage": "prompt-build",
+      "attribute": "ペルソナ",
+      "category": "正常",
+      "given": "話者の種族が老年（ElderRace）または子供（*Child）である",
+      "spec": "年齢区分を種族から 老人・子供・成人 へ畳み、役割語の引きに使う"
+    },
+    {
+      "id": "rolespeech-lookup",
+      "stage": "prompt-build",
+      "attribute": "役割語",
+      "category": "正常",
+      "given": "話者の性別・年齢区分・基底口調セルに一致する役割語テンプレートがある",
+      "spec": "一人称・語尾を最も具体的に一致する行から引き、口調指示へ加える"
+    },
+    {
+      "id": "rolespeech-no-match-omitted",
+      "stage": "prompt-build",
+      "attribute": "役割語",
+      "category": "異常",
+      "given": "話者の区分に一致する役割語テンプレートが無い",
+      "spec": "一致が無ければ役割語を付けず、基底口調へ委ねる"
+    },
+    {
+      "id": "race-marker-known-only",
+      "stage": "prompt-build",
+      "attribute": "種族訛り",
+      "category": "異常",
+      "given": "話者の種族が訛り未対応（カジート・アルゴニアン以外）である",
+      "spec": "対象種族だけ種族訛りの注記を加え、未対応種族には付けない"
+    },
+    {
+      "id": "line-emotion-injected",
+      "stage": "prompt-build",
+      "attribute": "台詞感情",
+      "category": "正常",
+      "given": "台詞が非 Neutral の感情型を持つ",
+      "spec": "その感情を台詞単位でプロンプトへ重ねる（基底口調とは別軸）"
+    },
+    {
+      "id": "line-emotion-absent-no-injection",
+      "stage": "prompt-build",
+      "attribute": "台詞感情",
+      "category": "異常",
+      "given": "台詞が感情型を持たない、または未知型である",
+      "spec": "感情の加算をしない"
+    },
+    {
+      "id": "generic-line-path",
+      "stage": "prompt-build",
+      "attribute": "口調",
+      "category": "異常",
+      "given": "台詞（INFO:NAM1）の話者を解決できない（汎用台詞）",
+      "spec": "自由記述の汎用口調へ、本文 1 行の感情段階と条件由来の性別を重ねる"
+    },
+    {
+      "id": "pc-line-path",
+      "stage": "prompt-build",
+      "attribute": "口調",
+      "category": "異常",
+      "given": "プレイヤーの選択肢（DIAL:FULL・INFO:RNAM）である",
+      "spec": "NPC 話者が結ばれても PC 既定の口調を優先し、自由記述の PC 口調へ本文 1 行の感情と利用者選択の性別を重ねる"
+    },
+    {
+      "id": "no-tone-when-empty",
+      "stage": "prompt-build",
+      "attribute": "口調",
+      "category": "異常",
+      "given": "基底口調の性質文が空、または自由記述の口調が空である",
+      "spec": "口調指示を注入しない"
+    },
+    {
+      "id": "persona-hand-edited-protected",
+      "stage": "prompt-build",
+      "attribute": "ペルソナ",
+      "category": "異常",
+      "given": "話者の基底口調が手修正済み（hand_edited）である",
+      "spec": "再生成から保護し、手修正値を保つ"
+    },
+    {
+      "id": "directive-base-plus-recfield",
+      "stage": "prompt-build",
+      "attribute": "指示文",
+      "category": "正常",
+      "given": "翻訳対象が REC:FIELD ごとの文体・口調を要する",
+      "spec": "プロンプトを Base 指示 ＋ その REC:FIELD に割り当てた指示文で組む（口調は性質列を差し込む）"
+    },
+    {
+      "id": "dictionary-greedy-longest",
+      "stage": "post-process",
+      "attribute": "固有名",
+      "category": "正常",
+      "given": "本文に辞書登録済みの固有名が現れる",
+      "spec": "貪欲最長一致・語境界・大小区別で確定訳へ機械置換し、AI は周りの英語だけを訳す"
+    },
+    {
+      "id": "proper-noun-unregistered-kept",
+      "stage": "post-process",
+      "attribute": "固有名",
+      "category": "異常",
+      "given": "本文の固有名が辞書に未登録である",
+      "spec": "機械置換を適用せず原文のまま保持し、欠落や空値を作らない"
+    },
+    {
+      "id": "mention-rule-parity",
+      "stage": "post-process",
+      "attribute": "言及",
+      "category": "正常",
+      "given": "本文に辞書登録済みの固有名が現れる",
+      "spec": "言及検出を機械置換と同一規則で行い、注入と同じ側（マスター辞書か実行内固有名）を言及相手にする"
+    },
+    {
+      "id": "output-placement-join",
+      "stage": "post-process",
+      "attribute": "出力",
+      "category": "正常",
+      "given": "固有名の確定訳と、その原文の出現位置がある",
+      "spec": "確定訳を原文の出現位置へ結び、位置つきの出力行を作る"
+    },
+    {
+      "id": "output-xtranslator",
+      "stage": "post-process",
+      "attribute": "出力",
+      "category": "正常",
+      "given": "叙述文・台詞・配置の訳が揃う",
+      "spec": "各訳を REC:FIELD へ戻し、xTranslator 形式で出力する"
+    },
+    {
+      "id": "status-provisional-vs-translated",
+      "stage": "post-process",
+      "attribute": "出力",
+      "category": "正常",
+      "given": "AI 訳と既訳流用が混在する",
+      "spec": "AI 訳は仮訳、既訳流用は訳済として、訳状態を区別する"
+    },
+    {
+      "id": "proper-noun-consistent-e2e",
+      "stage": "end-to-end",
+      "attribute": "固有名",
+      "category": "正常",
+      "given": "リッチな synthetic esp を、抽出から翻訳出力まで通す",
+      "spec": "抽出した固有名が最終出力まで同一訳で運ばれ、叙述と台詞で一致する"
+    },
+    {
+      "id": "count-parity-e2e",
+      "stage": "end-to-end",
+      "attribute": "翻訳対象フィールド",
+      "category": "正常",
+      "given": "リッチな synthetic esp を、抽出から翻訳出力まで通す",
+      "spec": "翻訳対象に数えた件数と、出力した件数が一致する"
+    }
+  ]
+}
