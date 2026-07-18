@@ -12,6 +12,8 @@
 5. xTranslator 形式への書き出し未実装: 詳細は [`known-issues.md`](./known-issues.md) 4
 6. 翻訳結果表示画面の編集・絞り込み機能未実装: 詳細は [`known-issues.md`](./known-issues.md) 5
 7. 機械置換辞書の誤爆対策の残り（stoplist 外の一般語 1 語、管理用勢力の判定基準）: 詳細は [`known-issues.md`](./known-issues.md) 6
+8. 既存訳との完全一致置換の未実装: 詳細は [`known-issues.md`](./known-issues.md) 7
+9. 本文中の実行時タグ（`<Alias=...>` 等）を保護する機構の未実装: 詳細は [`known-issues.md`](./known-issues.md) 8
 
 ## 着手順
 
