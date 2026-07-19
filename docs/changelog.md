@@ -4,20 +4,23 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
-## 2026-07-20 design.md テンプレートをフロー別に分離
+## 2026-07-20 設計と調査を責務分離し design.md を両フロー共通の 1 本へ
 
 ### 変更
 
-- `docs/exec-plans/templates/task-folder/design.md`（feature/fix を条件分岐で 1 ファイルに詰めていたもの）を削除。
-- `docs/exec-plans/templates/task-folder/design-feature.md` を新設（新規実装フロー用。実装方針・AS-IS→TO-BE・検討事項）。
-- `docs/exec-plans/templates/task-folder/design-fix.md` を新設（修正フロー用。修正方針判断・修正実行入力・検討事項）。
-- `.claude/skills/feature-workflow/SKILL.md`・`.claude/skills/fix-workflow/SKILL.md`: 使うテンプレート変種を 1 行で参照。
-- `docs/exec-plans/templates/task-folder/README.md`・`docs/ai-operations-workflow.md`: design.md の説明を 2 変種構成へ更新。
+- `docs/exec-plans/templates/task-folder/design.md`: 両フロー共通の 1 テンプレートへ。「どう実装/どう直すか（実装方針＝AS-IS→TO-BE）＋検討事項」だけを持つ（一度フロー別に分けた `design-feature.md`／`design-fix.md` は削除）。
+- `docs/exec-plans/templates/task-folder/investigation.md` を新設（修正フローだけが作る。観測済み問題・画面再現確認・原因仮説・観測ログ検証・確定原因）。
+- `.claude/skills/fix-workflow/SKILL.md`: `修正方針判断` 成果物を `調査`（investigation.md）と `設計`（design.md）へ分割。「修正実行入力」を「実装への引き継ぎ」へ改名。
+- `.claude/skills/feature-workflow/SKILL.md`: design.md テンプレート参照を単一へ。
+- `.claude/skills/implementation-module/SKILL.md`・`coding-protocol/SKILL.md`・`fix-decision/SKILL.md`: 「修正実行入力」を「実装への引き継ぎ」へ、投入先を investigation.md／design.md へ更新。
+- `docs/exec-plans/templates/task-folder/README.md`・`docs/ai-operations-workflow.md`: investigation.md 追加と design.md 単一化を反映。
 
 ### 判断
 
-- design-module を feature-workflow へ畳んだ結果、設計段が feature 専用に固定され、fix と共有できなくなった（人間指摘）。設計段は両フロー共通の段として扱い、フローで異なる design.md の中身だけをテンプレートとして分離する。
-- 分離は design.md テンプレートに限定する。共有の設計 skill は新設せず、入口 skill が使うテンプレート変種を指す形にとどめる。task フォルダ内のファイル名は両フローとも `design.md` のまま。
+- 再現確認・原因究明は設計（design）の責務でなく調査（investigation）の責務（人間指摘）。design.md は「どう実装/どう直すか」だけに絞る。この境界だと feature と fix の design.md は同形になるため、直前にフロー別へ分けた design テンプレートを 1 本へ戻す。
+- 調査成果物は物理ファイルで分離する（案X）。task フォルダに `investigation.md` を新設し、fix だけが作る。feature は investigation を作らない。
+- 「修正実行入力」は造語で用語規約（言葉の発明禁止）に反するため「実装への引き継ぎ」へ改名。過去記録（`docs/exec-plans/completed/`）は書き換えず現行契約ファイルのみ変更。
+- plan.md はフロー別に割らず 1 本のまま（割るほど書くことが無い）。
 
 ## 2026-07-20 plan.md に「やること」を復活
 

@@ -25,7 +25,7 @@ flowchart TD
     end
 
     subgraph 修正フロー
-      XW[fix-workflow<br/>入口: branch・plan.md・design.md・確定原因と修正方針]
+      XW[fix-workflow<br/>入口: branch・plan.md・investigation.md・design.md]
       XW --> IM
     end
 
@@ -42,12 +42,13 @@ flowchart TD
 | オーケストレーター | 入る条件（TRIGGER） | 固定する成果 | 次 |
 | --- | --- | --- | --- |
 | feature-workflow | プロダクト変更を伴う実装系 task の入口 | branch、`plan.md`、`design.md`（実装方針・検討事項）、人間設計レビュー通過 | 画面表示の変更あり→storybook / なし→implementation |
-| fix-workflow | 修正系 task（バグ修正・refactor）の入口 | branch、`plan.md`、`design.md`（確定原因・修正方針・修正実行入力）、人間修正レビュー通過 | implementation |
+| fix-workflow | 修正系 task（バグ修正・refactor）の入口 | branch、`plan.md`、`investigation.md`（再現確認・原因究明）、`design.md`（どう直すか）、人間修正レビュー通過 | implementation |
 
-入口が固定する 2 つのアーティファクトは役割を分ける。
+入口が固定するアーティファクトは役割を分ける。
 
 - `plan.md`: branch 情報とこの task でやること・やらないことの要点。設計判断・判断履歴・検証結果は持たない。
-- `design.md`: 設計を持つファイル。フロー別のテンプレートを `design.md` として使う。新規実装フローは `design-feature.md`（実装方針＝現状 AS-IS と変更後 TO-BE を対にし、流れ・関係・責務が変わる箇所は図を添える）、修正フローは `design-fix.md`（修正方針判断と修正実行入力）を使う。いずれも検討が必要なことを持ち、未解決の論点が残る間は下流へ進まない。
+- `investigation.md`: 修正フローだけが作る。再現確認と原因究明（観測済み問題・画面再現確認・原因仮説・観測ログ検証・確定原因）。どう直すかは持たない。
+- `design.md`: どう実装し、どう直すかだけを持つ。実装方針＝現状 AS-IS と変更後 TO-BE を対にし、流れ・関係・責務が変わる箇所は図を添える。再現確認・原因究明は持たない。検討が必要なことを持ち、未解決の論点が残る間は下流へ進まない。両フロー共通の 1 テンプレート。
 
 ## 実行モジュール
 
@@ -56,7 +57,7 @@ flowchart TD
 | モジュール | 入る条件 | 固定する成果 | `fork` 委譲 |
 | --- | --- | --- | --- |
 | storybook-module | 画面表示の変更がある | story と svelte 表示コンポーネント（画面の正本）、人間レビュー通過 | 表示実装・表示修正の作業本体 |
-| implementation-module | design.md の実装方針または修正実行入力から実装へ入る | backend、frontend ロジック、統合境界、テスト、観測ログ、最終検証通過 | 実装・テスト・観測・最終検証の作業本体 |
+| implementation-module | design.md の実装方針、または fix-workflow の実装への引き継ぎから実装へ入る | backend、frontend ロジック、統合境界、テスト、観測ログ、最終検証通過 | 実装・テスト・観測・最終検証の作業本体 |
 | finalization-module | 最終検証通過後 | 正本反映（`docs/architecture.md` に限定）、commit、local merge、completed 移動 | しない（本体が実行） |
 
 分担の境界は 3 点で固定する。

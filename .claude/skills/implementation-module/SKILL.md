@@ -1,12 +1,12 @@
 ---
 name: implementation-module
-description: "実装、テスト、観測ログ追加、最終検証を実行する実装モジュール。作業本体は`fork`（親の文脈とモデルを継承）へ委譲し、本体セッションの文脈を実装詳細で汚さない。`fresh` への分割はしない。TRIGGER when: 承認済み実装方針（または修正実行入力）から実装、テスト、観測のいずれかを進める必要がある。SKIP when: 表示変更だけで完結する task は storybook-module で扱う。"
+description: "実装、テスト、観測ログ追加、最終検証を実行する実装モジュール。作業本体は`fork`（親の文脈とモデルを継承）へ委譲し、本体セッションの文脈を実装詳細で汚さない。`fresh` への分割はしない。TRIGGER when: 承認済み実装方針（または修正フローの実装への引き継ぎ）から実装、テスト、観測のいずれかを進める必要がある。SKIP when: 表示変更だけで完結する task は storybook-module で扱う。"
 ---
 # Implementation Module
 
 ## 目的
 
-`implementation-module` は、承認済み `design.md` の実装方針（または修正実行入力）から、実装、テスト、観測ログ追加、最終検証を実行するモジュール skill である。
+`implementation-module` は、承認済み `design.md` の実装方針（または修正フローの実装への引き継ぎ）から、実装、テスト、観測ログ追加、最終検証を実行するモジュール skill である。
 
 作業本体は`fork`へ委譲する。`fork`は親の文脈とモデルを継承し、本体セッションの文脈を実装詳細で汚さない。backend / frontend / 統合境界 / テスト / 観測を、`fresh` へ分割しない。
 
@@ -37,7 +37,7 @@ description: "実装、テスト、観測ログ追加、最終検証を実行す
 
 - 入口オーケストレーター（`feature-workflow` または `fix-workflow`）の出口成果物が承認済み。
     - 実装系 task 経路（`feature-workflow` 通過）: `design.md` の実装方針。
-    - 修正系 task 経路（`fix-workflow` 通過）: `design.md` の修正実行入力（確定原因、採用する修正方針、禁止する修正、追加する fail-test の観点、影響ファイル候補）。
+    - 修正系 task 経路（`fix-workflow` 通過）: `fix-workflow` の実装への引き継ぎ（`investigation.md` の確定原因、`design.md` の採用する修正方針、追加する fail-test の観点、影響ファイル候補）。
 - 画面の表示変更がある場合は `storybook-module` の出口（`合意済み frontend 保護`）が固定されている。
 
 ## 出口条件
@@ -135,7 +135,7 @@ description: "実装、テスト、観測ログ追加、最終検証を実行す
 
 ## 作業を止める条件
 
-- 入口の依存（`design.md` の実装方針／修正実行入力、`合意済み frontend 保護?`）が固定されていない。
+- 入口の依存（`design.md` の実装方針、または修正フローの実装への引き継ぎ、`合意済み frontend 保護?`）が固定されていない。
 - 表示範囲の変更が要るのに、`storybook-module` 再実行または人間返却も固定できない。
 - 観測ログ追加の成立条件を満たすのに、追加・削除のいずれも固定できない。
 - `最終検証` が許可済みコマンドで実行できない、または失敗が解消できない。
