@@ -4,6 +4,22 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-07-19 実行時タグ保護を「AI に生タグを見せる」方式へ変更
+
+### 変更
+
+- `internal/core/runtimetag/runtimetag.go`: API を刷新。`Mask`/`Restore`（退避と復元）、`Tags`/`HasTag`（生タグ抽出・有無）、`CountMissing`（AI 出力の欠落照合）、`GuardInstruction`（生タグ保持の指示文）。旧 `Unmask`/`Placeholders`/`HasPlaceholder` を廃止。
+- `internal/engine/engine.go`: `prepareSource` を新設。実行時タグは機械置換（`dict.Apply`）の間だけ退避し、直後に生タグへ戻してから AI へ送る。AI 出力は `CountMissing` で照合し、タグ欠落行は未訳のまま残す（従来どおり）。
+- `internal/core/prompt/prompt.go`: タグ保護指示の付与判定を退避トークンから生タグ（`HasTag`）へ変更。
+- `internal/api/app.go`: 実プロンプト再構成も同順（退避→機械置換→生タグ復元）にして送信と一致させる。
+- `internal/harness/provider.go`・`oracle_test.go`: fake は生タグを保持する形へ、オラクルは「user に生タグ・system に保護指示」を照合。
+
+### 判断
+
+- 前方式（タグを不透明トークン `⟦0⟧` へ退避したまま AI へ送る）は、トークンから意味が消えて弱いモデルが「無意味な記号」と見なし落としやすい弱点があった（人間指摘）。方針を「退避は機械置換から守る間だけにし、AI には意味の分かる生タグ `<BribeCost>` を見せる」へ変更した。
+- 退避の目的（辞書機械置換がタグ内部の語を書き換えるのを防ぐ）は `Mask`→`dict.Apply`→`Restore` の一時退避で維持。AI へは生タグ＋保護指示を渡し、出力にタグが原形で残るかを照合、欠落行は未訳保留（安全網は不変）。
+- 実 LLM で確認: 前方式で `hy-mt2-7b` が 2 回とも落とした `<BribeCost>` 2 行が、生タグ方式では 2 つとも原形保持で翻訳された（`（<BribeCost>ゴールド）`）。
+
 ## 2026-07-19 既存訳の完全一致置換と実行時タグ保護（known-issues 項目7・8）を実装、項目4 を close
 
 ### 変更

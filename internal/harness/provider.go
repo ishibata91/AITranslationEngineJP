@@ -36,10 +36,10 @@ func (r *RecordingProvider) Translate(_ context.Context, _ provider.Connection, 
 	defer r.mu.Unlock()
 	r.prompts = append(r.prompts, RecordedPrompt{Model: model, System: prompt.System, User: prompt.User})
 	dest := fmt.Sprintf("訳%03d", len(r.prompts))
-	// 退避された実行時タグのプレースホルダを保持するモデルを模す。engine の Unmask が原タグへ復元でき、
-	// タグ保護の往復（退避→送信→保持→復元）を結合オラクルで観測できるようにする。
-	for _, ph := range runtimetag.Placeholders(prompt.User) {
-		dest += ph
+	// 送信プロンプトに含まれる生タグ（<...>）を保持するモデルを模す。engine の CountMissing が欠落 0 と判定でき、
+	// タグ保護（機械置換から守る退避 → 生タグで送信 → モデルが保持）を結合オラクルで観測できるようにする。
+	for _, tag := range runtimetag.Tags(prompt.User) {
+		dest += tag
 	}
 	return dest, nil
 }

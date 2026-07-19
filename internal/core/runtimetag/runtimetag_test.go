@@ -16,7 +16,7 @@ func TestMaskNoTags(t *testing.T) {
 	}
 }
 
-// Mask は 1 つの実行時タグを退避トークン ⟦0⟧ へ置き、原タグを退避列へ残す（AI へタグ内部を渡さない）。
+// Mask は 1 つの実行時タグを退避トークン ⟦0⟧ へ置き、原タグを退避列へ残す（機械置換からタグ内部を守る）。
 func TestMaskSingleTag(t *testing.T) {
 	masked, tags := Mask("Bring it to <Alias=Player>.")
 	if masked != "Bring it to ⟦0⟧." {
@@ -39,96 +39,74 @@ func TestMaskMultipleTagsInOrder(t *testing.T) {
 	}
 }
 
-// Unmask はモデルがプレースホルダを保持した出力を原タグへ復元し、欠落 0 を返す（正常な往復）。
-func TestUnmaskRestoresAndReportsNoLoss(t *testing.T) {
-	_, tags := Mask("Bring it to <Alias=Player>.")
-	// モデルが訳語の中でプレースホルダを保持した想定の出力。
-	restored, lost := Unmask("⟦0⟧ に届けよ。", tags)
-	if restored != "<Alias=Player> に届けよ。" {
-		t.Fatalf("復元結果が期待と違う: %q", restored)
-	}
-	if lost != 0 {
-		t.Fatalf("欠落が誤検出された: lost=%d", lost)
+// Mask→Restore の往復は、機械置換を通した後でも原文のタグを原形へ戻す（退避は一時措置、AI へは生タグを送る）。
+func TestMaskRestoreRoundTrip(t *testing.T) {
+	src := "Give <Global=Amount> to <Alias=Player> at <Alias=Location>."
+	masked, tags := Mask(src)
+	// masked は機械置換を通してもプレースホルダ ⟦i⟧ は当たらない（辞書語でない）。ここでは素通しを仮定。
+	restored := Restore(masked, tags)
+	if restored != src {
+		t.Fatalf("往復で原文へ戻らない: got=%q want=%q", restored, src)
 	}
 }
 
-// Unmask はモデルがプレースホルダを落とした出力で、そのタグを欠落として数える（改変・削除の検出）。
-func TestUnmaskDetectsLostTag(t *testing.T) {
-	_, tags := Mask("<Global=Gold> gold for <Alias=Merchant>.")
-	// モデルが 2 つ目のプレースホルダ ⟦1⟧ を落とした（削除した）出力。
-	restored, lost := Unmask("⟦0⟧ の金貨を商人へ。", tags)
-	if lost != 1 {
-		t.Fatalf("欠落数が期待と違う: got=%d want=1", lost)
-	}
-	// 残ったプレースホルダは復元し、落ちた分は復元されない（原文の一部が失われたことが結果に残る）。
-	if restored != "<Global=Gold> の金貨を商人へ。" {
-		t.Fatalf("復元結果が期待と違う: %q", restored)
+// Restore は機械置換で周囲が変わっても、退避トークンだけを原タグへ戻す。
+func TestRestoreAfterReplacementAroundToken(t *testing.T) {
+	// "The Riften guard <Alias=NPC>" を Mask し、Riften→リフテンの置換が起きた後を模す。
+	_, tags := Mask("The Riften guard <Alias=NPC>")
+	restored := Restore("The リフテン guard ⟦0⟧", tags)
+	if restored != "The リフテン guard <Alias=NPC>" {
+		t.Fatalf("周囲置換後の復元が期待と違う: %q", restored)
 	}
 }
 
-// Unmask は並び替えられたプレースホルダを、位置でなく連番で照合して正しく復元する。
-func TestUnmaskHandlesReorderedPlaceholders(t *testing.T) {
-	_, tags := Mask("<Global=Gold> for <Alias=Merchant>")
-	// モデルが語順を変え、⟦1⟧ を先に出した出力。
-	restored, lost := Unmask("⟦1⟧ へ ⟦0⟧", tags)
-	if lost != 0 {
-		t.Fatalf("欠落が誤検出された: lost=%d", lost)
-	}
-	if restored != "<Alias=Merchant> へ <Global=Gold>" {
-		t.Fatalf("並び替え時の復元が期待と違う: %q", restored)
-	}
-}
-
-// Unmask はモデルが同じプレースホルダを重複させた出力でも、全て原タグへ復元する。
-func TestUnmaskHandlesDuplicatedPlaceholder(t *testing.T) {
-	_, tags := Mask("Speak to <Alias=NPC>.")
-	restored, lost := Unmask("⟦0⟧ と ⟦0⟧ に話せ。", tags)
-	if lost != 0 {
-		t.Fatalf("欠落が誤検出された: lost=%d", lost)
-	}
-	if restored != "<Alias=NPC> と <Alias=NPC> に話せ。" {
-		t.Fatalf("重複時の復元が期待と違う: %q", restored)
-	}
-}
-
-// Placeholders は本文中の退避トークンを出現順に返す（fake provider の保持模倣に使う）。
-func TestPlaceholdersReturnsTokensInOrder(t *testing.T) {
-	got := Placeholders("訳文 ⟦1⟧ と ⟦0⟧ を含む")
-	want := []string{"⟦1⟧", "⟦0⟧"}
+// Tags は本文中の生タグを出現順に返す（fake provider のタグ保持模倣・照合に使う）。
+func TestTags(t *testing.T) {
+	got := Tags("Give <Global=Amount> to <Alias=Player>")
+	want := []string{"<Global=Amount>", "<Alias=Player>"}
 	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("退避トークンの抽出が期待と違う: %v", got)
+		t.Fatalf("生タグの抽出が期待と違う: %v", got)
 	}
-	if p := Placeholders("トークン無し"); len(p) != 0 {
-		t.Fatalf("退避トークンが無いのに返った: %v", p)
-	}
-}
-
-// HasPlaceholder は退避トークンの有無を返す（プロンプト保護指示を付けるかの判定に使う）。
-func TestHasPlaceholder(t *testing.T) {
-	if !HasPlaceholder("届け先は ⟦0⟧ だ") {
-		t.Fatalf("退避トークンありを検出できない")
-	}
-	if HasPlaceholder("タグの無い本文") {
-		t.Fatalf("退避トークン無しを誤検出した")
+	if p := Tags("タグ無し"); len(p) != 0 {
+		t.Fatalf("タグが無いのに返った: %v", p)
 	}
 }
 
-// GuardInstruction は退避トークンの保持を求める非空の指示文を返す。
+// HasTag は生タグの有無を返す（プロンプト保護指示を付けるかの判定に使う）。
+func TestHasTag(t *testing.T) {
+	if !HasTag("届け先は <Alias=Player> だ") {
+		t.Fatalf("生タグありを検出できない")
+	}
+	if HasTag("タグの無い本文") {
+		t.Fatalf("生タグ無しを誤検出した")
+	}
+}
+
+// CountMissing は AI 出力に元タグが原形で残っていない件数を返す（削除・改変の検出）。
+func TestCountMissing(t *testing.T) {
+	_, tags := Mask("<Global=Gold> gold for <Alias=Merchant>.")
+	// モデルが 2 つ目のタグ <Alias=Merchant> を落とした出力。
+	if got := CountMissing("<Global=Gold> の金貨を商人へ。", tags); got != 1 {
+		t.Fatalf("欠落数が期待と違う: got=%d want=1", got)
+	}
+	// 全タグが原形で残る出力は欠落 0。
+	if got := CountMissing("<Global=Gold> の金貨を <Alias=Merchant> へ。", tags); got != 0 {
+		t.Fatalf("欠落が誤検出された: got=%d want=0", got)
+	}
+}
+
+// CountMissing は同じタグが複数回出る本文で、出力側の回数不足を欠落として数える。
+func TestCountMissingCountsOccurrences(t *testing.T) {
+	_, tags := Mask("<Alias=NPC> と <Alias=NPC>")
+	// 出力にタグが 1 回しかない（2 回必要）→ 欠落 1。
+	if got := CountMissing("<Alias=NPC> と彼", tags); got != 1 {
+		t.Fatalf("出現回数の欠落数が期待と違う: got=%d want=1", got)
+	}
+}
+
+// GuardInstruction は生タグの保持を求める非空の指示文を返す。
 func TestGuardInstruction(t *testing.T) {
 	if GuardInstruction() == "" {
 		t.Fatalf("保護指示文が空")
-	}
-}
-
-// Mask→Unmask の往復は、全プレースホルダを保持した出力なら原文のタグを完全に復元する（不変条件）。
-func TestMaskUnmaskRoundTrip(t *testing.T) {
-	src := "Give <Global=Amount> to <Alias=Player> at <Alias=Location>."
-	masked, tags := Mask(src)
-	restored, lost := Unmask(masked, tags) // 退避テキストをそのまま戻せば原文に一致する。
-	if lost != 0 {
-		t.Fatalf("往復で欠落が出た: lost=%d", lost)
-	}
-	if restored != src {
-		t.Fatalf("往復で原文へ戻らない: got=%q want=%q", restored, src)
 	}
 }

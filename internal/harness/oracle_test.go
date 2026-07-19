@@ -80,27 +80,24 @@ var goOracles = map[string]func(t *testing.T, p probe){
 		}
 	},
 
-	// 実行時タグ保護: <Alias=...> を含む叙述文は、送信プロンプトでタグが退避され、system にタグ保護指示が乗り、最終出力で原形へ復元される。
+	// 実行時タグ保護: <Alias=...> を含む叙述文は、AI へ生タグを見せ（user に原形）、system にタグ保護指示が乗り、出力にタグが残る。
 	"runtime-tag-preserved": func(t *testing.T, p probe) {
-		// 送信プロンプトの user は退避後（生タグ <Alias= が無く、プレースホルダ ⟦0⟧ がある）であること。
+		// 送信プロンプトの user は生タグ <Alias=Player> を原形で持つこと（AI に意味の分かるタグを見せる）。
 		pr := promptContainingUser(t, p, "Deliver this letter to")
-		if strings.Contains(pr.User, "<Alias=") {
-			t.Fatalf("実行時タグが退避されず生のまま AI へ渡った:\n%s", pr.User)
-		}
-		if !strings.Contains(pr.User, "⟦0⟧") {
-			t.Fatalf("実行時タグの退避プレースホルダがプロンプトに無い:\n%s", pr.User)
+		if !strings.Contains(pr.User, "<Alias=Player>") {
+			t.Fatalf("生タグが原形で AI へ渡っていない:\n%s", pr.User)
 		}
 		// タグを持つ本文には system へタグ保護指示が乗ること。
 		if !strings.Contains(pr.System, "一字一句変えずに残すこと") {
 			t.Fatalf("タグ保護指示が system に乗っていない:\n%s", pr.System)
 		}
-		// 最終 DB の訳文はタグが原形（<Alias=Player>）へ復元されていること。
+		// 出力にタグが原形で残る行は、そのまま書き戻される（欠落なし → 仮訳として保存）。
 		var dest string
 		if err := p.db.Get(&dest, `SELECT dest FROM narration WHERE source LIKE '%Deliver this letter to%'`); err != nil {
 			t.Fatalf("タグ入り叙述文の訳が無い: %v", err)
 		}
 		if !strings.Contains(dest, "<Alias=Player>") {
-			t.Fatalf("実行時タグが最終出力で復元されていない: dest=%q", dest)
+			t.Fatalf("実行時タグが最終出力に残っていない: dest=%q", dest)
 		}
 	},
 

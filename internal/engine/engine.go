@@ -242,8 +242,8 @@ func (p *runProgress) notify() {
 
 // translateNarrations は叙述文・定型句を翻訳し、書き戻す。1 件ごとに進捗を 1 歩進める。
 // 原文が既存訳（参照訳）と完全一致する行は AI を呼ばず既訳を確定訳（statusTranslated）で流用する。
-// それ以外は実行時タグを退避し、辞書で機械置換してから AI 翻訳し、タグを復元して仮訳（statusProvisional）で書き戻す。
-// 各行は REC:FIELD に割り当てた文体・定型句 directive の指示文を base へ合成して訳す。
+// それ以外は実行時タグを機械置換の間だけ退避して生タグへ戻し、AI 翻訳して仮訳（statusProvisional）で書き戻す。
+// AI 出力にタグが原形で残らなかった行は未訳のまま残す。各行は REC:FIELD の文体・定型句 directive を base へ合成して訳す。
 func (e *Engine) translateNarrations(ctx context.Context, conn provider.Connection, modelName string, narrations []model.Narration, dict *dictionary.Dictionary, refIndex map[referenceKey]string, tmpl model.PromptTemplate, instructionByKey map[string]string, keyByRF map[RecordKey]string, p *runProgress) error {
 	lostTags := 0
 	for _, row := range narrations {
@@ -255,23 +255,18 @@ func (e *Engine) translateNarrations(ctx context.Context, conn provider.Connecti
 			p.step()
 			continue
 		}
-		// 実行時タグ（<Alias=...> 等）を退避してから機械置換・AI 翻訳へ渡す。辞書置換と AI がタグ内部へ触れないようにする。
-		masked, tags := runtimetag.Mask(row.Source)
-		// 本文中の固有名を辞書の確定訳語へ機械置換してから AI 翻訳する。AI は周りの英語だけを訳す。
-		source, _ := dict.Apply(masked)
+		source, tags := e.prepareSource(row.Source, dict)
 		instruction := instructionByKey[keyByRF[RecordKey{Rec: row.Rec, Field: row.Field}]]
 		dest, err := e.provider.Translate(ctx, conn, modelName, prompt.ComposePrompt(tmpl.BaseDirective, instruction, source))
 		if err != nil {
 			return fmt.Errorf("叙述文の翻訳: %w", err)
 		}
-		// 退避した実行時タグを原形へ復元する。訳文にプレースホルダが残らなかったタグは欠落。
-		restored, lost := runtimetag.Unmask(dest, tags)
-		if lost > 0 {
-			// 実行時タグが失われた行は、壊れた訳を確定させず未訳（status=0）のまま残す。再実行で再翻訳させる。
+		// AI 出力に生タグが原形で残っているかを照合する。欠落した行は壊れた訳を確定させず未訳のまま残す（再実行で再翻訳）。
+		if lost := runtimetag.CountMissing(dest, tags); lost > 0 {
 			lostTags += lost
 			continue
 		}
-		if err := e.store.UpdateNarrationDest(ctx, row.ID, restored, statusProvisional); err != nil {
+		if err := e.store.UpdateNarrationDest(ctx, row.ID, dest, statusProvisional); err != nil {
 			return fmt.Errorf("叙述文の書き戻し: %w", err)
 		}
 		p.step()
@@ -280,10 +275,18 @@ func (e *Engine) translateNarrations(ctx context.Context, conn provider.Connecti
 	return nil
 }
 
+// prepareSource は AI へ送る原文を組む。実行時タグを機械置換の間だけ退避し、置換後に生タグへ戻す。
+// タグ内部の語を辞書機械置換が書き換えるのを防ぎつつ、AI には意味の分かる生タグを見せる。退避したタグ列も返す（欠落照合用）。
+func (e *Engine) prepareSource(rawSource string, dict *dictionary.Dictionary) (source string, tags []string) {
+	masked, tags := runtimetag.Mask(rawSource)
+	replaced, _ := dict.Apply(masked)
+	return runtimetag.Restore(replaced, tags), tags
+}
+
 // translateLines は台詞を翻訳し、書き戻す。1 件ごとに進捗を 1 歩進める。
 // 原文が既存訳（参照訳）と完全一致する台詞は AI を呼ばず既訳を確定訳（statusTranslated）で流用する（叙述文と同じ）。
-// それ以外は実行時タグを退避し、辞書で機械置換してから口調指示つきで AI 翻訳し、タグを復元して仮訳で書き戻す。
-// 台詞は口調 directive（{traits} を話者の性質で埋めたもの）を base へ合成して訳す。話者なしなら口調指示は空。
+// それ以外は実行時タグを機械置換の間だけ退避して生タグへ戻し、口調指示つきで AI 翻訳して仮訳で書き戻す。
+// AI 出力にタグが原形で残らなかった台詞は未訳のまま残す。話者なしなら口調指示は空。
 func (e *Engine) translateLines(ctx context.Context, conn provider.Connection, modelName string, lines []model.Line, dict *dictionary.Dictionary, refIndex map[referenceKey]string, tmpl model.PromptTemplate, personas map[int64]Persona, p *runProgress) error {
 	lostTags := 0
 	for _, row := range lines {
@@ -295,20 +298,17 @@ func (e *Engine) translateLines(ctx context.Context, conn provider.Connection, m
 			p.step()
 			continue
 		}
-		// 実行時タグを退避してから機械置換・AI 翻訳へ渡す（叙述文と同じ保護）。
-		masked, tags := runtimetag.Mask(row.Source)
-		source, _ := dict.Apply(masked)
+		source, tags := e.prepareSource(row.Source, dict)
 		dest, err := e.provider.Translate(ctx, conn, modelName, prompt.ComposePrompt(tmpl.BaseDirective, personas[row.ID].Directive, source))
 		if err != nil {
 			return fmt.Errorf("台詞の翻訳: %w", err)
 		}
-		restored, lost := runtimetag.Unmask(dest, tags)
-		if lost > 0 {
-			// 実行時タグが失われた台詞は、壊れた訳を確定させず未訳（status=0）のまま残す。再実行で再翻訳させる。
+		// AI 出力に生タグが原形で残っているかを照合する。欠落した台詞は未訳のまま残す（再実行で再翻訳）。
+		if lost := runtimetag.CountMissing(dest, tags); lost > 0 {
 			lostTags += lost
 			continue
 		}
-		if err := e.store.UpdateLineDest(ctx, row.ID, restored, statusProvisional); err != nil {
+		if err := e.store.UpdateLineDest(ctx, row.ID, dest, statusProvisional); err != nil {
 			return fmt.Errorf("台詞の書き戻し: %w", err)
 		}
 		p.step()

@@ -539,19 +539,21 @@ func (a *App) buildResultsPage(ctx context.Context, plugin, cursor string, limit
 	for _, n := range narrations {
 		view := narrationResultView(n)
 		view.RecordType = recordTypeView(boxByRF, n.Rec, n.Field)
-		// 送信経路と同じ順（実行時タグを退避 → 辞書機械置換）で組み直し、置換内訳（terms）と実プロンプトを再構成する。
-		masked, _ := runtimetag.Mask(n.Source)
+		// 送信経路と同じ順（タグ退避 → 辞書機械置換 → 生タグへ復元）で組み直し、置換内訳（terms）と実プロンプトを再構成する。
+		masked, tags := runtimetag.Mask(n.Source)
 		replaced, used := dict.Apply(masked)
+		source := runtimetag.Restore(replaced, tags)
 		view.Terms = termViews(used)
 		// 叙述文・定型句は、その REC:FIELD の文体・定型句 directive を base へ合成した実プロンプトを再構成する。
 		instruction := instructionByKey[directiveByRF[RecordKey{Rec: n.Rec, Field: n.Field}]]
-		view.Prompt = prompt.RenderPrompt(prompt.ComposePrompt(tmpl.BaseDirective, instruction, replaced))
+		view.Prompt = prompt.RenderPrompt(prompt.ComposePrompt(tmpl.BaseDirective, instruction, source))
 		views = append(views, view)
 	}
 	for _, l := range lines {
 		p, hasPersona := personas[l.ID]
-		masked, _ := runtimetag.Mask(l.Source)
+		masked, tags := runtimetag.Mask(l.Source)
 		replaced, used := dict.Apply(masked)
+		lineSource := runtimetag.Restore(replaced, tags)
 		view := ResultView{
 			EDID:         l.EDID,
 			Source:       l.Source,
@@ -562,7 +564,7 @@ func (a *App) buildResultsPage(ctx context.Context, plugin, cursor string, limit
 			PersonaLabel: p.Label,
 			Terms:        termViews(used),
 			// 台詞は話者の口調指示を合成した実プロンプトを再構成する（口調指示の合成を目視で確かめる）。
-			Prompt: prompt.RenderPrompt(prompt.ComposePrompt(tmpl.BaseDirective, p.Directive, replaced)),
+			Prompt: prompt.RenderPrompt(prompt.ComposePrompt(tmpl.BaseDirective, p.Directive, lineSource)),
 		}
 		// 話者を解決できた台詞は、誰の台詞かと属性（性別・年齢・声型）を付ける。
 		if sp, ok := speakers[l.ID]; ok {
