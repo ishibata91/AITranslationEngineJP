@@ -6,11 +6,11 @@ import (
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-// ExportXTranslatorXml は出力先フォルダを選ばせ、訳出済みの翻訳結果を xTranslator 互換 XML として書き出す。
+// ExportXTranslatorXML は出力先フォルダを選ばせ、訳出済みの翻訳結果を xTranslator 互換 XML として書き出す。
 // plugin ごとに 1 ファイルを出力先フォルダ直下へ書く。フォルダ選択・結果通知はいずれもネイティブダイアログで行う。
 // 成功時は出力先と件数を情報ダイアログで、失敗時は原因をエラーダイアログで利用者へ知らせる。
 // 利用者がフォルダ選択を閉じた場合は何もしない。書き出しに失敗した場合はダイアログ通知に加え error も返す。
-func (a *App) ExportXTranslatorXml() error {
+func (a *App) ExportXTranslatorXML() error {
 	dir, err := wailsruntime.OpenDirectoryDialog(a.baseCtx(), wailsruntime.OpenDialogOptions{
 		Title: "書き出し先フォルダを選択",
 	})

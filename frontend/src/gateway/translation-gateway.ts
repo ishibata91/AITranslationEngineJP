@@ -2,7 +2,7 @@
 // View・Container からは本 gateway 経由で backend を呼ぶ。
 import {
   DeleteTargetPlugin,
-  ExportXTranslatorXml,
+  ExportXTranslatorXML,
   GetModels,
   ListResultsPage,
   ListTargetPlugins,
@@ -134,7 +134,7 @@ export async function deleteTargetPlugin(plugin: string): Promise<void> {
 // 出力先フォルダ選択と結果通知（成功の出力先・失敗）は backend のネイティブダイアログで行うため、
 // この関数は完了、または失敗時の throw だけを返す。
 export async function exportXTranslatorXml(): Promise<void> {
-  await ExportXTranslatorXml()
+  await ExportXTranslatorXML()
 }
 
 // 接続先の利用可能モデル一覧を取得する（getModels）。
