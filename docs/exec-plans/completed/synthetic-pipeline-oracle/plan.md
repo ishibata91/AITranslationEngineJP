@@ -145,6 +145,7 @@ Go 側（integration 段）verified:
 
 ### 作業 commit / merge
 
-- 作業 commit hash: （commit 後に記録）
-- local merge: `master` へ `--no-ff`
-- merge 結果 commit hash: （merge 後に記録）
+- 作業 commit hash: `d7ca5df0`（branch `claude/synthetic-pipeline-oracle`）
+- local merge: `master` へ `--no-ff`（merge commit `0f764fb1`）、conflict なし
+- merge 後検証: `npm run verify:backend`（go test・arch-lint・boundary）通過、C# `dotnet test tools/extractor.Tests` 34 件通過
+- remote 変更なし（push・tag・remote branch 削除は行わない）
