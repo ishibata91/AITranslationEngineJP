@@ -39,13 +39,24 @@ func TestNarrationResultView(t *testing.T) {
 	}
 }
 
-// extractor 子プロセスの引数を組み立てること（dotnet run で extractor を起動）。
+// extractor 子プロセスの引数を組み立てること（publish 済み DLL を dotnet で直接実行する）。
+// dotnet run（run --project）で毎回 MSBuild を評価するのを避けるため、先頭は DLL パスで
+// run・--project を含まないことを固定する。
 func TestBuildExtractorArgs(t *testing.T) {
-	args := buildExtractorArgs("tools/extractor", "/sky/Data", "Dawnguard.esm", "db/c.sqlite3", "db/migrations")
+	dll := "tools/extractor/bin/publish/extractor.dll"
+	args := buildExtractorArgs(dll, "/sky/Data", "Dawnguard.esm", "db/c.sqlite3", "db/migrations")
 	joined := strings.Join(args, " ")
-	want := "run --project tools/extractor -- --data /sky/Data --plugin Dawnguard.esm --sqlite db/c.sqlite3 --schema db/migrations"
+	want := dll + " --data /sky/Data --plugin Dawnguard.esm --sqlite db/c.sqlite3 --schema db/migrations"
 	if joined != want {
 		t.Errorf("args = %q, want %q", joined, want)
+	}
+	if args[0] != dll {
+		t.Errorf("先頭は DLL パスであるべき: args[0] = %q", args[0])
+	}
+	for _, a := range args {
+		if a == "run" || a == "--project" {
+			t.Errorf("dotnet run の引数（run / --project）が残っている: %q", joined)
+		}
 	}
 }
 

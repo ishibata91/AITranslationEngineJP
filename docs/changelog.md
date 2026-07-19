@@ -4,6 +4,25 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-07-20 翻訳前区間のパフォーマンス改善（抽出子 DLL 化・進捗表示・Normalize memoize）
+
+### 変更
+
+- `internal/api/app.go`: C# 抽出子の起動を `dotnet run --project` から publish 済み DLL 直実行（`dotnet <extractor.dll>`）へ。`ExtractorConfig.ProjectPath`→`DLLPath`、`buildExtractorArgs` を DLL 形へ、DLL 不在時の明示エラー。`ProgressEvent` に段内サブ段 `step` を追加し、`RunExtractAndTranslate` の翻訳前区間を単一 emit から4境界（extract/derive/reference/ingest の各段直前）の step 付き emit へ。
+- `internal/bootstrap/bootstrap.go`・`cmd/goldcap/main.go`: `ExtractorConfig` を DLL パスへ追随（フラグ `-extractor-project`→`-extractor-dll`）。
+- `scripts/dev/run-wails.sh`: `wails dev` の前に `dotnet publish tools/extractor` を1度実行（ビルド起動点を起動 script へ一本化）。
+- `tools/extractor/RecordDataIndex.cs`: `Normalize` を FormKey 単位で memoize（null 結果も cache）。`tools/extractor.Tests/RecordDataIndexTests.cs` を新設。
+- frontend `translation-run-{view,presentation}.ts`・`TranslationProgress.svelte`・`TranslationProgress.stories.ts`: 抽出段の4サブ段見出し（台詞を抽出/辞書を準備/既存訳を取り込む/翻訳対象を仕分け）を表示。
+- `docs/known-issues.md`: 課題6「配布 app での C# 抽出子の同梱未整備」を追加。
+
+### 判断
+
+- 申告（大きめ plugin の抽出が約6分）を実測で切り分けた結果、抽出処理そのもの（C# 抽出子＋Go 後段）は available データで高速（Outfit 約3.5s、USSEP 約2.9s）で、6分は再現しなかった。最有力原因は初回 `dotnet run` の NuGet restore＋ビルド崖を app 本体と誤認したケース（確定できず仮説）。よって体感の遅さと固まりを生む構造（毎回のビルド評価・崖、翻訳前区間の無音）を恒久的に直す方針にした。
+- 抽出子の DLL 化はビルド起動点を dev 起動 script へ一本化する（Go フォールバック build は持たせない、人間確定）。
+- `Normalize` memoize は master 依存が数十件の mod への備え（available データでは非線形が顕在化しない）として今回含める（人間確定）。抽出結果は不変（`CountParityTests` で担保）。
+- 配布 app 対応（self-contained publish・同梱・配布フロー新設）は規模が大きいため今回やらず、`known-issues.md` 課題6 に残して `feature-workflow` の別 task に回す（人間確定）。
+- `architecture.md` 反映は不要と判断。抽出子は DLL 化後も子プロセス起動のまま、進捗も同じ runtime events で、層・依存・Wails 境界を変えないため。
+
 ## 2026-07-20 設計と調査を責務分離し design.md を両フロー共通の 1 本へ
 
 ### 変更

@@ -7,6 +7,12 @@ export type RunPhase = "idle" | "running" | "done" | "error"
 // 実行中の処理段階。抽出は件数が出ないため不定、本文翻訳は done/total で進捗を出す。
 export type ProgressStage = "extract" | "translate"
 
+// extract 段（翻訳前区間）の内訳サブ段。translate 段では持たない。
+// 値は backend の処理段に対応する。extract=C# 抽出子、derive=固有名派生（DeriveMasterTerms）、
+// reference=既存訳取込（LoadReferenceTranslations）、ingest=取込段（Ingest）。
+// extract 段は件数が出ないため、進んでいるかを示すためにサブ段名を出す。
+export type ExtractStep = "extract" | "derive" | "reference" | "ingest"
+
 // 実行中の進捗。表示専用。phase==="running" のときだけ意味を持つ。
 export interface RunProgress {
   // どの段階か。extract=台詞抽出（不定）、translate=本文翻訳（done/total）。
@@ -15,6 +21,9 @@ export interface RunProgress {
   done: number
   // 総件数。translate で意味を持つ。extract では 0。
   total: number
+  // extract 段の内訳サブ段。指定時はサブ段ラベルを見出しに出す。
+  // 未指定または translate 段では従来の段ラベルを出す。
+  step?: ExtractStep
 }
 
 // 入力フォームの表示値。
