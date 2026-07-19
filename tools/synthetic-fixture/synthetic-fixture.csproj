@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>SyntheticFixture</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Mutagen.Bethesda.Skyrim" Version="0.53.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 実抽出（PluginExtractor）と各 SqliteWriter を再利用して派生 seed を吐く。 -->
+    <ProjectReference Include="../extractor/extractor.csproj" />
+  </ItemGroup>
+
+</Project>

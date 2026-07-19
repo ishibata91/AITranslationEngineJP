@@ -49,6 +49,14 @@ func seedFixture(db *sqlx.DB, f Fixture) error {
 			return fmt.Errorf("extracted_field の seed (%s:%s %s): %w", ef.Rec, ef.Field, ef.FormID, err)
 		}
 	}
+	for _, em := range f.Emotions {
+		if _, err := tx.Exec(
+			`INSERT INTO extracted_info_emotion (info_plugin, info_form_id, ordinal, emotion_type)
+			 VALUES (?, ?, ?, ?)`,
+			em.Plugin, em.InfoFormID, em.Ordinal, em.EmotionType); err != nil {
+			return fmt.Errorf("extracted_info_emotion の seed (%s ord=%d): %w", em.InfoFormID, em.Ordinal, err)
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("seed コミット: %w", err)
 	}

@@ -1,0 +1,183 @@
+{
+  "specs": [
+    {
+      "id": "rec-field-exhaustive-extraction",
+      "stage": "extraction",
+      "attribute": "翻訳対象フィールド",
+      "category": "正常",
+      "given": "plugin が翻訳可能な多様な record（武器・本・台詞・地名など）を持つ",
+      "spec": "全ての翻訳可能な REC:FIELD 文字列を、箱の判定をせず素朴に吸い出す"
+    },
+    {
+      "id": "override-identical-not-counted",
+      "stage": "extraction",
+      "attribute": "翻訳対象フィールド",
+      "category": "異常",
+      "given": "master と同一内容の override record を含む",
+      "spec": "正規化データが master 版と同一の override は翻訳対象に数えない（xTranslator の非対象行に対応）",
+      "coverage": "existing-unit"
+    },
+    {
+      "id": "container-owns-child-counted",
+      "stage": "extraction",
+      "attribute": "翻訳対象フィールド",
+      "category": "正常",
+      "given": "台詞を所有する会話（DIAL→INFO）や所有子を持つ CELL を含む",
+      "spec": "所有 INFO を持つ会話の FULL、所有子を持つ CELL は本文が master 不変でも翻訳対象にする",
+      "coverage": "existing-unit"
+    },
+    {
+      "id": "dragon-word-untranslated",
+      "stage": "extraction",
+      "attribute": "無訳片",
+      "category": "正常",
+      "given": "龍語（WOOP）record を持つ",
+      "spec": "龍語の綴り（FULL）は翻訳禁止の無訳片として扱い、語義（TNAM）だけを訳対象の定型句にする"
+    },
+    {
+      "id": "localized-header-excluded",
+      "stage": "extraction",
+      "attribute": "翻訳対象フィールド",
+      "category": "異常",
+      "given": "localized plugin（文字列を strings table 経由で持つ）である",
+      "spec": "plugin header の作者名・説明は strings table を経由しないため翻訳対象にしない",
+      "coverage": "existing-unit"
+    },
+    {
+      "id": "speaker-from-anam",
+      "stage": "extraction",
+      "attribute": "話者",
+      "category": "正常",
+      "given": "台詞（INFO）が話者を名指し（ANAM）で持つ",
+      "spec": "名指しの話者を、その台詞の発話者として結ぶ"
+    },
+    {
+      "id": "speaker-from-condition",
+      "stage": "extraction",
+      "attribute": "話者",
+      "category": "正常",
+      "given": "台詞が条件（種族・勢力・声型の GetIs 条件）で話者を絞る",
+      "spec": "真を主張する条件から、種族・勢力・声型を話者属性として採る"
+    },
+    {
+      "id": "speaker-negated-condition-ignored",
+      "stage": "extraction",
+      "attribute": "話者",
+      "category": "異常",
+      "given": "台詞の条件が否定形（「その話者ではない」）を含む",
+      "spec": "否定形の条件は話者の主張ではないため、話者解決に採らない"
+    },
+    {
+      "id": "voice-vtyp-only-not-flst",
+      "stage": "extraction",
+      "attribute": "声型",
+      "category": "異常",
+      "given": "台詞の声型条件が声型リスト（FLST）指定である",
+      "spec": "声型の直接指定（VTYP）だけを採り、リスト指定はプール扱いで採らない"
+    },
+    {
+      "id": "speaker-name-tplt-chain",
+      "stage": "extraction",
+      "attribute": "話者",
+      "category": "正常",
+      "given": "話者 NPC が自身の名前を持たず、継承元（TPLT 連鎖）を持つ",
+      "spec": "名前を 自名 → 継承元の名 → 役割名（EditorID）の順で解決する"
+    },
+    {
+      "id": "persona-sex-from-female-flag",
+      "stage": "extraction",
+      "attribute": "ペルソナ",
+      "category": "正常",
+      "given": "話者 NPC に女性フラグ（Female flag）が立つ",
+      "spec": "性別を女性フラグから確定する（喋るオブジェクト TACT は性別を持たない）"
+    },
+    {
+      "id": "line-emotion-extracted",
+      "stage": "extraction",
+      "attribute": "台詞感情",
+      "category": "正常",
+      "given": "台詞（INFO 応答）が非 Neutral の感情型（TRDT）を持つ",
+      "spec": "非 Neutral の感情型を、応答順（ordinal）を台詞本文と一致させて記録する"
+    },
+    {
+      "id": "line-emotion-neutral-skipped",
+      "stage": "extraction",
+      "attribute": "台詞感情",
+      "category": "異常",
+      "given": "台詞の感情型が Neutral である",
+      "spec": "Neutral は加算しないため記録しないが、応答順は進めて本文との一致を保つ"
+    },
+    {
+      "id": "condition-sex-from-getissex",
+      "stage": "extraction",
+      "attribute": "ペルソナ",
+      "category": "正常",
+      "given": "台詞（INFO）が性別条件（GetIsSex）を持つ",
+      "spec": "性別条件から実効性別を導き、否定形は極性を畳んで反転する（話者解決の有無に依らず定める）"
+    },
+    {
+      "id": "condition-sex-voicelist-mixed",
+      "stage": "extraction",
+      "attribute": "ペルソナ",
+      "category": "異常",
+      "given": "台詞の声型リスト（FLST）に異性または性別不明の声型が混在する",
+      "spec": "混在なら性別を定めない（同性のみで揃うリストだけ性別を採る）"
+    },
+    {
+      "id": "multivalue-ordinal-numbering",
+      "stage": "extraction",
+      "attribute": "翻訳対象フィールド",
+      "category": "正常",
+      "given": "同一レコードの同一フィールドに複数値が出る（応答・クエストログ・ボタン・階級称号）",
+      "spec": "出現順で ordinal を採番し、感情・話者・性別の結線が正しい値へ対応できるようにする"
+    },
+    {
+      "id": "count-parity",
+      "stage": "integration",
+      "attribute": "翻訳対象フィールド",
+      "category": "正常",
+      "given": "リッチな synthetic 入力を、取込から翻訳出力まで通す",
+      "spec": "翻訳対象に数えた件数と、出力した件数が一致する（取込→翻訳で落ちない）"
+    },
+    {
+      "id": "box-routing-unknown-skipped",
+      "stage": "integration",
+      "attribute": "箱振り分け",
+      "category": "異常",
+      "given": "分類表に無い REC:FIELD が入力に混じる",
+      "spec": "どの箱へも振り分けず、翻訳出力に出さない（翻訳対象に数えない）"
+    },
+    {
+      "id": "proper-noun-consistent",
+      "stage": "integration",
+      "attribute": "固有名",
+      "category": "正常",
+      "given": "同じ固有名が叙述文と台詞の両方に現れる",
+      "spec": "抽出した固有名が最終出力まで同一訳で運ばれ、叙述文と台詞で一致する"
+    },
+    {
+      "id": "line-emotion-injected",
+      "stage": "integration",
+      "attribute": "台詞感情",
+      "category": "正常",
+      "given": "台詞が非 Neutral の感情型（TRDT）を持つ",
+      "spec": "抽出した台詞感情が、その台詞のプロンプトへ乗る（感情 staging→プロンプトの合流）"
+    },
+    {
+      "id": "speaker-tone-injected",
+      "stage": "integration",
+      "attribute": "話者",
+      "category": "正常",
+      "given": "台詞に話者が結ばれている",
+      "spec": "解決した話者の口調・人物像が、その台詞のプロンプトへ乗る（話者→ペルソナ→プロンプトの合流）"
+    },
+    {
+      "id": "stoplist-preserved-in-body",
+      "stage": "integration",
+      "attribute": "固有名",
+      "category": "異常",
+      "given": "一般語と同綴りの固有名（Yes/No 等）が辞書供給に来て、本文にも一般語として出る",
+      "spec": "供給から外した語は本文で機械置換されず、本文の一般語出現を壊さない（供給選別→本文適用の合流）"
+    }
+  ]
+}

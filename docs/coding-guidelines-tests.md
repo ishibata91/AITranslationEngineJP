@@ -1,6 +1,6 @@
 # テスト コーディング規約
 
-関連文書: [`coding-guidelines.md`](./coding-guidelines.md), [`e2e-test-guidelines.md`](./e2e-test-guidelines.md), [`scenario-tests/README.md`](./scenario-tests/README.md), [`lint-policy.md`](./lint-policy.md)
+関連文書: [`coding-guidelines.md`](./coding-guidelines.md), [`integration-test-guidelines.md`](./integration-test-guidelines.md), [`e2e-test-guidelines.md`](./e2e-test-guidelines.md), [`scenario-tests/README.md`](./scenario-tests/README.md), [`lint-policy.md`](./lint-policy.md)
 
 本書は、backend / frontend のテスト実装規約を定義する。
 受け入れ条件、単体分岐、統合境界、UI 人間操作 E2E の証明方法を対象にする。
@@ -35,6 +35,7 @@
 - 受け入れテストは実装判断より先に固定し、詳細仕様差分の親要件と仕様を根拠にする
 - 単体テストは公開振る舞い、分岐、エラー経路を小さい単位で証明する
 - API / public seam test は UI 人間操作 E2E と混ぜず、入口と観測点を分ける
+- 統合テスト（エンティティ・クラスをまたいだ合成の仕様適合）は [`integration-test-guidelines.md`](./integration-test-guidelines.md) に従い、システムの入口から叩いて期待値と突き合わせる
 - UI 人間操作 E2E は人間操作の主要 flow と表示結果を証明する
 - UI 人間操作 E2E の selector、Page Object、観点表 CSV は [`e2e-test-guidelines.md`](./e2e-test-guidelines.md) に従う
 - 検証データ、clock、random、ID、repository 応答順序は固定する

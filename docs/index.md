@@ -16,7 +16,7 @@ backend は `greenfield-reset` task（2026-06-06）で削減済み。新 archite
 7. [`er.md`](./er.md)
 8. [`tech-selection.md`](./tech-selection.md)
 9. [`coding-guidelines.md`](./coding-guidelines.md)
-10. 変更対象に対応する実装規約: [`coding-guidelines-frontend.md`](./coding-guidelines-frontend.md), [`coding-guidelines-backend.md`](./coding-guidelines-backend.md), [`coding-guidelines-tests.md`](./coding-guidelines-tests.md)
+10. 変更対象に対応する実装規約: [`coding-guidelines-frontend.md`](./coding-guidelines-frontend.md), [`coding-guidelines-backend.md`](./coding-guidelines-backend.md), [`coding-guidelines-tests.md`](./coding-guidelines-tests.md)（統合テストは [`integration-test-guidelines.md`](./integration-test-guidelines.md)）
 11. 観測ログを変更する場合: [`observability-logging.md`](./observability-logging.md)
 12. [`UX-standard.md`](./UX-standard.md)
 13. [`lint-policy.md`](./lint-policy.md)
@@ -41,6 +41,7 @@ backend は `greenfield-reset` task（2026-06-06）で削減済み。新 archite
 - [`observability-logging.md`](./observability-logging.md): backend / frontend の観測ログ出力先、payload、禁止事項
 - [`coding-guidelines-backend.md`](./coding-guidelines-backend.md): Go / Wails backend の実装規約
 - [`coding-guidelines-tests.md`](./coding-guidelines-tests.md): backend / frontend のテスト実装規約
+- [`integration-test-guidelines.md`](./integration-test-guidelines.md): 単体と E2E の間の統合テストの指針。システムごとに入口から叩いて合成結果を期待値と突き合わせる
 - [`UX-standard.md`](./UX-standard.md): UI 設計で参照する UX プラクティスの正本
 - [`lint-policy.md`](./lint-policy.md): lint と static checks の責務分担
 - [`references/`](./references/index.md): 外部仕様と参照方針
@@ -61,6 +62,7 @@ backend は `greenfield-reset` task（2026-06-06）で削減済み。新 archite
 - データモデル / ER（テーブル設計）が変わった場合: [`er.md`](./er.md) を更新する
 - Technology decision changed: update [`tech-selection.md`](./tech-selection.md)
 - 実装規約が変わった場合: [`coding-guidelines.md`](./coding-guidelines.md) と対応する分割文書を更新する
+- 統合テストの方針（入口の叩き方、期待値の高度、テストダブル）が変わった場合: [`integration-test-guidelines.md`](./integration-test-guidelines.md) を更新する
 - 観測ログの出力先、payload、禁止事項が変わった場合: [`observability-logging.md`](./observability-logging.md) を更新する
 - UX 標準が変わった場合: [`UX-standard.md`](./UX-standard.md) を更新する
 - Lint / static check ownership changed: update [`lint-policy.md`](./lint-policy.md)

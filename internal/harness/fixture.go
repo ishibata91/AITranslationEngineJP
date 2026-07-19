@@ -6,7 +6,16 @@ type Fixture struct {
 	PluginName      string        // 抽出対象の plugin 名（fake 抽出子は内容を fixture で固定するため表示用）
 	ExtractedFields []SeedField   // C# 抽出器が素朴吸い出しする原文の受け皿（箱判定なし）
 	Speakers        []SeedSpeaker // 台詞の話者素材（種族・声型・INFO 橋渡し）。口調生成経路を通すために置く。
+	Emotions        []SeedEmotion // 台詞の感情型 staging（INFO 応答→TRDT）。感情がプロンプトへ乗る合流を通すために置く。
 	TermsXML        string        // 固有名派生（DeriveMasterTerms）が読む xTranslator 英日 XML の中身
+}
+
+// SeedEmotion は extracted_info_emotion の 1 行（INFO 応答単位の感情型）。取込段が (plugin, form_id, ordinal) で line へ結ぶ。
+type SeedEmotion struct {
+	Plugin      string
+	InfoFormID  string // 感情を持つ INFO（台詞）の form_id
+	Ordinal     int    // 応答順（line の非空応答の出現順と一致させる）
+	EmotionType string // Anger/Disgust/Fear/Sad/Happy/Surprise/Puzzled（Neutral は置かない）
 }
 
 // SeedField は extracted_field の 1 行ぶんの seed 値（id は採番させる）。
@@ -56,7 +65,11 @@ func SyntheticFixture() Fixture {
 			// 台詞（話者あり・複数話者）: 口調生成と注入を通す。後段で同 INFO に 2 話者を結び、複数話者の解決も観測する。
 			{Plugin: plugin, FormID: "0x500", EDID: "GuardGreet", Rec: "INFO", Field: "NAM1", Source: "Have you come to help me with the trouble in town?"},
 			// 台詞（話者あり・感情語＋部分形）: 強感情語 fear で emotion_band を、部分形 Aventus で派生→台詞機械置換を観測する。
+			// TRDT 感情型（Fear）を Emotions で付け、感情がこの台詞のプロンプトへ乗る合流（line-emotion-injected）を通す。
 			{Plugin: plugin, FormID: "0x510", EDID: "GuardWarn", Rec: "INFO", Field: "NAM1", Source: "I fear Aventus will not come back to town."},
+			// 台詞（フルネームの固有名を含む）: 叙述文（WEAP:DESC）と同じ固有名 Aventus Aretino を本文に持ち、
+			// 抽出した固有名が叙述文と台詞で同一訳になる合流（proper-noun-consistent）を観測する。
+			{Plugin: plugin, FormID: "0x520", EDID: "GuardAsk", Rec: "INFO", Field: "NAM1", Source: "Have you seen Aventus Aretino today?"},
 			// 台詞（話者なし）: 話者を解決できない台詞は口調指示なしで訳されることを観測する。
 			// Grelod を含め、byname 派生語が台詞（line）本文の機械置換にもかかる経路を観測する（叙述文と同じ辞書 Apply）。
 			{Plugin: plugin, FormID: "0x600", EDID: "OrphanGreet", Rec: "INFO", Field: "NAM1", Source: "Grelod will not return here, of course."},
@@ -100,6 +113,10 @@ func SyntheticFixture() Fixture {
 				VoiceFormID: "0x020", VoiceEDID: "MaleNord", VoiceKind: "成人男性", VoiceNature: "落ち着いた低い声",
 				InfoFormID: "0x510",
 			},
+		},
+		// 台詞の感情型 staging。GuardWarn（0x510）の応答 0 に Fear を付け、感情がプロンプトへ乗る合流を通す。
+		Emotions: []SeedEmotion{
+			{Plugin: plugin, InfoFormID: "0x510", Ordinal: 0, EmotionType: "Fear"},
 		},
 		// xTranslator 英日 XML。固有名派生（DeriveMasterTerms）が NPC_:FULL から名の部分形を派生して master_term へ載せる。
 		// Aventus Aretino は姓名分割（two）、Grelod the Kind は二つ名前部（byname）の派生経路を観測するために置く。
