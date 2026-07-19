@@ -6,7 +6,7 @@ description: "正本化判断、正本反映、作業 commit、local merge、mer
 
 ## 目的
 
-`finalization-module` は、実装モジュールの最終検証通過後に、仕様正本化、作業 commit、作業 branch の統合先 branch への local merge、completed 移動、merge 結果 commit を固定するモジュール skill である。
+`finalization-module` は、実装モジュールの最終検証通過後に、正本化判断と正本反映、作業 commit、作業 branch の統合先 branch への local merge、completed 移動、merge 結果 commit を固定するモジュール skill である。
 人間承認済みの恒久仕様だけを正本へ反映し、remote repository の変更は行わない。
 conflict 発生時だけ `conflict_resolver` agent を起動して conflict 解消を任せる。
 
@@ -23,24 +23,24 @@ conflict 発生時だけ `conflict_resolver` agent を起動して conflict 解�
 - 返却先: 呼び出し元。
 - モジュールが呼ぶ下位 skill: `conflict-resolver`（merge 時に conflict が発生した時のみ）。正本反映は本 SKILL.md 内の手順で Claude 本体が直接行う。
 - モジュールが呼ぶ下位 agent: `conflict_resolver`（merge 時に conflict が発生した時のみ）。
-- `詳細仕様正本反映`、`local merge`、`merge 後検証`、`completed 移動`、`merge 結果 commit` は Claude 本体が直接実行する。
+- `正本反映`、`local merge`、`merge 後検証`、`completed 移動`、`merge 結果 commit` は Claude 本体が直接実行する。
 
 ## 入口条件
 
 - 実装モジュールの `最終検証` が通過している、または成立条件不成立で停止理由が固定されている。
-- 想定 Y/N（仕様変更または仕様追加がある）が `design-module` または `investigation-module` の `想定 Y/N 評価` で固定されている。「人間承認済みの恒久仕様がある」は `正本化判断` 後に確定する。
+- `docs/architecture.md` への反映が要るかは、`feature-workflow` の `design.md` の実装方針・変更内容、または `fix-workflow` の `design.md` の修正方針から判断する。「人間承認済みの恒久仕様がある」は `正本化判断` 後に確定する。
 - 作業 branch が `claude/<task-id>` として存在する。
 
 ## 出口条件
 
-- `作業 commit` の commit hash が `plan.md` に固定されている。
+- `作業 commit` の commit hash が作業結果として固定されている。
 - 仕様変更または仕様追加がある場合は、`正本化判断` の結果（人間承認済みの恒久仕様がある／ない／後続課題に切り出す）が固定されている。
 - `local merge` が統合先 branch（既定 `master`）へ完了している、または成立条件不成立で停止理由が固定されている。
 - conflict が発生した場合は `conflict_resolver` が解消し、`merge 後検証` が通過している。
-- active plan folder が `docs/exec-plans/completed/<task-id>/` へ移動済みである。
+- 作業計画フォルダが `docs/exec-plans/completed/<task-id>/` へ移動済みである。
 - `merge 結果 commit` の commit hash が記録されている。
 
-## 担当 artifact
+## 担当成果物
 
 | 成果物ID | 担当 | 依存対象 | 起動先 |
 | --- | --- | --- | --- |
@@ -55,7 +55,7 @@ conflict 発生時だけ `conflict_resolver` agent を起動して conflict 解�
 
 ## decision table
 
-複数想定が同時に Y なら、各行で「要」になった artifact を全部作る。
+複数想定が同時に Y なら、各行で「要」になった成果物を全部作る。
 
 | 想定 | 正本化判断 | 正本反映 |
 | --- | --- | --- |
@@ -64,22 +64,22 @@ conflict 発生時だけ `conflict_resolver` agent を起動して conflict 解�
 
 「人間承認済みの恒久仕様がある」は、`正本化判断` 後に人間が恒久仕様として承認した場合だけ Y になる。
 
-## 各 artifact の詳細
+## 各成果物の詳細
 
 ### 正本化判断
 
 - Claude 本体が固定する。
-- 次を `plan.md` に記録する。
+- 次を作業結果として返す。恒久的に残す判断は `docs/changelog.md` に記録する。
     - 反映対象（`docs/architecture.md`）、影響範囲、対象 docs パス候補。
     - 恒久仕様として承認するか、後続課題に切り出すか、廃案にするかの判断。
     - 人間承認状態（承認済み、保留、差し戻し）。
 - 人間承認なしに「恒久仕様として承認」を確定しない。
-- 人間承認を依頼する直前に、active plan folder に `summary.md` を一時作成し、承認終了後に削除する。固定セクションは「概要」と「図」の 2 つ。
-- 承認済みなら `正本反映` の起動入力（対象 docs パス、反映する変更要点、根拠 active plan）を固定する。
+- 人間承認を依頼する直前に、作業計画フォルダに `summary.md` を一時作成し、承認終了後に削除する。固定セクションは「概要」と「図」の 2 つ。
+- 承認済みなら `正本反映` の起動入力（対象 docs パス、反映する変更要点、根拠となる作業計画）を固定する。
 
 ### 正本反映
 
-- Claude 本体が人間承認済みの恒久仕様だけを正本へ反映する。反映時は、変更前 / 変更後 / 根拠 active plan を `plan.md` に記録する。
+- Claude 本体が人間承認済みの恒久仕様だけを正本へ反映する。反映時は、変更前 / 変更後 / 根拠となる作業計画を `docs/changelog.md` に記録する。正本（`docs/architecture.md`）には現在状態だけを書く。
 - 反映対象は `docs/architecture.md` に限定する。
 - 人間承認なしの本文変更は行わない。
 
@@ -89,14 +89,14 @@ conflict 発生時だけ `conflict_resolver` agent を起動して conflict 解�
 - 次を行う。
     - 全完了または停止済み成果物を確認する。
     - 作業 branch（`claude/<task-id>`）上で local commit を作る。
-    - commit hash、変更ファイル一覧、検証結果、残留リスクを `plan.md` に記録する。
+    - commit hash、変更ファイル一覧、検証結果、残留リスクを作業結果として返す。恒久的に残す判断は `docs/changelog.md` に記録する。
 - remote repository を変更しない（push、tag push、remote branch delete は行わない）。
 
 ### local merge
 
 - Claude 本体が固定する。
 - 統合先 branch（既定 `master`）へ作業 branch を `git merge --no-ff` で取り込む。
-- `plan.md` の source branch、target branch、commit hash が対応しているかを確認してから実行する。
+- `plan.md` の branch 情報（source branch、target branch）と作業 commit hash が対応しているかを確認してから実行する。
 - conflict が発生した場合は本体側で commit せず、`conflict_resolver` agent を Task ツールで起動して `conflict 解消` を任せる。
 - remote repository を変更する command（push、tag push、remote branch delete）は実行しない。
 
@@ -104,20 +104,20 @@ conflict 発生時だけ `conflict_resolver` agent を起動して conflict 解�
 
 - conflict が発生した場合だけ `conflict_resolver` を Task ツールで起動して作らせる。
 - 下位 skill: `conflict-resolver`。
-- 起動入力に含める内容: conflict file 一覧、source branch、target branch、active plan folder、`plan.md` の根拠参照。
-- 解消結果（採用判断、根拠、変更ファイル）を `plan.md` に追記する。
+- 起動入力に含める内容: conflict file 一覧、source branch、target branch、作業計画フォルダ、`design.md` の根拠参照。
+- 解消結果（採用判断、根拠、変更ファイル）を作業結果として返す。
 - 解消が仕様判断、設計変更、レーン外の再実装を必要とする場合は停止し、呼び出し元へ戻す。
 
 ### merge 後検証
 
 - Claude 本体が固定する。
-- `plan.md` の検証結果と conflict 解消範囲から必要な検証 suite を選んで実行する。
-- 通過結果または未実行理由を `plan.md` に記録する。
+- 作業 commit の検証結果と conflict 解消範囲から必要な検証（`npm run test:backend` / `npm run test:frontend`）を選んで実行する。
+- 通過結果または未実行理由を作業結果として返す。
 
 ### completed 移動
 
 - Claude 本体が固定する。
-- `merge 後検証` の通過結果または未実行理由が記録された後だけ、active plan folder を `docs/exec-plans/completed/<task-id>/` へ移動する。
+- `merge 後検証` の通過結果または未実行理由が記録された後だけ、作業計画フォルダを `docs/exec-plans/completed/<task-id>/` へ移動する。
 
 ### merge 結果 commit
 
@@ -144,7 +144,7 @@ conflict 発生時だけ `conflict_resolver` agent を起動して conflict 解�
 - local merge: merge command、対象 branch、merge 結果、conflict 有無。
 - conflict 解消: conflict file、採用判断、根拠参照、解消結果（conflict 発生時のみ）。
 - merge 後検証: 実行 command、成否、証跡位置、未実行理由。
-- completed 移動: active plan folder から completed plan folder への移動結果。
+- completed 移動: 作業計画フォルダから completed plan folder への移動結果。
 - merge 結果 commit: local commit の hash、対象 branch、commit 対象差分。
 - 停止判定: 停止理由、不足項目、戻し先。
 

@@ -4,6 +4,27 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-07-20 AI 運用ワークフローをオーケストレーター化・`fork` 委譲・AS-IS/TO-BE 図へ再編
+
+### 変更
+
+- `.claude/skills/preparation-module/` を廃止（削除）。入口責務（branch・plan.md 固定）を各フローの入口へ統合。
+- `.claude/skills/design-module/` を `feature-workflow` へ改名し、新規実装フローの入口オーケストレーターへ再定義。責務を実装方針・AS-IS→TO-BE の変更内容・検討事項・設計レビューへ整理し、実装範囲とテスト設計を外した。
+- `.claude/skills/investigation-module/` を `fix-workflow` へ改名し、修正フローの入口オーケストレーターへ再定義。自前で branch・plan.md を固定し、修正方針判断を design.md に持つ。
+- `.claude/skills/storybook-module/`・`.claude/skills/implementation-module/`: 作業本体を、親の文脈とモデルを継承する`fork`へ委譲する形に変更。軽 task の design bypass を廃止。
+- `.claude/skills/coding-protocol/`・`finalization-module/`・`conflict-resolver/`・`fix-decision/`・`.claude/agents/conflict_resolver.md`: 旧モジュール名参照の更新、plan.md への記録指示を作業結果返却または changelog へ振り替え。
+- `.claude/skills/presentation/`: 色で塗り分ける差分図を廃止し、AS-IS→TO-BE の 2 図へ変更。
+- `CLAUDE.md`: 実装フローの原則を「`fork` 委譲は可、`fresh` への分割は不可」へ全面改訂。agent を `fresh`（引き継ぎなし）と `fork`（引き継ぎあり）の 2 語で定義し、model 既定は `fork` が親モデル（opus 含む）継承可、`fresh` は haiku/sonnet 既定へ。言葉の発明禁止を用語規約に追加。
+- `docs/exec-plans/templates/task-folder/`: plan.md を最小形（branch 情報・やらないこと）へ、design.md を新設、旧参照 detail-spec-diff.md を削除、README を更新。
+- `docs/ai-operations-workflow.md`: 上記の新構成へ書き直し。
+
+### 判断
+
+- `fork` 委譲の目的は並列化ではなく、本体セッションの文脈を実装詳細で汚さないこと（人間指定）。`fork` は全文脈を継承するので「1 文脈で書く」原則と両立し、opus 継承も許可する。
+- 軽 task も design を通す方針に変えた。入口を task の軽重で bypass しない。
+- 修正フローの入口重複（feature-workflow と fix-workflow が各々 branch・plan.md を固定）は、今回は許容して運用で試す（人間判断）。
+- plan.md は branch 情報とやらないことだけを持つ最小アーティファクトへ。判断履歴・検証結果は plan.md に残さず、changelog または作業結果へ寄せる。
+
 ## 2026-07-19 実行時タグ保護を「AI に生タグを見せる」方式へ変更
 
 ### 変更
