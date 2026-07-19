@@ -79,6 +79,48 @@ var goOracles = map[string]func(t *testing.T, p probe){
 			t.Fatalf("stoplist 語 Yes が本文で置換された（原文保持を期待）:\n%s", pr.User)
 		}
 	},
+
+	// 実行時タグ保護: <Alias=...> を含む叙述文は、送信プロンプトでタグが退避され、system にタグ保護指示が乗り、最終出力で原形へ復元される。
+	"runtime-tag-preserved": func(t *testing.T, p probe) {
+		// 送信プロンプトの user は退避後（生タグ <Alias= が無く、プレースホルダ ⟦0⟧ がある）であること。
+		pr := promptContainingUser(t, p, "Deliver this letter to")
+		if strings.Contains(pr.User, "<Alias=") {
+			t.Fatalf("実行時タグが退避されず生のまま AI へ渡った:\n%s", pr.User)
+		}
+		if !strings.Contains(pr.User, "⟦0⟧") {
+			t.Fatalf("実行時タグの退避プレースホルダがプロンプトに無い:\n%s", pr.User)
+		}
+		// タグを持つ本文には system へタグ保護指示が乗ること。
+		if !strings.Contains(pr.System, "一字一句変えずに残すこと") {
+			t.Fatalf("タグ保護指示が system に乗っていない:\n%s", pr.System)
+		}
+		// 最終 DB の訳文はタグが原形（<Alias=Player>）へ復元されていること。
+		var dest string
+		if err := p.db.Get(&dest, `SELECT dest FROM narration WHERE source LIKE '%Deliver this letter to%'`); err != nil {
+			t.Fatalf("タグ入り叙述文の訳が無い: %v", err)
+		}
+		if !strings.Contains(dest, "<Alias=Player>") {
+			t.Fatalf("実行時タグが最終出力で復元されていない: dest=%q", dest)
+		}
+	},
+
+	// 既存訳の流用: 原文が既訳と完全一致する台詞は、AI を呼ばず既訳を確定訳（status=1）で書き戻す。
+	"existing-translation-reused": func(t *testing.T, p probe) {
+		var dest string
+		var status int
+		if err := p.db.QueryRow(`SELECT dest, status FROM line WHERE source='Well met, traveler.'`).Scan(&dest, &status); err != nil {
+			t.Fatalf("既訳一致の台詞が無い: %v", err)
+		}
+		if dest != "ようこそ、旅の方。" || status != 1 {
+			t.Fatalf("既訳が確定訳で流用されていない: dest=%q status=%d（既訳・status=1 を期待）", dest, status)
+		}
+		// この原文は AI へ渡っていないこと（provider を呼ばずに流用した）。
+		for _, pr := range p.cap.Prompts {
+			if strings.Contains(pr.User, "Well met, traveler.") {
+				t.Fatalf("既訳一致の台詞が AI へ渡った（流用されていない）:\n%s", pr.User)
+			}
+		}
+	},
 }
 
 // TestGoOracles は入口→出口を 1 回通し、read-only の出口を各 spec 関数へ渡す（パラメタライズド）。

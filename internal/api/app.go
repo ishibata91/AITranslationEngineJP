@@ -12,6 +12,7 @@ import (
 
 	"aitranslationenginejp/internal/core/dictionary"
 	"aitranslationenginejp/internal/core/prompt"
+	"aitranslationenginejp/internal/core/runtimetag"
 	"aitranslationenginejp/internal/engine"
 	"aitranslationenginejp/internal/model"
 	"aitranslationenginejp/internal/provider"
@@ -431,6 +432,12 @@ func (a *App) RunExtractAndTranslate(req RunRequest) (RunResult, error) {
 		return RunResult{}, fmt.Errorf("固有名の派生に失敗: %w", err)
 	}
 
+	// 同じ xTranslator 英日 XML から record 単位の既存訳（参照訳）を取り込む。翻訳で原文が完全一致する
+	// 叙述文・台詞は AI を呼ばず既訳を流用する（known-issues 項目7）。冪等。
+	if _, err := a.engine.LoadReferenceTranslations(ctx, a.termsXMLDir); err != nil {
+		return RunResult{}, fmt.Errorf("既存訳の取り込みに失敗: %w", err)
+	}
+
 	// 取込段: C# が素朴吸い出しした extracted_field を record_type_master で振り分け、
 	// narration（叙述文・定型句）・proper_noun（固有名）・line（台詞）へ投入し、話者連関を解決する。
 	// 本文・固有名フェーズより前に 1 度実行する。冪等。
@@ -532,8 +539,9 @@ func (a *App) buildResultsPage(ctx context.Context, plugin, cursor string, limit
 	for _, n := range narrations {
 		view := narrationResultView(n)
 		view.RecordType = recordTypeView(boxByRF, n.Rec, n.Field)
-		// 原文へ辞書を当て直し、置換内訳（terms）と、置換済み原文から組んだ実プロンプトを再構成する。
-		replaced, used := dict.Apply(n.Source)
+		// 送信経路と同じ順（実行時タグを退避 → 辞書機械置換）で組み直し、置換内訳（terms）と実プロンプトを再構成する。
+		masked, _ := runtimetag.Mask(n.Source)
+		replaced, used := dict.Apply(masked)
 		view.Terms = termViews(used)
 		// 叙述文・定型句は、その REC:FIELD の文体・定型句 directive を base へ合成した実プロンプトを再構成する。
 		instruction := instructionByKey[directiveByRF[RecordKey{Rec: n.Rec, Field: n.Field}]]
@@ -542,7 +550,8 @@ func (a *App) buildResultsPage(ctx context.Context, plugin, cursor string, limit
 	}
 	for _, l := range lines {
 		p, hasPersona := personas[l.ID]
-		replaced, used := dict.Apply(l.Source)
+		masked, _ := runtimetag.Mask(l.Source)
+		replaced, used := dict.Apply(masked)
 		view := ResultView{
 			EDID:         l.EDID,
 			Source:       l.Source,

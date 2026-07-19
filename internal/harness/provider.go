@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"sync"
 
+	"aitranslationenginejp/internal/core/runtimetag"
 	"aitranslationenginejp/internal/provider"
 )
 
@@ -34,7 +35,13 @@ func (r *RecordingProvider) Translate(_ context.Context, _ provider.Connection, 
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.prompts = append(r.prompts, RecordedPrompt{Model: model, System: prompt.System, User: prompt.User})
-	return fmt.Sprintf("訳%03d", len(r.prompts)), nil
+	dest := fmt.Sprintf("訳%03d", len(r.prompts))
+	// 退避された実行時タグのプレースホルダを保持するモデルを模す。engine の Unmask が原タグへ復元でき、
+	// タグ保護の往復（退避→送信→保持→復元）を結合オラクルで観測できるようにする。
+	for _, ph := range runtimetag.Placeholders(prompt.User) {
+		dest += ph
+	}
+	return dest, nil
 }
 
 // ListModels は固定の 1 モデルを返す（本基盤は GetModels を通さないため呼ばれない想定の最小実装）。

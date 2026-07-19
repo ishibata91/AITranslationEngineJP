@@ -178,6 +178,22 @@
       "category": "異常",
       "given": "一般語と同綴りの固有名（Yes/No 等）が辞書供給に来て、本文にも一般語として出る",
       "spec": "供給から外した語は本文で機械置換されず、本文の一般語出現を壊さない（供給選別→本文適用の合流）"
+    },
+    {
+      "id": "runtime-tag-preserved",
+      "stage": "integration",
+      "attribute": "実行時タグ",
+      "category": "正常",
+      "given": "本文に実行時タグ（<Alias=...>）を含む叙述文が、既訳を持たず AI 翻訳経路を通る",
+      "spec": "タグは送信プロンプトで退避され、最終出力で原形へ復元される（AI 翻訳の前後で壊れない）"
+    },
+    {
+      "id": "existing-translation-reused",
+      "stage": "integration",
+      "attribute": "既存訳",
+      "category": "正常",
+      "given": "原文が既存訳（参照訳）と (rec, field, source) で完全一致する台詞",
+      "spec": "AI を呼ばず既訳を確定訳（status=1）で流用する（既存訳取込→完全一致→流用の合流）"
     }
   ]
 }

@@ -4,6 +4,32 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-07-19 既存訳の完全一致置換と実行時タグ保護（known-issues 項目7・8）を実装、項目4 を close
+
+### 変更
+
+- `internal/core/runtimetag/`（新規）: 本文中の実行時タグ（`<Alias=...>` 等 `<...>`）を退避 `Mask`／復元 `Unmask`（欠落数を返す）する純粋ルール。保護指示 `GuardInstruction`・退避有無 `HasPlaceholder`。単体カバレッジ 100%。
+- `internal/core/prompt/prompt.go`: `ComposePrompt` が退避トークンを持つ本文に system へタグ保護指示を足す（送信・再構成で自動一致）。
+- `internal/core/termxml/reference.go`（新規）: xTranslator 英日 XML から record 単位の既存訳（`ParseReferences`・`ReferencesFromFiles`）を抽出。
+- `db/migrations/0012_reference_translation.sql`（新規）: 既存訳の照合表 `reference_translation`（rec, field, source, dest, UNIQUE(rec,field,source)）。
+- `internal/model/reference_translation.go`・`internal/store/reference_translation.go`（新規）: model と Insert/List。
+- `internal/engine/reference.go`（新規）: `LoadReferenceTranslations`（XML→表）、`referenceIndex`（表→照合 map）、`ReferenceStore`。
+- `internal/engine/engine.go`: 翻訳ループで既訳完全一致は AI を呼ばず `statusTranslated`(1) で流用。タグは Mask→翻訳→Unmask し、欠落行は未訳（status=0）のまま残す。欠落は `slog`（result=skipped）で phase 集約。
+- `internal/api/app.go`: Run で `LoadReferenceTranslations` を結線。結果画面の実プロンプト再構成を送信と同順（Mask→dict.Apply）に合わせる。
+- `main.go`: `slog` の JSON handler を composition root で設定。
+- `internal/harness/`: `RecordingProvider` が退避トークンを保持。fixture にタグ入り叙述文・既訳一致台詞を追加。integration spec 2 件（`runtime-tag-preserved`・`existing-translation-reused`）とオラクル。
+- `.go-arch-lint.yml`: `runtimetag` component 登録と依存追加（prompt・engine・api）。
+- `docs/known-issues.md`・`docs/roadmap.md`: 実装済みの項目4（xTranslator 書き出し）と実装した項目7・8 を除き、番号と相互参照を整合。
+- `docs/er.md`: `reference_translation` を実現テーブルへ追加。
+
+### 判断
+
+- 項目4（xTranslator 書き出し）は記述が古く、実際は backend（`termxml.MarshalStrings`・`engine.ExportXTranslator`）から frontend の書き出しボタンまで実装済みと確認し、close した。
+- 項目7 の照合キーは「plugin・form_id・原文」でなく **(rec, field, source)** にした。供給源の xTranslator XML が FormID を持たず、公式訳は base ゲーム由来で対象 plugin（Mod）と plugin が一致しないため。同一原文の既訳を対象横断で流用する。
+- 項目8 のタグ欠落時の対応（人間決定）: 落ちたタグの自動差し戻しは差し込み位置不明で不可のため、欠落行は壊れた訳を確定させず未訳のまま残す（再実行で再翻訳）。あわせてタグを持つ本文には保護指示をプロンプトへ注入して欠落自体を減らす。per-record の画面上の拾い上げ・修正は結果画面編集（項目4＝別課題）へ委ねる。
+- 実 LLM e2e（`Innocence Lost - Quest Expansion.esp`、LM Studio `hy-mt2-7b`）で、既訳 67 件流用（status=1）・タグ保持・弱いモデルでの欠落 2 行の未訳保留と集約ログ発火を目視。
+- architecture.md 反映: 不要と判断（`runtimetag` は既存 core 構造の新 leaf で層・依存方向・Wails 境界は不変。enforced な `.go-arch-lint.yml` のみ更新）。
+
 ## 2026-07-19 合成パイプラインの結合オラクル（C# 抽出＋Go 翻訳の継ぎ目）を追加
 
 ### 変更

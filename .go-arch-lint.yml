@@ -56,6 +56,9 @@ components:
     in: internal/core/termusage
   termxml:
     in: internal/core/termxml
+  # runtimetag は本文中の実行時タグ（<Alias=...>）の退避・復元の純粋ルール。engine が一方向に import する。
+  runtimetag:
+    in: internal/core/runtimetag
   rolespeech:
     in: internal/core/rolespeech
   linefeatures:
@@ -98,6 +101,7 @@ deps:
       - engine
       - dictionary
       - prompt
+      - runtimetag
   engine:
     mayDependOn:
       - model
@@ -107,6 +111,7 @@ deps:
       - mention
       - prompt
       - termxml
+      - runtimetag
       - rolespeech
       - linefeatures
       - personatone
@@ -118,6 +123,7 @@ deps:
   prompt:
     mayDependOn:
       - provider
+      - runtimetag
   termusage:
     mayDependOn:
       - termderive
@@ -143,6 +149,8 @@ deps:
       - rolespeech
       # 合成 stoplist（dictionary.ParseStoplist）を組むテスト用 composition root の責務。
       - dictionary
+      # RecordingProvider が退避プレースホルダを保持するモデルを模すため、runtimetag.Placeholders を使う。
+      - runtimetag
   goldcap:
     mayDependOn:
       - api

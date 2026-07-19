@@ -4,6 +4,8 @@ package main
 import (
 	"embed"
 	"log"
+	"log/slog"
+	"os"
 
 	"aitranslationenginejp/internal/bootstrap"
 
@@ -16,6 +18,9 @@ import (
 var assets embed.FS
 
 func main() {
+	// 観測ログの既定 logger を JSON（stderr 出力）にする（observability-logging.md）。
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, nil)))
+
 	app, st, err := bootstrap.NewApp()
 	if err != nil {
 		log.Fatalf("bootstrap 失敗: %v", err)
