@@ -4,6 +4,7 @@ import type {
   AttitudeBand,
   DecisionPath,
   EmotionBand,
+  ExtractStep,
   FormFieldDescriptor,
   PersonaMeta,
   ProgressStage,
@@ -43,6 +44,15 @@ export const PHASE_PRESENTATION: Record<
 export const PROGRESS_STAGE_LABEL: Record<ProgressStage, string> = {
   extract: "台詞を抽出しています",
   translate: "本文を翻訳しています"
+}
+
+// extract 段の内訳サブ段ごとの表示ラベル。無音区間で今どのサブ段かを見出しに出す。
+// PROGRESS_STAGE_LABEL と同じ「〜しています」体にそろえる。
+export const EXTRACT_STEP_LABEL: Record<ExtractStep, string> = {
+  extract: "台詞を抽出しています",
+  derive: "辞書を準備しています",
+  reference: "既存訳を取り込んでいます",
+  ingest: "翻訳対象を仕分けています"
 }
 
 // 訳状態ラベルごとの意味トーン。未知ラベルは控えめな outline にする。

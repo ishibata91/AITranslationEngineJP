@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -49,9 +50,12 @@ type Store interface {
 // ExtractorConfig は抽出子プロセス（C#）の起動設定。dotnet 起動に要するパスだけを持つ。
 // 固有名派生で読む XML ディレクトリは抽出の入力ではないため、ここに含めず api.New が直接受け取る。
 type ExtractorConfig struct {
-	ProjectPath string // dotnet run --project のパス（dev: tools/extractor）
-	SchemaDir   string // db/migrations のパス
-	DBPath      string // 中心 DB のパス。store と同じファイルを指す。
+	// DLLPath は事前 publish 済みの抽出子 DLL のパス（dev: tools/extractor/bin/publish/extractor.dll）。
+	// 抽出のたびに MSBuild を評価する dotnet run を避け、ビルド済み DLL を dotnet で直接実行する。
+	// ビルドは dev 起動 script（scripts/dev/run-wails.sh）が起動前に 1 度だけ行う。
+	DLLPath   string
+	SchemaDir string // db/migrations のパス
+	DBPath    string // 中心 DB のパス。store と同じファイルを指す。
 }
 
 // Extractor は plugin を抽出し、原文を extracted_field（と話者 staging）へ書き込む境界。
@@ -63,8 +67,8 @@ type Extractor interface {
 	Extract(ctx context.Context, pluginPath string) error
 }
 
-// DotnetExtractor は C# 抽出器（Mutagen）を dotnet run で起動する本番 Extractor。
-// 起動に要するパス（project・schema・出力先 DB）は ExtractorConfig から受け取って保持する。
+// DotnetExtractor は C# 抽出器（Mutagen）を publish 済み DLL の dotnet 直実行で起動する本番 Extractor。
+// 起動に要するパス（DLL・schema・出力先 DB）は ExtractorConfig から受け取って保持する。
 type DotnetExtractor struct {
 	ext ExtractorConfig
 }
@@ -74,11 +78,16 @@ func NewDotnetExtractor(ext ExtractorConfig) *DotnetExtractor {
 	return &DotnetExtractor{ext: ext}
 }
 
-// Extract は dotnet run で C# 抽出器を起動し、pluginPath の plugin を抽出して extracted_field へ書き込む。
+// Extract は publish 済み DLL を dotnet で直接実行し、pluginPath の plugin を抽出して extracted_field へ書き込む。
+// DLL は起動前に build 済みである前提で、抽出のたびに MSBuild を通さない。DLL が無ければ無言でビルドせずエラーを返す。
 func (d *DotnetExtractor) Extract(ctx context.Context, pluginPath string) error {
+	// 抽出時にビルドを起こさない方針のため、DLL 不在はここで「未ビルド」として明示的に落とす。
+	if _, err := os.Stat(d.ext.DLLPath); err != nil {
+		return fmt.Errorf("抽出子が未ビルド（%s）。dev 起動 script が publish していない可能性がある: %w", d.ext.DLLPath, err)
+	}
 	dataFolder := filepath.Dir(pluginPath)
 	pluginName := filepath.Base(pluginPath)
-	args := buildExtractorArgs(d.ext.ProjectPath, dataFolder, pluginName, d.ext.DBPath, d.ext.SchemaDir)
+	args := buildExtractorArgs(d.ext.DLLPath, dataFolder, pluginName, d.ext.DBPath, d.ext.SchemaDir)
 	// dotnet は固定コマンド、引数は内部生成のパスのみ。利用者が選んだ plugin を抽出するための意図的な子プロセス起動。
 	out, err := exec.CommandContext(ctx, "dotnet", args...).CombinedOutput() //nolint:gosec // 固定コマンド dotnet・内部生成引数
 	if err != nil {
@@ -208,9 +217,12 @@ type ResultPage struct {
 	HasMore    bool         `json:"hasMore"`
 }
 
-// ProgressEvent は本文翻訳の進捗 payload。Stage は "extract"（台詞抽出、不定）と "translate"（本文翻訳）。
+// ProgressEvent は本文翻訳の進捗 payload。Stage は "extract"（翻訳前区間、不定）と "translate"（本文翻訳）。
+// Step は extract 段内のサブ段（"extract" 台詞抽出 / "derive" 辞書準備 / "reference" 既存訳取込 / "ingest" 取込段）で、
+// 翻訳前区間の無音を無くすために段ごとの見出しを frontend が出し分ける根拠にする。translate 段では空にする。
 type ProgressEvent struct {
 	Stage string `json:"stage"`
+	Step  string `json:"step,omitempty"`
 	Done  int    `json:"done"`
 	Total int    `json:"total"`
 }
@@ -420,7 +432,9 @@ func (a *App) RunExtractAndTranslate(req RunRequest) (RunResult, error) {
 		return RunResult{}, fmt.Errorf("翻訳対象プラグインの登録に失敗: %w", err)
 	}
 
-	a.emitProgress(ProgressEvent{Stage: "extract"})
+	// 翻訳前区間は4サブ段（抽出→辞書準備→既存訳取込→取込段）を無音で進むため、段ごとに1回進捗を push して
+	// frontend が見出しを出し分けられるようにする。件数を持たない不定段なので Step だけを載せる。
+	a.emitProgress(ProgressEvent{Stage: "extract", Step: "extract"})
 	// 抽出子は注入点（本番は dotnet 子プロセス、テストは DB 直 seed の fake）。利用者が選んだ plugin を抽出する。
 	if err := a.extractor.Extract(ctx, req.PluginPath); err != nil {
 		return RunResult{}, fmt.Errorf("抽出に失敗: %w", err)
@@ -428,12 +442,14 @@ func (a *App) RunExtractAndTranslate(req RunRequest) (RunResult, error) {
 
 	// 抽出後、人名の部分形（名のみ・短名）を派生して master_term へ追記する。C# が書いた base 辞書（FULL）の
 	// 後に走らせ、DB を作り直しても単独名（例 Aventus→アベンタス）が機械置換へ載るようにする。冪等。
+	a.emitProgress(ProgressEvent{Stage: "extract", Step: "derive"})
 	if _, err := a.engine.DeriveMasterTerms(ctx, a.termsXMLDir); err != nil {
 		return RunResult{}, fmt.Errorf("固有名の派生に失敗: %w", err)
 	}
 
 	// 同じ xTranslator 英日 XML から record 単位の既存訳（参照訳）を取り込む。翻訳で原文が完全一致する
 	// 叙述文・台詞は AI を呼ばず既訳を流用する（known-issues 項目7）。冪等。
+	a.emitProgress(ProgressEvent{Stage: "extract", Step: "reference"})
 	if _, err := a.engine.LoadReferenceTranslations(ctx, a.termsXMLDir); err != nil {
 		return RunResult{}, fmt.Errorf("既存訳の取り込みに失敗: %w", err)
 	}
@@ -441,6 +457,7 @@ func (a *App) RunExtractAndTranslate(req RunRequest) (RunResult, error) {
 	// 取込段: C# が素朴吸い出しした extracted_field を record_type_master で振り分け、
 	// narration（叙述文・定型句）・proper_noun（固有名）・line（台詞）へ投入し、話者連関を解決する。
 	// 本文・固有名フェーズより前に 1 度実行する。冪等。
+	a.emitProgress(ProgressEvent{Stage: "extract", Step: "ingest"})
 	if _, err := a.engine.Ingest(ctx); err != nil {
 		return RunResult{}, fmt.Errorf("取込段に失敗: %w", err)
 	}
@@ -796,10 +813,11 @@ func lineIDs(lines []model.Line) []int64 {
 	return ids
 }
 
-// buildExtractorArgs は dotnet run で extractor を起動する引数列を組む。
-func buildExtractorArgs(projectPath, dataFolder, plugin, dbPath, schemaDir string) []string {
+// buildExtractorArgs は publish 済み DLL を dotnet で直接実行する引数列を組む。
+// 先頭は DLL パスで、dotnet run のような MSBuild 評価（run --project）を通さない。
+func buildExtractorArgs(dllPath, dataFolder, plugin, dbPath, schemaDir string) []string {
 	return []string{
-		"run", "--project", projectPath, "--",
+		dllPath,
 		"--data", dataFolder,
 		"--plugin", plugin,
 		"--sqlite", dbPath,

@@ -40,7 +40,7 @@ type options struct {
 	nrcPath   string
 	rolePath  string
 	stopPath  string
-	project   string
+	dll       string
 	schemaDir string
 	model     string
 }
@@ -54,7 +54,7 @@ func parseFlags() options {
 	flag.StringVar(&o.nrcPath, "nrc", "dictionaries/nrc-emolex.txt", "感情辞書（NRC）のパス")
 	flag.StringVar(&o.rolePath, "roles", "assets/role-speech.tsv", "役割語テンプレートのパス")
 	flag.StringVar(&o.stopPath, "stopwords", "assets/stopwords-en.txt", "一般語 stoplist（stopwords-iso 配布）のパス")
-	flag.StringVar(&o.project, "extractor-project", "tools/extractor", "C# 抽出器の dotnet project パス")
+	flag.StringVar(&o.dll, "extractor-dll", "tools/extractor/bin/publish/extractor.dll", "publish 済み C# 抽出器 DLL のパス（先に dotnet publish tools/extractor が要る）")
 	flag.StringVar(&o.schemaDir, "schema", "db/migrations", "schema migration のディレクトリ")
 	flag.StringVar(&o.model, "model", "goldcap-fake", "送信モデル名（fake provider は記録のみ）")
 	flag.Parse()
@@ -101,9 +101,9 @@ func run() error {
 	dbPath := filepath.Join(tmpDir, "capture.sqlite3")
 
 	extractor := api.NewDotnetExtractor(api.ExtractorConfig{
-		ProjectPath: o.project,
-		SchemaDir:   o.schemaDir,
-		DBPath:      dbPath,
+		DLLPath:   o.dll,
+		SchemaDir: o.schemaDir,
+		DBPath:    dbPath,
 	})
 
 	captured, err := harness.Run(harness.RunConfig{

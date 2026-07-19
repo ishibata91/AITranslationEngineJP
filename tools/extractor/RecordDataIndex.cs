@@ -24,6 +24,10 @@ public sealed class RecordDataIndex
     // string ID → 本文（3 table 統合）。言語ごとに保持する。
     private readonly IReadOnlyList<Dictionary<uint, string>> _stringsByLanguage;
     private readonly Dictionary<FormKey, (int Offset, int DataSize, uint Flags)> _records = [];
+    // 正規化 data の memo。OwnsRecord は record 件数 × master 数だけ Normalize を呼び、
+    // 同じ FormKey を繰り返し再計算する（zlib 展開・2 回 Sort）。結果（null 含む）を初回で覚え、
+    // 以降は再計算しない。master 依存が多い mod での再計算コストを抑える（抽出結果は変えない）。
+    private readonly Dictionary<FormKey, byte[]?> _normalizedCache = [];
 
     public bool TryGetRecord(FormKey key, out (int Offset, int DataSize, uint Flags) loc)
         => _records.TryGetValue(key, out loc);
@@ -93,8 +97,18 @@ public sealed class RecordDataIndex
         return index;
     }
 
-    // record の正規化 data。record が無い場合は null。
+    // record の正規化 data。record が無い場合は null。結果を memo し、同じ FormKey の再計算を避ける。
     public byte[]? Normalize(FormKey key)
+    {
+        // 格納済みなら（null でも）そのまま返す。TryGetValue が false の時だけ初回計算する。
+        if (_normalizedCache.TryGetValue(key, out var cached)) return cached;
+        var result = ComputeNormalized(key);
+        _normalizedCache[key] = result;
+        return result;
+    }
+
+    // 正規化 data を実際に計算する。memo 無しの本体。
+    private byte[]? ComputeNormalized(FormKey key)
     {
         if (!_records.TryGetValue(key, out var loc)) return null;
 

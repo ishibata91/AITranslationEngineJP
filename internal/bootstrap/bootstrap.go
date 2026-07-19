@@ -18,9 +18,11 @@ import (
 
 // dev 既定のパス。wails dev は repo root を作業ディレクトリにするため相対パスで足りる。
 const (
-	devDBPath        = "db/aitranslation.dev.sqlite3"
-	extractorProject = "tools/extractor"
-	migrationsDir    = "db/migrations"
+	devDBPath = "db/aitranslation.dev.sqlite3"
+	// extractorDLL は起動前に publish 済みの抽出子 DLL。dev 起動 script（scripts/dev/run-wails.sh）が
+	// wails dev 起動の前に dotnet publish で生成する。抽出のたびに dotnet run で MSBuild を評価しない。
+	extractorDLL  = "tools/extractor/bin/publish/extractor.dll"
+	migrationsDir = "db/migrations"
 	// vaderDictPath は口調生成の感情辞書（VADER lexicon、MIT ライセンス）。git 同梱可のため assets に置く。
 	// 出典・checksum は併置の assets/vader_lexicon.LICENSE に記録する。
 	vaderDictPath = "assets/vader_lexicon.txt"
@@ -80,9 +82,9 @@ func NewApp() (*api.App, *store.Store, error) {
 
 	eng := engine.New(s, p, lex, roles, stop)
 	ext := api.ExtractorConfig{
-		ProjectPath: extractorProject,
-		SchemaDir:   migrationsDir,
-		DBPath:      devDBPath,
+		DLLPath:   extractorDLL,
+		SchemaDir: migrationsDir,
+		DBPath:    devDBPath,
 	}
 	// 抽出子は本番の dotnet 子プロセス起動。composition root が concrete を生成して注入する唯一の場所。
 	// App には固有名派生で読む XML ディレクトリ（termsXMLDir）だけ渡す（抽出に要するパスは DotnetExtractor が保持する）。

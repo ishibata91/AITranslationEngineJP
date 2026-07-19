@@ -46,3 +46,11 @@
 
 - **stoplist 外の一般語 1 語の固有名**: stopwords-en に無い「名前全体が一般語 1 語」の固有名（例: Chest・Door・Summonable・Close・Health）は従来どおり辞書へ載る。本文の文頭・文中の大文字出現に当たり得る。stopword リストの独自拡張はしない方針（外部配布リストで賄う）のため、対策するなら注入方式の変更（本文置換をやめ、用語対訳ヒントをプロンプトへ添付する方式）の検討になる。プロンプト設計の再検討を伴うため未着手である。
 - **管理用勢力・階級称号の機械判定基準**: 画面に出ない管理用の勢力名・階級称号（対話状態の内部フラグ用。実例 inigo.esp の FACT:MNAM "Yes"・"No"）を翻訳対象から機械的に除く基準は未確定である。候補だった FACT の Hidden from PC flag は実データ観測で不成立と確定した（Yes/No の供給源勢力に flag が無く、Skyrim.esm では既訳ありの実在勢力名 154 件が誤って落ちる。観測は `docs/exec-plans/completed/dictionary-false-positive-guard/plan.md`）。現状は stoplist が同綴りの一般語だけを止めている。
+
+## 6. 配布 app での C# 抽出子の同梱未整備
+
+C# 抽出子（`tools/extractor`、Mutagen）は dev 経路でしか動かない。`slow-plugin-extraction` task で dev 起動を `dotnet run --project` から publish 済み DLL 直実行へ切り替えたが、配布 app 向けの同梱は未整備である。配布ビルドを立てる時に対応する（対応するまで配布 app では抽出が動かない）。
+
+- 現状の抽出は dotnet SDK ＋ C# ソース前提（`run-wails.sh` が起動前に `dotnet publish` する dev 経路のみ）。配布 app には SDK もソースも無いため成り立たない。
+- 配布で要ること: 抽出子の self-contained publish（.NET ランタイム ＋ Mutagen を対象 OS の RID ごとに同梱）、publish 成果物の `wails build` 成果（.app / 配布ディレクトリ）への同梱、packaged 実行時のパス解決（dev は repo 相対、packaged は app リソース配下）。
+- 前提: `wails build`・release フロー自体が未整備で、それを立てるところから要る。規模が大きいため `feature-workflow` の別 task で扱う。

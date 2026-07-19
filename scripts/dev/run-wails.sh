@@ -56,6 +56,12 @@ export GOPATH="${GOPATH:-/tmp/aitranslationenginejp-go}"
 export GOMODCACHE="${GOMODCACHE:-/tmp/aitranslationenginejp-go-mod}"
 mkdir -p "$GOCACHE" "$GOPATH" "$GOMODCACHE"
 
+# C# 抽出子を起動前に 1 度 publish する。抽出は publish 済み DLL を dotnet で直接実行し（DotnetExtractor）、
+# 抽出のたびに dotnet run で MSBuild を評価する（初回は restore＋全ビルドの崖を踏む）のを避ける。
+# 出力先 tools/extractor/bin/publish/extractor.dll は bootstrap の extractorDLL と一致させる。
+echo "[run-wails] publishing C# extractor (once)" >&2
+dotnet publish tools/extractor -c Release -o tools/extractor/bin/publish
+
 # wails のログは tee で stdout とログファイルの両方へ出す。
 # ターミナルで起動状態を直接確認でき、ログファイルにも証跡を残す。
 # pipe の終了コードを wails dev 側にそろえるため pipefail を試みる。
