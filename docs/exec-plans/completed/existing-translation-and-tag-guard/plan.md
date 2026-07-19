@@ -101,3 +101,11 @@ known-issues 項目7 の文面は照合キーを「plugin・form_id・原文」�
 - architecture.md 反映: **不要**。`runtimetag` は既存 core 構造（1 ルール 1 package・一方向 leaf）に収まる新 leaf で、層・依存方向・Bootstrap・Wails 境界・強い制約は不変。enforced な依存契約 `.go-arch-lint.yml` のみ更新済み（`feedback-architecture-reflection-structural-only`）。
 - feature doc 同期（作業 commit に含める、正本反映 ceremony 対象外）: `known-issues.md`（項目4/7/8 除去＋番号整合）、`roadmap.md`（完了項目除去＋参照整合）、`er.md`（`reference_translation` 追加）、`changelog.md`（entry 追加）。
 - 人間承認: architecture.md 反映が無いため承認 ceremony なし。項目7 の照合キー・項目8 の欠落時対応は本作業中に人間へ確認済み。
+
+## 統合結果（finalization）
+
+- 作業 commit: `5824fd09`（branch `claude/existing-translation-and-tag-guard`、分岐元 `master` / `8e1b274f`）。
+- local merge: `git merge --no-ff` で `master` へ取り込み。merge commit `02dfdb31`。conflict なし。
+- merge 後検証: `npm run verify:backend`（go test＋arch-lint＋境界走査）通過。
+- completed 移動: 本 plan folder を `docs/exec-plans/completed/existing-translation-and-tag-guard/` へ移動。
+- remote は変更しない（push 等なし）。
