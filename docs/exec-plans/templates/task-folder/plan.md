@@ -1,96 +1,18 @@
 # Task Plan: <task-id>
 
-- `workflow`: work
-- `status`: planned
-- `lane_owner`:
-- `task_id`:
-- `task_mode`:
-- `request_summary`:
-- `goal`:
-- `constraints`:
-- `completion_definition`: システム上どこまで動かすか（観測できる振る舞い）と観測点（単体テスト／実画面／実データ）
-- `close_conditions`:
-- `worktree_path`:
-- `execution_branch`: `codex/<task-id>`
-- `source_branch`: `codex/<task-id>`
+`plan.md` は branch 情報と、この task でやること・やらないことの要点を持つ。
+設計判断、判断履歴、検証結果、実装結果は持たない。設計は `design.md`、恒久的に残す判断は `docs/changelog.md` に書く。
+
+## やること
+
+- <この task で何をするかの要点を書く。人間の依頼内容をそのまま要約する。設計判断や手段選定は書かず、後から plan.md 単体で何の task か分かる粒度にする。>
+
+## branch 情報
+
+- `execution_branch`: `claude/<task-id>`
 - `target_branch`: `master`
+- `source_commit`: <分岐元 commit hash>
 
-## Artifact Index
+## やらないこと
 
-- `ux_task_frame`: `task 枠` の記録位置 または `N/A`
-- `storybook_review_loop_input`: Storybook レビューループ入力確認の記録位置 または `N/A`
-- `storybook_review_loop_evidence`: `./storybook-review-loop.md` または `N/A`
-- `frontend_human_review`: frontend 実装後人間レビューの記録位置 または `N/A`
-- `approved_frontend_protection`: 合意済み frontend 保護対象の記録位置 または `N/A`
-- `detail_spec_diff`: `./detail-spec-diff.md`
-- `implementation_scope`: `pending-after-human-review` または `./implementation-scope.md`
-- `detail_spec_target`: `docs/detail-specs/<detail-spec-id>.md` または `N/A`
-
-## Routing Notes
-
-- `required_reading`:
-- `canonicalization_targets`:
-- `detail_spec_id`:
-- `validation_commands`:
-
-## Branch Status
-
-- `worktree_checkout`:
-- `branch_ready`:
-- `execution_branch`:
-- `commit_hash`:
-- `remote_operation`: `not-performed`
-
-## HITL Status
-
-- `detail_spec_hitl`: `required-after-design-bundle` / `approved` / `not-required`
-- `storybook_review_loop_input`: `required-after-frontend-implementation` / `ready` / `rework-required` / `not-required`
-- `storybook_review_loop_evidence`: `required-after-storybook-review-loop` / `ready` / `not-required`
-- `frontend_human_review`: `required-after-storybook-review-loop-evidence` / `approved` / `rework-requested` / `not-required`
-- `approval_record`: `pending-after-design-bundle` または human review の記録
-
-## Codex Implementation Result
-
-- `completed_handoffs`:
-- `touched_files`:
-- `implemented_scope`:
-- `test_results`:
-- `implementation_investigation`:
-- `ui_evidence`:
-- `storybook_review_loop_input`:
-- `storybook_review_loop_evidence`:
-- `storybook_review_resources`:
-- `approved_frontend_protection`:
-- `codex_review_result`:
-- `sonar_gate_result`:
-- `residual_risks`:
-- `docs_changes`:
-
-## Merge Readiness
-
-- `merge_ready`: `pending` / `ready` / `blocked`
-- `source_branch`:
-- `target_branch`:
-- `commit_hash`:
-- `validation_evidence`:
-- `review_evidence`:
-- `residual_risks`:
-
-## Merge Result
-
-- `merge_status`: `pending` / `merged` / `stopped`
-- `conflict_resolution`:
-- `post_merge_validation`:
-- `completed_move`:
-- `merge_commit_hash`:
-- `remote_operation`: `not-performed`
-
-## Closeout Notes
-
-- `canonicalized_artifacts`:
-- `detail_spec_canonicalization`:
-- `follow_up`:
-
-## Outcome
-
-- 結果を短く追記する
+- <この task で扱わない範囲の要点を書く。goal が要る手段を除外していないかを確かめる。>

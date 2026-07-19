@@ -1,6 +1,6 @@
 ---
 name: fix-decision
-description: "Claude 本体が読む修正方針判断プロトコル。観測記録から仮説、観測ログ検証、確定原因、修正方針、禁止修正を固定する判断基準。TRIGGER when: 不具合、レビュー非通過、検証失敗の観測記録から修正方針を固定する時。SKIP when: 仕様変更や機能追加が必要な場合は design-module へ。"
+description: "Claude 本体が読む修正方針判断プロトコル。観測記録から仮説、観測ログ検証、確定原因、採用する修正方針、禁止する修正を固定する判断基準。TRIGGER when: 不具合、レビュー非通過、検証失敗の観測記録から修正方針を固定する時。SKIP when: 仕様変更や機能追加が必要な場合は feature-workflow へ。"
 ---
 # Fix Decision
 
@@ -9,21 +9,21 @@ description: "Claude 本体が読む修正方針判断プロトコル。観測�
 `fix-decision` は、人間が確認した不具合、レビュー非通過、検証失敗の観測記録から、恒久修正へ渡せる修正方針判断へ変換する作業プロトコルである。
 Claude 本体が複数の原因仮説、観測ログによる仮説検証、確定原因、採用する修正方針、禁止する対症療法を task 内成果物として固定する時に使う。
 
-## 対応ロール
+## 対応役割
 
 - Claude 本体が task 文脈を持ったまま読んで適用する。
-- 呼び出し元は `investigation-module`、または修正方針判断が要る他の場面とする。
-- 担当成果物は `修正方針判断` とする。
+- 呼び出し元は `fix-workflow`、または原因究明と修正方針の判断が要る他の場面とする。
+- 与える判断基準は、`fix-workflow` の `調査`（`investigation.md` の原因究明）と `設計`（`design.md` の修正方針）に対応する。
 
 ## 呼び出し元から渡される情報
 
 - 必須人間観測記録: 人間が見た画面、操作、ログ、失敗、期待との差分。
-- 必須作業計画フォルダ: `修正方針判断` を置く `docs/exec-plans/active/<task-id>/`。
-- 必須Wails接続対象: `investigation-module` が事前準備で単一化した Wails process または接続先。
+- 必須作業計画フォルダ: `investigation.md` と `design.md` を置く `docs/exec-plans/active/<task-id>/`。
+- 必須Wails接続対象: `fix-workflow` が事前準備で単一化した Wails 接続対象（プロセスまたは接続先）。
 
 ## 作業前に読む正本
 
-- 修正モジュールの進行境界は [investigation-module](/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/investigation-module/SKILL.md) に従う。
+- 修正モジュールの進行境界は [fix-workflow](/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/fix-workflow/SKILL.md) に従う。
 - 修正方針判断の報告形式は [fix-decision-report-template.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/fix-decision/fix-decision-report-template.md) に従う。
 - 画面の正本は Storybook（story と svelte コンポーネント）に従う。実装済みコンポーネントの `data-testid` を含む。
 - 観測ログ仕様は [observability-logging.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/observability-logging.md) に従う。
@@ -44,11 +44,11 @@ Claude 本体が複数の原因仮説、観測ログによる仮説検証、確�
 | `採用する修正方針` | 仕様が不足していない場合だけ恒久修正を固定する。 |
 | `禁止する修正` | 新しい状態値の追加、症状だけを隠す分岐などを具体的に固定する。 |
 
-## 担当ロールが判断してよい範囲
+## 担当役割が判断してよい範囲
 
 - 観測事実と仮説を分ける。
 - 人間観測記録の画面操作は、原因仮説を固定する前に `chrome-devtools` MCP ツールで再現確認する。
-- 画面再現確認では、呼び出し元から渡された Wails process または接続先へアクセスする。
+- 画面再現確認では、呼び出し元から渡された Wails 接続対象（プロセスまたは接続先）へアクセスする。
 - 画面再現確認では、実装済み画面の `data-testid` またはセレクタに従ってユーザー操作を再現する。
 - 画面再現確認では、`chrome-devtools` MCP ツール群を MCP ツールとして実行する。
 - 画面操作結果、DB 状態、ログを観測事実として分けて整理する。
@@ -58,17 +58,17 @@ Claude 本体が複数の原因仮説、観測ログによる仮説検証、確�
 - 仮説ごとに観測ログを仕込み、観測結果で否定または支持を判断する。
 - 観測ログで否定された仮説は、確定原因から除外する。
 - 観測ログで検証できていない仮説は、確定原因として固定しない。
-- 追加した一時観測ログは、修正方針判断を返す前に削除する。
+- 追加した一時観測ログは、`investigation.md` を固定する前に削除する。
 - 原因が仮説に留まる場合は修正方針を採用しない。
 - 表面症状ではなく、観測で確定した原因を扱う。
 - 既存状態モデルで説明できる場合は、新しい状態値を採用しない。
 - 修正方針が仕様変更、機能追加、受け入れ条件の新規判断を含む可能性がある場合は停止する。
-- 既存期待を説明するユースケース記述が不足している可能性がある場合は停止する。
+- 既存の期待を確認できる正本（Storybook の story と svelte コンポーネント、または受け入れ条件）が不足している可能性がある場合は停止する。
 - 影響ファイルは候補として返してよいが、実装 agent の変更ファイルを確定しない。
 
 ## skill が扱わない対象
 
-- 修正実行入力の作成は扱わない。
+- 実装への引き継ぎの作成は扱わない。
 - 一時観測ログ以外のプロダクトコード変更は扱わない。
 - プロダクトテストの変更は扱わない。
 - docs 正本本文の更新は扱わない。
@@ -98,6 +98,6 @@ Claude 本体が複数の原因仮説、観測ログによる仮説検証、確�
 - 観測ログを追加または確認できず、仮説を検証できない場合は停止する。
 - 追加した一時観測ログを削除できない場合は停止する。
 - 原因が仮説に留まり、採用する修正方針を固定できない場合は停止する。
-- 人間観測記録と観測ログ検証から、既存期待の記述不足か新規判断が必要な変更かを分けられない場合は停止する。
+- 人間観測記録と観測ログ検証から、既存の期待の確認不足か新規判断が必要な変更かを分けられない場合は停止する。
 - 修正方針が対症療法か恒久修正か判断できない場合は停止する。
 - 停止時は不足項目、衝突箇所、固定できない判断、戻し先を返す。
