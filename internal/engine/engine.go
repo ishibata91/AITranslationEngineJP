@@ -4,6 +4,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -246,6 +247,7 @@ func (p *runProgress) notify() {
 // AI 出力にタグが原形で残らなかった行は未訳のまま残す。各行は REC:FIELD の文体・定型句 directive を base へ合成して訳す。
 func (e *Engine) translateNarrations(ctx context.Context, conn provider.Connection, modelName string, narrations []model.Narration, dict *dictionary.Dictionary, refIndex map[referenceKey]string, tmpl model.PromptTemplate, instructionByKey map[string]string, keyByRF map[RecordKey]string, p *runProgress) error {
 	lostTags := 0
+	parseFailures := 0
 	for _, row := range narrations {
 		// 原文が既存訳と完全一致するなら AI を呼ばず既訳を確定訳として流用する（known-issues 項目7）。
 		if dest, ok := refIndex[referenceKey{Rec: row.Rec, Field: row.Field, Source: row.Source}]; ok {
@@ -259,6 +261,11 @@ func (e *Engine) translateNarrations(ctx context.Context, conn provider.Connecti
 		instruction := instructionByKey[keyByRF[RecordKey{Rec: row.Rec, Field: row.Field}]]
 		dest, err := e.provider.Translate(ctx, conn, modelName, prompt.ComposePrompt(tmpl.BaseDirective, instruction, source))
 		if err != nil {
+			// 構造化出力の解析失敗（モデルの空・不完全応答）は壊れた訳を確定させず未訳のまま残す（タグ欠落と同じ、再実行で再翻訳）。
+			if errors.Is(err, provider.ErrStructuredParse) {
+				parseFailures++
+				continue
+			}
 			return fmt.Errorf("叙述文の翻訳: %w", err)
 		}
 		// AI 出力に生タグが原形で残っているかを照合する。欠落した行は壊れた訳を確定させず未訳のまま残す（再実行で再翻訳）。
@@ -272,6 +279,7 @@ func (e *Engine) translateNarrations(ctx context.Context, conn provider.Connecti
 		p.step()
 	}
 	logLostRuntimeTags(ctx, "translateNarrations", lostTags)
+	logStructuredParseFailures(ctx, "translateNarrations", parseFailures)
 	return nil
 }
 
@@ -289,6 +297,7 @@ func (e *Engine) prepareSource(rawSource string, dict *dictionary.Dictionary) (s
 // AI 出力にタグが原形で残らなかった台詞は未訳のまま残す。話者なしなら口調指示は空。
 func (e *Engine) translateLines(ctx context.Context, conn provider.Connection, modelName string, lines []model.Line, dict *dictionary.Dictionary, refIndex map[referenceKey]string, tmpl model.PromptTemplate, personas map[int64]Persona, p *runProgress) error {
 	lostTags := 0
+	parseFailures := 0
 	for _, row := range lines {
 		// 原文が既存訳と完全一致するなら AI を呼ばず既訳を確定訳として流用する（叙述文と同じ、known-issues 項目7）。
 		if dest, ok := refIndex[referenceKey{Rec: row.Rec, Field: row.Field, Source: row.Source}]; ok {
@@ -301,6 +310,11 @@ func (e *Engine) translateLines(ctx context.Context, conn provider.Connection, m
 		source, tags := e.prepareSource(row.Source, dict)
 		dest, err := e.provider.Translate(ctx, conn, modelName, prompt.ComposePrompt(tmpl.BaseDirective, personas[row.ID].Directive, source))
 		if err != nil {
+			// 構造化出力の解析失敗（モデルの空・不完全応答）は壊れた訳を確定させず未訳のまま残す（タグ欠落と同じ、再実行で再翻訳）。
+			if errors.Is(err, provider.ErrStructuredParse) {
+				parseFailures++
+				continue
+			}
 			return fmt.Errorf("台詞の翻訳: %w", err)
 		}
 		// AI 出力に生タグが原形で残っているかを照合する。欠落した台詞は未訳のまま残す（再実行で再翻訳）。
@@ -314,6 +328,7 @@ func (e *Engine) translateLines(ctx context.Context, conn provider.Connection, m
 		p.step()
 	}
 	logLostRuntimeTags(ctx, "translateLines", lostTags)
+	logStructuredParseFailures(ctx, "translateLines", parseFailures)
 	return nil
 }
 
@@ -330,6 +345,22 @@ func logLostRuntimeTags(ctx context.Context, where string, lost int) {
 		slog.String("where", "engine."+where),
 		slog.String("result", "skipped"),
 		slog.Int("count", lost),
+	)
+}
+
+// logStructuredParseFailures は本文フェーズで構造化出力の解析に失敗した行の件数を、集約して 1 度だけ観測ログへ出す。
+// where は失敗した段（translateNarrations / translateLines）。failed が 0 なら何も出さない。
+// モデルが response_format を守らず空・不完全な応答を返した行が対象。該当行は未訳のまま残す（再実行で再翻訳）ため result は skipped とする。
+// loop 内の 1 件ごとには出さず、フェーズ末で件数を集約する（観測ログ規約の大量処理集約に従う）。
+func logStructuredParseFailures(ctx context.Context, where string, failed int) {
+	if failed == 0 {
+		return
+	}
+	slog.WarnContext(ctx, "構造化出力の解析に失敗した行を未訳として残した",
+		slog.String("event", "structured_parse_failed"),
+		slog.String("where", "engine."+where),
+		slog.String("result", "skipped"),
+		slog.Int("count", failed),
 	)
 }
 

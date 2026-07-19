@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -113,6 +114,7 @@ func (c *OpenAICompatible) Translate(ctx context.Context, conn Connection, model
 			{Role: "system", Content: prompt.System},
 			{Role: "user", Content: prompt.User},
 		},
+		ResponseFormat: translationResponseFormat(),
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -137,21 +139,83 @@ func (c *OpenAICompatible) Translate(ctx context.Context, conn Connection, model
 			} `json:"message"`
 		} `json:"choices"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
-		return "", fmt.Errorf("翻訳応答解析: %w", err)
+	if err = json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
+		return "", fmt.Errorf("翻訳応答のデコード: %w", err)
 	}
 	if len(decoded.Choices) == 0 {
 		return "", fmt.Errorf("翻訳応答に choices が無い")
 	}
-	return decoded.Choices[0].Message.Content, nil
+	translation, err := extractTranslation(decoded.Choices[0].Message.Content)
+	if err != nil {
+		return "", fmt.Errorf("翻訳応答解析: %w", err)
+	}
+	return translation, nil
 }
 
 type chatRequest struct {
-	Model    string        `json:"model"`
-	Messages []chatMessage `json:"messages"`
+	Model          string          `json:"model"`
+	Messages       []chatMessage   `json:"messages"`
+	ResponseFormat *responseFormat `json:"response_format,omitempty"`
 }
 
 type chatMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
+}
+
+// responseFormat は OpenAI 互換 API の構造化出力指定（response_format の json_schema）。
+// LM Studio・xAI も同一形式で、対応モデルは content を schema 準拠の JSON 文字列で返す。
+type responseFormat struct {
+	Type       string     `json:"type"`
+	JSONSchema jsonSchema `json:"json_schema"`
+}
+
+type jsonSchema struct {
+	Name   string          `json:"name"`
+	Strict bool            `json:"strict"`
+	Schema json.RawMessage `json:"schema"`
+}
+
+// translationSchema は単一行訳文の出力スキーマ。translation 1 フィールドだけを許し、追加フィールドを拒む。
+// 静的定義のため独立モジュールへ切り出さず、provider が固定で持つ。将来の複数対象一括は別 plan で配列版へ育てる。
+var translationSchema = json.RawMessage(`{"type":"object","properties":{"translation":{"type":"string"}},"required":["translation"],"additionalProperties":false}`)
+
+// translationResponseFormat は単一行訳文の構造化出力指定を組む。スキーマが固定のため常に同一値を返す。
+func translationResponseFormat() *responseFormat {
+	return &responseFormat{
+		Type: "json_schema",
+		JSONSchema: jsonSchema{
+			Name:   "translation",
+			Strict: true,
+			Schema: translationSchema,
+		},
+	}
+}
+
+// ErrStructuredParse は構造化出力から訳文を取り出せなかったことを表す番兵エラー。
+// engine は errors.Is でこのエラーを識別し、壊れた訳を確定させず該当行を未訳のまま残す（再実行で再翻訳）。
+// モデルが response_format を守らず空・不完全な応答を返した場合に生じる。通信・HTTP 障害とは区別する。
+var ErrStructuredParse = errors.New("構造化出力の解析失敗")
+
+// extractTranslation は構造化出力の content 文字列から訳文を取り出す純粋関数。
+// content は {"translation": "..."} 形式の JSON 文字列を期待する。訳文が取れない場合を型で分ける。
+//   - 構文不正: content が JSON として解釈できない（空応答・途中切れを含む）。
+//   - 必須欠落: translation フィールドが無い。
+//   - 空値: translation が空文字。
+//
+// いずれも ErrStructuredParse でラップして返し、engine は該当行を未訳のまま skip する（再実行で再翻訳）。
+func extractTranslation(content string) (string, error) {
+	var parsed struct {
+		Translation *string `json:"translation"`
+	}
+	if err := json.Unmarshal([]byte(content), &parsed); err != nil {
+		return "", fmt.Errorf("%w: 構文不正: %w", ErrStructuredParse, err)
+	}
+	if parsed.Translation == nil {
+		return "", fmt.Errorf("%w: translation フィールドが無い", ErrStructuredParse)
+	}
+	if *parsed.Translation == "" {
+		return "", fmt.Errorf("%w: translation が空", ErrStructuredParse)
+	}
+	return *parsed.Translation, nil
 }

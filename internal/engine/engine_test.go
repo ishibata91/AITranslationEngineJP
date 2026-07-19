@@ -262,7 +262,8 @@ type fakeTranslator struct {
 	out        map[string]string // user メッセージ（機械置換済み原文）→ 訳文
 	gotModel   string
 	gotPrompts map[string]provider.Prompt // user メッセージ → engine が組んで送った完成プロンプト
-	err        error
+	err        error                      // 全行共通で返すエラー（非 nil なら毎回失敗）
+	errByUser  map[string]error           // user メッセージ → その行だけ返すエラー（行ごとの失敗注入用）
 }
 
 func (f *fakeTranslator) Translate(_ context.Context, _ provider.Connection, model string, prompt provider.Prompt) (string, error) {
@@ -273,6 +274,9 @@ func (f *fakeTranslator) Translate(_ context.Context, _ provider.Connection, mod
 	f.gotPrompts[prompt.User] = prompt
 	if f.err != nil {
 		return "", f.err
+	}
+	if e, ok := f.errByUser[prompt.User]; ok {
+		return "", e
 	}
 	return f.out[prompt.User], nil
 }
@@ -387,6 +391,40 @@ func TestRunLeavesRowUntranslatedWhenRuntimeTagLost(t *testing.T) {
 	// 翻訳件数に数えていないこと。
 	if count != 0 {
 		t.Errorf("count = %d, want 0（タグ欠落行は数えない）", count)
+	}
+}
+
+// 構造化パース失敗（provider.ErrStructuredParse）の行は未訳のまま skip し、翻訳全体を止めず他の行の翻訳を続けること。
+// 実 LLM（7B）の非決定的な空応答で 1 行が失敗しても Run が停止しない回帰の再発防止。タグ欠落と同じ扱い。
+func TestRunSkipsStructuredParseFailure(t *testing.T) {
+	store := &fakeStore{untranslated: []model.Narration{
+		{ID: 1, Source: "halls"},
+		{ID: 2, Source: "cairn"},
+		{ID: 3, Source: "keep"},
+	}}
+	tr := &fakeTranslator{
+		out:       map[string]string{"halls": "広間", "keep": "砦"},
+		errByUser: map[string]error{"cairn": provider.ErrStructuredParse},
+	}
+	eng := New(store, tr, fakeLexicon{}, nil, nil)
+
+	count, err := eng.Run(context.Background(), provider.Connection{Endpoint: "http://x"}, "model-x", nil)
+	if err != nil {
+		t.Fatalf("Run が構造化パース失敗で停止した（skip すべき）: %v", err)
+	}
+	// 失敗した cairn(ID=2) は書き戻さず、成功した halls(ID=1)・keep(ID=3) だけを仮訳で書き戻すこと。
+	want := []update{{1, "広間", 3}, {3, "砦", 3}}
+	if len(store.updates) != len(want) {
+		t.Fatalf("updates = %v, want %v", store.updates, want)
+	}
+	for i, u := range want {
+		if store.updates[i] != u {
+			t.Errorf("updates[%d] = %v, want %v", i, store.updates[i], u)
+		}
+	}
+	// 失敗行は進捗に数えないこと（成功 2 件）。
+	if count != 2 {
+		t.Errorf("count = %d, want 2（失敗行は数えない）", count)
 	}
 }
 
