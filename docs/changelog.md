@@ -4,6 +4,19 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-07-20 plan.md に「やること」を復活
+
+### 変更
+
+- `docs/exec-plans/templates/task-folder/plan.md`・`README.md`: plan.md の保持内容を「branch 情報・やらないこと」から「branch 情報・やること・やらないこと」へ戻す。
+- `.claude/skills/feature-workflow/SKILL.md`・`.claude/skills/fix-workflow/SKILL.md`: plan.md 節と入口条件に「やることの要点」を追加。
+- `docs/ai-operations-workflow.md`: plan.md の説明を同内容へ更新。
+
+### 判断
+
+- 直前の再編（2026-07-20 オーケストレーター化）で plan.md から「やること」を外した結果、plan.md 単体では何の task か分からず changelog を検索しないと内容が追えなくなった（人間指摘）。plan.md に「やること」を戻す。
+- 「やること」は人間の依頼内容をそのまま要約した粒度に限定する。設計判断・手段選定・原因仮説は `design.md` に置き、plan.md には持たせない。
+
 ## 2026-07-20 AI 運用ワークフローをオーケストレーター化・`fork` 委譲・AS-IS/TO-BE 図へ再編
 
 ### 変更
