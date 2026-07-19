@@ -77,6 +77,13 @@
 - 人間承認済みの恒久仕様: なし。正本反映は skip。
 - frontend/wailsjs（生成 binding）は gitignore のため commit 対象外（実行時に再生成）。
 
+## finalization 結果
+
+- 作業 commit: f4c9a8ff（branch claude/vader-lexicon-swap）。
+- local merge: git merge --no-ff で master へ取り込み。merge commit 6749bad8。conflict なし。
+- merge 後検証（master 上、全緑）: npm run test:backend ok、npm run lint:backend 0 issues・boundary OK、npm run test:frontend 2 passed、dotnet test tools/extractor.Tests 34 合格・0 失敗。
+- remote 変更なし（push・tag push は行わない）。
+
 ### 実 app 確認（npm run dev:wails:run、http://localhost:34115）
 
 - 起動: VADER 辞書読み込みエラーで停止せず起動。bootstrap の LoadVADER が実 app で成功。
