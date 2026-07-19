@@ -5,6 +5,7 @@ package engine
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sort"
@@ -15,6 +16,7 @@ import (
 	"aitranslationenginejp/internal/core/personatone"
 	"aitranslationenginejp/internal/core/prompt"
 	"aitranslationenginejp/internal/core/rolespeech"
+	"aitranslationenginejp/internal/core/runtimetag"
 	"aitranslationenginejp/internal/core/termxml"
 	"aitranslationenginejp/internal/core/tone"
 	"aitranslationenginejp/internal/model"
@@ -109,6 +111,7 @@ type Store interface {
 	ProperNounDictStore
 	DirectiveStore
 	ExportStore
+	ReferenceStore
 }
 
 // Engine は翻訳手続きを実行する。
@@ -200,12 +203,18 @@ func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string
 		return p.done, err
 	}
 
+	// 既存訳（参照訳）の照合表を組む。原文が既訳と完全一致する本文は AI を呼ばず既訳を流用する。
+	refIndex, err := e.referenceIndex(ctx)
+	if err != nil {
+		return p.done, err
+	}
+
 	// 叙述文・定型句フェーズ。
-	if err = e.translateNarrations(ctx, conn, model, narrations, dict, tmpl, instructionByKey, keyByRF, p); err != nil {
+	if err = e.translateNarrations(ctx, conn, model, narrations, dict, refIndex, tmpl, instructionByKey, keyByRF, p); err != nil {
 		return p.done, err
 	}
 	// 台詞フェーズ。
-	if err = e.translateLines(ctx, conn, model, lines, dict, tmpl, personas, p); err != nil {
+	if err = e.translateLines(ctx, conn, model, lines, dict, refIndex, tmpl, personas, p); err != nil {
 		return p.done, err
 	}
 	return p.done, nil
@@ -231,40 +240,97 @@ func (p *runProgress) notify() {
 	}
 }
 
-// translateNarrations は叙述文・定型句を辞書で機械置換してから AI 翻訳し、仮訳として書き戻す。
-// 各行は REC:FIELD に割り当てた文体・定型句 directive の指示文を base へ合成して訳す。1 件ごとに進捗を 1 歩進める。
-func (e *Engine) translateNarrations(ctx context.Context, conn provider.Connection, modelName string, narrations []model.Narration, dict *dictionary.Dictionary, tmpl model.PromptTemplate, instructionByKey map[string]string, keyByRF map[RecordKey]string, p *runProgress) error {
+// translateNarrations は叙述文・定型句を翻訳し、書き戻す。1 件ごとに進捗を 1 歩進める。
+// 原文が既存訳（参照訳）と完全一致する行は AI を呼ばず既訳を確定訳（statusTranslated）で流用する。
+// それ以外は実行時タグを退避し、辞書で機械置換してから AI 翻訳し、タグを復元して仮訳（statusProvisional）で書き戻す。
+// 各行は REC:FIELD に割り当てた文体・定型句 directive の指示文を base へ合成して訳す。
+func (e *Engine) translateNarrations(ctx context.Context, conn provider.Connection, modelName string, narrations []model.Narration, dict *dictionary.Dictionary, refIndex map[referenceKey]string, tmpl model.PromptTemplate, instructionByKey map[string]string, keyByRF map[RecordKey]string, p *runProgress) error {
+	lostTags := 0
 	for _, row := range narrations {
+		// 原文が既存訳と完全一致するなら AI を呼ばず既訳を確定訳として流用する（known-issues 項目7）。
+		if dest, ok := refIndex[referenceKey{Rec: row.Rec, Field: row.Field, Source: row.Source}]; ok {
+			if err := e.store.UpdateNarrationDest(ctx, row.ID, dest, statusTranslated); err != nil {
+				return fmt.Errorf("叙述文の既訳流用: %w", err)
+			}
+			p.step()
+			continue
+		}
+		// 実行時タグ（<Alias=...> 等）を退避してから機械置換・AI 翻訳へ渡す。辞書置換と AI がタグ内部へ触れないようにする。
+		masked, tags := runtimetag.Mask(row.Source)
 		// 本文中の固有名を辞書の確定訳語へ機械置換してから AI 翻訳する。AI は周りの英語だけを訳す。
-		source, _ := dict.Apply(row.Source)
+		source, _ := dict.Apply(masked)
 		instruction := instructionByKey[keyByRF[RecordKey{Rec: row.Rec, Field: row.Field}]]
 		dest, err := e.provider.Translate(ctx, conn, modelName, prompt.ComposePrompt(tmpl.BaseDirective, instruction, source))
 		if err != nil {
 			return fmt.Errorf("叙述文の翻訳: %w", err)
 		}
-		if err := e.store.UpdateNarrationDest(ctx, row.ID, dest, statusProvisional); err != nil {
+		// 退避した実行時タグを原形へ復元する。訳文にプレースホルダが残らなかったタグは欠落。
+		restored, lost := runtimetag.Unmask(dest, tags)
+		if lost > 0 {
+			// 実行時タグが失われた行は、壊れた訳を確定させず未訳（status=0）のまま残す。再実行で再翻訳させる。
+			lostTags += lost
+			continue
+		}
+		if err := e.store.UpdateNarrationDest(ctx, row.ID, restored, statusProvisional); err != nil {
 			return fmt.Errorf("叙述文の書き戻し: %w", err)
 		}
 		p.step()
 	}
+	logLostRuntimeTags(ctx, "translateNarrations", lostTags)
 	return nil
 }
 
-// translateLines は台詞を辞書で機械置換してから口調指示つきで AI 翻訳し、仮訳として書き戻す。
-// 台詞は口調 directive（{traits} を話者の性質で埋めたもの）を base へ合成して訳す。話者なしなら口調指示は空。1 件ごとに進捗を 1 歩進める。
-func (e *Engine) translateLines(ctx context.Context, conn provider.Connection, modelName string, lines []model.Line, dict *dictionary.Dictionary, tmpl model.PromptTemplate, personas map[int64]Persona, p *runProgress) error {
+// translateLines は台詞を翻訳し、書き戻す。1 件ごとに進捗を 1 歩進める。
+// 原文が既存訳（参照訳）と完全一致する台詞は AI を呼ばず既訳を確定訳（statusTranslated）で流用する（叙述文と同じ）。
+// それ以外は実行時タグを退避し、辞書で機械置換してから口調指示つきで AI 翻訳し、タグを復元して仮訳で書き戻す。
+// 台詞は口調 directive（{traits} を話者の性質で埋めたもの）を base へ合成して訳す。話者なしなら口調指示は空。
+func (e *Engine) translateLines(ctx context.Context, conn provider.Connection, modelName string, lines []model.Line, dict *dictionary.Dictionary, refIndex map[referenceKey]string, tmpl model.PromptTemplate, personas map[int64]Persona, p *runProgress) error {
+	lostTags := 0
 	for _, row := range lines {
-		source, _ := dict.Apply(row.Source)
+		// 原文が既存訳と完全一致するなら AI を呼ばず既訳を確定訳として流用する（叙述文と同じ、known-issues 項目7）。
+		if dest, ok := refIndex[referenceKey{Rec: row.Rec, Field: row.Field, Source: row.Source}]; ok {
+			if err := e.store.UpdateLineDest(ctx, row.ID, dest, statusTranslated); err != nil {
+				return fmt.Errorf("台詞の既訳流用: %w", err)
+			}
+			p.step()
+			continue
+		}
+		// 実行時タグを退避してから機械置換・AI 翻訳へ渡す（叙述文と同じ保護）。
+		masked, tags := runtimetag.Mask(row.Source)
+		source, _ := dict.Apply(masked)
 		dest, err := e.provider.Translate(ctx, conn, modelName, prompt.ComposePrompt(tmpl.BaseDirective, personas[row.ID].Directive, source))
 		if err != nil {
 			return fmt.Errorf("台詞の翻訳: %w", err)
 		}
-		if err := e.store.UpdateLineDest(ctx, row.ID, dest, statusProvisional); err != nil {
+		restored, lost := runtimetag.Unmask(dest, tags)
+		if lost > 0 {
+			// 実行時タグが失われた台詞は、壊れた訳を確定させず未訳（status=0）のまま残す。再実行で再翻訳させる。
+			lostTags += lost
+			continue
+		}
+		if err := e.store.UpdateLineDest(ctx, row.ID, restored, statusProvisional); err != nil {
 			return fmt.Errorf("台詞の書き戻し: %w", err)
 		}
 		p.step()
 	}
+	logLostRuntimeTags(ctx, "translateLines", lostTags)
 	return nil
+}
+
+// logLostRuntimeTags は本文フェーズで失われた実行時タグの件数を、集約して 1 度だけ観測ログへ出す。
+// where は失われた段（translateNarrations / translateLines）。lost が 0 なら何も出さない。
+// 該当行は未訳のまま残す（再実行で再翻訳）ため、result は skipped とする。
+// loop 内の 1 件ごとには出さず、フェーズ末で件数を集約する（観測ログ規約の大量処理集約に従う）。
+func logLostRuntimeTags(ctx context.Context, where string, lost int) {
+	if lost == 0 {
+		return
+	}
+	slog.WarnContext(ctx, "実行時タグが失われた行を未訳として残した",
+		slog.String("event", "runtime_tag_lost"),
+		slog.String("where", "engine."+where),
+		slog.String("result", "skipped"),
+		slog.Int("count", lost),
+	)
 }
 
 // directive のキー定数。本文フェーズが口調・固有名 directive を引くために使う（record_type_master.directive と一致）。

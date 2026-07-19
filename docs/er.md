@@ -257,6 +257,7 @@ erDiagram
 | テーブル | 由来（どの実現方式か） | カラム | 一意制約 |
 |---|---|---|---|
 | master_term | 固有名の確定訳を Mod 横断で永続するマスター辞書（権威訳）。`proper_noun`（実行内 AI 訳）と分離 | source, dest, category | UNIQUE(category, source) |
+| reference_translation | 本文（叙述文・台詞）の既存訳（参照訳）。xTranslator 英日 XML から record 単位で取り込み、翻訳前に (rec, field, source) 完全一致で既訳を流用する。FormID を持たない XML に合わせ照合は rec:field＋原文、plugin 非依存 | rec, field, source, dest | UNIQUE(rec, field, source) |
 | prompt_template | プロンプト構築の雛形（base 指示）。単一行 | base_directive, persona_template | PK(id=1) |
 | directive | REC:FIELD ごとの翻訳指示文。口調・文体・固有名・定型句を 1 つの「指示文」へ一般化（口調は `{traits}` 変数） | key, instruction, variables(JSON) | PK(key) |
 | record_type_master | REC:FIELD → box + directive の割り当て正本（取込段の振り分け表） | rec, field, box, directive(FK), logical_name | PK(rec, field) |

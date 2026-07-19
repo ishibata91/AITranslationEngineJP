@@ -85,6 +85,12 @@ func SyntheticFixture() Fixture {
 			// 叙述文（文頭 No）: 実データで観測した誤爆（No matter → 訳NNN matter）の形を再現し、
 			// stoplist 選別後は原文のままプロンプトへ渡ることを観測する。
 			{Plugin: plugin, FormID: "0x830", EDID: "TestDagger", Rec: "WEAP", Field: "DESC", Source: "No matter what the weather, this blade holds its edge."},
+			// 叙述文（実行時タグ入り）: 本文に <Alias=...> を含む。退避→送信→復元でタグが原形保持されることを観測する
+			// （known-issues 項目8）。TermsXML には対応する既訳を置かないため、AI 翻訳経路（退避）を通る。
+			{Plugin: plugin, FormID: "0x900", EDID: "TagBook", Rec: "BOOK", Field: "DESC", Source: "Deliver this letter to <Alias=Player> at once."},
+			// 台詞（既訳と完全一致）: TermsXML に同一 (INFO:NAM1, source) の既訳を置き、AI を呼ばず既訳が
+			// 確定訳で流用されることを観測する（known-issues 項目7）。
+			{Plugin: plugin, FormID: "0x910", EDID: "KnownGreet", Rec: "INFO", Field: "NAM1", Source: "Well met, traveler."},
 		},
 		// 各話者は声型を 1 つだけ持つ（speaker.voice_type_id は 1 対 1 の FK）。複数声型の話者は作らない。
 		Speakers: []SeedSpeaker{
@@ -125,6 +131,7 @@ func SyntheticFixture() Fixture {
   <Content>
     <String><REC>NPC_:FULL</REC><Source>Aventus Aretino</Source><Dest>アベンタス・アレティノ</Dest></String>
     <String><REC>NPC_:FULL</REC><Source>Grelod the Kind</Source><Dest>親切者のグレロッド</Dest></String>
+    <String><REC>INFO:NAM1</REC><Source>Well met, traveler.</Source><Dest>ようこそ、旅の方。</Dest></String>
   </Content>
 </SSTXMLRessources>
 `,

@@ -48,6 +48,8 @@ type fakeStore struct {
 	describedCalled   bool                     // LinkNarrationDescribed が呼ばれたか
 	// loadPersonasCalls は LoadLinePersonas の呼び出し回数。注入の引きが台詞数 N 非依存（N+1 廃止）の観測に使う。
 	loadPersonasCalls int
+	// refs は既存訳（参照訳）。ListReferenceTranslations が返す（既定は空＝流用なし）。
+	refs []model.ReferenceTranslation
 }
 
 // directivesOrDefault はテスト用の指示文集合を返す。未設定なら口調・固有名の最小集合を既定にする。
@@ -195,6 +197,14 @@ func (f *fakeStore) InsertDerivedTerms(_ context.Context, terms []model.MasterTe
 	return len(terms), nil
 }
 
+func (f *fakeStore) InsertReferenceTranslations(_ context.Context, refs []model.ReferenceTranslation) (int, error) {
+	return len(refs), nil
+}
+
+func (f *fakeStore) ListReferenceTranslations(_ context.Context) ([]model.ReferenceTranslation, error) {
+	return f.refs, nil
+}
+
 // --- PersonaStore（生成入力・キャッシュ・保存・注入） ---
 
 func (f *fakeStore) ListSpeakerLineSources(_ context.Context) ([]model.SpeakerLineSource, error) {
@@ -327,6 +337,56 @@ func TestRunReplacesTermsBeforeTranslate(t *testing.T) {
 	want := []update{{1, "リフテンの衛兵が待っていた。", 3}}
 	if len(store.updates) != 1 || store.updates[0] != want[0] {
 		t.Errorf("updates = %v, want %v", store.updates, want)
+	}
+}
+
+// 原文が既存訳（参照訳）と完全一致する叙述文は、AI を呼ばず既訳を確定訳（status=1）で流用すること（known-issues 項目7）。
+func TestRunReusesExistingTranslationWithoutCallingAI(t *testing.T) {
+	store := &fakeStore{
+		untranslated: []model.Narration{{ID: 1, Rec: "WEAP", Field: "DESC", Source: "A fine blade."}},
+		refs:         []model.ReferenceTranslation{{Rec: "WEAP", Field: "DESC", Source: "A fine blade.", Dest: "見事な刃。"}},
+	}
+	// provider は訳を持たない。既訳流用で AI が呼ばれないことを、呼ばれたら訳が空になることで検出する。
+	tr := &fakeTranslator{out: map[string]string{}}
+	eng := New(store, tr, fakeLexicon{}, nil, nil)
+
+	count, err := eng.Run(context.Background(), provider.Connection{}, "m", nil)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("count = %d, want 1（流用も翻訳件数に数える）", count)
+	}
+	// 既訳を確定訳 status=1 で書き戻すこと（仮訳 status=3 でない）。
+	want := []update{{1, "見事な刃。", 1}}
+	if len(store.updates) != 1 || store.updates[0] != want[0] {
+		t.Fatalf("updates = %v, want %v", store.updates, want)
+	}
+	// この原文は AI へ渡っていないこと（provider を呼ばずに流用した）。
+	if _, called := tr.gotPrompts["A fine blade."]; called {
+		t.Errorf("既訳一致の叙述文が AI へ渡った（流用されていない）。gotPrompts=%v", tr.gotPrompts)
+	}
+}
+
+// 実行時タグが訳文から失われた行は、壊れた訳を確定させず未訳（status 更新なし）のまま残すこと（known-issues 項目8）。
+// モデルが退避プレースホルダを落とした場合の扱い。翻訳件数にも数えない（再実行で再翻訳させる）。
+func TestRunLeavesRowUntranslatedWhenRuntimeTagLost(t *testing.T) {
+	store := &fakeStore{untranslated: []model.Narration{{ID: 1, Rec: "BOOK", Field: "DESC", Source: "See <Alias=Player> now."}}}
+	// モデルが退避トークン ⟦0⟧ を落とした訳を返す（プロンプトの user は退避済み "See ⟦0⟧ now."）。
+	tr := &fakeTranslator{out: map[string]string{"See ⟦0⟧ now.": "今すぐ見よ。"}}
+	eng := New(store, tr, fakeLexicon{}, nil, nil)
+
+	count, err := eng.Run(context.Background(), provider.Connection{}, "m", nil)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	// 壊れた訳を書き戻していないこと（未訳のまま）。
+	if len(store.updates) != 0 {
+		t.Fatalf("タグ欠落行を書き戻した（未訳で残すべき）: %v", store.updates)
+	}
+	// 翻訳件数に数えていないこと。
+	if count != 0 {
+		t.Errorf("count = %d, want 0（タグ欠落行は数えない）", count)
 	}
 }
 
