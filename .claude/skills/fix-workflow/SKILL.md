@@ -73,6 +73,7 @@ description: "修正フローの入口オーケストレーター。人間が確
 
 - Claude 本体が `fix-decision` skill を Skill ツールで読んで適用する。
 - 入力: 人間観測記録、作業計画フォルダ、Wails 接続対象、画面の正本（Storybook の story と svelte コンポーネント）、観測ログ仕様。
+- テンプレートは `docs/exec-plans/templates/task-folder/design-fix.md` を `design.md` として使う。
 - 結果を `design.md` に固定する。次を含める:
     - 観測済み問題（人間観測記録から確認できる問題）。
     - 画面再現確認（`chrome-devtools` MCP ツールで実装済み画面の `data-testid` またはセレクタに従って再現した結果）。

@@ -4,6 +4,21 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-07-20 design.md テンプレートをフロー別に分離
+
+### 変更
+
+- `docs/exec-plans/templates/task-folder/design.md`（feature/fix を条件分岐で 1 ファイルに詰めていたもの）を削除。
+- `docs/exec-plans/templates/task-folder/design-feature.md` を新設（新規実装フロー用。実装方針・AS-IS→TO-BE・検討事項）。
+- `docs/exec-plans/templates/task-folder/design-fix.md` を新設（修正フロー用。修正方針判断・修正実行入力・検討事項）。
+- `.claude/skills/feature-workflow/SKILL.md`・`.claude/skills/fix-workflow/SKILL.md`: 使うテンプレート変種を 1 行で参照。
+- `docs/exec-plans/templates/task-folder/README.md`・`docs/ai-operations-workflow.md`: design.md の説明を 2 変種構成へ更新。
+
+### 判断
+
+- design-module を feature-workflow へ畳んだ結果、設計段が feature 専用に固定され、fix と共有できなくなった（人間指摘）。設計段は両フロー共通の段として扱い、フローで異なる design.md の中身だけをテンプレートとして分離する。
+- 分離は design.md テンプレートに限定する。共有の設計 skill は新設せず、入口 skill が使うテンプレート変種を指す形にとどめる。task フォルダ内のファイル名は両フローとも `design.md` のまま。
+
 ## 2026-07-20 plan.md に「やること」を復活
 
 ### 変更
