@@ -372,8 +372,8 @@ func TestRunReusesExistingTranslationWithoutCallingAI(t *testing.T) {
 // モデルが退避プレースホルダを落とした場合の扱い。翻訳件数にも数えない（再実行で再翻訳させる）。
 func TestRunLeavesRowUntranslatedWhenRuntimeTagLost(t *testing.T) {
 	store := &fakeStore{untranslated: []model.Narration{{ID: 1, Rec: "BOOK", Field: "DESC", Source: "See <Alias=Player> now."}}}
-	// モデルが退避トークン ⟦0⟧ を落とした訳を返す（プロンプトの user は退避済み "See ⟦0⟧ now."）。
-	tr := &fakeTranslator{out: map[string]string{"See ⟦0⟧ now.": "今すぐ見よ。"}}
+	// モデルが生タグ <Alias=Player> を落とした訳を返す（プロンプトの user は生タグ "See <Alias=Player> now."）。
+	tr := &fakeTranslator{out: map[string]string{"See <Alias=Player> now.": "今すぐ見よ。"}}
 	eng := New(store, tr, fakeLexicon{}, nil, nil)
 
 	count, err := eng.Run(context.Background(), provider.Connection{}, "m", nil)

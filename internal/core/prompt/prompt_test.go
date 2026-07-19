@@ -51,19 +51,23 @@ func TestComposePrompt(t *testing.T) {
 	}
 }
 
-// ComposePrompt は原文に実行時タグの退避トークン（⟦連番⟧）があれば system へタグ保護指示を足し、
-// 無ければ足さない（タグを持つ本文にだけモデルへトークン保持を求める）。
-func TestComposePromptAddsTagGuardWhenPlaceholderPresent(t *testing.T) {
+// ComposePrompt は原文に実行時タグ（<...>）があれば system へタグ保護指示を足し、
+// 無ければ足さない（タグを持つ本文にだけモデルへタグの原形保持を求める）。
+func TestComposePromptAddsTagGuardWhenTagPresent(t *testing.T) {
 	const base = "base 指示"
-	// 退避トークンありは保護指示が system へ足される。
-	withTag := ComposePrompt(base, "", "届け先は ⟦0⟧ だ")
-	if !strings.Contains(withTag.System, "⟦0⟧") || !strings.Contains(withTag.System, "残す") {
-		t.Fatalf("退避トークンありでタグ保護指示が付いていない: %q", withTag.System)
+	// 生タグありは保護指示が system へ足される。
+	withTag := ComposePrompt(base, "", "届け先は <Alias=Player> だ")
+	if !strings.Contains(withTag.System, "残すこと") {
+		t.Fatalf("生タグありでタグ保護指示が付いていない: %q", withTag.System)
 	}
-	// 退避トークンなしは base のまま（保護指示を足さない）。
+	// user はタグを退避せず生のまま入れる。
+	if !strings.Contains(withTag.User, "<Alias=Player>") {
+		t.Fatalf("user に生タグが入っていない: %q", withTag.User)
+	}
+	// タグなしは base のまま（保護指示を足さない）。
 	noTag := ComposePrompt(base, "", "普通の本文")
 	if noTag.System != base {
-		t.Fatalf("退避トークンなしで system が変わった: %q", noTag.System)
+		t.Fatalf("タグなしで system が変わった: %q", noTag.System)
 	}
 }
 
