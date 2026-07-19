@@ -4,6 +4,23 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-07-19 合成パイプラインの結合オラクル（C# 抽出＋Go 翻訳の継ぎ目）を追加
+
+### 変更
+
+- `test-oracle/specs.json`: 共有オラクルを継ぎ目のみへ刈り込んだ。`extraction` 16 件（C# 抽出、うち 3 件は master/localized が要り既存実 esm 単体へ委任＝`coverage: existing-unit`）＋ `integration` 6 件（Go 翻訳の継ぎ目）＝ 22 件。
+- `tools/synthetic-fixture`: master 無し自己完結の合成 esm を Mutagen で組む独立生成器（`SyntheticEsmBuilder`＋Program）を新設。成果物 `test-oracle/fixture/Synthetic.esm` を commit。生成はテスト・build から切り離す。
+- `tools/extractor.Tests`: C# 抽出オラクル（`OracleExtractionTests`＝13 件、`OracleInput`・`OracleSpecs`・`[Oracle]` 属性）を追加。合成 esm を実抽出し抽出結果／staging を照合。網羅番人は `[Oracle]` id 集合と specs.json の一致を見る。
+- `internal/harness`: Go 結合オラクル（`oracle_test.go`＝6 件）を追加。`SyntheticRun` を 1 回通し `Capture`・最終 DB を照合。合成 fixture へ感情 staging（`extracted_info_emotion` の Fear）とフルネーム固有名台詞を追加。golden 文字列比較（`TestSyntheticNonRegression`・`testdata/synthetic.golden`）を撤去し、決定性テストは残した。
+- `tools/extractor.Tests/CLAUDE.md`・`internal/harness/CLAUDE.md`: オラクルテストの書き方（1 オラクル 1 関数・id を引ける・AAA・独立・given は入力側）をテストフォルダ直下へ固定。
+
+### 判断
+
+- 結合オラクルが守るのは「単体で守れない継ぎ目」だけ、と定義を訂正した。当初は specs.json の 54 件（段×属性）を 1 件ずつテスト化し、単段で純粋に閉じるルール（口調閾値・stoplist 判定・固有名派生・役割語引き）まで結合ハーネスで照合しようとして無限に膨らんだ。単段ルールは core package の既存単体が守るためオラクルから外し、go 段を継ぎ目 6 件（件数保存・未知除外・固有名一貫・感情結線・話者結線・stoplist 一貫）へ刈り込んだ。
+- 入口→出口の範囲はツール単位に取った（C#: esm→抽出 staging、Go: seed→翻訳出力）。C# 抽出出力を Go へ流し込む派生 seed 連結は、master 無し実 esm では作れない given（未知 REC:FIELD・別 plugin・master 辞書内容）があり、かつ既存の手組み fixture より複雑になるため却下した。
+- e2e と呼ばない（実 LLM・UI を通らない）。stage 名は `integration` に統一した。
+- テストの書き方の固定は root CLAUDE.md でなくテストフォルダ直下の `CLAUDE.md` に置いた。そのフォルダで作業する時に必ず読まれるため。
+
 ## 2026-07-05 辞書に無い漏れ語の候補検出（決定的ヒューリスティック）を研究の結果、不採用として revert
 
 ### 変更
