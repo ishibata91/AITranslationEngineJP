@@ -25,7 +25,7 @@ type ExportStore interface {
 func (e *Engine) ExportXTranslator(ctx context.Context, outDir string) ([]string, error) {
 	plugins, err := e.store.ExportPlugins(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("plugin 一覧の取得: %w", err)
 	}
 	var written []string
 	for _, plugin := range plugins {
@@ -56,15 +56,15 @@ func (e *Engine) ExportXTranslator(ctx context.Context, outDir string) ([]string
 func (e *Engine) exportEntries(ctx context.Context, plugin string) ([]termxml.StringEntry, error) {
 	narrations, err := e.store.NarrationsForExport(ctx, plugin)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s の叙述文取得: %w", plugin, err)
 	}
 	lines, err := e.store.LinesForExport(ctx, plugin)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s の台詞取得: %w", plugin, err)
 	}
 	propers, err := e.store.ProperNounPlacementsForExport(ctx, plugin)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s の固有名配置取得: %w", plugin, err)
 	}
 	entries := make([]termxml.StringEntry, 0, len(narrations)+len(lines)+len(propers))
 	for _, n := range narrations {

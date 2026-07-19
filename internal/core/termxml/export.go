@@ -64,7 +64,7 @@ func MarshalStrings(entries []StringEntry, addon string) ([]byte, error) {
 	}
 	for i, e := range entries {
 		if e.Partial != "" && e.Partial != "1" && e.Partial != "2" {
-			return nil, fmt.Errorf("Partial が不正: EDID=%s Partial=%q", e.EDID, e.Partial)
+			return nil, fmt.Errorf("不正な Partial 属性: EDID=%s Partial=%q", e.EDID, e.Partial)
 		}
 		res.Strings[i] = xmlExportString{
 			List:    "0",

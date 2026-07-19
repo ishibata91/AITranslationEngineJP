@@ -21,8 +21,9 @@ const (
 	devDBPath        = "db/aitranslation.dev.sqlite3"
 	extractorProject = "tools/extractor"
 	migrationsDir    = "db/migrations"
-	// nrcDictPath は口調生成の感情辞書（研究用ライセンス）。製品化時に MIT 実装へ差し替える。
-	nrcDictPath = "dictionaries/nrc-emolex.txt"
+	// vaderDictPath は口調生成の感情辞書（VADER lexicon、MIT ライセンス）。git 同梱可のため assets に置く。
+	// 出典・checksum は併置の assets/vader_lexicon.LICENSE に記録する。
+	vaderDictPath = "assets/vader_lexicon.txt"
 	// roleSpeechPath は注入時に引く一人称・語尾テンプレート。中身は実画面確認で見直すため外部ファイルに置く。
 	roleSpeechPath = "assets/role-speech.tsv"
 	// stopwordsPath は機械置換辞書・言及語彙の供給から除く一般語リスト（stopwords-iso 配布、MIT）。
@@ -44,7 +45,7 @@ func NewApp() (*api.App, *store.Store, error) {
 	p := provider.NewOpenAICompatible(client)
 
 	// 口調生成の感情辞書を読む。差し替え可能な境界（engine.EmotionLexicon）の concrete 実装。
-	lex, err := lexicon.LoadNRC(nrcDictPath)
+	lex, err := lexicon.LoadVADER(vaderDictPath)
 	if err != nil {
 		_ = s.Close()
 		return nil, nil, fmt.Errorf("感情辞書の読み込み: %w", err)
