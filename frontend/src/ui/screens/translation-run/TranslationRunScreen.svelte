@@ -6,7 +6,7 @@
   import SelectField from "@ui/components/SelectField.svelte"
   import ResultsPanel from "./ResultsPanel.svelte"
   import TranslationProgress from "./TranslationProgress.svelte"
-  import { PROVIDER_FIELDS, PHASE_PRESENTATION } from "./translation-run-presentation"
+  import { PROVIDER_FIELDS, TOKEN_BUDGET_FIELD, PHASE_PRESENTATION } from "./translation-run-presentation"
   import type {
     TranslationRunForm,
     TranslationRunFormField,
@@ -138,6 +138,16 @@
                 </button>
               {/snippet}
             </SelectField>
+            <TextField
+              label={TOKEN_BUDGET_FIELD.label}
+              value={form[TOKEN_BUDGET_FIELD.field]}
+              placeholder={TOKEN_BUDGET_FIELD.placeholder}
+              hint={TOKEN_BUDGET_FIELD.hint}
+              secret={TOKEN_BUDGET_FIELD.secret}
+              suffix={TOKEN_BUDGET_FIELD.suffix}
+              inputWidthClass="w-24"
+              oninput={(value: string) => onFieldInput(TOKEN_BUDGET_FIELD.field, value)}
+            />
           </div>
         </div>
 
