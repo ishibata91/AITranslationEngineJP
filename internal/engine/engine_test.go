@@ -51,6 +51,10 @@ type fakeStore struct {
 	loadPersonasCalls int
 	// refs は既存訳（参照訳）。ListReferenceTranslations が返す（既定は空＝流用なし）。
 	refs []model.ReferenceTranslation
+	// batch 進行の永続（BatchStore 実装用、batch 結合テストで使う）。1 plugin 1 進行を想定。
+	batchProg   *model.BatchTranslation
+	batchReqs   []model.BatchRequest
+	nextBatchID int64
 }
 
 // directivesOrDefault はテスト用の指示文集合を返す。未設定なら口調・固有名の最小集合を既定にする。
@@ -156,6 +160,13 @@ func (f *fakeStore) ListUntranslatedProperNouns(_ context.Context, plugin string
 
 func (f *fakeStore) UpdateProperNounDest(_ context.Context, id int64, dest string, status int) error {
 	f.properUpdates = append(f.properUpdates, update{id: id, dest: dest, status: status})
+	// 実 DB と同じく backing 行も更新する（未訳一覧の除外・proper_noun→辞書合流を batch 結合テストで再現する）。
+	for i := range f.proper {
+		if f.proper[i].ID == id {
+			f.proper[i].Dest = dest
+			f.proper[i].Status = status
+		}
+	}
 	return nil
 }
 
@@ -173,12 +184,9 @@ type update struct {
 }
 
 func (f *fakeStore) ListUntranslatedNarrations(_ context.Context, plugin string) ([]model.Narration, error) {
-	if plugin == "" {
-		return f.untranslated, nil
-	}
 	var out []model.Narration
 	for _, n := range f.untranslated {
-		if n.Plugin == plugin {
+		if n.Status == 0 && (plugin == "" || n.Plugin == plugin) {
 			out = append(out, n)
 		}
 	}
@@ -187,16 +195,20 @@ func (f *fakeStore) ListUntranslatedNarrations(_ context.Context, plugin string)
 
 func (f *fakeStore) UpdateNarrationDest(_ context.Context, id int64, dest string, status int) error {
 	f.updates = append(f.updates, update{id: id, dest: dest, status: status})
+	// 実 DB と同じく backing 行も更新する（未訳一覧の除外を batch 結合テストで再現する）。
+	for i := range f.untranslated {
+		if f.untranslated[i].ID == id {
+			f.untranslated[i].Dest = dest
+			f.untranslated[i].Status = status
+		}
+	}
 	return nil
 }
 
 func (f *fakeStore) ListUntranslatedLines(_ context.Context, plugin string) ([]model.Line, error) {
-	if plugin == "" {
-		return f.lines, nil
-	}
 	var out []model.Line
 	for _, l := range f.lines {
-		if l.Plugin == plugin {
+		if l.Status == 0 && (plugin == "" || l.Plugin == plugin) {
 			out = append(out, l)
 		}
 	}
@@ -205,6 +217,13 @@ func (f *fakeStore) ListUntranslatedLines(_ context.Context, plugin string) ([]m
 
 func (f *fakeStore) UpdateLineDest(_ context.Context, id int64, dest string, status int) error {
 	f.lineUpdates = append(f.lineUpdates, update{id: id, dest: dest, status: status})
+	// 実 DB と同じく backing 行も更新する（未訳一覧の除外を batch 結合テストで再現する）。
+	for i := range f.lines {
+		if f.lines[i].ID == id {
+			f.lines[i].Dest = dest
+			f.lines[i].Status = status
+		}
+	}
 	return nil
 }
 

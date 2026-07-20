@@ -26,6 +26,23 @@ func TestStatusLabel(t *testing.T) {
 	}
 }
 
+// batch 非対応モデル（grok-4.5）を、ドット表記・ハイフン表記・大文字混在のいずれでも除外し、
+// 対応モデルは素通しすること。xAI のモデル名表記ゆれで除外漏れを起こさないため。
+func TestFilterBatchSupportedModels(t *testing.T) {
+	got := filterBatchSupportedModels([]string{
+		"grok-4.5", "grok-4-5", "GROK-4.5-mini", "grok-4", "grok-3",
+	})
+	want := []string{"grok-4", "grok-3"}
+	if len(got) != len(want) {
+		t.Fatalf("filterBatchSupportedModels = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("filterBatchSupportedModels[%d] = %q, want %q", i, got[i], want[i])
+		}
+	}
+}
+
 // narration を結果一覧の行へ写すこと。叙述文は口調指示を持たない。
 func TestNarrationResultView(t *testing.T) {
 	v := narrationResultView(model.Narration{

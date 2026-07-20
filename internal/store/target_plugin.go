@@ -66,6 +66,10 @@ var targetPluginDeleteStmts = []string{
 	// staging（INFO→speaker / INFO→条件由来の性別）。info_plugin は対象 plugin 値。
 	`DELETE FROM extracted_info_speaker   WHERE info_plugin = ?`,
 	`DELETE FROM extracted_info_condition WHERE info_plugin = ?`,
+	// batch 進行（gemini-xai-batch-translation）。子（送信行対応）→ 親（進行本体）の順で消す。
+	// batch_request は plugin 列を持たないため、対象 plugin の進行本体に紐づく分を副問い合わせで消す。
+	`DELETE FROM batch_request     WHERE batch_id IN (SELECT id FROM batch_translation WHERE plugin = ?)`,
+	`DELETE FROM batch_translation WHERE plugin = ?`,
 	// 登録本体。
 	`DELETE FROM target_plugin WHERE plugin = ?`,
 }

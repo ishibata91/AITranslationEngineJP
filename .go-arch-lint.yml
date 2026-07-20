@@ -44,6 +44,10 @@ components:
 
   # core/* は副作用のない決定的な計算ロジック（functional core）。engine 等が一方向に import する。
   # 純粋ルールは os・provider・store・engine を import しない（IO は engine 側へ寄せる）。
+  # batchplan は batch 翻訳のライフサイクル決定規則（custom_id 割り当て・進行段遷移・結果適用の判断）。
+  # 失敗種別の番兵を同期と共有するため provider を、進行段の定数のため model を import する（core/prompt と同じ前例）。
+  batchplan:
+    in: internal/core/batchplan
   dictionary:
     in: internal/core/dictionary
   mention:
@@ -107,6 +111,7 @@ deps:
       - model
       - provider
       - tone
+      - batchplan
       - dictionary
       - mention
       - prompt
@@ -120,6 +125,10 @@ deps:
       - model
       - migrations
   # core/* 内部の一方向依存（逆依存・循環なし）。
+  batchplan:
+    mayDependOn:
+      - provider
+      - model
   prompt:
     mayDependOn:
       - provider

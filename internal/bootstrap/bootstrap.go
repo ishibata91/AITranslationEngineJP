@@ -81,6 +81,10 @@ func NewApp() (*api.App, *store.Store, error) {
 	}
 
 	eng := engine.New(s, p, lex, roles, stop)
+	// xAI batch 翻訳のクライアントと、送信・反映のオーケストレーションを配線する。
+	// batch は同じ長め timeout の HTTP client を使う（file upload・結果取得も時間がかかりうる）。
+	xaiBatch := provider.NewXAIBatch(client)
+	batchRunner := engine.NewBatchRunner(eng, xaiBatch, s)
 	ext := api.ExtractorConfig{
 		DLLPath:   extractorDLL,
 		SchemaDir: migrationsDir,
@@ -88,6 +92,6 @@ func NewApp() (*api.App, *store.Store, error) {
 	}
 	// 抽出子は本番の dotnet 子プロセス起動。composition root が concrete を生成して注入する唯一の場所。
 	// App には固有名派生で読む XML ディレクトリ（termsXMLDir）だけ渡す（抽出に要するパスは DotnetExtractor が保持する）。
-	app := api.New(s, eng, p, termsXMLDir, api.NewDotnetExtractor(ext))
+	app := api.New(s, eng, batchRunner, p, termsXMLDir, api.NewDotnetExtractor(ext))
 	return app, s, nil
 }

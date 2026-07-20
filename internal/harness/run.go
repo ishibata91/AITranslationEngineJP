@@ -41,7 +41,8 @@ func Run(cfg RunConfig) (Capture, error) {
 
 	rec := &RecordingProvider{}
 	eng := engine.New(s, rec, cfg.Lexicon, cfg.RoleSpeech, cfg.Stoplist)
-	app := api.New(s, eng, rec, cfg.TermsXMLDir, cfg.Extractor)
+	// harness は同期経路（RunExtractAndTranslate）だけを通す結合テスト基盤のため、batch runner は nil。
+	app := api.New(s, eng, nil, rec, cfg.TermsXMLDir, cfg.Extractor)
 
 	runResult, runErr := app.RunExtractAndTranslate(api.RunRequest{PluginPath: cfg.PluginPath, Model: cfg.Model})
 	if runErr != nil {

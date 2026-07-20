@@ -269,9 +269,12 @@ erDiagram
 | line_condition | 台詞の条件由来の性別（話者を解決できない汎用台詞の一人称・語尾の根拠）。台詞 1 件あたり 0..1 | line_id(PK,FK), sex | PK(line_id) |
 | tone_default | 話者なし台詞（汎用・PC）の口調設定。汎用・PC の自由記述口調と PC 性別。単一行。app だけが編集 | generic_tone_text, pc_tone_text, pc_sex | PK(id=1) |
 | target_plugin | 翻訳した対象 plugin の登録表（永続化単位）。plugin ファイル名で `plugin` 列（`narration`/`line`/`proper_noun`/`extracted_field`）と 1 対 1。plugin 単位のやり直しは削除で行う | plugin, source_path, created_at | PK(plugin) |
+| batch_translation | xAI batch 翻訳の進行本体。対象 plugin と 1 対 1。進行段（固有名/本文/完了）、固有名 batch と本文 batch の外部 batch ID、model を持つ。進行中は 1 進行だけ | plugin, model, stage, proper_batch_id, body_batch_id, created_at | UNIQUE(plugin) |
+| batch_request | batch 送信行と結果の対応。custom_id（種別:id）で外部 batch のリクエストを翻訳対象行（種別 n/l/p ＝ 叙述文/台詞/固有名）へ結ぶ | batch_id(FK), external_batch_id, custom_id, kind, row_id | UNIQUE(batch_id, custom_id) |
 
 - `prompt_template.persona_template` は旧経路の口調雛形。口調指示の供給は口調 `directive`（`{traits}` 入り）へ移行済みで、現状の本文フェーズは `directive` を引く（`architecture.md` §8 参照）。
 - `target_plugin` は翻訳成果を対象 plugin 単位で永続化・管理する登録表。翻訳開始時に upsert し、状態（未訳/訳済）は持たず既存行の `status` から導出する。削除は FK cascade でなく Go 側の手続き DELETE で、対象 plugin の `plugin`/`info_plugin` 行と連関を消す（共有 entity・横断辞書・seed は残す）。migration 0010 が持つ。
+- `batch_translation`・`batch_request` は xAI batch 翻訳の橋渡しを閉じ込める（同期は経由しない）。migration 0013 が持つ。`batch_translation` は対象 plugin と 1 対 1 で、固有名 batch → 本文 batch の 2 段逐次の進行段と、各段の外部 batch ID を保つ。送信の時点で作り、反映の時点で状態確認・結果取得して進める。`batch_request` は custom_id（`種別:id`、種別 n/l/p）で外部 batch のリクエストを翻訳対象行へ結ぶ。対象 plugin の削除に手続き DELETE で連動する（子 `batch_request` → 親 `batch_translation` の順）。`batch_request.kind`/`row_id` は custom_id と重複する保持で、現状の反映経路は custom_id から行を再導出する（対応表は冗長）。
 - `directive` と `record_type_master` の seed（指示文 7・REC:FIELD 割り当て 65）は migration 0006 が持つ。
 - `extracted_info_condition`・`line_condition`・`tone_default` は migration 0007（generic-voice-tone-fallback）が持つ。話者を解決できない汎用台詞・PC 発話へ口調を付けるための実現テーブル。`extracted_info_speaker`→`line_speaker` と対称に、INFO の条件由来の性別を staging から domain へ解決する。
 
