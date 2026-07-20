@@ -4,6 +4,23 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-07-20 翻訳 run の失敗を種別で切り分け（known-issues #7 解決）
+
+### 変更
+
+- `internal/provider/openai_compatible.go`: 失敗分類を追加。番兵エラー `ErrResponseUnreadable`（応答エンベロープの decode 失敗・`choices` 無し）と `ErrServerTransient`（非 200 の 429・5xx）、および非 200 status を分ける純粋関数 `statusSkippable`（429 と 5xx を skippable、その他 4xx を fatal）を新設。`Translate` の各失敗経路をこの分類でラップ。
+- `internal/engine/engine.go`: 本文フェーズ loop（`translateNarrations`・`translateLines`）の継続条件を、`ErrStructuredParse` 限定から skippable 集合の判別（`lineSkips.record`）へ拡張。skippable は該当行を未訳のまま飛ばし、fatal・未知の失敗は従来どおり `return` して `Run` を中断。飛ばした行を理由別（`structured_parse_failed`・`response_unreadable`・`server_transient`）にフェーズ末で集約ログ。
+- `internal/provider/openai_compatible_test.go`・`internal/engine/engine_test.go`: 分類の純粋網羅、非 200 分類、応答読み取り失敗分類、skippable は skip して続行・fatal は以降を処理せず中断、の各テストを追加。
+- `docs/known-issues.md`: 課題7「翻訳リクエストの失敗で翻訳 run 全体が止まる」を解決済みとして削除。
+
+### 判断
+
+- known-issues #7 が未確定として残していた「基盤失敗を fail-fast で止めるか、失敗行を飛ばして続行するか」の方針を、失敗種別で 2 分する形で確定した（人間確定）。fatal（run を止める）＝通信失敗（断・timeout・context 中断）・4xx のうち 429 以外（401/403 認証・400 不正など）・リクエスト生成失敗・分類できない未知の失敗。skippable（その行を未訳のまま飛ばす）＝非 200 の 429・5xx・応答エンベロープの decode 失敗・`choices` 無し・content の空/スキーマ違反（既存 `ErrStructuredParse`）。
+- 未知の失敗を既定で fatal にしたのは安全側に倒すため。将来 provider に新しい失敗経路が増えても、黙って飛ばさず run を止めて人間に見せる。
+- 帰結として、通信の一時的な瞬断・timeout でも run が止まる（「通信断は止める」の選択の帰結）。リトライ機構は本 task の scope 外とした（人間確定）。飛ばした行は再実行で拾える（`Run` は未訳行だけを対象にするため冪等）。
+- 観測点は単体テストに固定した。1 リクエスト単発の mid-run 失敗は UI から誘発できない（故障注入がプロダクトコード変更を要し、修正フローの安全境界に反する）ため、実画面での再現確認は対象外とした。
+- 根拠となる作業計画: `docs/exec-plans/completed/translate-run-failure-isolation/`（`investigation.md` の確定原因、`design.md` の失敗分類表・AS-IS/TO-BE 図）。
+
 ## 2026-07-20 会話グラフ 3 task を棄却しバルク翻訳機構を revert
 
 ### 変更

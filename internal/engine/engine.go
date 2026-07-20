@@ -249,7 +249,7 @@ func (p *runProgress) notify() {
 // AI 出力にタグが原形で残らなかった行は未訳のまま残す。各行は REC:FIELD の文体・定型句 directive を base へ合成して訳す。
 func (e *Engine) translateNarrations(ctx context.Context, conn provider.Connection, modelName string, narrations []model.Narration, dict *dictionary.Dictionary, refIndex map[referenceKey]string, tmpl model.PromptTemplate, instructionByKey map[string]string, keyByRF map[RecordKey]string, p *runProgress) error {
 	lostTags := 0
-	parseFailures := 0
+	var skips lineSkips
 	for _, row := range narrations {
 		// 原文が既存訳と完全一致するなら AI を呼ばず既訳を確定訳として流用する（known-issues 項目7）。
 		if dest, ok := refIndex[referenceKey{Rec: row.Rec, Field: row.Field, Source: row.Source}]; ok {
@@ -263,9 +263,9 @@ func (e *Engine) translateNarrations(ctx context.Context, conn provider.Connecti
 		instruction := instructionByKey[keyByRF[RecordKey{Rec: row.Rec, Field: row.Field}]]
 		dest, err := e.provider.Translate(ctx, conn, modelName, prompt.ComposePrompt(tmpl.BaseDirective, instruction, source))
 		if err != nil {
-			// 構造化出力の解析失敗（モデルの空・不完全応答）は壊れた訳を確定させず未訳のまま残す（タグ欠落と同じ、再実行で再翻訳）。
-			if errors.Is(err, provider.ErrStructuredParse) {
-				parseFailures++
+			// その行だけ飛ばせる失敗（skippable）は壊れた訳を確定させず未訳のまま残す（再実行で再翻訳）。
+			// それ以外（通信断・認証や不正リクエストの 4xx・未知の失敗）は run を止める。
+			if skips.record(err) {
 				continue
 			}
 			return fmt.Errorf("叙述文の翻訳: %w", err)
@@ -281,7 +281,7 @@ func (e *Engine) translateNarrations(ctx context.Context, conn provider.Connecti
 		p.step()
 	}
 	logLostRuntimeTags(ctx, "translateNarrations", lostTags)
-	logStructuredParseFailures(ctx, "translateNarrations", parseFailures)
+	skips.log(ctx, "translateNarrations")
 	return nil
 }
 
@@ -299,7 +299,7 @@ func (e *Engine) prepareSource(rawSource string, dict *dictionary.Dictionary) (s
 // AI 出力にタグが原形で残らなかった台詞は未訳のまま残す。話者なしなら口調指示は空。
 func (e *Engine) translateLines(ctx context.Context, conn provider.Connection, modelName string, lines []model.Line, dict *dictionary.Dictionary, refIndex map[referenceKey]string, tmpl model.PromptTemplate, personas map[int64]Persona, p *runProgress) error {
 	lostTags := 0
-	parseFailures := 0
+	var skips lineSkips
 	for _, row := range lines {
 		// 原文が既存訳と完全一致するなら AI を呼ばず既訳を確定訳として流用する（叙述文と同じ、known-issues 項目7）。
 		if dest, ok := refIndex[referenceKey{Rec: row.Rec, Field: row.Field, Source: row.Source}]; ok {
@@ -312,9 +312,9 @@ func (e *Engine) translateLines(ctx context.Context, conn provider.Connection, m
 		source, tags := e.prepareSource(row.Source, dict)
 		dest, err := e.provider.Translate(ctx, conn, modelName, prompt.ComposePrompt(tmpl.BaseDirective, personas[row.ID].Directive, source))
 		if err != nil {
-			// 構造化出力の解析失敗（モデルの空・不完全応答）は壊れた訳を確定させず未訳のまま残す（タグ欠落と同じ、再実行で再翻訳）。
-			if errors.Is(err, provider.ErrStructuredParse) {
-				parseFailures++
+			// その行だけ飛ばせる失敗（skippable）は壊れた訳を確定させず未訳のまま残す（再実行で再翻訳）。
+			// それ以外（通信断・認証や不正リクエストの 4xx・未知の失敗）は run を止める。
+			if skips.record(err) {
 				continue
 			}
 			return fmt.Errorf("台詞の翻訳: %w", err)
@@ -330,7 +330,7 @@ func (e *Engine) translateLines(ctx context.Context, conn provider.Connection, m
 		p.step()
 	}
 	logLostRuntimeTags(ctx, "translateLines", lostTags)
-	logStructuredParseFailures(ctx, "translateLines", parseFailures)
+	skips.log(ctx, "translateLines")
 	return nil
 }
 
@@ -350,19 +350,50 @@ func logLostRuntimeTags(ctx context.Context, where string, lost int) {
 	)
 }
 
-// logStructuredParseFailures は本文フェーズで構造化出力の解析に失敗した行の件数を、集約して 1 度だけ観測ログへ出す。
-// where は失敗した段（translateNarrations / translateLines）。failed が 0 なら何も出さない。
-// モデルが response_format を守らず空・不完全な応答を返した行が対象。該当行は未訳のまま残す（再実行で再翻訳）ため result は skipped とする。
+// lineSkips は本文フェーズで未訳のまま飛ばした行を、飛ばした理由別に数える。フェーズ末で集約して観測ログへ出す。
+// 対象は provider の skippable な失敗（構造化出力の空・スキーマ違反、応答エンベロープの読み取り失敗、サーバ一時失敗）。
+type lineSkips struct {
+	structuredParse    int // 構造化出力の空・スキーマ違反（provider.ErrStructuredParse）
+	responseUnreadable int // 応答エンベロープの読み取り失敗（provider.ErrResponseUnreadable）
+	serverTransient    int // 非 200 の 429・5xx（provider.ErrServerTransient）
+}
+
+// record は provider の失敗が「その行だけ飛ばせる失敗（skippable）」なら理由別に数えて true を返す。
+// skippable でなければ（通信断・4xx の認証や不正リクエスト・未知の失敗）数えず false を返し、呼び出し側は run を止める。
+func (s *lineSkips) record(err error) bool {
+	switch {
+	case errors.Is(err, provider.ErrStructuredParse):
+		s.structuredParse++
+	case errors.Is(err, provider.ErrResponseUnreadable):
+		s.responseUnreadable++
+	case errors.Is(err, provider.ErrServerTransient):
+		s.serverTransient++
+	default:
+		return false
+	}
+	return true
+}
+
+// log は未訳のまま飛ばした行の件数を、飛ばした理由別に集約して観測ログへ出す。
+// where は飛ばした段（translateNarrations / translateLines）。件数 0 の理由は出さない。
+// 該当行は未訳のまま残す（再実行で再翻訳）ため result は skipped とする。
 // loop 内の 1 件ごとには出さず、フェーズ末で件数を集約する（観測ログ規約の大量処理集約に従う）。
-func logStructuredParseFailures(ctx context.Context, where string, failed int) {
-	if failed == 0 {
+func (s lineSkips) log(ctx context.Context, where string) {
+	logSkippedLines(ctx, where, "structured_parse_failed", "構造化出力の解析に失敗した行を未訳として残した", s.structuredParse)
+	logSkippedLines(ctx, where, "response_unreadable", "応答エンベロープを読めず未訳として残した行", s.responseUnreadable)
+	logSkippedLines(ctx, where, "server_transient", "サーバ一時失敗（429・5xx）で未訳として残した行", s.serverTransient)
+}
+
+// logSkippedLines は 1 理由分の飛ばした行数を観測ログへ出す。count が 0 なら何も出さない。
+func logSkippedLines(ctx context.Context, where, event, msg string, count int) {
+	if count == 0 {
 		return
 	}
-	slog.WarnContext(ctx, "構造化出力の解析に失敗した行を未訳として残した",
-		slog.String("event", "structured_parse_failed"),
+	slog.WarnContext(ctx, msg,
+		slog.String("event", event),
 		slog.String("where", "engine."+where),
 		slog.String("result", "skipped"),
-		slog.Int("count", failed),
+		slog.Int("count", count),
 	)
 }
 

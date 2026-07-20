@@ -130,6 +130,11 @@ func (c *OpenAICompatible) Translate(ctx context.Context, conn Connection, model
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
+		// 429（rate limit）・5xx（サーバ一時）はその行だけ飛ばせる一時失敗として番兵でラップする。
+		// その他の非 200（4xx の認証・不正など）は run を止める失敗として番兵を付けない。
+		if statusSkippable(resp.StatusCode) {
+			return "", fmt.Errorf("%w: status %d", ErrServerTransient, resp.StatusCode)
+		}
 		return "", fmt.Errorf("翻訳要求: status %d", resp.StatusCode)
 	}
 	var decoded struct {
@@ -140,10 +145,12 @@ func (c *OpenAICompatible) Translate(ctx context.Context, conn Connection, model
 		} `json:"choices"`
 	}
 	if err = json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
-		return "", fmt.Errorf("翻訳応答のデコード: %w", err)
+		// 応答エンベロープが JSON として読めない（壊れた応答）。その行だけ飛ばせる失敗として番兵でラップする。
+		return "", fmt.Errorf("%w: エンベロープの decode 失敗: %w", ErrResponseUnreadable, err)
 	}
 	if len(decoded.Choices) == 0 {
-		return "", fmt.Errorf("翻訳応答に choices が無い")
+		// choices が無い応答も壊れた応答として、その行だけ飛ばせる失敗にする。
+		return "", fmt.Errorf("%w: choices が無い", ErrResponseUnreadable)
 	}
 	translation, err := extractTranslation(decoded.Choices[0].Message.Content)
 	if err != nil {
@@ -196,6 +203,22 @@ func translationResponseFormat() *responseFormat {
 // engine は errors.Is でこのエラーを識別し、壊れた訳を確定させず該当行を未訳のまま残す（再実行で再翻訳）。
 // モデルが response_format を守らず空・不完全な応答を返した場合に生じる。通信・HTTP 障害とは区別する。
 var ErrStructuredParse = errors.New("構造化出力の解析失敗")
+
+// ErrResponseUnreadable は応答エンベロープを訳文の取り出し前に読めなかったことを表す番兵エラー。
+// 応答が JSON として decode できない、または choices が空の場合に生じる。壊れた応答 1 件の失敗であり、
+// engine は該当行を未訳のまま skip して run を続ける（再実行で再翻訳）。通信・設定起因の失敗とは区別する。
+var ErrResponseUnreadable = errors.New("応答エンベロープの読み取り失敗")
+
+// ErrServerTransient は非 200 応答のうち一時的なサーバ状態（429 rate limit・5xx）を表す番兵エラー。
+// その行だけ飛ばして run を続けられる一時失敗であり、engine は該当行を未訳のまま skip する（再実行で再翻訳）。
+// 認証・不正リクエストなど設定起因の 4xx とは区別する（そちらは run を止める）。
+var ErrServerTransient = errors.New("サーバ一時失敗")
+
+// statusSkippable は非 200 応答の status を、その行だけ飛ばせる一時失敗(true)か run を止める失敗(false)かに分ける純粋規則。
+// 429（rate limit）と 5xx（サーバ一時）は一時失敗として飛ばし、その他の非 200（4xx の認証・不正など）は run を止める。
+func statusSkippable(status int) bool {
+	return status == http.StatusTooManyRequests || status >= http.StatusInternalServerError
+}
 
 // extractTranslation は構造化出力の content 文字列から訳文を取り出す純粋関数。
 // content は {"translation": "..."} 形式の JSON 文字列を期待する。訳文が取れない場合を型で分ける。
