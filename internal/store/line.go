@@ -11,8 +11,12 @@ import (
 const lineColumns = `id, source, dest, status, response_order, plugin, form_id, edid, rec, field, ordinal, emotion_type`
 
 // ListUntranslatedLines は未訳（status=0）の台詞を id 昇順で返す。
-func (s *Store) ListUntranslatedLines(ctx context.Context) ([]model.Line, error) {
-	return s.queryLines(ctx, `SELECT `+lineColumns+` FROM line WHERE status = 0 ORDER BY id`)
+// plugin が空でなければその対象 plugin の行だけに絞る（空なら全 plugin）。
+func (s *Store) ListUntranslatedLines(ctx context.Context, plugin string) ([]model.Line, error) {
+	if plugin == "" {
+		return s.queryLines(ctx, `SELECT `+lineColumns+` FROM line WHERE status = 0 ORDER BY id`)
+	}
+	return s.queryLines(ctx, `SELECT `+lineColumns+` FROM line WHERE status = 0 AND plugin = ? ORDER BY id`, plugin)
 }
 
 // LinesAfter は id が afterID より大きい台詞を id 昇順で最大 limit 件返す（keyset ページング用）。

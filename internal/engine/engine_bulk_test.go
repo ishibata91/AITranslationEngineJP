@@ -19,7 +19,7 @@ func TestRunBatchesSameInfoLines(t *testing.T) {
 	tr := &fakeTranslator{out: map[string]string{"alpha": "ア", "beta": "ベ"}}
 	eng := New(store, tr, fakeLexicon{}, nil, nil)
 
-	count, err := eng.Run(context.Background(), provider.Connection{}, "m", 1000, nil)
+	count, err := eng.Run(context.Background(), provider.Connection{}, "m", "", 1000, nil)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
@@ -55,7 +55,7 @@ func TestRunBatchPartialSuccessLeavesMissingUntranslated(t *testing.T) {
 	}
 	eng := New(store, tr, fakeLexicon{}, nil, nil)
 
-	count, err := eng.Run(context.Background(), provider.Connection{}, "m", 1000, nil)
+	count, err := eng.Run(context.Background(), provider.Connection{}, "m", "", 1000, nil)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
@@ -80,7 +80,7 @@ func TestRunDoesNotBatchAcrossInfo(t *testing.T) {
 	tr := &fakeTranslator{out: map[string]string{"a": "ア", "b": "ビ"}}
 	eng := New(store, tr, fakeLexicon{}, nil, nil)
 
-	count, err := eng.Run(context.Background(), provider.Connection{}, "m", 1000, nil)
+	count, err := eng.Run(context.Background(), provider.Connection{}, "m", "", 1000, nil)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
@@ -108,7 +108,7 @@ func TestRunNoBatchWhenBudgetZero(t *testing.T) {
 	tr := &fakeTranslator{out: map[string]string{"alpha": "ア", "beta": "ベ"}}
 	eng := New(store, tr, fakeLexicon{}, nil, nil)
 
-	count, err := eng.Run(context.Background(), provider.Connection{}, "m", 0, nil)
+	count, err := eng.Run(context.Background(), provider.Connection{}, "m", "", 0, nil)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
@@ -117,5 +117,31 @@ func TestRunNoBatchWhenBudgetZero(t *testing.T) {
 	}
 	if count != 2 {
 		t.Errorf("count = %d, want 2", count)
+	}
+}
+
+// Run に対象 plugin を渡すと、その plugin の未訳台詞だけを翻訳し、別 plugin の未訳は触らないこと。
+// 抽出した 1 plugin の実行が他 plugin の未訳を巻き込まない絞り込みを守る（実画面で発覚した既存挙動の修正）。
+func TestRunScopesToTargetPlugin(t *testing.T) {
+	store := &fakeStore{lines: []model.Line{
+		{ID: 10, Source: "alpha", Plugin: "A.esp", FormID: "F1"},
+		{ID: 20, Source: "bravo", Plugin: "B.esp", FormID: "F2"},
+	}}
+	tr := &fakeTranslator{out: map[string]string{"alpha": "ア", "bravo": "ブ"}}
+	eng := New(store, tr, fakeLexicon{}, nil, nil)
+
+	count, err := eng.Run(context.Background(), provider.Connection{}, "m", "A.esp", 0, nil)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("count = %d, want 1（A.esp の 1 行だけ）", count)
+	}
+	want := []update{{10, "ア", 3}}
+	if len(store.lineUpdates) != 1 || store.lineUpdates[0] != want[0] {
+		t.Errorf("lineUpdates = %v, want %v（B.esp は触らない）", store.lineUpdates, want)
+	}
+	if _, sent := tr.gotPrompts["bravo"]; sent {
+		t.Errorf("B.esp の bravo を翻訳へ送った。対象 plugin 外は送らない")
 	}
 }

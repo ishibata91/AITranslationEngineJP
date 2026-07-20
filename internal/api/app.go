@@ -465,7 +465,8 @@ func (a *App) RunExtractAndTranslate(req RunRequest) (RunResult, error) {
 		return RunResult{}, fmt.Errorf("取込段に失敗: %w", err)
 	}
 
-	count, runErr := a.engine.Run(ctx, provider.Connection{Endpoint: req.Endpoint, APIKey: req.APIKey}, req.Model, req.TokenBudget,
+	// 抽出した対象 plugin だけを翻訳する。plugin 列と同じ値（filepath.Base）で絞り、他 plugin の未訳を巻き込まない。
+	count, runErr := a.engine.Run(ctx, provider.Connection{Endpoint: req.Endpoint, APIKey: req.APIKey}, req.Model, filepath.Base(req.PluginPath), req.TokenBudget,
 		func(done, total int) {
 			a.emitProgress(ProgressEvent{Stage: "translate", Done: done, Total: total})
 		})

@@ -50,7 +50,7 @@ func SelectSupply(source string, authoritative map[string]string) TermSupply {
 
 // ProperNounStore は engine が固有名フェーズに使う中心データアクセス（使う分だけ宣言する）。
 type ProperNounStore interface {
-	ListUntranslatedProperNouns(ctx context.Context) ([]model.ProperNoun, error)
+	ListUntranslatedProperNouns(ctx context.Context, plugin string) ([]model.ProperNoun, error)
 	UpdateProperNounDest(ctx context.Context, id int64, dest string, status int) error
 }
 

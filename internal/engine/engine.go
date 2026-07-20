@@ -40,13 +40,13 @@ const statusProvisional = 3
 
 // NarrationStore は engine が叙述文の翻訳に使う中心データアクセス（使う分だけ宣言する）。
 type NarrationStore interface {
-	ListUntranslatedNarrations(ctx context.Context) ([]model.Narration, error)
+	ListUntranslatedNarrations(ctx context.Context, plugin string) ([]model.Narration, error)
 	UpdateNarrationDest(ctx context.Context, id int64, dest string, status int) error
 }
 
 // LineStore は engine が台詞の翻訳に使う中心データアクセス（使う分だけ宣言する）。
 type LineStore interface {
-	ListUntranslatedLines(ctx context.Context) ([]model.Line, error)
+	ListUntranslatedLines(ctx context.Context, plugin string) ([]model.Line, error)
 	UpdateLineDest(ctx context.Context, id int64, dest string, status int) error
 }
 
@@ -148,16 +148,18 @@ func (e *Engine) GeneratePersonas(ctx context.Context) (int, error) {
 // onProgress が非 nil なら、固有名・本文を通した進捗（処理済み件数 done、総件数 total）を都度通知する。
 // tokenBudget は台詞のバルク翻訳で 1 リクエストにまとめる原文の最大トークン数の目安。0 以下なら
 // バルクせず台詞を 1 行ずつ翻訳する（従来動作）。同一 INFO の複数応答行だけをこの予算内でまとめる。
-func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string, tokenBudget int, onProgress func(done, total int)) (int, error) {
-	propers, err := e.store.ListUntranslatedProperNouns(ctx)
+// plugin が空でなければその対象 plugin の未訳行だけを翻訳する（空なら全 plugin）。抽出した plugin の
+// 実行が他 plugin の未訳を巻き込まないよう、固有名・叙述文・台詞の 3 段すべてを対象 plugin へ絞る。
+func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string, plugin string, tokenBudget int, onProgress func(done, total int)) (int, error) {
+	propers, err := e.store.ListUntranslatedProperNouns(ctx, plugin)
 	if err != nil {
 		return 0, fmt.Errorf("未訳固有名の取得: %w", err)
 	}
-	narrations, err := e.store.ListUntranslatedNarrations(ctx)
+	narrations, err := e.store.ListUntranslatedNarrations(ctx, plugin)
 	if err != nil {
 		return 0, fmt.Errorf("未訳叙述文の取得: %w", err)
 	}
-	lines, err := e.store.ListUntranslatedLines(ctx)
+	lines, err := e.store.ListUntranslatedLines(ctx, plugin)
 	if err != nil {
 		return 0, fmt.Errorf("未訳台詞の取得: %w", err)
 	}

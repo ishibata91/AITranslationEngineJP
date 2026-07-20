@@ -21,10 +21,16 @@ func (s *Store) ListProperNouns(ctx context.Context) ([]model.ProperNoun, error)
 }
 
 // ListUntranslatedProperNouns は未訳（status=0）の固有名を id 昇順で返す。固有名フェーズが訳す対象。
-func (s *Store) ListUntranslatedProperNouns(ctx context.Context) ([]model.ProperNoun, error) {
+// plugin が空でなければその対象 plugin の行だけに絞る（空なら全 plugin）。
+func (s *Store) ListUntranslatedProperNouns(ctx context.Context, plugin string) ([]model.ProperNoun, error) {
 	var rows []model.ProperNoun
-	if err := s.db.SelectContext(ctx, &rows,
-		`SELECT `+properNounColumns+` FROM proper_noun WHERE status = 0 ORDER BY id`); err != nil {
+	query := `SELECT ` + properNounColumns + ` FROM proper_noun WHERE status = 0 ORDER BY id`
+	args := []any{}
+	if plugin != "" {
+		query = `SELECT ` + properNounColumns + ` FROM proper_noun WHERE status = 0 AND plugin = ? ORDER BY id`
+		args = []any{plugin}
+	}
+	if err := s.db.SelectContext(ctx, &rows, query, args...); err != nil {
 		return nil, fmt.Errorf("未訳 proper_noun の取得: %w", err)
 	}
 	return rows, nil
