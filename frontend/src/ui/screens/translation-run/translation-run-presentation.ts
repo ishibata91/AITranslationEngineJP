@@ -29,19 +29,6 @@ export const PROVIDER_FIELDS: ReadonlyArray<FormFieldDescriptor> = [
   }
 ]
 
-// トークン予算入力欄のメタ。接続情報ではなく実行パラメータのため、PROVIDER_FIELDS とは別に持つ。
-// 単位は k（千トークン）。1 リクエストにまとめる原文の最大トークン数の目安を千トークン単位で受ける。
-// 長い台詞は少なく、短い台詞は多くまとまる。弱いローカルモデルは小さく、クラウドモデルは大きく指定する想定。
-// 表示は文字列で受ける。k からトークン数への換算は配線層が行う。
-export const TOKEN_BUDGET_FIELD: FormFieldDescriptor = {
-  field: "tokenBudget",
-  label: "最大トークン",
-  hint: "1 リクエストにまとめる原文の最大トークン数の目安を千トークン（k）単位で入れます。長い台詞は少なく、短い台詞は多くまとまります。",
-  placeholder: "2",
-  secret: false,
-  suffix: "k"
-}
-
 // 段階ごとの表示ラベルと、StatusBadge の意味トーン。
 export const PHASE_PRESENTATION: Record<
   RunPhase,

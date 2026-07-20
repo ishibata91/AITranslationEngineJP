@@ -16,6 +16,6 @@
   <legend class="fieldset-legend text-base-content/80">{label}</legend>
   {@render children()}
   {#if hint.length > 0}
-    <p class="label text-base-content/50 whitespace-normal">{hint}</p>
+    <p class="label text-base-content/50">{hint}</p>
   {/if}
 </fieldset>

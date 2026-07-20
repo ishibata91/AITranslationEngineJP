@@ -29,9 +29,6 @@
   let endpoint = $state("http://127.0.0.1:1234")
   let apiKey = $state("")
   let model = $state("")
-  // 台詞のバルク翻訳で 1 リクエストにまとめる原文の最大トークン数を、千トークン（k）単位の文字列で持つ。
-  // 空・非数・0 以下はバルクしない。backend へはトークン数（×1000）で渡す。
-  let tokenBudget = $state("")
   let models = $state<string[]>([])
   let modelsLoading = $state(false)
   let phase = $state<RunPhase>("idle")
@@ -49,14 +46,7 @@
   let nextCursor = $state("")
   let hasMore = $state(false)
 
-  const form: TranslationRunForm = $derived({ pluginPath, endpoint, apiKey, model, tokenBudget })
-
-  // k（千トークン）単位の入力文字列をトークン数へ変換する。空・非数・0 以下は 0（バルクしない）にする。
-  function tokenBudgetTokens(): number {
-    const k = Number(tokenBudget)
-    if (!Number.isFinite(k) || k <= 0) return 0
-    return Math.floor(k) * 1000
-  }
+  const form: TranslationRunForm = $derived({ pluginPath, endpoint, apiKey, model })
   const canRun = $derived(
     pluginPath.length > 0 && endpoint.length > 0 && model.length > 0
   )
@@ -113,7 +103,6 @@
     if (field === "endpoint") endpoint = value
     else if (field === "apiKey") apiKey = value
     else if (field === "model") model = value
-    else if (field === "tokenBudget") tokenBudget = value
   }
 
   async function onLoadModels() {
@@ -136,13 +125,7 @@
     results = []
     progress = { stage: "extract", done: 0, total: 0 }
     try {
-      await runExtractAndTranslate({
-        pluginPath,
-        endpoint,
-        apiKey,
-        model,
-        tokenBudget: tokenBudgetTokens()
-      })
+      await runExtractAndTranslate({ pluginPath, endpoint, apiKey, model })
       await resetToFirstPage()
       phase = "done"
     } catch (error) {

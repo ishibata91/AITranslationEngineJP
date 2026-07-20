@@ -282,10 +282,6 @@ type fakeTranslator struct {
 	gotPrompts map[string]provider.Prompt // user メッセージ → engine が組んで送った完成プロンプト
 	err        error                      // 全行共通で返すエラー（非 nil なら毎回失敗）
 	errByUser  map[string]error           // user メッセージ → その行だけ返すエラー（行ごとの失敗注入用）
-
-	batchCalls     int                    // TranslateBatch の呼び出し回数（バルク経路の観測用）
-	gotBatchItems  [][]provider.BatchItem // TranslateBatch 呼び出しごとの items（チャンク構成の観測用）
-	gotBatchSystem []string               // TranslateBatch 呼び出しごとの system メッセージ
 }
 
 func (f *fakeTranslator) Translate(_ context.Context, _ provider.Connection, model string, prompt provider.Prompt) (string, error) {
@@ -303,28 +299,6 @@ func (f *fakeTranslator) Translate(_ context.Context, _ provider.Connection, mod
 	return f.out[prompt.User], nil
 }
 
-// TranslateBatch はキー配列翻訳の fake。out（user→訳文）から返し、out に無い user はキーを落として
-// 部分成功を模す。errByUser に載る user もキーを落とし、壊れたキーを模す。err が非 nil なら通信失敗を返す。
-func (f *fakeTranslator) TranslateBatch(_ context.Context, _ provider.Connection, model string, system string, items []provider.BatchItem) (map[string]string, error) {
-	f.gotModel = model
-	if f.err != nil {
-		return nil, f.err
-	}
-	f.batchCalls++
-	f.gotBatchItems = append(f.gotBatchItems, items)
-	f.gotBatchSystem = append(f.gotBatchSystem, system)
-	out := map[string]string{}
-	for _, it := range items {
-		if _, bad := f.errByUser[it.User]; bad {
-			continue
-		}
-		if v, ok := f.out[it.User]; ok {
-			out[it.Key] = v
-		}
-	}
-	return out, nil
-}
-
 func (f *fakeTranslator) ListModels(_ context.Context, _ provider.Connection) ([]string, error) {
 	return nil, nil
 }
@@ -338,7 +312,7 @@ func TestRunTranslatesUntranslatedAsProvisional(t *testing.T) {
 	tr := &fakeTranslator{out: map[string]string{"halls": "広間", "cairn": "ケルン"}}
 	eng := New(store, tr, fakeLexicon{}, nil, nil)
 
-	count, err := eng.Run(context.Background(), provider.Connection{Endpoint: "http://x"}, "model-x", "", 0, nil)
+	count, err := eng.Run(context.Background(), provider.Connection{Endpoint: "http://x"}, "model-x", "", nil)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
@@ -374,7 +348,7 @@ func TestRunReplacesTermsBeforeTranslate(t *testing.T) {
 	}}
 	eng := New(store, tr, fakeLexicon{}, nil, nil)
 
-	if _, err := eng.Run(context.Background(), provider.Connection{}, "m", "", 0, nil); err != nil {
+	if _, err := eng.Run(context.Background(), provider.Connection{}, "m", "", nil); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
 	// AI へ渡した user メッセージ（原文）は固有名が置換済みであること（置換前の原文では渡らない）。
@@ -398,7 +372,7 @@ func TestRunReusesExistingTranslationWithoutCallingAI(t *testing.T) {
 	tr := &fakeTranslator{out: map[string]string{}}
 	eng := New(store, tr, fakeLexicon{}, nil, nil)
 
-	count, err := eng.Run(context.Background(), provider.Connection{}, "m", "", 0, nil)
+	count, err := eng.Run(context.Background(), provider.Connection{}, "m", "", nil)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
@@ -424,7 +398,7 @@ func TestRunLeavesRowUntranslatedWhenRuntimeTagLost(t *testing.T) {
 	tr := &fakeTranslator{out: map[string]string{"See <Alias=Player> now.": "今すぐ見よ。"}}
 	eng := New(store, tr, fakeLexicon{}, nil, nil)
 
-	count, err := eng.Run(context.Background(), provider.Connection{}, "m", "", 0, nil)
+	count, err := eng.Run(context.Background(), provider.Connection{}, "m", "", nil)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
@@ -452,7 +426,7 @@ func TestRunSkipsStructuredParseFailure(t *testing.T) {
 	}
 	eng := New(store, tr, fakeLexicon{}, nil, nil)
 
-	count, err := eng.Run(context.Background(), provider.Connection{Endpoint: "http://x"}, "model-x", "", 0, nil)
+	count, err := eng.Run(context.Background(), provider.Connection{Endpoint: "http://x"}, "model-x", "", nil)
 	if err != nil {
 		t.Fatalf("Run が構造化パース失敗で停止した（skip すべき）: %v", err)
 	}
@@ -478,7 +452,7 @@ func TestRunReturnsProviderError(t *testing.T) {
 	tr := &fakeTranslator{err: errors.New("connection refused")}
 	eng := New(store, tr, fakeLexicon{}, nil, nil)
 
-	_, err := eng.Run(context.Background(), provider.Connection{}, "m", "", 0, nil)
+	_, err := eng.Run(context.Background(), provider.Connection{}, "m", "", nil)
 	if err == nil {
 		t.Fatal("want error, got nil")
 	}
@@ -499,7 +473,7 @@ func TestRunTranslatesLinesWithPersonaDirective(t *testing.T) {
 	tr := &fakeTranslator{out: map[string]string{"mother?": "母さん？"}}
 	eng := New(store, tr, fakeLexicon{}, nil, nil)
 
-	count, err := eng.Run(context.Background(), provider.Connection{}, "m", "", 0, nil)
+	count, err := eng.Run(context.Background(), provider.Connection{}, "m", "", nil)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
@@ -530,7 +504,7 @@ func TestRunTranslatesLineWithoutSpeaker(t *testing.T) {
 	tr := &fakeTranslator{out: map[string]string{"door": "扉"}}
 	eng := New(store, tr, fakeLexicon{}, nil, nil)
 
-	if _, err := eng.Run(context.Background(), provider.Connection{}, "m", "", 0, nil); err != nil {
+	if _, err := eng.Run(context.Background(), provider.Connection{}, "m", "", nil); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
 	// ペルソナなしの台詞は口調指示を合成せず、system はテンプレートの base 指示だけになる。
@@ -549,7 +523,7 @@ func TestRunReportsProgress(t *testing.T) {
 	eng := New(store, tr, fakeLexicon{}, nil, nil)
 
 	var seen [][2]int
-	_, err := eng.Run(context.Background(), provider.Connection{}, "m", "", 0, func(done, total int) {
+	_, err := eng.Run(context.Background(), provider.Connection{}, "m", "", func(done, total int) {
 		seen = append(seen, [2]int{done, total})
 	})
 	if err != nil {
@@ -683,5 +657,31 @@ func TestLinePersonasBulkLoadsOnce(t *testing.T) {
 		if store.loadPersonasCalls != 1 {
 			t.Errorf("N=%d: LoadLinePersonas 呼び出し = %d, want 1（台詞数に非依存）", n, store.loadPersonasCalls)
 		}
+	}
+}
+
+// Run に対象 plugin を渡すと、その plugin の未訳台詞だけを翻訳し、別 plugin の未訳は触らないこと。
+// 抽出した 1 plugin の実行が他 plugin の未訳を巻き込まない絞り込みを守る（実画面で発覚した既存挙動の修正）。
+func TestRunScopesToTargetPlugin(t *testing.T) {
+	store := &fakeStore{lines: []model.Line{
+		{ID: 10, Source: "alpha", Plugin: "A.esp", FormID: "F1"},
+		{ID: 20, Source: "bravo", Plugin: "B.esp", FormID: "F2"},
+	}}
+	tr := &fakeTranslator{out: map[string]string{"alpha": "ア", "bravo": "ブ"}}
+	eng := New(store, tr, fakeLexicon{}, nil, nil)
+
+	count, err := eng.Run(context.Background(), provider.Connection{}, "m", "A.esp", nil)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("count = %d, want 1（A.esp の 1 行だけ）", count)
+	}
+	want := []update{{10, "ア", 3}}
+	if len(store.lineUpdates) != 1 || store.lineUpdates[0] != want[0] {
+		t.Errorf("lineUpdates = %v, want %v（B.esp は触らない）", store.lineUpdates, want)
+	}
+	if _, sent := tr.gotPrompts["bravo"]; sent {
+		t.Errorf("B.esp の bravo を翻訳へ送った。対象 plugin 外は送らない")
 	}
 }

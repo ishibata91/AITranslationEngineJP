@@ -27,16 +27,14 @@ const EMPTY_FORM: TranslationRunForm = {
   pluginPath: "",
   endpoint: "",
   apiKey: "",
-  model: "",
-  tokenBudget: ""
+  model: ""
 }
 
 const FILLED_FORM: TranslationRunForm = {
   pluginPath: "/Users/me/Skyrim/Data/Dawnguard.esm",
   endpoint: "https://api.openai.com/v1",
   apiKey: "sk-demo-key",
-  model: "gpt-4o-mini",
-  tokenBudget: "2"
+  model: "gpt-4o-mini"
 }
 
 // getModels で取得した一覧の表示用サンプル。

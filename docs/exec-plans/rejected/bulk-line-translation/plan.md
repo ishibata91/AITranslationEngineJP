@@ -1,5 +1,11 @@
 # Plan: bulk-line-translation
 
+`状態`: 棄却（2026-07-20。一度 completed だが、下流の会話文脈 task 群の棄却に伴いバルク機構のコードを revert した。判断は `docs/changelog.md`）
+
+## 棄却の要旨
+
+本 task（slice1）のバルク翻訳機構は、それを土台にする会話文脈 task（`dialogue-flow-context`）とその基盤 `dialogue-graph` が実測で棄却されたため、存在意義を失いコードを revert した。台詞は 1 行ずつ翻訳する従来動作へ戻る。追随修正 `a1e62436`（翻訳対象を選んだ plugin へ絞る）はバルクと独立に有用なため残す。
+
 ## branch 情報
 
 - 作業 branch: `claude/bulk-line-translation`

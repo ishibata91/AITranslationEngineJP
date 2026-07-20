@@ -59,6 +59,5 @@ C# 抽出子（`tools/extractor`、Mutagen）は dev 経路でしか動かない
 
 台詞・叙述文の翻訳中に、1 リクエストの応答が JSON として解析できない（応答エンベロープの decode 失敗、`choices` が無い）場合や、非 200 応答・通信失敗の場合に、その行だけを飛ばさず翻訳 run 全体が中断する。応答 1 件の失敗が、残りの未訳行の翻訳をすべて止める。
 
-- 単一経路（`engine.translateLineSingle` → `provider.Translate`）は、構造化出力の content 解析失敗（`ErrStructuredParse`）だけを未訳のまま残して続行する。応答エンベロープの decode 失敗・`choices` 無し・非 200・通信失敗は上位へエラーを返し、`engine.Run` を中断する。
-- バルク経路（`engine.translateLineChunk` → `provider.TranslateBatch`）も同様に、`TranslateBatch` が返すエラー（エンベロープ decode 失敗・`choices` 無し・非 200・通信失敗）を上位へ返し、`Run` を中断する。バルクの部分成功（欠けたキー・壊れたキーは未訳で残す）は content の解析だけに効き、リクエスト単位の失敗には効かない。
-- `bulk-line-translation` の設計方針は「壊れた行・欠けた行は未訳のまま残し、再実行で拾う。再送しない」である。リクエスト単位の失敗も同方針へ揃え、失敗したチャンク（または行）を未訳のまま飛ばして続行するかは未確定。通信断など基盤の失敗を fail-fast で止めるか、飛ばして続行するかの判断を含む。
+- 翻訳経路（`engine.translateLines` → `provider.Translate`）は、構造化出力の content 解析失敗（`ErrStructuredParse`）だけを未訳のまま残して続行する。応答エンベロープの decode 失敗・`choices` 無し・非 200・通信失敗は上位へエラーを返し、`engine.Run` を中断する。
+- 望ましい方針は、通信断など基盤の失敗を fail-fast で止めるか、失敗した行を未訳のまま飛ばして続行するかの判断を含めて確定すること。未確定。

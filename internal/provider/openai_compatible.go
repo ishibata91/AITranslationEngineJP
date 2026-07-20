@@ -28,17 +28,7 @@ type Prompt struct {
 // プロンプトの組み立て（base 指示・口調指示の合成）は engine が行い、provider は完成 Prompt を送るだけにする。
 type Translator interface {
 	Translate(ctx context.Context, conn Connection, model string, prompt Prompt) (string, error)
-	// TranslateBatch は複数行を 1 リクエストにまとめ、行キーごとの訳文を返す（キー配列・部分成功）。
-	// system は共有 system メッセージ、items は行キー付きの機械置換済み原文。
-	// 返り値はモデルが正しく返したキーだけを持つ map。欠けたキー・壊れたキーは map に含めない（再送しない）。
-	TranslateBatch(ctx context.Context, conn Connection, model string, system string, items []BatchItem) (map[string]string, error)
 	ListModels(ctx context.Context, conn Connection) ([]string, error)
-}
-
-// BatchItem はキー配列翻訳の 1 件。Key は行キー（line.id の文字列）、User は機械置換済み原文。
-type BatchItem struct {
-	Key  string
-	User string
 }
 
 // httpDoer は net/http の Client を抽象化する狭い interface（テストで差し替えるため）。
@@ -228,107 +218,4 @@ func extractTranslation(content string) (string, error) {
 		return "", fmt.Errorf("%w: translation が空", ErrStructuredParse)
 	}
 	return *parsed.Translation, nil
-}
-
-// TranslateBatch は複数行を 1 リクエストにまとめて /v1/chat/completions へ送り、行キーごとの訳文を返す。
-// system を system メッセージ、行キー付きの原文一覧を user メッセージとし、出力は行キーごとの構造化 JSON を求める。
-// 返り値はモデルが正しく返したキーだけを持つ map（部分成功）。欠けたキー・空応答・壊れたキーは map に含めず、
-// 呼び出し側（engine）が該当行を未訳のまま残して再実行で拾う。バッチ再送はしない。通信・HTTP 障害は error で返す。
-func (c *OpenAICompatible) TranslateBatch(ctx context.Context, conn Connection, model string, system string, items []BatchItem) (map[string]string, error) {
-	keys := make([]string, len(items))
-	var user strings.Builder
-	user.WriteString("次の各行を日本語へ訳し、行頭のキーごとに訳文を返す。キーは変えない。\n")
-	for i, it := range items {
-		keys[i] = it.Key
-		user.WriteString(it.Key)
-		user.WriteString(": ")
-		user.WriteString(it.User)
-		user.WriteString("\n")
-	}
-	payload := chatRequest{
-		Model: model,
-		Messages: []chatMessage{
-			{Role: "system", Content: system},
-			{Role: "user", Content: user.String()},
-		},
-		ResponseFormat: batchResponseFormat(keys),
-	}
-	body, err := json.Marshal(payload)
-	if err != nil {
-		return nil, fmt.Errorf("一括翻訳リクエスト生成: %w", err)
-	}
-	req, err := c.newRequest(ctx, http.MethodPost, normalizeBase(conn.Endpoint)+"/chat/completions", conn, body)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("一括翻訳要求: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("一括翻訳要求: status %d", resp.StatusCode)
-	}
-	var decoded struct {
-		Choices []struct {
-			Message struct {
-				Content string `json:"content"`
-			} `json:"message"`
-		} `json:"choices"`
-	}
-	if err = json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
-		return nil, fmt.Errorf("一括翻訳応答のデコード: %w", err)
-	}
-	if len(decoded.Choices) == 0 {
-		return nil, fmt.Errorf("一括翻訳応答に choices が無い")
-	}
-	return extractBatchTranslations(decoded.Choices[0].Message.Content, keys), nil
-}
-
-// batchResponseFormat は行キーごとの訳文を求めるキー配列スキーマの構造化出力指定を組む。
-// 各キーの値は {translation:string} オブジェクト。additionalProperties:false で余分なキーを禁じるが、
-// 部分成功を許すため strict は false にし required も置かない（モデルが一部キーを落とすのを許容する）。
-func batchResponseFormat(keys []string) *responseFormat {
-	props := make(map[string]any, len(keys))
-	for _, k := range keys {
-		props[k] = map[string]any{
-			"type":                 "object",
-			"properties":           map[string]any{"translation": map[string]any{"type": "string"}},
-			"required":             []string{"translation"},
-			"additionalProperties": false,
-		}
-	}
-	schema, _ := json.Marshal(map[string]any{
-		"type":                 "object",
-		"properties":           props,
-		"additionalProperties": false,
-	})
-	return &responseFormat{
-		Type: "json_schema",
-		JSONSchema: jsonSchema{
-			Name:   "translations",
-			Strict: false,
-			Schema: schema,
-		},
-	}
-}
-
-// extractBatchTranslations は一括応答の content から、要求キーごとの訳文を取り出す純粋関数。
-// content は {"<key>": {"translation": "..."}, ...} 形式の JSON を期待する。
-// 返り値には、キーが存在し translation が非空文字のものだけを載せる（部分成功）。
-// 構文不正（空応答・途中切れ）は空 map を返し、全キーを欠落扱いにする。壊れたキー（欠落・空・型不正）は載せない。
-func extractBatchTranslations(content string, keys []string) map[string]string {
-	out := make(map[string]string, len(keys))
-	var parsed map[string]struct {
-		Translation *string `json:"translation"`
-	}
-	if err := json.Unmarshal([]byte(content), &parsed); err != nil {
-		return out
-	}
-	for _, k := range keys {
-		if v, ok := parsed[k]; ok && v.Translation != nil && *v.Translation != "" {
-			out[k] = *v.Translation
-		}
-	}
-	return out
 }

@@ -22,8 +22,6 @@ export interface RunInput {
   endpoint: string
   apiKey: string
   model: string
-  // 台詞のバルク翻訳で 1 リクエストにまとめる原文の最大トークン数（目安）。0 以下ならバルクしない。
-  tokenBudget: number
 }
 
 // 結果行の機械置換内訳 1 件（原語 → 確定訳語）。取得時に原文へ辞書を当て直して再構成した値。
