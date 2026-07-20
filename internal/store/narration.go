@@ -42,8 +42,12 @@ func (s *Store) Close() error {
 const narrationColumns = `id, source, dest, status, style, plugin, form_id, edid, rec, field, ordinal`
 
 // ListUntranslatedNarrations は未訳（status=0）の叙述文を id 昇順で返す。
-func (s *Store) ListUntranslatedNarrations(ctx context.Context) ([]model.Narration, error) {
-	return s.queryNarrations(ctx, `SELECT `+narrationColumns+` FROM narration WHERE status = 0 ORDER BY id`)
+// plugin が空でなければその対象 plugin の行だけに絞る（空なら全 plugin）。
+func (s *Store) ListUntranslatedNarrations(ctx context.Context, plugin string) ([]model.Narration, error) {
+	if plugin == "" {
+		return s.queryNarrations(ctx, `SELECT `+narrationColumns+` FROM narration WHERE status = 0 ORDER BY id`)
+	}
+	return s.queryNarrations(ctx, `SELECT `+narrationColumns+` FROM narration WHERE status = 0 AND plugin = ? ORDER BY id`, plugin)
 }
 
 // NarrationsAfter は id が afterID より大きい叙述文を id 昇順で最大 limit 件返す（keyset ページング用）。

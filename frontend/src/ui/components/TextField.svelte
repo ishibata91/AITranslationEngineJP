@@ -9,6 +9,10 @@
     placeholder?: string
     hint?: string
     secret?: boolean
+    // 入力の右に出す静的な単位表示（例: "k"）。無ければ単位を出さない。
+    suffix?: string
+    // 入力ボックスの幅クラス。既定は w-full（セル幅いっぱい）。数桁だけ入れる欄は狭い幅（例: "w-24"）を渡す。
+    inputWidthClass?: string
     oninput: (value: string) => void
   }
 
@@ -18,6 +22,8 @@
     placeholder = "",
     hint = "",
     secret = false,
+    suffix = "",
+    inputWidthClass = "w-full",
     oninput
   }: Props = $props()
 
@@ -27,13 +33,18 @@
 </script>
 
 <Field {label} {hint}>
-  <input
-    class="input w-full bg-base-100/60 u-mono text-sm"
-    type={secret ? "password" : "text"}
-    {value}
-    {placeholder}
-    autocomplete="off"
-    spellcheck="false"
-    oninput={handle}
-  />
+  <div class="flex items-center gap-2">
+    <input
+      class="input {inputWidthClass} min-w-0 bg-base-100/60 u-mono text-sm"
+      type={secret ? "password" : "text"}
+      {value}
+      {placeholder}
+      autocomplete="off"
+      spellcheck="false"
+      oninput={handle}
+    />
+    {#if suffix.length > 0}
+      <span class="u-mono text-sm text-base-content/60 shrink-0">{suffix}</span>
+    {/if}
+  </div>
 </Field>

@@ -144,6 +144,9 @@ type RunRequest struct {
 	Endpoint   string `json:"endpoint"`
 	APIKey     string `json:"apiKey"`
 	Model      string `json:"model"`
+	// TokenBudget は台詞のバルク翻訳で 1 リクエストにまとめる原文の最大トークン数の目安。
+	// frontend が k（千トークン）単位の入力を ×1000 したトークン数を渡す。0 以下ならバルクしない。
+	TokenBudget int `json:"tokenBudget"`
 }
 
 // TermView は結果行の機械置換内訳 1 件（原語 → 確定訳語）。
@@ -462,7 +465,8 @@ func (a *App) RunExtractAndTranslate(req RunRequest) (RunResult, error) {
 		return RunResult{}, fmt.Errorf("取込段に失敗: %w", err)
 	}
 
-	count, runErr := a.engine.Run(ctx, provider.Connection{Endpoint: req.Endpoint, APIKey: req.APIKey}, req.Model,
+	// 抽出した対象 plugin だけを翻訳する。plugin 列と同じ値（filepath.Base）で絞り、他 plugin の未訳を巻き込まない。
+	count, runErr := a.engine.Run(ctx, provider.Connection{Endpoint: req.Endpoint, APIKey: req.APIKey}, req.Model, filepath.Base(req.PluginPath), req.TokenBudget,
 		func(done, total int) {
 			a.emitProgress(ProgressEvent{Stage: "translate", Done: done, Total: total})
 		})

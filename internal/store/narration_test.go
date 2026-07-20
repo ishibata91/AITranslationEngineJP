@@ -47,7 +47,7 @@ func TestListUntranslatedAndUpdateDest(t *testing.T) {
 		Rec: "BOOK", Field: "DESC", Ordinal: 0, Source: "the Soul Cairn takes", Status: 0,
 	})
 
-	rows, err := s.ListUntranslatedNarrations(context.Background())
+	rows, err := s.ListUntranslatedNarrations(context.Background(), "")
 	if err != nil {
 		t.Fatalf("ListUntranslatedNarrations: %v", err)
 	}
@@ -62,11 +62,45 @@ func TestListUntranslatedAndUpdateDest(t *testing.T) {
 		t.Fatalf("UpdateNarrationDest: %v", err)
 	}
 
-	after, err := s.ListUntranslatedNarrations(context.Background())
+	after, err := s.ListUntranslatedNarrations(context.Background(), "")
 	if err != nil {
 		t.Fatalf("ListUntranslatedNarrations after update: %v", err)
 	}
 	if len(after) != 1 {
 		t.Fatalf("untranslated after update = %d, want 1", len(after))
+	}
+}
+
+// plugin を指定すると対象 plugin の未訳だけを返し、空文字なら全 plugin を返すこと。
+// 1 plugin の翻訳が他 plugin の未訳を巻き込まないための絞り込みを守る。
+func TestListUntranslatedNarrationsScopedByPlugin(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "central.sqlite3")
+	s, err := Open(dbPath)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer func() { _ = s.Close() }()
+
+	insertNarration(t, dbPath, model.Narration{
+		Plugin: "A.esp", FormID: "0x01", EDID: "A1", Rec: "BOOK", Field: "DESC", Ordinal: 0, Source: "alpha", Status: 0,
+	})
+	insertNarration(t, dbPath, model.Narration{
+		Plugin: "B.esp", FormID: "0x02", EDID: "B1", Rec: "BOOK", Field: "DESC", Ordinal: 0, Source: "bravo", Status: 0,
+	})
+
+	scoped, err := s.ListUntranslatedNarrations(context.Background(), "A.esp")
+	if err != nil {
+		t.Fatalf("ListUntranslatedNarrations(A.esp): %v", err)
+	}
+	if len(scoped) != 1 || scoped[0].Plugin != "A.esp" {
+		t.Fatalf("scoped = %+v, want 1 row of A.esp", scoped)
+	}
+
+	all, err := s.ListUntranslatedNarrations(context.Background(), "")
+	if err != nil {
+		t.Fatalf("ListUntranslatedNarrations(all): %v", err)
+	}
+	if len(all) != 2 {
+		t.Fatalf("all = %d, want 2 (empty plugin returns every plugin)", len(all))
 	}
 }
