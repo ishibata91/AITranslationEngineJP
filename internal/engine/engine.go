@@ -4,7 +4,6 @@ package engine
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -12,6 +11,7 @@ import (
 	"sort"
 	"strings"
 
+	"aitranslationenginejp/internal/core/batchplan"
 	"aitranslationenginejp/internal/core/dictionary"
 	"aitranslationenginejp/internal/core/linefeatures"
 	"aitranslationenginejp/internal/core/personatone"
@@ -259,26 +259,29 @@ func (e *Engine) translateNarrations(ctx context.Context, conn provider.Connecti
 			p.step()
 			continue
 		}
-		source, tags := e.prepareSource(row.Source, dict)
 		instruction := instructionByKey[keyByRF[RecordKey{Rec: row.Rec, Field: row.Field}]]
-		dest, err := e.provider.Translate(ctx, conn, modelName, prompt.ComposePrompt(tmpl.BaseDirective, instruction, source))
-		if err != nil {
-			// その行だけ飛ばせる失敗（skippable）は壊れた訳を確定させず未訳のまま残す（再実行で再翻訳）。
-			// それ以外（通信断・認証や不正リクエストの 4xx・未知の失敗）は run を止める。
-			if skips.record(err) {
-				continue
+		bodyPrompt, tags := e.composeBodyPrompt(tmpl.BaseDirective, instruction, row.Source, dict)
+		dest, err := e.provider.Translate(ctx, conn, modelName, bodyPrompt)
+		// 結果適用の判断は batch 反映と共有する純粋規則（DecideApply）を通す。
+		// 成功・タグ欠落・skippable 失敗は同期でも batch でも同じ扱い。非 skippable（Fatal）だけ同期は run を止める。
+		missing := runtimetag.CountMissing(dest, tags)
+		switch batchplan.DecideApply(dest, err, missing).Kind {
+		case batchplan.ApplyConfirm:
+			if writeErr := e.store.UpdateNarrationDest(ctx, row.ID, dest, statusProvisional); writeErr != nil {
+				return fmt.Errorf("叙述文の書き戻し: %w", writeErr)
 			}
+			p.step()
+		case batchplan.ApplySkipTagLost:
+			lostTags += missing
+		case batchplan.ApplySkipStructuredParse:
+			skips.structuredParse++
+		case batchplan.ApplySkipResponseUnreadable:
+			skips.responseUnreadable++
+		case batchplan.ApplySkipServerTransient:
+			skips.serverTransient++
+		case batchplan.ApplyFatal:
 			return fmt.Errorf("叙述文の翻訳: %w", err)
 		}
-		// AI 出力に生タグが原形で残っているかを照合する。欠落した行は壊れた訳を確定させず未訳のまま残す（再実行で再翻訳）。
-		if lost := runtimetag.CountMissing(dest, tags); lost > 0 {
-			lostTags += lost
-			continue
-		}
-		if err := e.store.UpdateNarrationDest(ctx, row.ID, dest, statusProvisional); err != nil {
-			return fmt.Errorf("叙述文の書き戻し: %w", err)
-		}
-		p.step()
 	}
 	logLostRuntimeTags(ctx, "translateNarrations", lostTags)
 	skips.log(ctx, "translateNarrations")
@@ -291,6 +294,14 @@ func (e *Engine) prepareSource(rawSource string, dict *dictionary.Dictionary) (s
 	masked, tags := runtimetag.Mask(rawSource)
 	replaced, _ := dict.Apply(masked)
 	return runtimetag.Restore(replaced, tags), tags
+}
+
+// composeBodyPrompt は本文 1 件の送信プロンプトを組む（同期の本文フェーズと batch 送信が共有する文面構築）。
+// 実行時タグを機械置換の間だけ退避して生タグへ戻し、base 指示＋directive（文体または口調）＋機械置換済み原文を合成する。
+// 退避したタグ列も返す（AI 出力のタグ欠落照合に使う）。同期と batch が同じ文面を組むための 1 箇所。
+func (e *Engine) composeBodyPrompt(base, directive, rawSource string, dict *dictionary.Dictionary) (provider.Prompt, []string) {
+	source, tags := e.prepareSource(rawSource, dict)
+	return prompt.ComposePrompt(base, directive, source), tags
 }
 
 // translateLines は台詞を翻訳し、書き戻す。1 件ごとに進捗を 1 歩進める。
@@ -309,25 +320,27 @@ func (e *Engine) translateLines(ctx context.Context, conn provider.Connection, m
 			p.step()
 			continue
 		}
-		source, tags := e.prepareSource(row.Source, dict)
-		dest, err := e.provider.Translate(ctx, conn, modelName, prompt.ComposePrompt(tmpl.BaseDirective, personas[row.ID].Directive, source))
-		if err != nil {
-			// その行だけ飛ばせる失敗（skippable）は壊れた訳を確定させず未訳のまま残す（再実行で再翻訳）。
-			// それ以外（通信断・認証や不正リクエストの 4xx・未知の失敗）は run を止める。
-			if skips.record(err) {
-				continue
+		bodyPrompt, tags := e.composeBodyPrompt(tmpl.BaseDirective, personas[row.ID].Directive, row.Source, dict)
+		dest, err := e.provider.Translate(ctx, conn, modelName, bodyPrompt)
+		// 結果適用の判断は batch 反映と共有する純粋規則（DecideApply）を通す（叙述文と同じ）。
+		missing := runtimetag.CountMissing(dest, tags)
+		switch batchplan.DecideApply(dest, err, missing).Kind {
+		case batchplan.ApplyConfirm:
+			if writeErr := e.store.UpdateLineDest(ctx, row.ID, dest, statusProvisional); writeErr != nil {
+				return fmt.Errorf("台詞の書き戻し: %w", writeErr)
 			}
+			p.step()
+		case batchplan.ApplySkipTagLost:
+			lostTags += missing
+		case batchplan.ApplySkipStructuredParse:
+			skips.structuredParse++
+		case batchplan.ApplySkipResponseUnreadable:
+			skips.responseUnreadable++
+		case batchplan.ApplySkipServerTransient:
+			skips.serverTransient++
+		case batchplan.ApplyFatal:
 			return fmt.Errorf("台詞の翻訳: %w", err)
 		}
-		// AI 出力に生タグが原形で残っているかを照合する。欠落した台詞は未訳のまま残す（再実行で再翻訳）。
-		if lost := runtimetag.CountMissing(dest, tags); lost > 0 {
-			lostTags += lost
-			continue
-		}
-		if err := e.store.UpdateLineDest(ctx, row.ID, dest, statusProvisional); err != nil {
-			return fmt.Errorf("台詞の書き戻し: %w", err)
-		}
-		p.step()
 	}
 	logLostRuntimeTags(ctx, "translateLines", lostTags)
 	skips.log(ctx, "translateLines")
@@ -356,22 +369,6 @@ type lineSkips struct {
 	structuredParse    int // 構造化出力の空・スキーマ違反（provider.ErrStructuredParse）
 	responseUnreadable int // 応答エンベロープの読み取り失敗（provider.ErrResponseUnreadable）
 	serverTransient    int // 非 200 の 429・5xx（provider.ErrServerTransient）
-}
-
-// record は provider の失敗が「その行だけ飛ばせる失敗（skippable）」なら理由別に数えて true を返す。
-// skippable でなければ（通信断・4xx の認証や不正リクエスト・未知の失敗）数えず false を返し、呼び出し側は run を止める。
-func (s *lineSkips) record(err error) bool {
-	switch {
-	case errors.Is(err, provider.ErrStructuredParse):
-		s.structuredParse++
-	case errors.Is(err, provider.ErrResponseUnreadable):
-		s.responseUnreadable++
-	case errors.Is(err, provider.ErrServerTransient):
-		s.serverTransient++
-	default:
-		return false
-	}
-	return true
 }
 
 // log は未訳のまま飛ばした行の件数を、飛ばした理由別に集約して観測ログへ出す。

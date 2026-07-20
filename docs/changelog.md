@@ -4,6 +4,30 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-07-20 xAI batch 翻訳（非同期の大量翻訳）に対応
+
+### 変更
+
+- `db/migrations/0013_batch_translation.sql`: batch 進行本体 `batch_translation`（plugin と 1 対 1・進行段・固有名/本文の外部 batch ID）と送信行対応 `batch_request`（custom_id `種別:id` で外部 batch と翻訳対象行を結ぶ）を追加。
+- `internal/provider/batch.go`・`xai_batch.go`: 2 つ目の多態 port `BatchTranslator`（送信・状態確認・結果取得）と xAI 実装 `XAIBatch`（JSONL file upload 方式、`/v1/batches` 系）を追加。同期 `Translator`（`OpenAICompatible`）は不変。失敗種別は同期と同じ番兵で表す。
+- `internal/core/batchplan/`: batch 管理の純粋決定規則（custom_id 割り当て・進行段遷移・結果適用・再送信可否）を新設。カバレッジ 100%。
+- `internal/engine/engine.go`・`batch.go`: 同期本文フェーズの「リクエスト構築」と「1 件適用判断」を振る舞い不変で共有関数（`composeBodyPrompt`・`batchplan.DecideApply`）へ抽出し、batch 反映と共有。`BatchRunner`（送信/反映のオーケストレーション・薄いシェル）を追加。
+- `internal/store/batch_translation.go`・`target_plugin.go`: batch 永続アクセスと、plugin 削除の手続き DELETE への batch テーブル追記（子 → 親順）。
+- `internal/api/app.go`・`bootstrap.go`: Wails 公開面へ `SubmitBatchTranslation`・`RefreshBatchTranslations`・`GetXAIModels` を追加し、`XAIBatch`・`BatchRunner` を配線。
+- `docs/architecture.md`（§2 図・§3・§4・§4.1・§7・§8）・`docs/er.md` §2・`.go-arch-lint.yml`: 2 つ目の port と `batchplan` の構造を反映。
+
+### 判断
+
+- xAI は batch 専用の非同期配送とし、同期経路を持たせない（人間確定）。同期 `Translator` の振る舞いは変えず、batch は 2 つ目の port として並置する。「同期の翻訳本体は変えない」は振る舞い不変の抽出（behavior-preserving refactor）を許容する意味とし、既存 engine テストで回帰を担保した。
+- 固有名は本文へ機械置換で注入するため本文より先に確定する必要がある。よって固有名 batch → 本文 batch の 2 段逐次とした（設計レビュー回答 B。案 A 固有名同期・案 C 横断辞書のみ注入より一貫性を優先）。
+- 状態確認は常駐プロセスもバックグラウンドポーリングも作らず、起動時・画面操作の時点だけで行う（plan 確定）。接続情報は永続化せず、送信・反映のたびに UI から渡す。
+- batch 管理の決定規則を単一の純粋モジュール `batchplan`（100% カバレッジ）へ寄せ、結果適用を同期と共有することで、外から見て同期と batch の結果が区別できないことを不変条件にした（依頼の「シングルモジュール 100%・外から変わらない」に対応）。
+- 課金を避けるため、自動テストは実 xAI API に触れない。単体（純粋核・fake HTTP）と結合（fake batch プロバイダで送信→永続→反映→書き戻しの 2 段連鎖・再起動相当・sync との dest 一致）で網羅し、実 API 疎通と `json_schema` の batch 実挙動は手動 e2e に委ねた（人間確定）。
+- 期限切れ（`expires_at`）・一部失敗の未反映行は未訳のまま残し、利用者の再送信で回収する（同期の skip と同思想）。送信 HTTP 失敗で外部 ID が空のまま残った半端な進行は、再送信で reset して復旧する（バグレビュー指摘の対応。再送信拒否は「現段の外部 batch ID が非空」の待機中進行に限る）。
+- `batch_request.kind`/`row_id` は custom_id と重複する保持で、現状の反映は custom_id から行を再導出する（対応表は冗長）。列を落とすか反映を対応表ベースへ寄せるかは後続判断とした。
+- UI 導線（xAI 選択・送信・反映）は本 task の scope 外（backend 先行、人間確定）。Wails 公開面までを足し、frontend は変更しない。
+- 根拠となる作業計画: `docs/exec-plans/completed/gemini-xai-batch-translation/`（`design.md` の実装方針・AS-IS/TO-BE 図・検討事項の解消記録）。
+
 ## 2026-07-20 翻訳 run の失敗を種別で切り分け（known-issues #7 解決）
 
 ### 変更

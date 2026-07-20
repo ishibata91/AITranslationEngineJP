@@ -1,0 +1,349 @@
+package engine
+
+import (
+	"context"
+	"fmt"
+	"testing"
+
+	"aitranslationenginejp/internal/model"
+	"aitranslationenginejp/internal/provider"
+)
+
+// --- fakeStore の BatchStore 実装（batch 結合テスト専用。1 plugin 1 進行を想定） ---
+
+func (f *fakeStore) StartBatchProgression(_ context.Context, plugin, modelName string) (int64, error) {
+	if f.batchProg == nil {
+		f.nextBatchID++
+		f.batchProg = &model.BatchTranslation{ID: f.nextBatchID, Plugin: plugin, Model: modelName, Stage: model.BatchStageProperNoun}
+	} else {
+		// reset: 同じ行を使い回し、進行を固有名段へ戻し、外部 ID と送信行対応を空へ戻す（実 store と同じ）。
+		f.batchProg.Model = modelName
+		f.batchProg.Stage = model.BatchStageProperNoun
+		f.batchProg.ProperBatchID = ""
+		f.batchProg.BodyBatchID = ""
+	}
+	f.batchReqs = nil
+	return f.batchProg.ID, nil
+}
+
+func (f *fakeStore) RecordBatchExternalID(_ context.Context, _ int64, stage, externalID string) error {
+	switch stage {
+	case model.BatchStageProperNoun:
+		f.batchProg.ProperBatchID = externalID
+	case model.BatchStageBody:
+		f.batchProg.BodyBatchID = externalID
+	default:
+		return fmt.Errorf("外部 ID を持たない進行段: %q", stage)
+	}
+	return nil
+}
+
+func (f *fakeStore) AdvanceBatchStage(_ context.Context, _ int64, stage string) error {
+	f.batchProg.Stage = stage
+	return nil
+}
+
+func (f *fakeStore) GetBatchProgression(_ context.Context, plugin string) (model.BatchTranslation, bool, error) {
+	if f.batchProg == nil || f.batchProg.Plugin != plugin {
+		return model.BatchTranslation{}, false, nil
+	}
+	return *f.batchProg, true, nil
+}
+
+func (f *fakeStore) ListActiveBatchProgressions(_ context.Context) ([]model.BatchTranslation, error) {
+	if f.batchProg == nil || f.batchProg.Stage == model.BatchStageDone {
+		return nil, nil
+	}
+	return []model.BatchTranslation{*f.batchProg}, nil
+}
+
+func (f *fakeStore) InsertBatchRequests(_ context.Context, rows []model.BatchRequest) (int, error) {
+	f.batchReqs = append(f.batchReqs, rows...)
+	return len(rows), nil
+}
+
+func (f *fakeStore) ListBatchRequests(_ context.Context, externalBatchID string) ([]model.BatchRequest, error) {
+	var out []model.BatchRequest
+	for _, r := range f.batchReqs {
+		if r.ExternalBatchID == externalBatchID {
+			out = append(out, r)
+		}
+	}
+	return out, nil
+}
+
+// fakeBatchProvider は provider.BatchTranslator の in-memory 実装（実 xAI API に触れない・課金しない）。
+// 送信した要求を外部 ID ごとに保持し、状態確認は常に終端（即完了）を返す。結果は out（user メッセージ→訳文）から引く。
+// errByUser に載る user は失敗種別を返す（据え置きの再現）。fakeTranslator と同じ out を共有すれば、同期と同じ訳文を返す。
+type fakeBatchProvider struct {
+	out          map[string]string
+	errByUser    map[string]error
+	batches      map[string][]provider.BatchRequest
+	nextID       int
+	submits      int // SubmitBatch の呼び出し回数（固有名段・本文段の 2 回になることの観測）
+	failSubmitsN int // 先頭から何回の SubmitBatch を失敗させるか（送信 HTTP 失敗の再現。0 なら常に成功）
+}
+
+func (f *fakeBatchProvider) SubmitBatch(_ context.Context, _ provider.Connection, _ string, requests []provider.BatchRequest) (string, error) {
+	if f.batches == nil {
+		f.batches = map[string][]provider.BatchRequest{}
+	}
+	if f.failSubmitsN > 0 {
+		f.failSubmitsN--
+		return "", fmt.Errorf("fake 送信失敗（HTTP 失敗の再現）")
+	}
+	f.nextID++
+	f.submits++
+	id := fmt.Sprintf("ext-batch-%d", f.nextID)
+	f.batches[id] = requests
+	return id, nil
+}
+
+func (f *fakeBatchProvider) PollBatch(_ context.Context, _ provider.Connection, externalBatchID string) (provider.BatchStatus, error) {
+	reqs := f.batches[externalBatchID]
+	return provider.BatchStatus{Total: len(reqs), Succeeded: len(reqs), Done: true}, nil
+}
+
+func (f *fakeBatchProvider) FetchResults(_ context.Context, _ provider.Connection, externalBatchID string) ([]provider.BatchResult, error) {
+	var out []provider.BatchResult
+	for _, r := range f.batches[externalBatchID] {
+		res := provider.BatchResult{CustomID: r.CustomID}
+		if err, ok := f.errByUser[r.Prompt.User]; ok {
+			res.Err = err
+		} else {
+			res.Translation = f.out[r.Prompt.User]
+		}
+		out = append(out, res)
+	}
+	return out, nil
+}
+
+// updatesByID は書き戻しログを id→update の map へ畳む（順序に依存せず集合として照合する）。
+func updatesByID(logs []update) map[int64]update {
+	m := make(map[int64]update, len(logs))
+	for _, u := range logs {
+		m[u.id] = u
+	}
+	return m
+}
+
+// seedFor は同期・batch で同一の未訳データを積んだ fakeStore を作る。
+// 固有名（proper）→ 本文への機械置換合流、既存訳流用、口調なし台詞を 1 経路ずつ含める。
+func seedFor(plugin string) *fakeStore {
+	return &fakeStore{
+		proper: []model.ProperNoun{
+			{ID: 1, Plugin: plugin, Source: "Riften", Category: "NPC_"},
+		},
+		untranslated: []model.Narration{
+			{ID: 1, Plugin: plugin, Rec: "BOOK", Field: "DESC", Source: "See Riften."},   // 固有名を機械置換してから AI
+			{ID: 2, Plugin: plugin, Rec: "WEAP", Field: "DESC", Source: "A fine blade."}, // 既存訳流用（AI を呼ばない）
+		},
+		lines: []model.Line{
+			{ID: 1, Plugin: plugin, Rec: "INFO", Field: "NAM1", Source: "Hello."}, // 口調なし台詞
+		},
+		refs: []model.ReferenceTranslation{
+			{Rec: "WEAP", Field: "DESC", Source: "A fine blade.", Dest: "見事な刃。"},
+		},
+	}
+}
+
+// translationOut は同期・batch 共有の訳（user メッセージ→訳文）。
+// "See Riften." は固有名 Riften→リフテン の機械置換後の原文に対して引く。
+func translationOut() map[string]string {
+	return map[string]string{
+		"Riften":    "リフテン",
+		"See リフテン.": "リフテンを見よ。",
+		"Hello.":    "こんにちは。",
+	}
+}
+
+// batch 経路が、同期経路と同一の dest・訳状態を書き戻すことを表明する（外から見て同期と batch が変わらない）。
+// 併せて、固有名 batch → 本文 batch の 2 段連鎖と、送信時点では dest を確定しない（反映まで遅延する）ことを確かめる。
+func TestBatchMatchesSyncEndToEnd(t *testing.T) {
+	ctx := context.Background()
+	conn := provider.Connection{Endpoint: "http://x", APIKey: "k"}
+	const plugin = "A.esp"
+	out := translationOut()
+
+	// --- 同期経路（基準） ---
+	syncStore := seedFor(plugin)
+	syncEng := New(syncStore, &fakeTranslator{out: out}, fakeLexicon{}, nil, nil)
+	if _, err := syncEng.Run(ctx, conn, "grok", plugin, nil); err != nil {
+		t.Fatalf("同期 Run: %v", err)
+	}
+
+	// --- batch 経路 ---
+	batchStore := seedFor(plugin)
+	fb := &fakeBatchProvider{out: out}
+	runner := NewBatchRunner(New(batchStore, &fakeTranslator{out: out}, fakeLexicon{}, nil, nil), fb, batchStore)
+
+	// 送信: 固有名 batch を送るが、dest はまだ確定しない（2 時点の遅延）。
+	if err := runner.SubmitBatch(ctx, conn, "grok", plugin); err != nil {
+		t.Fatalf("batch 送信: %v", err)
+	}
+	if len(batchStore.properUpdates) != 0 || len(batchStore.updates) != 0 || len(batchStore.lineUpdates) != 0 {
+		t.Fatalf("送信時点で dest を確定した（反映まで遅延すべき）: proper=%v narr=%v line=%v",
+			batchStore.properUpdates, batchStore.updates, batchStore.lineUpdates)
+	}
+	if batchStore.batchProg.Stage != model.BatchStageProperNoun || batchStore.batchProg.ProperBatchID == "" {
+		t.Fatalf("送信後の進行が固有名段でない: %+v", batchStore.batchProg)
+	}
+
+	// 反映①: 固有名 batch が完了 → 固有名を確定し、本文 batch を送る（進行段=本文）。
+	if err := runner.RefreshBatch(ctx, conn); err != nil {
+		t.Fatalf("batch 反映①: %v", err)
+	}
+	if batchStore.batchProg.Stage != model.BatchStageBody || batchStore.batchProg.BodyBatchID == "" {
+		t.Fatalf("反映①後の進行が本文段でない: %+v", batchStore.batchProg)
+	}
+	if len(batchStore.properUpdates) != 1 {
+		t.Fatalf("固有名が確定していない: %v", batchStore.properUpdates)
+	}
+
+	// 反映②: アプリ再起動相当（永続から続ける）。新しい engine・runner を組み直しても反映が続く。
+	restartEng := New(batchStore, &fakeTranslator{out: out}, fakeLexicon{}, nil, nil)
+	restartRunner := NewBatchRunner(restartEng, fb, batchStore)
+	if err := restartRunner.RefreshBatch(ctx, conn); err != nil {
+		t.Fatalf("batch 反映②（再起動相当）: %v", err)
+	}
+	if batchStore.batchProg.Stage != model.BatchStageDone {
+		t.Fatalf("反映②後に進行が完了していない: %+v", batchStore.batchProg)
+	}
+
+	// 固有名 batch と本文 batch の 2 回送信になったこと。
+	if fb.submits != 2 {
+		t.Errorf("batch 送信回数 = %d, want 2（固有名→本文）", fb.submits)
+	}
+
+	// 外から見て同期と batch が一致すること（dest・訳状態を集合として照合）。
+	assertSameUpdates(t, "固有名", syncStore.properUpdates, batchStore.properUpdates)
+	assertSameUpdates(t, "叙述文", syncStore.updates, batchStore.updates)
+	assertSameUpdates(t, "台詞", syncStore.lineUpdates, batchStore.lineUpdates)
+
+	// 具体値も固定する（固有名の機械置換・既存訳流用・AI 訳の 3 経路が batch でも同じ結果になる）。
+	bn := updatesByID(batchStore.updates)
+	if bn[1] != (update{1, "リフテンを見よ。", 3}) {
+		t.Errorf("固有名機械置換つき叙述文の batch 結果 = %v", bn[1])
+	}
+	if bn[2] != (update{2, "見事な刃。", 1}) {
+		t.Errorf("既存訳流用の batch 結果 = %v（status=1 で流用すべき）", bn[2])
+	}
+	if updatesByID(batchStore.properUpdates)[1] != (update{1, "リフテン", 3}) {
+		t.Errorf("固有名 AI 訳の batch 結果 = %v", batchStore.properUpdates)
+	}
+}
+
+// 個別リクエストの失敗（skippable）を、batch も同期と同じく未訳のまま据え置く（再送信で回収）ことを表明する。
+func TestBatchLeavesUntranslatedOnFailureLikeSync(t *testing.T) {
+	ctx := context.Background()
+	conn := provider.Connection{Endpoint: "http://x"}
+	const plugin = "B.esp"
+	out := map[string]string{"ok.": "はい。"}
+	// "fail." はサーバ一時失敗を返す（同期・batch とも据え置き）。
+	failErr := map[string]error{"fail.": fmt.Errorf("%w: status 503", provider.ErrServerTransient)}
+
+	seed := func() *fakeStore {
+		return &fakeStore{lines: []model.Line{
+			{ID: 1, Plugin: plugin, Rec: "INFO", Field: "NAM1", Source: "ok."},
+			{ID: 2, Plugin: plugin, Rec: "INFO", Field: "NAM1", Source: "fail."},
+		}}
+	}
+
+	// 同期。
+	syncStore := seed()
+	syncEng := New(syncStore, &fakeTranslator{out: out, errByUser: failErr}, fakeLexicon{}, nil, nil)
+	if _, err := syncEng.Run(ctx, conn, "grok", plugin, nil); err != nil {
+		t.Fatalf("同期 Run: %v", err)
+	}
+
+	// batch（固有名なしのため submit で本文 batch まで進み、反映 1 回で確定）。
+	batchStore := seed()
+	fb := &fakeBatchProvider{out: out, errByUser: failErr}
+	runner := NewBatchRunner(New(batchStore, &fakeTranslator{out: out}, fakeLexicon{}, nil, nil), fb, batchStore)
+	if err := runner.SubmitBatch(ctx, conn, "grok", plugin); err != nil {
+		t.Fatalf("batch 送信: %v", err)
+	}
+	if err := runner.RefreshBatch(ctx, conn); err != nil {
+		t.Fatalf("batch 反映: %v", err)
+	}
+
+	// 成功した ok.(ID=1) だけ確定し、失敗した fail.(ID=2) は据え置き。同期と一致すること。
+	assertSameUpdates(t, "台詞（失敗据え置き）", syncStore.lineUpdates, batchStore.lineUpdates)
+	bl := updatesByID(batchStore.lineUpdates)
+	if _, applied := bl[2]; applied {
+		t.Errorf("失敗した台詞 ID=2 を確定した（据え置くべき）: %v", batchStore.lineUpdates)
+	}
+	if bl[1] != (update{1, "はい。", 3}) {
+		t.Errorf("成功した台詞 ID=1 の batch 結果 = %v", bl[1])
+	}
+}
+
+// 固有名 batch の送信 HTTP 失敗で進行が半端に残っても、再送信が拒否されず reset して回復し、
+// 反映まで通常どおり dest を確定できることを表明する（送信失敗の詰まりの復旧経路）。
+func TestBatchResubmitRecoversFromSubmitFailure(t *testing.T) {
+	ctx := context.Background()
+	conn := provider.Connection{Endpoint: "http://x", APIKey: "k"}
+	const plugin = "C.esp"
+	out := translationOut()
+
+	batchStore := seedFor(plugin)
+	fb := &fakeBatchProvider{out: out, failSubmitsN: 1} // 最初の固有名送信を失敗させる。
+	runner := NewBatchRunner(New(batchStore, &fakeTranslator{out: out}, fakeLexicon{}, nil, nil), fb, batchStore)
+
+	// 送信①: 固有名 batch の送信が失敗する。進行は固有名段のまま外部 ID が空で残る（半端な進行）。
+	if err := runner.SubmitBatch(ctx, conn, "grok", plugin); err == nil {
+		t.Fatalf("送信失敗を模したが SubmitBatch が成功した")
+	}
+	if batchStore.batchProg == nil || batchStore.batchProg.Stage != model.BatchStageProperNoun || batchStore.batchProg.ProperBatchID != "" {
+		t.Fatalf("送信失敗後の進行が想定外: %+v", batchStore.batchProg)
+	}
+	// 送信失敗時点で dest を確定していないこと。
+	if len(batchStore.properUpdates) != 0 || len(batchStore.updates) != 0 || len(batchStore.lineUpdates) != 0 {
+		t.Fatalf("送信失敗時点で dest を確定した: proper=%v narr=%v line=%v",
+			batchStore.properUpdates, batchStore.updates, batchStore.lineUpdates)
+	}
+
+	// 送信②: 半端な進行は拒否されず reset されて成功する（BlocksResubmit が外部 ID 空を許すため）。
+	if err := runner.SubmitBatch(ctx, conn, "grok", plugin); err != nil {
+		t.Fatalf("再送信が拒否・失敗した（回復できるべき）: %v", err)
+	}
+	if batchStore.batchProg.Stage != model.BatchStageProperNoun || batchStore.batchProg.ProperBatchID == "" {
+		t.Fatalf("再送信後の進行が固有名段でない: %+v", batchStore.batchProg)
+	}
+
+	// 反映で通常どおり 2 段連鎖して完了し、dest が確定すること。
+	if err := runner.RefreshBatch(ctx, conn); err != nil {
+		t.Fatalf("batch 反映①: %v", err)
+	}
+	if err := runner.RefreshBatch(ctx, conn); err != nil {
+		t.Fatalf("batch 反映②: %v", err)
+	}
+	if batchStore.batchProg.Stage != model.BatchStageDone {
+		t.Fatalf("反映後に進行が完了していない: %+v", batchStore.batchProg)
+	}
+	if updatesByID(batchStore.properUpdates)[1] != (update{1, "リフテン", 3}) {
+		t.Errorf("回復後の固有名 AI 訳 = %v", batchStore.properUpdates)
+	}
+	if updatesByID(batchStore.updates)[1] != (update{1, "リフテンを見よ。", 3}) {
+		t.Errorf("回復後の叙述文 = %v", batchStore.updates)
+	}
+}
+
+// assertSameUpdates は 2 つの書き戻しログが集合（id→dest/status）として一致することを表明する。
+func assertSameUpdates(t *testing.T, label string, want, got []update) {
+	t.Helper()
+	w, g := updatesByID(want), updatesByID(got)
+	if len(w) != len(g) {
+		t.Fatalf("%s: 書き戻し件数が違う sync=%v batch=%v", label, want, got)
+	}
+	for id, wu := range w {
+		gu, ok := g[id]
+		if !ok {
+			t.Errorf("%s: batch に id=%d の書き戻しが無い（sync=%v）", label, id, wu)
+			continue
+		}
+		if gu != wu {
+			t.Errorf("%s: id=%d sync=%v batch=%v", label, id, wu, gu)
+		}
+	}
+}

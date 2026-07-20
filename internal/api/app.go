@@ -102,6 +102,7 @@ func (d *DotnetExtractor) Extract(ctx context.Context, pluginPath string) error 
 type App struct {
 	store       Store
 	engine      *engine.Engine
+	batch       *engine.BatchRunner // xAI batch 翻訳の送信・反映。batch を使わない配線では nil。
 	provider    provider.Translator
 	extractor   Extractor
 	termsXMLDir string // 抽出後の固有名派生（DeriveMasterTerms）で読む xTranslator 英日 XML ディレクトリ。
@@ -110,14 +111,15 @@ type App struct {
 
 // New は App を生成する。extractor は抽出子の注入点（本番は DotnetExtractor。抽出に要するパスは extractor が保持する）。
 // termsXMLDir は抽出後の固有名派生で読む XML ディレクトリで、抽出設定（ExtractorConfig）とは別系統のため文字列で直接受ける。
-func New(store Store, eng *engine.Engine, p provider.Translator, termsXMLDir string, extractor Extractor) *App {
+// batch は xAI batch 翻訳のオーケストレーション。batch を使わない配線（テスト用 harness など）では nil を渡してよい。
+func New(store Store, eng *engine.Engine, batch *engine.BatchRunner, p provider.Translator, termsXMLDir string, extractor Extractor) *App {
 	if extractor == nil {
 		// 抽出子は必須の注入物。nil interface（リテラル nil や未設定の interface 変数）を渡す配線ミスを起動時に弾く。
 		// なお typed-nil（nil の concrete ポインタを interface に入れた値）は Go の制約で検出できないが、
 		// composition root は concrete を直接 new して渡すため該当しない。
 		panic("api.New: extractor は nil にできない")
 	}
-	return &App{store: store, engine: eng, provider: p, extractor: extractor, termsXMLDir: termsXMLDir}
+	return &App{store: store, engine: eng, batch: batch, provider: p, extractor: extractor, termsXMLDir: termsXMLDir}
 }
 
 // Startup は Wails 起動時に runtime context を受け取る。ファイルダイアログと進捗 event の push に使う。
@@ -425,41 +427,8 @@ func assignmentViews(rows []model.RecordType) []RecordAssignmentView {
 func (a *App) RunExtractAndTranslate(req RunRequest) (RunResult, error) {
 	ctx := a.baseCtx()
 
-	// 抽出の前に、翻訳した対象 plugin を登録する（plugin ファイル名で 1 対 1、フルパスを再実行用に保つ）。
-	// 開始時に作るため、途中で失敗しても登録が残り、一覧からの削除でやり直せる。plugin 列（narration.plugin 等）と
-	// 同じ値（filepath.Base）で束ねる。冪等（2 回目以降は source_path だけ更新）。
-	if err := a.store.UpsertTargetPlugin(ctx, filepath.Base(req.PluginPath), req.PluginPath); err != nil {
-		return RunResult{}, fmt.Errorf("翻訳対象プラグインの登録に失敗: %w", err)
-	}
-
-	// 翻訳前区間は4サブ段（抽出→辞書準備→既存訳取込→取込段）を無音で進むため、段ごとに1回進捗を push して
-	// frontend が見出しを出し分けられるようにする。件数を持たない不定段なので Step だけを載せる。
-	a.emitProgress(ProgressEvent{Stage: "extract", Step: "extract"})
-	// 抽出子は注入点（本番は dotnet 子プロセス、テストは DB 直 seed の fake）。利用者が選んだ plugin を抽出する。
-	if err := a.extractor.Extract(ctx, req.PluginPath); err != nil {
-		return RunResult{}, fmt.Errorf("抽出に失敗: %w", err)
-	}
-
-	// 抽出後、人名の部分形（名のみ・短名）を派生して master_term へ追記する。C# が書いた base 辞書（FULL）の
-	// 後に走らせ、DB を作り直しても単独名（例 Aventus→アベンタス）が機械置換へ載るようにする。冪等。
-	a.emitProgress(ProgressEvent{Stage: "extract", Step: "derive"})
-	if _, err := a.engine.DeriveMasterTerms(ctx, a.termsXMLDir); err != nil {
-		return RunResult{}, fmt.Errorf("固有名の派生に失敗: %w", err)
-	}
-
-	// 同じ xTranslator 英日 XML から record 単位の既存訳（参照訳）を取り込む。翻訳で原文が完全一致する
-	// 叙述文・台詞は AI を呼ばず既訳を流用する（known-issues 項目7）。冪等。
-	a.emitProgress(ProgressEvent{Stage: "extract", Step: "reference"})
-	if _, err := a.engine.LoadReferenceTranslations(ctx, a.termsXMLDir); err != nil {
-		return RunResult{}, fmt.Errorf("既存訳の取り込みに失敗: %w", err)
-	}
-
-	// 取込段: C# が素朴吸い出しした extracted_field を record_type_master で振り分け、
-	// narration（叙述文・定型句）・proper_noun（固有名）・line（台詞）へ投入し、話者連関を解決する。
-	// 本文・固有名フェーズより前に 1 度実行する。冪等。
-	a.emitProgress(ProgressEvent{Stage: "extract", Step: "ingest"})
-	if _, err := a.engine.Ingest(ctx); err != nil {
-		return RunResult{}, fmt.Errorf("取込段に失敗: %w", err)
+	if err := a.prepareForTranslation(ctx, req.PluginPath); err != nil {
+		return RunResult{}, err
 	}
 
 	// 抽出した対象 plugin だけを翻訳する。plugin 列と同じ値（filepath.Base）で絞り、他 plugin の未訳を巻き込まない。
@@ -473,6 +442,116 @@ func (a *App) RunExtractAndTranslate(req RunRequest) (RunResult, error) {
 		return result, fmt.Errorf("翻訳に失敗: %w", runErr)
 	}
 	return result, nil
+}
+
+// prepareForTranslation は翻訳前区間（対象 plugin 登録 → 抽出 → 固有名派生 → 既存訳取込 → 取込段）を実行する。
+// 同期翻訳（RunExtractAndTranslate）と batch 送信（SubmitBatchTranslation）が共有する。各段は冪等。
+// 4 サブ段は無音で進むため段ごとに 1 回進捗を push し、frontend が見出しを出し分けられるようにする。
+func (a *App) prepareForTranslation(ctx context.Context, pluginPath string) error {
+	// 抽出の前に、翻訳した対象 plugin を登録する（plugin ファイル名で 1 対 1、フルパスを再実行用に保つ）。
+	// 開始時に作るため、途中で失敗しても登録が残り、一覧からの削除でやり直せる。plugin 列（narration.plugin 等）と
+	// 同じ値（filepath.Base）で束ねる。冪等（2 回目以降は source_path だけ更新）。
+	if err := a.store.UpsertTargetPlugin(ctx, filepath.Base(pluginPath), pluginPath); err != nil {
+		return fmt.Errorf("翻訳対象プラグインの登録に失敗: %w", err)
+	}
+
+	a.emitProgress(ProgressEvent{Stage: "extract", Step: "extract"})
+	// 抽出子は注入点（本番は dotnet 子プロセス、テストは DB 直 seed の fake）。利用者が選んだ plugin を抽出する。
+	if err := a.extractor.Extract(ctx, pluginPath); err != nil {
+		return fmt.Errorf("抽出に失敗: %w", err)
+	}
+
+	// 抽出後、人名の部分形（名のみ・短名）を派生して master_term へ追記する。C# が書いた base 辞書（FULL）の
+	// 後に走らせ、DB を作り直しても単独名（例 Aventus→アベンタス）が機械置換へ載るようにする。冪等。
+	a.emitProgress(ProgressEvent{Stage: "extract", Step: "derive"})
+	if _, err := a.engine.DeriveMasterTerms(ctx, a.termsXMLDir); err != nil {
+		return fmt.Errorf("固有名の派生に失敗: %w", err)
+	}
+
+	// 同じ xTranslator 英日 XML から record 単位の既存訳（参照訳）を取り込む。翻訳で原文が完全一致する
+	// 叙述文・台詞は AI を呼ばず既訳を流用する（known-issues 項目7）。冪等。
+	a.emitProgress(ProgressEvent{Stage: "extract", Step: "reference"})
+	if _, err := a.engine.LoadReferenceTranslations(ctx, a.termsXMLDir); err != nil {
+		return fmt.Errorf("既存訳の取り込みに失敗: %w", err)
+	}
+
+	// 取込段: C# が素朴吸い出しした extracted_field を record_type_master で振り分け、
+	// narration（叙述文・定型句）・proper_noun（固有名）・line（台詞）へ投入し、話者連関を解決する。
+	// 本文・固有名フェーズより前に 1 度実行する。冪等。
+	a.emitProgress(ProgressEvent{Stage: "extract", Step: "ingest"})
+	if _, err := a.engine.Ingest(ctx); err != nil {
+		return fmt.Errorf("取込段に失敗: %w", err)
+	}
+	return nil
+}
+
+// SubmitBatchTranslation は対象 plugin を抽出・取込した上で、未訳の固有名を xAI batch として送信する。
+// 同期翻訳と同じ翻訳前区間を通した後、engine.Run の代わりに batch 送信を行う。結果は後日 RefreshBatchTranslations で反映する。
+// 送信後は固有名 batch の反映待ちで、この呼び出しでは dest を確定しない。接続情報は都度受ける（永続化しない）。
+func (a *App) SubmitBatchTranslation(req RunRequest) error {
+	ctx := a.baseCtx()
+	if a.batch == nil {
+		return fmt.Errorf("batch 翻訳が未配線")
+	}
+	if err := a.prepareForTranslation(ctx, req.PluginPath); err != nil {
+		return err
+	}
+	conn := provider.Connection{Endpoint: req.Endpoint, APIKey: req.APIKey}
+	if err := a.batch.SubmitBatch(ctx, conn, req.Model, filepath.Base(req.PluginPath)); err != nil {
+		return fmt.Errorf("batch 送信に失敗: %w", err)
+	}
+	return nil
+}
+
+// RefreshBatchTranslations は反映待ちの batch を状態確認し、終端なら結果を対象行へ書き戻す。
+// 起動時・画面操作の時点だけ呼ぶ（常駐ポーリングはしない）。固有名段が完了すれば同じ呼び出しで本文 batch を送る。
+// 接続情報は都度受ける（永続化しないため反映のたびに UI から渡す）。
+func (a *App) RefreshBatchTranslations(req ConnRequest) error {
+	ctx := a.baseCtx()
+	if a.batch == nil {
+		return fmt.Errorf("batch 翻訳が未配線")
+	}
+	conn := provider.Connection{Endpoint: req.Endpoint, APIKey: req.APIKey}
+	if err := a.batch.RefreshBatch(ctx, conn); err != nil {
+		return fmt.Errorf("batch 反映に失敗: %w", err)
+	}
+	return nil
+}
+
+// GetXAIModels は xAI の利用可能モデル一覧を返す（xAI 選択時のモデル選択用）。
+// xAI の /v1/models は OpenAI 互換のため、同期 provider の ListModels を xAI endpoint へ向けて引く（batch 送信とは別経路）。
+// Endpoint 未指定なら xAI の既定 base を使う。batch 非対応モデル（grok-4.5 系）は一覧から除く。
+func (a *App) GetXAIModels(req ConnRequest) ([]string, error) {
+	endpoint := req.Endpoint
+	if strings.TrimSpace(endpoint) == "" {
+		endpoint = provider.DefaultXAIEndpoint
+	}
+	models, err := a.provider.ListModels(a.baseCtx(), provider.Connection{Endpoint: endpoint, APIKey: req.APIKey})
+	if err != nil {
+		return nil, fmt.Errorf("xAI モデル一覧の取得: %w", err)
+	}
+	return filterBatchSupportedModels(models), nil
+}
+
+// filterBatchSupportedModels は batch 非対応モデルを一覧から除く。
+// xAI の doc は grok-4.5 を batch 非対応と明記する。判明した非対応モデルだけを除く（他は素通し）。
+func filterBatchSupportedModels(models []string) []string {
+	out := make([]string, 0, len(models))
+	for _, m := range models {
+		if isBatchUnsupportedModel(m) {
+			continue // batch 非対応（doc 明記）。
+		}
+		out = append(out, m)
+	}
+	return out
+}
+
+// isBatchUnsupportedModel は batch 非対応モデルかを判定する純粋関数。
+// xAI のモデル名はドット表記（grok-4.5）とハイフン表記（grok-4-5）が混在しうるため、両表記を除外する。
+// 大文字小文字は無視する（表記ゆれで除外漏れを起こさない）。
+func isBatchUnsupportedModel(m string) bool {
+	l := strings.ToLower(m)
+	return strings.Contains(l, "grok-4.5") || strings.Contains(l, "grok-4-5")
 }
 
 // emitProgress は進捗を runtime event で frontend へ push する。runtime context が無い（テスト等）なら何もしない。
