@@ -44,23 +44,6 @@ func (r *RecordingProvider) Translate(_ context.Context, _ provider.Connection, 
 	return dest, nil
 }
 
-// TranslateBatch は複数台詞のキー配列翻訳。規則訳を返し、system と各行の原文を送信順に記録する。
-// オラクル基盤は TokenBudget を 0 で通すため通常は呼ばれないが、interface を満たすため決定的に実装する。
-func (r *RecordingProvider) TranslateBatch(_ context.Context, _ provider.Connection, model string, system string, items []provider.BatchItem) (map[string]string, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	out := make(map[string]string, len(items))
-	for _, it := range items {
-		r.prompts = append(r.prompts, RecordedPrompt{Model: model, System: system, User: it.User})
-		dest := fmt.Sprintf("訳%03d", len(r.prompts))
-		for _, tag := range runtimetag.Tags(it.User) {
-			dest += tag
-		}
-		out[it.Key] = dest
-	}
-	return out, nil
-}
-
 // ListModels は固定の 1 モデルを返す（本基盤は GetModels を通さないため呼ばれない想定の最小実装）。
 func (r *RecordingProvider) ListModels(_ context.Context, _ provider.Connection) ([]string, error) {
 	r.mu.Lock()

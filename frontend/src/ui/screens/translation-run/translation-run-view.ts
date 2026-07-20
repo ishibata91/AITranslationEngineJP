@@ -37,8 +37,6 @@ export interface TranslationRunForm {
   apiKey: string
   // 利用するモデル名。getModels で取得した一覧から選ぶ。
   model: string
-  // トークン予算。1 リクエストにまとめる原文の最大トークン数の目安。表示は文字列で持ち、数値変換はここでは行わない。
-  tokenBudget: string
 }
 
 export type TranslationRunFormField = keyof TranslationRunForm
@@ -153,11 +151,9 @@ export interface ResultsPaging {
 
 // テキスト入力欄の表示メタ。
 export interface FormFieldDescriptor {
-  field: "endpoint" | "apiKey" | "tokenBudget"
+  field: "endpoint" | "apiKey"
   label: string
   hint: string
   placeholder: string
   secret: boolean
-  // 入力の右に出す静的な単位表示（例: "k"）。無い欄では省く。
-  suffix?: string
 }

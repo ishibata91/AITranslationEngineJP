@@ -4,6 +4,23 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-07-20 会話グラフ 3 task を棄却しバルク翻訳機構を revert
+
+### 変更
+
+- `dialogue-graph`・`dialogue-flow-context`・`bulk-line-translation` の 3 plan folder を `docs/exec-plans/rejected/` へ移動。前 2 者の `plan.md` を棄却記録へ書き換え、`bulk-line-translation/plan.md`（一度 completed）へ棄却注記を追記。
+- 棄却根拠（PNAM/TCLT の実測）を `dialogue-graph/plan.md` に集約。
+- バルク翻訳機構（commit `8599cd1a`）を `git revert` で撤去（`internal/core/chunking/` 削除、`provider`/`harness` の batch 撤去、`engine.go` のチャンク経路撤去、`app.go` の TokenBudget 撤去、frontend の予算 UI 撤去、bulk テスト削除）。追随修正 `a1e62436`（翻訳対象を選んだ plugin へ絞る）は残す。plugin 絞り込みテスト `TestRunScopesToTargetPlugin` を `engine_test.go` へ移設。
+- `known-issues.md` の no7（1 リクエスト失敗で run 全体が止まる）は、bulk 用語を除き単一経路の課題として残す。
+
+### 判断
+
+- 会話往復グラフ構築の費用対効果を、抽出器へ使い捨ての測定を差して実 plugin で測り直した（測定コードは revert 済み）。結果、翻訳文脈は 2 層に分かれ費用対効果が非対称と判明した。
+- **PNAM は会話の前後リンクではない**（解決分は 100% 同一 DIAL 内・Skyrim.esm は 0%）。会話の流れは TCLT のみが担い、循環つき合流グラフになる（合流は被参照 DIAL の約 40%、循環は inigo で 302 本・深さ 59）。木でも DAG でもない。
+- **層1**（NPC 台詞が答える DIAL:FULL＝選択肢文。r1 で 100% 供給・グラフ不要）は安価で頑健。**層2**（TCLT 逆算の手前連鎖。対象 12〜25%・循環・合流）は構築コストに品質寄与が見合わない。よって層2 のグラフ構築（本 2 task）を棄却した（人間確定）。
+- `bulk-line-translation`（slice1）はバルク機構を土台にする会話文脈 task 群が棄却されて存在意義を失うため、コードを revert し台詞 1 行ずつの従来動作へ戻した（人間確定）。`a1e62436` の plugin 絞り込みはバルクと独立に有用なため残す。
+- e7（`line_sequence`）は未実装のまま `known-issues.md` に残す。層1 が必要になった時はグラフを作らず別途軽量に扱う。
+
 ## 2026-07-20 翻訳前区間のパフォーマンス改善（抽出子 DLL 化・進捗表示・Normalize memoize）
 
 ### 変更

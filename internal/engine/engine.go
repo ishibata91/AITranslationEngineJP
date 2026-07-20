@@ -10,10 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 
-	"aitranslationenginejp/internal/core/chunking"
 	"aitranslationenginejp/internal/core/dictionary"
 	"aitranslationenginejp/internal/core/linefeatures"
 	"aitranslationenginejp/internal/core/personatone"
@@ -146,11 +144,9 @@ func (e *Engine) GeneratePersonas(ctx context.Context) (int, error) {
 // 段階順序は固有名フェーズ（本文より先に固有名を確定）→ 本文フェーズ（叙述文・定型句・台詞）。
 // プロンプトは Base 指示 ＋ その REC:FIELD に割り当てた directive の指示文（台詞は口調 directive の {traits} を埋める）で組む。
 // onProgress が非 nil なら、固有名・本文を通した進捗（処理済み件数 done、総件数 total）を都度通知する。
-// tokenBudget は台詞のバルク翻訳で 1 リクエストにまとめる原文の最大トークン数の目安。0 以下なら
-// バルクせず台詞を 1 行ずつ翻訳する（従来動作）。同一 INFO の複数応答行だけをこの予算内でまとめる。
 // plugin が空でなければその対象 plugin の未訳行だけを翻訳する（空なら全 plugin）。抽出した plugin の
 // 実行が他 plugin の未訳を巻き込まないよう、固有名・叙述文・台詞の 3 段すべてを対象 plugin へ絞る。
-func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string, plugin string, tokenBudget int, onProgress func(done, total int)) (int, error) {
+func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string, plugin string, onProgress func(done, total int)) (int, error) {
 	propers, err := e.store.ListUntranslatedProperNouns(ctx, plugin)
 	if err != nil {
 		return 0, fmt.Errorf("未訳固有名の取得: %w", err)
@@ -221,7 +217,7 @@ func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string
 		return p.done, err
 	}
 	// 台詞フェーズ。
-	if err = e.translateLines(ctx, conn, model, lines, dict, refIndex, tmpl, personas, tokenBudget, p); err != nil {
+	if err = e.translateLines(ctx, conn, model, lines, dict, refIndex, tmpl, personas, p); err != nil {
 		return p.done, err
 	}
 	return p.done, nil
@@ -301,14 +297,11 @@ func (e *Engine) prepareSource(rawSource string, dict *dictionary.Dictionary) (s
 // 原文が既存訳（参照訳）と完全一致する台詞は AI を呼ばず既訳を確定訳（statusTranslated）で流用する（叙述文と同じ）。
 // それ以外は実行時タグを機械置換の間だけ退避して生タグへ戻し、口調指示つきで AI 翻訳して仮訳で書き戻す。
 // AI 出力にタグが原形で残らなかった台詞は未訳のまま残す。話者なしなら口調指示は空。
-func (e *Engine) translateLines(ctx context.Context, conn provider.Connection, modelName string, lines []model.Line, dict *dictionary.Dictionary, refIndex map[referenceKey]string, tmpl model.PromptTemplate, personas map[int64]Persona, tokenBudget int, p *runProgress) error {
+func (e *Engine) translateLines(ctx context.Context, conn provider.Connection, modelName string, lines []model.Line, dict *dictionary.Dictionary, refIndex map[referenceKey]string, tmpl model.PromptTemplate, personas map[int64]Persona, p *runProgress) error {
 	lostTags := 0
 	parseFailures := 0
-
-	// 参照訳の完全一致は AI を呼ばず先に流用し、AI へ送る台詞だけを集める（叙述文と同じ、known-issues 項目7）。
-	// 機械置換（prepareSource）はこの段で 1 度だけ通し、以降のチャンク化・翻訳で使い回す。
-	aiLines := make([]aiLine, 0, len(lines))
 	for _, row := range lines {
+		// 原文が既存訳と完全一致するなら AI を呼ばず既訳を確定訳として流用する（叙述文と同じ、known-issues 項目7）。
 		if dest, ok := refIndex[referenceKey{Rec: row.Rec, Field: row.Field, Source: row.Source}]; ok {
 			if err := e.store.UpdateLineDest(ctx, row.ID, dest, statusTranslated); err != nil {
 				return fmt.Errorf("台詞の既訳流用: %w", err)
@@ -317,109 +310,27 @@ func (e *Engine) translateLines(ctx context.Context, conn provider.Connection, m
 			continue
 		}
 		source, tags := e.prepareSource(row.Source, dict)
-		aiLines = append(aiLines, aiLine{row: row, source: source, tags: tags, directive: personas[row.ID].Directive})
-	}
-
-	// 同一 INFO（同じ plugin・form_id）かつ同一口調指示の連続をトークン予算で区切ってチャンクにする。
-	// 口調指示を group に含めるのは、バルク時に system メッセージ（口調指示）をチャンクで共有するため。
-	items := make([]chunking.Item, len(aiLines))
-	for i, al := range aiLines {
-		items[i] = chunking.Item{
-			Group:  al.row.Plugin + "\x00" + al.row.FormID + "\x00" + al.directive,
-			Tokens: chunking.EstimateTokens(al.source),
-		}
-	}
-	for _, idxs := range chunking.Plan(items, tokenBudget) {
-		if len(idxs) == 1 {
-			if err := e.translateLineSingle(ctx, conn, modelName, tmpl.BaseDirective, aiLines[idxs[0]], &lostTags, &parseFailures, p); err != nil {
-				return err
+		dest, err := e.provider.Translate(ctx, conn, modelName, prompt.ComposePrompt(tmpl.BaseDirective, personas[row.ID].Directive, source))
+		if err != nil {
+			// 構造化出力の解析失敗（モデルの空・不完全応答）は壊れた訳を確定させず未訳のまま残す（タグ欠落と同じ、再実行で再翻訳）。
+			if errors.Is(err, provider.ErrStructuredParse) {
+				parseFailures++
+				continue
 			}
+			return fmt.Errorf("台詞の翻訳: %w", err)
+		}
+		// AI 出力に生タグが原形で残っているかを照合する。欠落した台詞は未訳のまま残す（再実行で再翻訳）。
+		if lost := runtimetag.CountMissing(dest, tags); lost > 0 {
+			lostTags += lost
 			continue
 		}
-		if err := e.translateLineChunk(ctx, conn, modelName, tmpl.BaseDirective, aiLines, idxs, &lostTags, &parseFailures, p); err != nil {
-			return err
-		}
-	}
-
-	logLostRuntimeTags(ctx, "translateLines", lostTags)
-	logStructuredParseFailures(ctx, "translateLines", parseFailures)
-	return nil
-}
-
-// aiLine は AI へ送る 1 台詞の作業データ。row は元行、source は機械置換済み原文、tags は退避した実行時タグ、
-// directive はその台詞の口調指示。参照訳流用の台詞は含めない。
-type aiLine struct {
-	row       model.Line
-	source    string
-	tags      []string
-	directive string
-}
-
-// translateLineSingle は 1 台詞を単一経路（従来）で翻訳して書き戻す。チャンク行数 1 の場合に使う。
-func (e *Engine) translateLineSingle(ctx context.Context, conn provider.Connection, modelName, baseDirective string, al aiLine, lostTags, parseFailures *int, p *runProgress) error {
-	dest, err := e.provider.Translate(ctx, conn, modelName, prompt.ComposePrompt(baseDirective, al.directive, al.source))
-	if err != nil {
-		// 構造化出力の解析失敗（モデルの空・不完全応答）は壊れた訳を確定させず未訳のまま残す（タグ欠落と同じ、再実行で再翻訳）。
-		if errors.Is(err, provider.ErrStructuredParse) {
-			*parseFailures++
-			return nil
-		}
-		return fmt.Errorf("台詞の翻訳: %w", err)
-	}
-	// AI 出力に生タグが原形で残っているかを照合する。欠落した台詞は未訳のまま残す（再実行で再翻訳）。
-	if lost := runtimetag.CountMissing(dest, al.tags); lost > 0 {
-		*lostTags += lost
-		return nil
-	}
-	if err := e.store.UpdateLineDest(ctx, al.row.ID, dest, statusProvisional); err != nil {
-		return fmt.Errorf("台詞の書き戻し: %w", err)
-	}
-	p.step()
-	return nil
-}
-
-// translateLineChunk は同一 INFO・同一口調指示の複数台詞を 1 リクエストにまとめてキー配列経路で翻訳する。
-// 返ったキーの台詞だけ仮訳で書き戻し、欠けたキー・壊れたキー・実行時タグ欠落の台詞は未訳のまま残す（再送しない）。
-func (e *Engine) translateLineChunk(ctx context.Context, conn provider.Connection, modelName, baseDirective string, aiLines []aiLine, idxs []int, lostTags, parseFailures *int, p *runProgress) error {
-	// system は base 指示＋（あれば）共有の口調指示。チャンク内のいずれかにタグがあればタグ保護指示を足す。
-	system := baseDirective
-	if strings.TrimSpace(aiLines[idxs[0]].directive) != "" {
-		system = baseDirective + "\n\n" + aiLines[idxs[0]].directive
-	}
-	anyTag := false
-	items := make([]provider.BatchItem, len(idxs))
-	for j, idx := range idxs {
-		al := aiLines[idx]
-		if runtimetag.HasTag(al.source) {
-			anyTag = true
-		}
-		items[j] = provider.BatchItem{Key: strconv.FormatInt(al.row.ID, 10), User: al.source}
-	}
-	if anyTag {
-		system += "\n\n" + runtimetag.GuardInstruction()
-	}
-
-	got, err := e.provider.TranslateBatch(ctx, conn, modelName, system, items)
-	if err != nil {
-		return fmt.Errorf("台詞の一括翻訳: %w", err)
-	}
-	for _, idx := range idxs {
-		al := aiLines[idx]
-		dest, ok := got[strconv.FormatInt(al.row.ID, 10)]
-		// 欠けたキー・壊れたキー（provider が載せなかった）は解析失敗と同じく未訳のまま残す。
-		if !ok {
-			*parseFailures++
-			continue
-		}
-		if lost := runtimetag.CountMissing(dest, al.tags); lost > 0 {
-			*lostTags += lost
-			continue
-		}
-		if err := e.store.UpdateLineDest(ctx, al.row.ID, dest, statusProvisional); err != nil {
+		if err := e.store.UpdateLineDest(ctx, row.ID, dest, statusProvisional); err != nil {
 			return fmt.Errorf("台詞の書き戻し: %w", err)
 		}
 		p.step()
 	}
+	logLostRuntimeTags(ctx, "translateLines", lostTags)
+	logStructuredParseFailures(ctx, "translateLines", parseFailures)
 	return nil
 }
 
