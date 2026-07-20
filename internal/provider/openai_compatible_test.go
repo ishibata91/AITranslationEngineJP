@@ -164,6 +164,98 @@ func TestExtractTranslation(t *testing.T) {
 	}
 }
 
+// statusSkippable は非 200 応答の status を、その行だけ飛ばせる一時失敗(true)か run を止める失敗(false)かに分ける。
+// 429（rate limit）と 5xx（サーバ一時）だけを飛ばし、その他の 4xx（認証・不正・不明）と異常な 3xx は止める。純粋関数の網羅。
+func TestStatusSkippable(t *testing.T) {
+	tests := []struct {
+		status int
+		want   bool
+	}{
+		{http.StatusTooManyRequests, true},     // 429
+		{http.StatusInternalServerError, true}, // 500
+		{http.StatusBadGateway, true},          // 502
+		{http.StatusServiceUnavailable, true},  // 503
+		{599, true},                            // 5xx 上端
+		{http.StatusBadRequest, false},         // 400
+		{http.StatusUnauthorized, false},       // 401
+		{http.StatusForbidden, false},          // 403
+		{http.StatusNotFound, false},           // 404
+		{http.StatusTeapot, false},             // 418（429 以外の 4xx）
+		{http.StatusMovedPermanently, false},   // 301（異常な 3xx は止める）
+	}
+	for _, tt := range tests {
+		if got := statusSkippable(tt.status); got != tt.want {
+			t.Errorf("statusSkippable(%d) = %v, want %v", tt.status, got, tt.want)
+		}
+	}
+}
+
+// 非 200 応答のうち 429・5xx はその行だけ飛ばせる ErrServerTransient でラップし、
+// その他の 4xx（認証・不正など）は skippable 番兵を付けず run を止める失敗として返すこと。
+func TestTranslateClassifiesNon200(t *testing.T) {
+	tests := []struct {
+		name          string
+		status        int
+		wantTransient bool // ErrServerTransient でラップされるべきか
+	}{
+		{"429 rate limit", http.StatusTooManyRequests, true},
+		{"500 server error", http.StatusInternalServerError, true},
+		{"503 unavailable", http.StatusServiceUnavailable, true},
+		{"401 unauthorized", http.StatusUnauthorized, false},
+		{"400 bad request", http.StatusBadRequest, false},
+		{"404 not found", http.StatusNotFound, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(tt.status)
+			}))
+			defer srv.Close()
+
+			client := NewOpenAICompatible(http.DefaultClient)
+			_, err := client.Translate(context.Background(), Connection{Endpoint: srv.URL}, "m", Prompt{})
+			if err == nil {
+				t.Fatalf("非 200 応答でエラーを返していない")
+			}
+			if errors.Is(err, ErrServerTransient) != tt.wantTransient {
+				t.Errorf("err = %v, ErrServerTransient ラップ = %v, want %v", err, errors.Is(err, ErrServerTransient), tt.wantTransient)
+			}
+			// fatal 側（4xx）は skippable のどの番兵にも該当せず、engine が run を止められること。
+			if !tt.wantTransient {
+				if errors.Is(err, ErrServerTransient) || errors.Is(err, ErrResponseUnreadable) || errors.Is(err, ErrStructuredParse) {
+					t.Errorf("run を止めるべき 4xx が skippable 番兵でラップされた: %v", err)
+				}
+			}
+		})
+	}
+}
+
+// 応答エンベロープが JSON として読めない、または choices が空の応答は、
+// その行だけ飛ばせる ErrResponseUnreadable でラップすること（engine が errors.Is で識別して skip できる）。
+func TestTranslateClassifiesUnreadableResponse(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+	}{
+		{"エンベロープ decode 失敗", `not json`},
+		{"choices 無し", `{"choices":[]}`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				_, _ = io.WriteString(w, tt.body)
+			}))
+			defer srv.Close()
+
+			client := NewOpenAICompatible(http.DefaultClient)
+			_, err := client.Translate(context.Background(), Connection{Endpoint: srv.URL}, "m", Prompt{})
+			if !errors.Is(err, ErrResponseUnreadable) {
+				t.Errorf("err = %v, want ErrResponseUnreadable でラップ", err)
+			}
+		})
+	}
+}
+
 // content が schema 非準拠（地の文など）で返った場合、二段パースの段2 が失敗し、
 // Translate は訳文を返さずエラーを返すこと（フォールバックしない）。
 func TestTranslateReturnsErrorOnBrokenStructuredContent(t *testing.T) {

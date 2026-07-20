@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -458,6 +459,68 @@ func TestRunReturnsProviderError(t *testing.T) {
 	}
 	if len(store.updates) != 0 {
 		t.Errorf("should not write dest on provider error, got %v", store.updates)
+	}
+}
+
+// provider の skippable な失敗（サーバ一時失敗 429/5xx・応答エンベロープの読み取り失敗）の行は未訳のまま skip し、
+// run 全体を止めず他の行の翻訳を続けること（known-issues 項目7。構造化パース失敗と同じ扱いへ広げた回帰の固定）。
+func TestRunSkipsSkippableProviderFailures(t *testing.T) {
+	store := &fakeStore{untranslated: []model.Narration{
+		{ID: 1, Source: "halls"},
+		{ID: 2, Source: "cairn"},
+		{ID: 3, Source: "keep"},
+		{ID: 4, Source: "gate"},
+	}}
+	tr := &fakeTranslator{
+		out: map[string]string{"halls": "広間", "keep": "砦"},
+		errByUser: map[string]error{
+			"cairn": fmt.Errorf("%w: status 503", provider.ErrServerTransient),
+			"gate":  fmt.Errorf("%w: choices が無い", provider.ErrResponseUnreadable),
+		},
+	}
+	eng := New(store, tr, fakeLexicon{}, nil, nil)
+
+	count, err := eng.Run(context.Background(), provider.Connection{Endpoint: "http://x"}, "model-x", "", nil)
+	if err != nil {
+		t.Fatalf("Run が skippable 失敗で停止した（skip すべき）: %v", err)
+	}
+	// 失敗した cairn(ID=2)・gate(ID=4) は書き戻さず、成功した halls(ID=1)・keep(ID=3) だけを仮訳で書き戻すこと。
+	want := []update{{1, "広間", 3}, {3, "砦", 3}}
+	if len(store.updates) != len(want) {
+		t.Fatalf("updates = %v, want %v", store.updates, want)
+	}
+	for i, u := range want {
+		if store.updates[i] != u {
+			t.Errorf("updates[%d] = %v, want %v", i, store.updates[i], u)
+		}
+	}
+	if count != 2 {
+		t.Errorf("count = %d, want 2（skippable 失敗行は数えない）", count)
+	}
+}
+
+// provider の fatal な失敗（skippable 番兵でラップされない失敗。通信断・認証や不正リクエストの 4xx・未知の失敗）は
+// run を止め、失敗行より後の行を処理しないこと（既定で止める安全側の挙動）。
+func TestRunStopsOnFatalProviderFailure(t *testing.T) {
+	store := &fakeStore{untranslated: []model.Narration{
+		{ID: 1, Source: "halls"},
+		{ID: 2, Source: "cairn"},
+		{ID: 3, Source: "keep"},
+	}}
+	tr := &fakeTranslator{
+		out:       map[string]string{"halls": "広間", "keep": "砦"},
+		errByUser: map[string]error{"cairn": errors.New("翻訳要求: status 401")},
+	}
+	eng := New(store, tr, fakeLexicon{}, nil, nil)
+
+	_, err := eng.Run(context.Background(), provider.Connection{Endpoint: "http://x"}, "model-x", "", nil)
+	if err == nil {
+		t.Fatal("fatal 失敗で run が止まらなかった")
+	}
+	// fatal 行 cairn(ID=2) より前の halls(ID=1) だけ書き戻し、以降の keep(ID=3) は処理しないこと。
+	want := []update{{1, "広間", 3}}
+	if len(store.updates) != 1 || store.updates[0] != want[0] {
+		t.Errorf("updates = %v, want %v（fatal 以降は処理しない）", store.updates, want)
 	}
 }
 
