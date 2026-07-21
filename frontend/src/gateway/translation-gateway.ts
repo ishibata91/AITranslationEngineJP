@@ -4,10 +4,13 @@ import {
   DeleteTargetPlugin,
   ExportXTranslatorXML,
   GetModels,
+  GetXAIModels,
   ListResultsPage,
   ListTargetPlugins,
+  RefreshBatchTranslations,
   RunExtractAndTranslate,
-  SelectPluginFile
+  SelectPluginFile,
+  SubmitBatchTranslation
 } from "../../wailsjs/go/api/App"
 import { api } from "../../wailsjs/go/models"
 import { EventsOn } from "../../wailsjs/runtime"
@@ -146,6 +149,24 @@ export async function fetchModels(conn: Connection): Promise<string[]> {
 export async function runExtractAndTranslate(input: RunInput): Promise<RunOutcome> {
   const result = await RunExtractAndTranslate(api.RunRequest.createFrom(input))
   return { translatedCount: result.translatedCount }
+}
+
+// xAI（batch）の接続先で利用可能なモデル一覧を取得する（getXAIModels）。
+// backend 側で batch 非対応モデルを除く。endpoint が空なら backend が xAI 既定接続先を補う。
+export async function fetchXaiModels(conn: Connection): Promise<string[]> {
+  return GetXAIModels(api.ConnRequest.createFrom(conn))
+}
+
+// xAI の batch 翻訳を送信する（plugin 単位）。送信だけを行い、結果は後の反映で取り込む。
+// 外部 batch ID の永続まで backend が行うため、ここは送信の完了、または失敗時の throw だけを返す。
+export async function submitBatchTranslation(input: RunInput): Promise<void> {
+  await SubmitBatchTranslation(api.RunRequest.createFrom(input))
+}
+
+// 進行中の全 batch をまとめて反映する。完了した batch の結果を dest へ取り込む。
+// plugin 引数を取らない global 操作で、接続情報は反映のたびに渡す（永続化しない）。
+export async function refreshBatchTranslations(conn: Connection): Promise<void> {
+  await RefreshBatchTranslations(api.ConnRequest.createFrom(conn))
 }
 
 // 中心 DB の叙述文と台詞を keyset cursor ページで取得する（起動時・ページ送り・実行後の取得を統一）。

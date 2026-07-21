@@ -6,10 +6,18 @@
   import SelectField from "@ui/components/SelectField.svelte"
   import ResultsPanel from "./ResultsPanel.svelte"
   import TranslationProgress from "./TranslationProgress.svelte"
-  import { PROVIDER_FIELDS, PHASE_PRESENTATION } from "./translation-run-presentation"
+  import {
+    providerFields,
+    PROVIDER_OPTIONS,
+    PROVIDER_LABEL,
+    MODEL_HINT,
+    REFRESH_HINT,
+    PHASE_PRESENTATION
+  } from "./translation-run-presentation"
   import type {
     TranslationRunForm,
     TranslationRunFormField,
+    TranslationProvider,
     NarrationResultRow,
     RunPhase,
     RunProgress,
@@ -39,6 +47,24 @@
     onExportXml?: () => void
     // 書き出し中フラグ。true の間は書き出しボタンを無効化する。
     exporting?: boolean
+    // 翻訳の配送方式。sync=同期（既定）、xai=xAI の batch。未指定なら同期で従来表示。
+    provider?: TranslationProvider
+    // 配送方式の切り替え操作。
+    onProviderChange?: (provider: TranslationProvider) => void
+    // xAI の batch 送信操作（plugin 単位）。
+    onSubmit?: () => void
+    // xAI の batch 反映操作（進行中の全 batch をまとめて処理）。
+    onRefresh?: () => void
+    // 送信の可否。接続情報とモデルが揃ったら true。
+    canSubmit?: boolean
+    // 反映の可否。接続情報が揃ったら true。
+    canRefresh?: boolean
+    // 送信中フラグ。true の間は送信ボタンを無効化しスピナーを出す。
+    submitting?: boolean
+    // 反映中フラグ。true の間は反映ボタンを無効化しスピナーを出す。
+    refreshing?: boolean
+    // xAI の送信直後に出す案内。空なら出さない。
+    notice?: string
   }
 
   let {
@@ -57,8 +83,20 @@
     onPagePrev = () => {},
     onPageNext = () => {},
     onExportXml = () => {},
-    exporting = false
+    exporting = false,
+    provider = "sync",
+    onProviderChange = () => {},
+    onSubmit = () => {},
+    onRefresh = () => {},
+    canSubmit = false,
+    canRefresh = false,
+    submitting = false,
+    refreshing = false,
+    notice = ""
   }: Props = $props()
+
+  // 配送方式に応じた接続情報欄（sync は既定、xai は xAI 用の読み替え欄）。
+  const fields = $derived(providerFields(provider))
 
   // 翻訳対象のプラグイン名（フルパスの末尾）。選択は翻訳対象プラグイン画面で行い、ここは表示専用。
   const pluginName = $derived.by(() => {
@@ -104,8 +142,22 @@
           <h2 class="u-display text-sm tracking-widest uppercase text-base-content/60">
             AI サービス
           </h2>
+          <div class="join self-start" role="group" aria-label="配送方式">
+            {#each PROVIDER_OPTIONS as option (option)}
+              <button
+                type="button"
+                class="btn join-item {provider === option
+                  ? 'btn-primary'
+                  : 'btn-outline btn-primary'}"
+                aria-pressed={provider === option}
+                onclick={() => onProviderChange(option)}
+              >
+                {PROVIDER_LABEL[option]}
+              </button>
+            {/each}
+          </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
-            {#each PROVIDER_FIELDS as descriptor (descriptor.field)}
+            {#each fields as descriptor (descriptor.field)}
               <TextField
                 label={descriptor.label}
                 value={form[descriptor.field]}
@@ -121,7 +173,7 @@
               options={models}
               placeholder="モデルを選択"
               emptyText="未取得"
-              hint="エンドポイントと API キーを入れてから取得します。"
+              hint={MODEL_HINT[provider]}
               onChange={(value: string) => onFieldInput("model", value)}
             >
               {#snippet action()}
@@ -141,10 +193,20 @@
           </div>
         </div>
 
+        {#if provider === "xai" && notice.length > 0}
+          <div role="status" class="alert alert-info alert-soft">
+            <span>{notice}</span>
+          </div>
+        {/if}
+
         {#if phase === "error" && errorMessage.length > 0}
           <div role="alert" class="alert alert-error alert-soft">
             <span>{errorMessage}</span>
           </div>
+        {/if}
+
+        {#if provider === "xai"}
+          <p class="text-xs text-base-content/50">{REFRESH_HINT}</p>
         {/if}
 
         <div class="card-actions items-center justify-end gap-4 pt-1">
@@ -153,14 +215,39 @@
             tone={PHASE_PRESENTATION[phase].tone}
             loading={phase === "running"}
           />
-          <button
-            class="btn btn-primary px-8"
-            type="button"
-            disabled={!canRun || phase === "running"}
-            onclick={onRun}
-          >
-            {phase === "running" ? "実行中…" : "実行"}
-          </button>
+          {#if provider === "sync"}
+            <button
+              class="btn btn-primary px-8"
+              type="button"
+              disabled={!canRun || phase === "running"}
+              onclick={onRun}
+            >
+              {phase === "running" ? "実行中…" : "実行"}
+            </button>
+          {:else}
+            <button
+              class="btn btn-outline btn-primary px-6"
+              type="button"
+              disabled={!canRefresh || refreshing}
+              onclick={onRefresh}
+            >
+              {#if refreshing}
+                <span class="loading loading-spinner loading-xs"></span>
+              {/if}
+              反映
+            </button>
+            <button
+              class="btn btn-primary px-8"
+              type="button"
+              disabled={!canSubmit || submitting}
+              onclick={onSubmit}
+            >
+              {#if submitting}
+                <span class="loading loading-spinner loading-xs"></span>
+              {/if}
+              {submitting ? "送信中…" : "送信"}
+            </button>
+          {/if}
         </div>
       </div>
     </div>

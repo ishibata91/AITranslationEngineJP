@@ -8,7 +8,12 @@ import {
   RUNNING_TRANSLATE_STATE,
   DONE_STATE,
   DONE_PERSONA_STATE,
-  ERROR_STATE
+  ERROR_STATE,
+  XAI_EMPTY_STATE,
+  XAI_READY_STATE,
+  XAI_SUBMITTED_STATE,
+  XAI_REFRESHING_STATE,
+  XAI_DONE_STATE
 } from "./translation-run.fixtures"
 
 // プラグイン選択を外し、翻訳対象プラグイン画面へ移した実行・結果画面。翻訳対象は読み取り専用表示。
@@ -24,7 +29,10 @@ const meta = {
     onLoadModels: () => {},
     onRun: () => {},
     onPagePrev: () => {},
-    onPageNext: () => {}
+    onPageNext: () => {},
+    onProviderChange: () => {},
+    onSubmit: () => {},
+    onRefresh: () => {}
   }
 } satisfies Meta<typeof TranslationRunScreen>
 
@@ -77,4 +85,34 @@ export const DonePersona: Story = {
 export const Errored: Story = {
   name: "エラー",
   args: { ...ERROR_STATE }
+}
+
+// xAI（batch）を選び、未入力で送信も反映もできない。
+export const XaiEmpty: Story = {
+  name: "xAI・未入力",
+  args: { ...XAI_EMPTY_STATE }
+}
+
+// xAI（batch）で接続情報とモデルが揃い、送信できる。
+export const XaiReady: Story = {
+  name: "xAI・送信可",
+  args: { ...XAI_READY_STATE }
+}
+
+// xAI（batch）を送信した直後。案内が出る。
+export const XaiSubmitted: Story = {
+  name: "xAI・送信後",
+  args: { ...XAI_SUBMITTED_STATE }
+}
+
+// xAI（batch）で反映中。反映ボタンにスピナーが出る。
+export const XaiRefreshing: Story = {
+  name: "xAI・反映中",
+  args: { ...XAI_REFRESHING_STATE }
+}
+
+// xAI（batch）で反映が終わり、結果が入った。同期と区別なく並ぶ。
+export const XaiDone: Story = {
+  name: "xAI・反映済み",
+  args: { ...XAI_DONE_STATE }
 }

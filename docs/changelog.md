@@ -4,6 +4,23 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-07-21 xAI batch 翻訳の UI 導線を接続
+
+### 変更
+
+- `frontend/src/gateway/translation-gateway.ts`: 生成済み Wails 公開面 `GetXAIModels`・`SubmitBatchTranslation`・`RefreshBatchTranslations` のラッパ（`fetchXaiModels`・`submitBatchTranslation`・`refreshBatchTranslations`）を追加。generated 呼び出しは gateway 境界に閉じる既存方針を踏襲。
+- `frontend/src/ui/screens/translation-run/TranslationRunScreen.svelte`（と view・presentation・fixtures・stories）: 翻訳実行画面へ配送方式選択（同期 / xAI（batch））を追加。xAI 選択時はエンドポイント欄と取得補足を xAI 用へ切替、実行ボタンを「送信」「反映」の 2 ボタンへ差し替え、送信後の案内と反映注記を表示。Storybook 人間レビュー承認済み。
+- `frontend/src/ui/screens/translation-run/TranslationRunContainer.svelte`: 配送方式 state と xAI 用ハンドラ（送信・反映・xAI モデル取得）を追加。方式切替で既定エンドポイント（同期 `http://127.0.0.1:1234` / xAI `https://api.x.ai`）とモデル取得先を切り替える。接続情報は永続化せず、送信・反映のたびに渡す。
+
+### 判断
+
+- 進行状況の可視化は最小（frontend のみ）で確定（人間確定）。送信・反映と送信後案内だけを出し、batch の進行段や pending 表示のための backend 状態取得公開面は足さない。進行は反映で結果一覧が変わるかで判断する。
+- 反映は plugin を取らない global 操作（進行中の全 batch をまとめて確認・反映する backend 公開面の非対称）。画面文言で「進行中の batch をまとめて確認」と示し、反映後は開いている plugin の結果一覧を読み直す。
+- 反映は手動ボタンのみ。接続情報を永続化しないため起動時の自動反映はせず、backend の常駐ポーリング非採用にそろえてポーリングもしない。
+- backend の翻訳ロジック・provider・永続・Wails 境界は変えず、既存公開面を frontend gateway から消費するだけのため、`docs/architecture.md` の層・依存・境界は不変（正本反映なし）。
+- 課金を避けるため、送信・反映の実 xAI 疎通と `json_schema` の batch 実挙動は手動 e2e（人間）に限定。自動検証は `npm run test:frontend` と実 app での配送方式切替・ボタン出し分けの目視までとし、送信・反映ボタンは押していない。
+- 根拠となる作業計画: `docs/exec-plans/completed/xai-batch-ui/`（`design.md` の AS-IS/TO-BE 図・検討事項の解消記録）。
+
 ## 2026-07-20 xAI batch 翻訳（非同期の大量翻訳）に対応
 
 ### 変更

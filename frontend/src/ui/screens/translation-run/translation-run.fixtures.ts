@@ -2,11 +2,13 @@
 // 画面単位の代表状態（空・入力済み・実行中・完了・エラー）を固定する。
 import type {
   TranslationRunForm,
+  TranslationProvider,
   NarrationResultRow,
   RunPhase,
   RunProgress,
   ResultsPaging
 } from "./translation-run-view"
+import { SUBMIT_NOTICE } from "./translation-run-presentation"
 
 // 画面全体の表示状態。story の固定状態を組むための型。
 interface TranslationRunViewModel {
@@ -21,6 +23,18 @@ interface TranslationRunViewModel {
   progress?: RunProgress
   // 結果一覧のページング表示値。完了状態でだけ意味を持つ。未指定なら単一ページ扱い。
   paging?: ResultsPaging
+  // 配送方式。未指定なら同期で従来表示。
+  provider?: TranslationProvider
+  // 送信の可否。xAI 選択時に意味を持つ。
+  canSubmit?: boolean
+  // 反映の可否。xAI 選択時に意味を持つ。
+  canRefresh?: boolean
+  // 送信中フラグ。
+  submitting?: boolean
+  // 反映中フラグ。
+  refreshing?: boolean
+  // xAI の送信直後の案内。空なら出さない。
+  notice?: string
 }
 
 const EMPTY_FORM: TranslationRunForm = {
@@ -37,8 +51,19 @@ const FILLED_FORM: TranslationRunForm = {
   model: "gpt-4o-mini"
 }
 
+// xAI（batch）選択時の入力済みフォーム。エンドポイントとモデルを xAI 用にする。
+const XAI_FORM: TranslationRunForm = {
+  pluginPath: "/Users/me/Skyrim/Data/Dawnguard.esm",
+  endpoint: "https://api.x.ai",
+  apiKey: "xai-demo-key",
+  model: "grok-4"
+}
+
 // getModels で取得した一覧の表示用サンプル。
 const MODELS = ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "o4-mini"]
+
+// GetXAIModels で取得した batch 対応モデルの表示用サンプル（batch 非対応は除外済み）。
+const XAI_MODELS = ["grok-4", "grok-4-fast", "grok-3", "grok-3-mini"]
 
 const RESULT_ROWS: NarrationResultRow[] = [
   {
@@ -234,4 +259,86 @@ export const ERROR_STATE: TranslationRunViewModel = {
   results: [],
   errorMessage:
     "翻訳 API への接続に失敗しました。エンドポイントと API キーを確認して、もう一度実行してください。"
+}
+
+// xAI（batch）を選び、まだ接続情報もモデルも入れていない。送信も反映もできない。
+export const XAI_EMPTY_STATE: TranslationRunViewModel = {
+  form: { ...EMPTY_FORM },
+  phase: "idle",
+  canRun: false,
+  models: [],
+  modelsLoading: false,
+  results: [],
+  errorMessage: "",
+  provider: "xai",
+  canSubmit: false,
+  canRefresh: false,
+  notice: ""
+}
+
+// xAI（batch）で接続情報とモデルが揃い、送信できる。反映もできる。
+export const XAI_READY_STATE: TranslationRunViewModel = {
+  form: XAI_FORM,
+  phase: "idle",
+  canRun: false,
+  models: XAI_MODELS,
+  modelsLoading: false,
+  results: [],
+  errorMessage: "",
+  provider: "xai",
+  canSubmit: true,
+  canRefresh: true,
+  notice: ""
+}
+
+// xAI（batch）を送信した直後。案内が出て、後で反映して結果を取りにいく。
+export const XAI_SUBMITTED_STATE: TranslationRunViewModel = {
+  form: XAI_FORM,
+  phase: "idle",
+  canRun: false,
+  models: XAI_MODELS,
+  modelsLoading: false,
+  results: [],
+  errorMessage: "",
+  provider: "xai",
+  canSubmit: true,
+  canRefresh: true,
+  notice: SUBMIT_NOTICE
+}
+
+// xAI（batch）で反映中。進行中の batch をまとめて確認している。
+export const XAI_REFRESHING_STATE: TranslationRunViewModel = {
+  form: XAI_FORM,
+  phase: "idle",
+  canRun: false,
+  models: XAI_MODELS,
+  modelsLoading: false,
+  results: [],
+  errorMessage: "",
+  provider: "xai",
+  canSubmit: true,
+  canRefresh: true,
+  refreshing: true,
+  notice: SUBMIT_NOTICE
+}
+
+// xAI（batch）で反映が終わり、結果が入った。batch で訳した行も同期と区別なく並ぶ。
+export const XAI_DONE_STATE: TranslationRunViewModel = {
+  form: XAI_FORM,
+  phase: "done",
+  canRun: false,
+  models: XAI_MODELS,
+  modelsLoading: false,
+  results: RESULT_ROWS,
+  errorMessage: "",
+  provider: "xai",
+  canSubmit: true,
+  canRefresh: true,
+  notice: "",
+  paging: {
+    total: RESULT_ROWS.length,
+    pageNumber: 1,
+    canPrev: false,
+    canNext: false
+  }
 }

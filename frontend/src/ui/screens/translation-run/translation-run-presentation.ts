@@ -8,7 +8,8 @@ import type {
   FormFieldDescriptor,
   PersonaMeta,
   ProgressStage,
-  RunPhase
+  RunPhase,
+  TranslationProvider
 } from "./translation-run-view"
 
 // plugin はファイル選択、model は取得した一覧からの選択で扱うため、テキスト入力欄は接続情報の 2 つだけ。
@@ -28,6 +29,53 @@ export const PROVIDER_FIELDS: ReadonlyArray<FormFieldDescriptor> = [
     secret: true
   }
 ]
+
+// xAI（batch）選択時の接続情報欄。エンドポイントは xAI 用に読み替える。API キー欄は同期と同じ。
+const XAI_PROVIDER_FIELDS: ReadonlyArray<FormFieldDescriptor> = [
+  {
+    field: "endpoint",
+    label: "エンドポイント",
+    hint: "xAI の接続先 URL。空なら既定の https://api.x.ai を使います。",
+    placeholder: "https://api.x.ai",
+    secret: false
+  },
+  {
+    field: "apiKey",
+    label: "API キー",
+    hint: "この画面では保存せず、送信・反映のたびに使います。",
+    placeholder: "xai-...",
+    secret: true
+  }
+]
+
+// 配送方式ごとの接続情報欄。sync は既定、xai は xAI 用の読み替え欄を返す。
+export function providerFields(
+  provider: TranslationProvider
+): ReadonlyArray<FormFieldDescriptor> {
+  return provider === "xai" ? XAI_PROVIDER_FIELDS : PROVIDER_FIELDS
+}
+
+// 配送方式の選択肢と、その表示ラベル。翻訳実行画面の先頭で切り替える。
+export const PROVIDER_OPTIONS: ReadonlyArray<TranslationProvider> = ["sync", "xai"]
+
+export const PROVIDER_LABEL: Record<TranslationProvider, string> = {
+  sync: "同期",
+  xai: "xAI（batch）"
+}
+
+// モデル取得ボタンの補足。配送方式で取得先が変わるため、文言を出し分ける。
+export const MODEL_HINT: Record<TranslationProvider, string> = {
+  sync: "エンドポイントと API キーを入れてから取得します。",
+  xai: "xAI の batch 対応モデルを取得します。API キーを入れてから取得します。"
+}
+
+// xAI の送信直後に出す案内。反映で結果を取りにいく運用を伝える。
+export const SUBMIT_NOTICE =
+  "batch を送信しました。しばらく後に「反映」で結果を取得します（最大約 24 時間）。"
+
+// 反映ボタンの補足。反映は plugin 単位でなく進行中の全 batch をまとめて処理する。
+export const REFRESH_HINT =
+  "反映は進行中の batch をまとめて確認し、完了していれば結果へ取り込みます。"
 
 // 段階ごとの表示ラベルと、StatusBadge の意味トーン。
 export const PHASE_PRESENTATION: Record<

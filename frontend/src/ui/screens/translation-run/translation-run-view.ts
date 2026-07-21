@@ -1,6 +1,10 @@
 // 翻訳実行画面の表示用の型。値（表示定数・純関数）は translation-run-presentation.ts に置く。
 // 型と値を分けるのは、import 規約（値と型を同一 import で混在させない）に沿うため。
 
+// 翻訳の配送方式。sync=同期（OpenAI 互換・LM Studio）、xai=xAI の batch（非同期）。
+// 選択で、モデル取得先と起動操作（実行 / 送信・反映）を出し分ける。
+export type TranslationProvider = "sync" | "xai"
+
 // 実行の進行段階。表示の出し分けに使う。
 export type RunPhase = "idle" | "running" | "done" | "error"
 
