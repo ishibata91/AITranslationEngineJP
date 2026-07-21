@@ -3,6 +3,7 @@
 import type {
   TranslationRunForm,
   TranslationProvider,
+  BatchProgressView,
   NarrationResultRow,
   RunPhase,
   RunProgress,
@@ -31,10 +32,18 @@ interface TranslationRunViewModel {
   canRefresh?: boolean
   // 送信中フラグ。
   submitting?: boolean
-  // 反映中フラグ。
+  // 反映中フラグ（旧仕様。Container 互換のため残す）。
   refreshing?: boolean
-  // xAI の送信直後の案内。空なら出さない。
+  // xAI の送信・取り込みの結果として出す案内。空なら出さない。
   notice?: string
+  // xAI batch の進行状況（状態確認で取得）。未確認は未指定。
+  batchProgress?: BatchProgressView
+  // 取り込みの可否。完了段があるとき true。
+  canApply?: boolean
+  // 状態確認中フラグ。
+  checking?: boolean
+  // 取り込み中フラグ。
+  applying?: boolean
 }
 
 const EMPTY_FORM: TranslationRunForm = {
@@ -261,7 +270,7 @@ export const ERROR_STATE: TranslationRunViewModel = {
     "翻訳 API への接続に失敗しました。エンドポイントと API キーを確認して、もう一度実行してください。"
 }
 
-// xAI（batch）を選び、まだ接続情報もモデルも入れていない。送信も反映もできない。
+// xAI（batch）を選び、まだ接続情報もモデルも入れていない。送信できない。
 export const XAI_EMPTY_STATE: TranslationRunViewModel = {
   form: { ...EMPTY_FORM },
   phase: "idle",
@@ -272,11 +281,10 @@ export const XAI_EMPTY_STATE: TranslationRunViewModel = {
   errorMessage: "",
   provider: "xai",
   canSubmit: false,
-  canRefresh: false,
   notice: ""
 }
 
-// xAI（batch）で接続情報とモデルが揃い、送信できる。反映もできる。
+// xAI（batch）で接続情報とモデルが揃い、まだ状態未確認。主アクションは「送信して開始」で活性。
 export const XAI_READY_STATE: TranslationRunViewModel = {
   form: XAI_FORM,
   phase: "idle",
@@ -287,42 +295,51 @@ export const XAI_READY_STATE: TranslationRunViewModel = {
   errorMessage: "",
   provider: "xai",
   canSubmit: true,
-  canRefresh: true,
   notice: ""
 }
 
-// xAI（batch）を送信した直後。案内が出て、後で反映して結果を取りにいく。
+// xAI（batch）を送信した直後。案内が出て、状態確認で進行状況を見にいく。
 export const XAI_SUBMITTED_STATE: TranslationRunViewModel = {
-  form: XAI_FORM,
-  phase: "idle",
-  canRun: false,
-  models: XAI_MODELS,
-  modelsLoading: false,
-  results: [],
-  errorMessage: "",
-  provider: "xai",
-  canSubmit: true,
-  canRefresh: true,
+  ...XAI_READY_STATE,
   notice: SUBMIT_NOTICE
 }
 
-// xAI（batch）で反映中。進行中の batch をまとめて確認している。
-export const XAI_REFRESHING_STATE: TranslationRunViewModel = {
-  form: XAI_FORM,
-  phase: "idle",
-  canRun: false,
-  models: XAI_MODELS,
-  modelsLoading: false,
-  results: [],
-  errorMessage: "",
-  provider: "xai",
-  canSubmit: true,
-  canRefresh: true,
-  refreshing: true,
-  notice: SUBMIT_NOTICE
+// xAI（batch）で状態確認中。状態確認ボタンにスピナーが出る。
+export const XAI_CHECKING_STATE: TranslationRunViewModel = {
+  ...XAI_READY_STATE,
+  checking: true
 }
 
-// xAI（batch）で反映が終わり、結果が入った。batch で訳した行も同期と区別なく並ぶ。
+// xAI（batch）で固有名段が処理中。ステッパー現在地=固有名、処理待ちが残り主アクションはグレーアウト。
+export const XAI_PROPER_PROCESSING_STATE: TranslationRunViewModel = {
+  ...XAI_READY_STATE,
+  canApply: false,
+  batchProgress: { stage: "proper", total: 12, pending: 5, succeeded: 7, failed: 0, canApply: false }
+}
+
+// xAI（batch）で固有名段が完了。主アクションは「取り込んで本文を送信」。
+export const XAI_PROPER_READY_STATE: TranslationRunViewModel = {
+  ...XAI_READY_STATE,
+  canApply: true,
+  batchProgress: { stage: "proper", total: 12, pending: 0, succeeded: 12, failed: 0, canApply: true }
+}
+
+// xAI（batch）で本文段が処理中。ステッパー現在地=本文、処理待ちが残り主アクションはグレーアウト。
+export const XAI_BODY_PROCESSING_STATE: TranslationRunViewModel = {
+  ...XAI_READY_STATE,
+  canApply: false,
+  batchProgress: { stage: "body", total: 113, pending: 2, succeeded: 111, failed: 0, canApply: false }
+}
+
+// xAI（batch）で本文段が完了。主アクションは「取り込んで完了」。
+export const XAI_BODY_READY_STATE: TranslationRunViewModel = {
+  ...XAI_READY_STATE,
+  canApply: true,
+  batchProgress: { stage: "body", total: 113, pending: 0, succeeded: 113, failed: 0, canApply: true }
+}
+
+// xAI（batch）で取り込みが終わり、結果が入った。段=完了で、主アクションは再送信の「送信して開始」。
+// batch で訳した行も同期と区別なく並ぶ。
 export const XAI_DONE_STATE: TranslationRunViewModel = {
   form: XAI_FORM,
   phase: "done",
@@ -333,8 +350,9 @@ export const XAI_DONE_STATE: TranslationRunViewModel = {
   errorMessage: "",
   provider: "xai",
   canSubmit: true,
-  canRefresh: true,
+  canApply: false,
   notice: "",
+  batchProgress: { stage: "done", total: 113, pending: 0, succeeded: 113, failed: 0, canApply: false },
   paging: {
     total: RESULT_ROWS.length,
     pageNumber: 1,

@@ -157,3 +157,56 @@ func TestBlocksResubmit(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildProgress(t *testing.T) {
+	const (
+		proper = model.BatchStageProperNoun
+		body   = model.BatchStageBody
+		done   = model.BatchStageDone
+	)
+	// 現段が処理待ちを残す状態と、終端（処理待ち 0）の状態。
+	pending := provider.BatchStatus{Total: 113, Pending: 2, Succeeded: 111, Failed: 0, Done: false}
+	terminal := provider.BatchStatus{Total: 10, Pending: 0, Succeeded: 10, Failed: 0, Done: true}
+
+	cases := []struct {
+		name       string
+		stage      string
+		hasCurrent bool
+		status     provider.BatchStatus
+		want       BatchProgress
+	}{
+		{
+			"固有名段・処理中は件数を写し取り込み不可",
+			proper, true, pending,
+			BatchProgress{Stage: proper, Total: 113, Pending: 2, Succeeded: 111, Failed: 0, CanApply: false},
+		},
+		{
+			"固有名段・終端は取り込み可",
+			proper, true, terminal,
+			BatchProgress{Stage: proper, Total: 10, Pending: 0, Succeeded: 10, Failed: 0, CanApply: true},
+		},
+		{
+			"本文段・終端は取り込み可",
+			body, true, terminal,
+			BatchProgress{Stage: body, Total: 10, Pending: 0, Succeeded: 10, Failed: 0, CanApply: true},
+		},
+		{
+			"完了段は状態確認せず件数 0・取り込み不可",
+			done, false, provider.BatchStatus{},
+			BatchProgress{Stage: done, CanApply: false},
+		},
+		{
+			"現段の外部 ID 空（半端）は件数 0・取り込み不可",
+			proper, false, provider.BatchStatus{},
+			BatchProgress{Stage: proper, CanApply: false},
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := BuildProgress(c.stage, c.hasCurrent, c.status)
+			if got != c.want {
+				t.Fatalf("BuildProgress = %+v, want %+v", got, c.want)
+			}
+		})
+	}
+}

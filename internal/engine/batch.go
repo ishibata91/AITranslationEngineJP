@@ -24,14 +24,14 @@ type BatchStore interface {
 	RecordBatchExternalID(ctx context.Context, batchID int64, stage, externalID string) error
 	AdvanceBatchStage(ctx context.Context, batchID int64, stage string) error
 	GetBatchProgression(ctx context.Context, plugin string) (model.BatchTranslation, bool, error)
-	ListActiveBatchProgressions(ctx context.Context) ([]model.BatchTranslation, error)
 	InsertBatchRequests(ctx context.Context, rows []model.BatchRequest) (int, error)
 	ListBatchRequests(ctx context.Context, externalBatchID string) ([]model.BatchRequest, error)
 }
 
 // BatchRunner は xAI batch 翻訳のオーケストレーション（薄いシェル）。
 // 純粋核 batchplan の判断を、Engine の読み書き部品・provider batch port・batch 永続へ束ねるだけにする。
-// 送信（SubmitBatch）で固有名 batch を作り、反映（RefreshBatch）で状態確認・結果反映・本文 batch 送信を進める。
+// 送信（SubmitBatch）で固有名 batch を作り、状態確認（ProgressStatus・副作用なし）で進行を観測し、
+// 取り込み（RefreshPlugin）で結果反映・本文 batch 送信を進める。
 // 固有名 → 本文 の 2 段を逐次でたどり、外から見て同期経路と結果が変わらないようにする。
 type BatchRunner struct {
 	e     *Engine
@@ -246,22 +246,50 @@ func (r *BatchRunner) sendStage(ctx context.Context, conn provider.Connection, m
 	return r.persistRequests(ctx, batchID, externalID, planned)
 }
 
-// RefreshBatch は反映待ちの全進行を状態確認し、終端なら結果を反映して次段へ進める。
-// 起動時・画面操作の時点だけ呼ぶ（常駐ポーリングはしない）。接続情報は都度渡す。
-func (r *BatchRunner) RefreshBatch(ctx context.Context, conn provider.Connection) error {
+// ProgressStatus は対象 plugin の進行状況を副作用なしで返す（状態確認）。
+// 現段の外部 batch を PollBatch するだけで、dest 更新・batch 送信・段更新・DB 書き込みを一切しない。
+// 現段の外部 ID が空の半端な進行と完了段は PollBatch もしない。進行が無い plugin は ok=false を返す。
+func (r *BatchRunner) ProgressStatus(ctx context.Context, conn provider.Connection, plugin string) (batchplan.BatchProgress, bool, error) {
+	if r.batch == nil {
+		return batchplan.BatchProgress{}, false, errNoBatchProvider
+	}
+	prog, ok, err := r.store.GetBatchProgression(ctx, plugin)
+	if err != nil {
+		return batchplan.BatchProgress{}, false, fmt.Errorf("batch 進行の確認: %w", err)
+	}
+	if !ok {
+		return batchplan.BatchProgress{}, false, nil
+	}
+	externalID := prog.ProperBatchID
+	if prog.Stage == model.BatchStageBody {
+		externalID = prog.BodyBatchID
+	}
+	hasCurrent := prog.Stage != model.BatchStageDone && externalID != ""
+	var status provider.BatchStatus
+	if hasCurrent {
+		status, err = r.batch.PollBatch(ctx, conn, externalID)
+		if err != nil {
+			return batchplan.BatchProgress{}, false, fmt.Errorf("batch 状態確認: %w", err)
+		}
+	}
+	return batchplan.BuildProgress(prog.Stage, hasCurrent, status), true, nil
+}
+
+// RefreshPlugin は対象 plugin の進行 1 件だけを反映する（前進）。
+// 現段が完了していれば結果を取り込み、固有名段なら本文 batch を送る（中身は refreshOne）。
+// 起動時・画面操作の時点だけ呼ぶ（常駐ポーリングはしない）。進行が無い plugin は何もしない。接続情報は都度渡す。
+func (r *BatchRunner) RefreshPlugin(ctx context.Context, conn provider.Connection, plugin string) error {
 	if r.batch == nil {
 		return errNoBatchProvider
 	}
-	progs, err := r.store.ListActiveBatchProgressions(ctx)
+	prog, ok, err := r.store.GetBatchProgression(ctx, plugin)
 	if err != nil {
-		return fmt.Errorf("反映待ち batch 進行の一覧: %w", err)
+		return fmt.Errorf("batch 進行の確認: %w", err)
 	}
-	for _, prog := range progs {
-		if err := r.refreshOne(ctx, conn, prog); err != nil {
-			return err
-		}
+	if !ok {
+		return nil
 	}
-	return nil
+	return r.refreshOne(ctx, conn, prog)
 }
 
 // refreshOne は 1 進行を反映する。現段の外部 batch を状態確認し、純粋核の判定で次行動を決める。

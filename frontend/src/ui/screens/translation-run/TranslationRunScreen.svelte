@@ -6,18 +6,21 @@
   import SelectField from "@ui/components/SelectField.svelte"
   import ResultsPanel from "./ResultsPanel.svelte"
   import TranslationProgress from "./TranslationProgress.svelte"
+  import BatchProgressPanel from "./BatchProgressPanel.svelte"
   import {
     providerFields,
     PROVIDER_OPTIONS,
     PROVIDER_LABEL,
     MODEL_HINT,
-    REFRESH_HINT,
+    BATCH_ACTION_HINT,
+    batchMainAction,
     PHASE_PRESENTATION
   } from "./translation-run-presentation"
   import type {
     TranslationRunForm,
     TranslationRunFormField,
     TranslationProvider,
+    BatchProgressView,
     NarrationResultRow,
     RunPhase,
     RunProgress,
@@ -53,18 +56,30 @@
     onProviderChange?: (provider: TranslationProvider) => void
     // xAI の batch 送信操作（plugin 単位）。
     onSubmit?: () => void
-    // xAI の batch 反映操作（進行中の全 batch をまとめて処理）。
+    // xAI の batch 反映操作（旧仕様。Container 互換のため残す。現在の表示では使わない）。
     onRefresh?: () => void
     // 送信の可否。接続情報とモデルが揃ったら true。
     canSubmit?: boolean
-    // 反映の可否。接続情報が揃ったら true。
+    // 反映の可否（旧仕様。Container 互換のため残す。現在の表示では使わない）。
     canRefresh?: boolean
     // 送信中フラグ。true の間は送信ボタンを無効化しスピナーを出す。
     submitting?: boolean
-    // 反映中フラグ。true の間は反映ボタンを無効化しスピナーを出す。
+    // 反映中フラグ（旧仕様。Container 互換のため残す。現在の表示では使わない）。
     refreshing?: boolean
-    // xAI の送信直後に出す案内。空なら出さない。
+    // xAI の送信・取り込みの結果として出す案内。空なら出さない。
     notice?: string
+    // xAI batch の進行状況（状態確認で取得）。未指定なら未確認としてパネルを控えめに出す。
+    batchProgress?: BatchProgressView
+    // xAI の状態確認操作（副作用なし。進行状況を最新化する）。
+    onCheckStatus?: () => void
+    // 状態確認中フラグ。true の間は状態確認ボタンにスピナーを出す。
+    checking?: boolean
+    // xAI の取り込み操作（完了段を dest へ取り込み、次段 batch を送る）。
+    onApply?: () => void
+    // 取り込みの可否（旧仕様。Container 互換のため残す。現在の主アクションの活性は batchProgress.canApply から導く）。
+    canApply?: boolean
+    // 取り込み中フラグ。true の間は取り込みボタンにスピナーを出す。
+    applying?: boolean
   }
 
   let {
@@ -87,16 +102,24 @@
     provider = "sync",
     onProviderChange = () => {},
     onSubmit = () => {},
-    onRefresh = () => {},
     canSubmit = false,
-    canRefresh = false,
     submitting = false,
-    refreshing = false,
-    notice = ""
+    notice = "",
+    batchProgress = undefined,
+    onCheckStatus = () => {},
+    checking = false,
+    onApply = () => {},
+    applying = false
   }: Props = $props()
 
   // 配送方式に応じた接続情報欄（sync は既定、xai は xAI 用の読み替え欄）。
   const fields = $derived(providerFields(provider))
+
+  // xAI の主アクション（送信と取り込みを 1 ボタンに束ねた表示）。進行状況で種別・ラベル・活性が変わる。
+  const mainAction = $derived(batchMainAction(batchProgress, canSubmit))
+  // 主アクションの実行中フラグ（送信中 / 取り込み中）。busy の間はスピナーを出し無効化する。
+  const mainActionBusy = $derived(mainAction.kind === "send" ? submitting : applying)
+  const mainActionDisabled = $derived(!mainAction.enabled || mainActionBusy)
 
   // 翻訳対象のプラグイン名（フルパスの末尾）。選択は翻訳対象プラグイン画面で行い、ここは表示専用。
   const pluginName = $derived.by(() => {
@@ -206,7 +229,8 @@
         {/if}
 
         {#if provider === "xai"}
-          <p class="text-xs text-base-content/50">{REFRESH_HINT}</p>
+          <BatchProgressPanel progress={batchProgress} />
+          <p class="text-xs text-base-content/50">{BATCH_ACTION_HINT}</p>
         {/if}
 
         <div class="card-actions items-center justify-end gap-4 pt-1">
@@ -228,24 +252,24 @@
             <button
               class="btn btn-outline btn-primary px-6"
               type="button"
-              disabled={!canRefresh || refreshing}
-              onclick={onRefresh}
+              disabled={checking}
+              onclick={onCheckStatus}
             >
-              {#if refreshing}
+              {#if checking}
                 <span class="loading loading-spinner loading-xs"></span>
               {/if}
-              反映
+              状態確認
             </button>
             <button
               class="btn btn-primary px-8"
               type="button"
-              disabled={!canSubmit || submitting}
-              onclick={onSubmit}
+              disabled={mainActionDisabled}
+              onclick={mainAction.kind === "send" ? onSubmit : onApply}
             >
-              {#if submitting}
+              {#if mainActionBusy}
                 <span class="loading loading-spinner loading-xs"></span>
               {/if}
-              {submitting ? "送信中…" : "送信"}
+              {mainAction.label}
             </button>
           {/if}
         </div>

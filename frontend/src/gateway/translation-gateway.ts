@@ -3,6 +3,7 @@
 import {
   DeleteTargetPlugin,
   ExportXTranslatorXML,
+  GetBatchProgress,
   GetModels,
   GetXAIModels,
   ListResultsPage,
@@ -163,10 +164,53 @@ export async function submitBatchTranslation(input: RunInput): Promise<void> {
   await SubmitBatchTranslation(api.RunRequest.createFrom(input))
 }
 
-// 進行中の全 batch をまとめて反映する。完了した batch の結果を dest へ取り込む。
-// plugin 引数を取らない global 操作で、接続情報は反映のたびに渡す（永続化しない）。
-export async function refreshBatchTranslations(conn: Connection): Promise<void> {
-  await RefreshBatchTranslations(api.ConnRequest.createFrom(conn))
+// xAI batch の進行状況（状態確認）。副作用なしで現段 batch の段・件数・取り込み可否を返す。
+// 進行が無い（進行行なし・batch 未送信）plugin は undefined を返す。接続情報は都度渡す（永続化しない）。
+export interface BatchProgress {
+  stage: "proper" | "body" | "done"
+  total: number
+  pending: number
+  succeeded: number
+  failed: number
+  canApply: boolean
+}
+
+// 対象 plugin の batch 進行状況を取得する（状態確認）。dest 取り込みも送信もしない観測操作。
+export async function getBatchProgress(
+  plugin: string,
+  conn: Connection
+): Promise<BatchProgress | undefined> {
+  const view = await GetBatchProgress(
+    api.BatchPluginRequest.createFrom({
+      plugin,
+      endpoint: conn.endpoint,
+      apiKey: conn.apiKey
+    })
+  )
+  if (!view.present) return undefined
+  return {
+    stage: view.stage as "proper" | "body" | "done",
+    total: view.total,
+    pending: view.pending,
+    succeeded: view.succeeded,
+    failed: view.failed,
+    canApply: view.canApply
+  }
+}
+
+// 対象 plugin の batch を取り込む（前進）。完了段の結果を dest へ取り込み、固有名段なら本文 batch を送る。
+// plugin 単位の操作で、接続情報は取り込みのたびに渡す（永続化しない）。
+export async function refreshBatchTranslations(
+  plugin: string,
+  conn: Connection
+): Promise<void> {
+  await RefreshBatchTranslations(
+    api.BatchPluginRequest.createFrom({
+      plugin,
+      endpoint: conn.endpoint,
+      apiKey: conn.apiKey
+    })
+  )
 }
 
 // 中心 DB の叙述文と台詞を keyset cursor ページで取得する（起動時・ページ送り・実行後の取得を統一）。

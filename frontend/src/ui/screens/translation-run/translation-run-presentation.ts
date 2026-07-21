@@ -2,6 +2,8 @@
 import type { BadgeTone } from "@ui/components/status-badge"
 import type {
   AttitudeBand,
+  BatchProgressView,
+  BatchStage,
   DecisionPath,
   EmotionBand,
   ExtractStep,
@@ -73,9 +75,92 @@ export const MODEL_HINT: Record<TranslationProvider, string> = {
 export const SUBMIT_NOTICE =
   "batch を送信しました。しばらく後に「反映」で結果を取得します（最大約 24 時間）。"
 
-// 反映ボタンの補足。反映は plugin 単位でなく進行中の全 batch をまとめて処理する。
-export const REFRESH_HINT =
-  "反映は進行中の batch をまとめて確認し、完了していれば結果へ取り込みます。"
+// xAI batch の操作の補足。状態確認で進行状況を最新化し、完了段があれば主アクションで取り込んで次へ進む。
+export const BATCH_ACTION_HINT =
+  "「状態確認」で進行状況を最新化します。完了した段があれば、右のボタンで取り込んで次へ進みます。"
+
+// xAI batch の進行段の表示ラベル。進行状況ステッパーの各段に使う。
+export const BATCH_STAGE_LABEL: Record<BatchStage, string> = {
+  proper: "固有名",
+  body: "本文",
+  done: "完了"
+}
+
+// 進行状況ステッパーの段の並び。固有名 → 本文 → 完了 の 2 段構成（＋完了）を常に見せる。
+export const BATCH_STAGE_STEPS: ReadonlyArray<BatchStage> = ["proper", "body", "done"]
+
+// ステッパー 1 段の表示値。cls は daisyUI steps の色クラス、content は marker の上書き（完了段は ✓）。
+export interface BatchStepView {
+  stage: BatchStage
+  label: string
+  cls: string
+  content?: string
+}
+
+// 進行状況からステッパー各段の表示状態を組む。
+// 未確認（progress 無し）は色を付けず中立。全完了は全段を success。
+// 進行中は、過去段を success（✓）、現在段を primary、以降を中立にする。
+export function batchStepViews(progress?: BatchProgressView): BatchStepView[] {
+  const current = progress ? BATCH_STAGE_STEPS.indexOf(progress.stage) : -1
+  return BATCH_STAGE_STEPS.map((stage, i) => {
+    const label = BATCH_STAGE_LABEL[stage]
+    if (!progress) return { stage, label, cls: "" }
+    if (progress.stage === "done") return { stage, label, cls: "step-success", content: "✓" }
+    if (i < current) return { stage, label, cls: "step-success", content: "✓" }
+    if (i === current) return { stage, label, cls: "step-primary" }
+    return { stage, label, cls: "" }
+  })
+}
+
+// 主アクションの表示文言。送信（新規 / 再送信）と、固有名・本文それぞれの取り込みを分ける。
+export const BATCH_SEND_LABEL = "送信して開始"
+export const BATCH_APPLY_PROPER_LABEL = "取り込んで本文を送信"
+export const BATCH_APPLY_BODY_LABEL = "取り込んで完了"
+
+// 主アクションの種別。send=送信（onSubmit）、apply=取り込み（onApply）。進行状況で排他に切り替わる。
+export type BatchMainActionKind = "send" | "apply"
+
+// 主アクションの表示値。kind で押下時の動作、label で文言、enabled で活性（処理中・busy は呼び出し側で重ねる）。
+export interface BatchMainAction {
+  kind: BatchMainActionKind
+  label: string
+  enabled: boolean
+}
+
+// 進行状況から主アクションの種別・ラベル・活性を導く純関数。
+// 未確認・全完了は「送信して開始」（新規 / 未訳の残りを再送信）。
+// 固有名段が完了なら「取り込んで本文を送信」、本文段が完了なら「取り込んで完了」。処理待ちが残る間は非活性。
+export function batchMainAction(
+  progress: BatchProgressView | undefined,
+  canSubmit: boolean
+): BatchMainAction {
+  if (!progress || progress.stage === "done") {
+    return { kind: "send", label: BATCH_SEND_LABEL, enabled: canSubmit }
+  }
+  if (progress.stage === "proper") {
+    return { kind: "apply", label: BATCH_APPLY_PROPER_LABEL, enabled: progress.canApply }
+  }
+  return { kind: "apply", label: BATCH_APPLY_BODY_LABEL, enabled: progress.canApply }
+}
+
+// 現段 batch の件数ラベル。進行状況パネルで内訳を出す。
+export const BATCH_COUNT_LABEL = {
+  total: "総数",
+  pending: "処理待ち",
+  succeeded: "成功",
+  failed: "失敗"
+} as const
+
+// 進行状況パネル下部の補足。状態未確認・処理中・完了段あり・全完了で出し分ける。
+export const BATCH_UNCHECKED_HINT = "「状態確認」で進行状況を取得します。"
+export const BATCH_WAITING_HINT = "処理待ちが残っています。完了までお待ちください。"
+export const BATCH_APPLYABLE_HINT = "現段が完了しました。「取り込み」で結果を取り込めます。"
+export const BATCH_DONE_HINT = "すべての翻訳が完了しました。"
+
+// 取り込みの結果として出す案内（Container が完了段に応じて選ぶ）。
+export const APPLIED_PROPER_NOTICE = "固有名を取り込み、本文の翻訳を送信しました。"
+export const APPLIED_BODY_NOTICE = "本文を取り込みました。翻訳が完了しました。"
+export const APPLY_NOTHING_NOTICE = "取り込める完了段はまだありません。"
 
 // 段階ごとの表示ラベルと、StatusBadge の意味トーン。
 export const PHASE_PRESENTATION: Record<

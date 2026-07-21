@@ -2,8 +2,29 @@
 // 型と値を分けるのは、import 規約（値と型を同一 import で混在させない）に沿うため。
 
 // 翻訳の配送方式。sync=同期（OpenAI 互換・LM Studio）、xai=xAI の batch（非同期）。
-// 選択で、モデル取得先と起動操作（実行 / 送信・反映）を出し分ける。
+// 選択で、モデル取得先と起動操作（実行 / 状態確認・取り込み・送信）を出し分ける。
 export type TranslationProvider = "sync" | "xai"
+
+// xAI batch の進行段。proper=固有名 batch、body=本文 batch、done=完了。
+// 固有名 → 本文 → 完了 の順に進む。状態確認で得た進行段をパネルの見出しに出す。
+export type BatchStage = "proper" | "body" | "done"
+
+// xAI batch の進行状況（状態確認で取得）。現段 batch の件数と、取り込める完了段があるか。
+// 表示専用。副作用のない状態確認で得た値をそのまま出す。
+export interface BatchProgressView {
+  // 進行段（固有名 / 本文 / 完了）。
+  stage: BatchStage
+  // 現段 batch の総リクエスト数。
+  total: number
+  // 現段 batch の処理待ち件数。0 になると取り込みできる。
+  pending: number
+  // 現段 batch の成功件数。
+  succeeded: number
+  // 現段 batch の失敗件数。
+  failed: number
+  // 取り込める完了段があるか。処理待ち 0 の段があるとき true。取り込みボタンの活性根拠にそろえる。
+  canApply: boolean
+}
 
 // 実行の進行段階。表示の出し分けに使う。
 export type RunPhase = "idle" | "running" | "done" | "error"

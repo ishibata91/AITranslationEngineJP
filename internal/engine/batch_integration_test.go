@@ -50,13 +50,6 @@ func (f *fakeStore) GetBatchProgression(_ context.Context, plugin string) (model
 	return *f.batchProg, true, nil
 }
 
-func (f *fakeStore) ListActiveBatchProgressions(_ context.Context) ([]model.BatchTranslation, error) {
-	if f.batchProg == nil || f.batchProg.Stage == model.BatchStageDone {
-		return nil, nil
-	}
-	return []model.BatchTranslation{*f.batchProg}, nil
-}
-
 func (f *fakeStore) InsertBatchRequests(_ context.Context, rows []model.BatchRequest) (int, error) {
 	f.batchReqs = append(f.batchReqs, rows...)
 	return len(rows), nil
@@ -190,7 +183,7 @@ func TestBatchMatchesSyncEndToEnd(t *testing.T) {
 	}
 
 	// 反映①: 固有名 batch が完了 → 固有名を確定し、本文 batch を送る（進行段=本文）。
-	if err := runner.RefreshBatch(ctx, conn); err != nil {
+	if err := runner.RefreshPlugin(ctx, conn, plugin); err != nil {
 		t.Fatalf("batch 反映①: %v", err)
 	}
 	if batchStore.batchProg.Stage != model.BatchStageBody || batchStore.batchProg.BodyBatchID == "" {
@@ -203,7 +196,7 @@ func TestBatchMatchesSyncEndToEnd(t *testing.T) {
 	// 反映②: アプリ再起動相当（永続から続ける）。新しい engine・runner を組み直しても反映が続く。
 	restartEng := New(batchStore, &fakeTranslator{out: out}, fakeLexicon{}, nil, nil)
 	restartRunner := NewBatchRunner(restartEng, fb, batchStore)
-	if err := restartRunner.RefreshBatch(ctx, conn); err != nil {
+	if err := restartRunner.RefreshPlugin(ctx, conn, plugin); err != nil {
 		t.Fatalf("batch 反映②（再起動相当）: %v", err)
 	}
 	if batchStore.batchProg.Stage != model.BatchStageDone {
@@ -263,7 +256,7 @@ func TestBatchLeavesUntranslatedOnFailureLikeSync(t *testing.T) {
 	if err := runner.SubmitBatch(ctx, conn, "grok", plugin); err != nil {
 		t.Fatalf("batch 送信: %v", err)
 	}
-	if err := runner.RefreshBatch(ctx, conn); err != nil {
+	if err := runner.RefreshPlugin(ctx, conn, plugin); err != nil {
 		t.Fatalf("batch 反映: %v", err)
 	}
 
@@ -312,10 +305,10 @@ func TestBatchResubmitRecoversFromSubmitFailure(t *testing.T) {
 	}
 
 	// 反映で通常どおり 2 段連鎖して完了し、dest が確定すること。
-	if err := runner.RefreshBatch(ctx, conn); err != nil {
+	if err := runner.RefreshPlugin(ctx, conn, plugin); err != nil {
 		t.Fatalf("batch 反映①: %v", err)
 	}
-	if err := runner.RefreshBatch(ctx, conn); err != nil {
+	if err := runner.RefreshPlugin(ctx, conn, plugin); err != nil {
 		t.Fatalf("batch 反映②: %v", err)
 	}
 	if batchStore.batchProg.Stage != model.BatchStageDone {
