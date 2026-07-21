@@ -4,6 +4,26 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-07-21 xAI batch 翻訳の進行状況を可視化し、観測と前進の操作を分離
+
+### 変更
+
+- `internal/core/batchplan/batchplan.go`: 進行状況を組む純粋関数 `BuildProgress(stage, hasCurrentBatch, status)` と型 `BatchProgress`（段・件数・`canApply`）を追加。完了段・未送信は件数 0・`canApply=false`、そうでなければ件数を写し `canApply = status.Done`。カバレッジ 100% を維持。
+- `internal/engine/batch.go`: 副作用ゼロの read-only `ProgressStatus(plugin)`（進行行を読み現段を `PollBatch` するだけ。dest 書き込み・batch 送信・段更新・DB 書き込みをしない）と、plugin 指定で 1 進行だけ前進させる `RefreshPlugin(plugin)` を追加。全 plugin まとめの `RefreshBatch` と、不要になった `ListActiveBatchProgressions`（`BatchStore` port）を削除。前進の中身（`refreshOne`）は不変。
+- `internal/api/app.go`: 状態取得の公開面 `GetBatchProgress(BatchPluginRequest)` を新設し、`RefreshBatchTranslations` を plugin 指定（`BatchPluginRequest`）へ変更。DTO `BatchProgressView` を追加。
+- `frontend/src/gateway/translation-gateway.ts`・`TranslationRunContainer.svelte`: 状態確認（`getBatchProgress`、副作用なし・観測専用）と主アクション（送信 / 取り込みを進行状況で切替）の配線。取り込み後に結果一覧と進行状況を再取得する。
+- `frontend/src/ui/screens/translation-run/`（Screen・view・presentation・fixtures・stories・`BatchProgressPanel.svelte`）: 「反映」を廃し「状態確認」＋「主アクション」の 2 ボタンへ。進行状況を「固有名 → 本文 → 完了」の 3 段ステッパーで表示。Storybook 人間レビュー承認済み。
+
+### 判断
+
+- 反映 1 ボタンが観測と前進を兼ねて無反応だった弱点を、観測（状態確認・副作用なし）と前進（取り込み）の分離で解く（手動 e2e で顕在化。人間確定）。
+- 状態確認は既存の確認関数 `PollBatch` を read-only で再利用し、独立した新ルートとして足す。既存の翻訳・取り込みロジックには手を入れず副作用ゼロにする（人間指示）。
+- 送信と取り込みは進行状況で排他のため 1 つの主アクションボタンに束ね、状態でラベルを「送信して開始 / 取り込んで本文を送信 / 取り込んで完了」に変える。「取り込み＝固有名取り込み＋本文送信」の二重動作を、3 段ステッパーの現在地と次アクション明示ラベルで操作前に読めるようにした（人間レビューで確定）。
+- 進行状況と取り込みは開いている plugin 単位に絞る（`batch_translation` は plugin と 1 対 1）。全 plugin まとめ（global）から plugin 指定へ変えた（人間確定）。状態確認は手動ボタンのみ（起動時自動取得・ポーリングなし）。
+- backend は公開メソッド追加と plugin 指定化のみで、層構成・依存方向・多態 port 数・Wails 境界の構造は不変のため `docs/architecture.md` 反映なし。
+- 課金回避のため、状態確認・取り込みの実 xAI 疎通は手動 e2e に限定。自動検証は test:backend / test:frontend / 実 app での配送方式切替・ステッパー表示・ボタン出し分けの目視までとし、状態確認・主アクションの実押下はしていない。
+- 根拠となる作業計画: `docs/exec-plans/completed/xai-batch-progress/`。
+
 ## 2026-07-21 xAI batch 翻訳の UI 導線を接続
 
 ### 変更

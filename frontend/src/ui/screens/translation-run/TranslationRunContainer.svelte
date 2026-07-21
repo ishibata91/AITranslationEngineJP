@@ -7,22 +7,32 @@
     TranslationRunForm,
     TranslationRunFormField,
     TranslationProvider,
+    BatchProgressView,
     NarrationResultRow,
     RunPhase,
     RunProgress,
     ResultsPaging
   } from "./translation-run-view"
-  import { SUBMIT_NOTICE } from "./translation-run-presentation"
+  import {
+    SUBMIT_NOTICE,
+    APPLIED_PROPER_NOTICE,
+    APPLIED_BODY_NOTICE
+  } from "./translation-run-presentation"
   import {
     fetchModels,
     fetchXaiModels,
     runExtractAndTranslate,
     submitBatchTranslation,
     refreshBatchTranslations,
+    getBatchProgress,
     listResultsPage,
     onRunProgress,
     exportXTranslatorXml
   } from "../../../gateway/translation-gateway"
+
+  // 状態確認して進行が無かった時に出す案内（表示 copy は presentation に集約するが、
+  // 「進行なし」用の定数は表示層に無いため、状態確認の結果としてここで確定文言を持つ）。
+  const NO_PROGRESS_NOTICE = "この plugin に進行中の batch はありません。"
 
   // 配送方式ごとのエンドポイント既定値。sync はローカル OpenAI 互換サーバ、xai は xAI の接続先。
   // 方式を切り替えた時、利用者が触っていない（もう片方の既定のまま）なら新方式の既定へ寄せる。
@@ -45,12 +55,15 @@
   let results = $state<NarrationResultRow[]>([])
   let progress = $state<RunProgress | undefined>(undefined)
   let errorMessage = $state("")
-  // 配送方式。sync=同期（既定）、xai=xAI の batch。取得先と起動操作（実行 / 送信・反映）を分ける。
+  // 配送方式。sync=同期（既定）、xai=xAI の batch。取得先と起動操作（実行 / 状態確認・主アクション）を分ける。
   let provider = $state<TranslationProvider>("sync")
-  // xAI の送信中・反映中フラグ。ボタンの無効化とスピナー表示に使う。
+  // xAI の送信中・状態確認中・取り込み中フラグ。ボタンの無効化とスピナー表示に使う。
   let submitting = $state(false)
-  let refreshing = $state(false)
-  // xAI の送信直後に出す案内。方式切替・実行・エラーでクリアする。
+  let checking = $state(false)
+  let applying = $state(false)
+  // xAI batch の進行状況（状態確認で取得）。undefined は未確認。パネル表示と主アクションの活性に使う。
+  let batchProgress = $state<BatchProgressView | undefined>(undefined)
+  // xAI の送信直後・状態確認・取り込みの結果として出す案内。方式切替・実行・エラーでクリアする。
   let notice = $state("")
   // xTranslator 書き出し中フラグ。書き出しボタンの無効化とスピナー表示に使う。
   let exporting = $state(false)
@@ -71,8 +84,8 @@
   const canSubmit = $derived(
     provider === "xai" && pluginPath.length > 0 && model.length > 0 && !submitting
   )
-  // xAI の反映可否。進行中の全 batch をまとめて確認する global 操作のため、plugin 選択に依らない。
-  const canRefresh = $derived(provider === "xai" && !refreshing)
+  // xAI の取り込み可否。状態確認で得た進行状況に完了段があるとき true（主アクションの活性根拠にそろえる）。
+  const canApply = $derived(provider === "xai" && (batchProgress?.canApply ?? false))
 
   const paging: ResultsPaging = $derived({
     total,
@@ -159,9 +172,20 @@
     model = ""
     models = []
     notice = ""
+    batchProgress = undefined
     errorMessage = ""
     phase = "idle"
   }
+
+  // 対象 plugin が変わったら進行状況と案内をクリアする（別 plugin の状態を持ち越さない）。
+  let lastPlugin = $state("")
+  $effect(() => {
+    if (pluginName !== lastPlugin) {
+      lastPlugin = pluginName
+      batchProgress = undefined
+      notice = ""
+    }
+  })
 
   // xAI の batch を送信する（plugin 単位）。送信後は案内を出し、結果一覧は反映まで変えない。
   async function onSubmit() {
@@ -180,21 +204,43 @@
     }
   }
 
-  // 進行中の全 batch をまとめて反映し、結果一覧を先頭ページから読み直す。
-  // 接続情報は反映のたびに使い、永続化しない。完了していなければ一覧は変わらない。
-  async function onRefresh() {
-    refreshing = true
+  // 対象 plugin の進行状況を確認する（観測・副作用なし）。dest 取り込みも送信もしない。
+  // 進行が無ければ案内を出す。得た進行状況でパネルと主アクション（送信 / 取り込み）の活性が決まる。
+  async function onCheckStatus() {
+    checking = true
     notice = ""
     errorMessage = ""
     try {
-      await refreshBatchTranslations({ endpoint, apiKey })
+      batchProgress = await getBatchProgress(pluginName, { endpoint, apiKey })
+      if (!batchProgress) notice = NO_PROGRESS_NOTICE
+    } catch (error) {
+      errorMessage = messageOf(error)
+      phase = "error"
+    } finally {
+      checking = false
+    }
+  }
+
+  // 対象 plugin の完了段を取り込む（前進）。固有名段なら本文 batch も送られる。
+  // 取り込み後は結果一覧を読み直し、進行状況を取り直して次段（本文 / 完了）へ更新する。
+  // 案内は取り込んだ段（取り込み前の段）で選ぶ。接続情報は都度使い、永続化しない。
+  async function onApply() {
+    const appliedStage = batchProgress?.stage
+    applying = true
+    notice = ""
+    errorMessage = ""
+    try {
+      await refreshBatchTranslations(pluginName, { endpoint, apiKey })
       await resetToFirstPage()
+      batchProgress = await getBatchProgress(pluginName, { endpoint, apiKey })
+      notice =
+        appliedStage === "proper" ? APPLIED_PROPER_NOTICE : APPLIED_BODY_NOTICE
       phase = "done"
     } catch (error) {
       errorMessage = messageOf(error)
       phase = "error"
     } finally {
-      refreshing = false
+      applying = false
     }
   }
 
@@ -273,10 +319,13 @@
   {provider}
   {onProviderChange}
   {onSubmit}
-  {onRefresh}
   {canSubmit}
-  {canRefresh}
   {submitting}
-  {refreshing}
+  {batchProgress}
+  {onCheckStatus}
+  {checking}
+  {onApply}
+  {canApply}
+  {applying}
   {notice}
 />

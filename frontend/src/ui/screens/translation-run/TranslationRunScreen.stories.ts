@@ -12,7 +12,11 @@ import {
   XAI_EMPTY_STATE,
   XAI_READY_STATE,
   XAI_SUBMITTED_STATE,
-  XAI_REFRESHING_STATE,
+  XAI_CHECKING_STATE,
+  XAI_PROPER_PROCESSING_STATE,
+  XAI_PROPER_READY_STATE,
+  XAI_BODY_PROCESSING_STATE,
+  XAI_BODY_READY_STATE,
   XAI_DONE_STATE
 } from "./translation-run.fixtures"
 
@@ -32,7 +36,9 @@ const meta = {
     onPageNext: () => {},
     onProviderChange: () => {},
     onSubmit: () => {},
-    onRefresh: () => {}
+    onRefresh: () => {},
+    onCheckStatus: () => {},
+    onApply: () => {}
   }
 } satisfies Meta<typeof TranslationRunScreen>
 
@@ -87,13 +93,13 @@ export const Errored: Story = {
   args: { ...ERROR_STATE }
 }
 
-// xAI（batch）を選び、未入力で送信も反映もできない。
+// xAI（batch）を選び、未入力で送信できない。
 export const XaiEmpty: Story = {
   name: "xAI・未入力",
   args: { ...XAI_EMPTY_STATE }
 }
 
-// xAI（batch）で接続情報とモデルが揃い、送信できる。
+// xAI（batch）で接続情報とモデルが揃い、状態未確認。主アクションは「送信して開始」で活性。
 export const XaiReady: Story = {
   name: "xAI・送信可",
   args: { ...XAI_READY_STATE }
@@ -105,14 +111,38 @@ export const XaiSubmitted: Story = {
   args: { ...XAI_SUBMITTED_STATE }
 }
 
-// xAI（batch）で反映中。反映ボタンにスピナーが出る。
-export const XaiRefreshing: Story = {
-  name: "xAI・反映中",
-  args: { ...XAI_REFRESHING_STATE }
+// xAI（batch）で状態確認中。状態確認ボタンにスピナーが出る。
+export const XaiChecking: Story = {
+  name: "xAI・状態確認中",
+  args: { ...XAI_CHECKING_STATE }
 }
 
-// xAI（batch）で反映が終わり、結果が入った。同期と区別なく並ぶ。
+// xAI（batch）で固有名段が処理中。ステッパー現在地=固有名、主アクションはグレーアウト。
+export const XaiProperProcessing: Story = {
+  name: "xAI・固有名処理中",
+  args: { ...XAI_PROPER_PROCESSING_STATE }
+}
+
+// xAI（batch）で固有名段が完了。主アクションは「取り込んで本文を送信」。
+export const XaiProperReady: Story = {
+  name: "xAI・固有名完了",
+  args: { ...XAI_PROPER_READY_STATE }
+}
+
+// xAI（batch）で本文段が処理中。ステッパー現在地=本文、主アクションはグレーアウト。
+export const XaiBodyProcessing: Story = {
+  name: "xAI・本文処理中",
+  args: { ...XAI_BODY_PROCESSING_STATE }
+}
+
+// xAI（batch）で本文段が完了。主アクションは「取り込んで完了」。
+export const XaiBodyReady: Story = {
+  name: "xAI・本文完了",
+  args: { ...XAI_BODY_READY_STATE }
+}
+
+// xAI（batch）で取り込みが終わり、結果が入った。段=完了、主アクションは再送信の「送信して開始」。
 export const XaiDone: Story = {
-  name: "xAI・反映済み",
+  name: "xAI・取り込み済み",
   args: { ...XAI_DONE_STATE }
 }

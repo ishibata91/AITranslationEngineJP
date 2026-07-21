@@ -148,6 +148,26 @@ type RunRequest struct {
 	Model      string `json:"model"`
 }
 
+// BatchPluginRequest は plugin 単位の batch 操作（状態確認・取り込み）の要求。
+// Plugin は対象 plugin ファイル名（narration.plugin と同値・filepath.Base）。接続情報は都度受ける（永続化しない）。
+type BatchPluginRequest struct {
+	Plugin   string `json:"plugin"`
+	Endpoint string `json:"endpoint"`
+	APIKey   string `json:"apiKey"`
+}
+
+// BatchProgressView は xAI batch の進行状況（状態確認の応答）。Present=false は進行なし。
+// Stage は "proper" / "body" / "done"。件数は現段 batch 由来。CanApply は取り込める完了段があるか。
+type BatchProgressView struct {
+	Present   bool   `json:"present"`
+	Stage     string `json:"stage"`
+	Total     int    `json:"total"`
+	Pending   int    `json:"pending"`
+	Succeeded int    `json:"succeeded"`
+	Failed    int    `json:"failed"`
+	CanApply  bool   `json:"canApply"`
+}
+
 // TermView は結果行の機械置換内訳 1 件（原語 → 確定訳語）。
 // 結果取得時に各行の原文へ辞書を当て直して再構成する（保存はしない）。
 type TermView struct {
@@ -503,19 +523,58 @@ func (a *App) SubmitBatchTranslation(req RunRequest) error {
 	return nil
 }
 
-// RefreshBatchTranslations は反映待ちの batch を状態確認し、終端なら結果を対象行へ書き戻す。
-// 起動時・画面操作の時点だけ呼ぶ（常駐ポーリングはしない）。固有名段が完了すれば同じ呼び出しで本文 batch を送る。
-// 接続情報は都度受ける（永続化しないため反映のたびに UI から渡す）。
-func (a *App) RefreshBatchTranslations(req ConnRequest) error {
+// GetBatchProgress は対象 plugin の xAI batch 進行状況を副作用なしで返す（状態確認）。
+// dest 更新・batch 送信・段更新を一切せず、現段 batch の状態を確認するだけ。進行が無ければ Present=false。
+// 接続情報は都度受ける（永続化しない）。取り込みの前に押して進行段・件数・取り込み可否を得るために使う。
+func (a *App) GetBatchProgress(req BatchPluginRequest) (BatchProgressView, error) {
+	ctx := a.baseCtx()
+	if a.batch == nil {
+		return BatchProgressView{}, fmt.Errorf("batch 翻訳が未配線")
+	}
+	conn := provider.Connection{Endpoint: req.Endpoint, APIKey: req.APIKey}
+	prog, ok, err := a.batch.ProgressStatus(ctx, conn, req.Plugin)
+	if err != nil {
+		return BatchProgressView{}, fmt.Errorf("batch 状態確認に失敗: %w", err)
+	}
+	if !ok {
+		return BatchProgressView{Present: false}, nil
+	}
+	return BatchProgressView{
+		Present:   true,
+		Stage:     batchStageToken(prog.Stage),
+		Total:     prog.Total,
+		Pending:   prog.Pending,
+		Succeeded: prog.Succeeded,
+		Failed:    prog.Failed,
+		CanApply:  prog.CanApply,
+	}, nil
+}
+
+// RefreshBatchTranslations は対象 plugin の batch を取り込む（前進）。現段が完了なら結果を対象行へ書き戻し、
+// 固有名段が完了すれば同じ呼び出しで本文 batch を送る。画面操作の時点だけ呼ぶ（常駐ポーリングはしない）。
+// 接続情報は都度受ける（永続化しないため取り込みのたびに UI から渡す）。
+func (a *App) RefreshBatchTranslations(req BatchPluginRequest) error {
 	ctx := a.baseCtx()
 	if a.batch == nil {
 		return fmt.Errorf("batch 翻訳が未配線")
 	}
 	conn := provider.Connection{Endpoint: req.Endpoint, APIKey: req.APIKey}
-	if err := a.batch.RefreshBatch(ctx, conn); err != nil {
-		return fmt.Errorf("batch 反映に失敗: %w", err)
+	if err := a.batch.RefreshPlugin(ctx, conn, req.Plugin); err != nil {
+		return fmt.Errorf("batch 取り込みに失敗: %w", err)
 	}
 	return nil
+}
+
+// batchStageToken は永続の進行段（proper_noun / body / done）を frontend の段トークン（proper / body / done）へ写す。
+func batchStageToken(stage string) string {
+	switch stage {
+	case model.BatchStageProperNoun:
+		return "proper"
+	case model.BatchStageBody:
+		return "body"
+	default:
+		return "done"
+	}
 }
 
 // GetXAIModels は xAI の利用可能モデル一覧を返す（xAI 選択時のモデル選択用）。

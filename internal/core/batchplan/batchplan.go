@@ -97,6 +97,35 @@ func DecideApply(translation string, err error, missingTags int) ApplyOutcome {
 	}
 }
 
+// BatchProgress は進行 1 件の表示用スナップショット（副作用なしの状態確認で組む）。
+// Stage は進行段（model.BatchStage*）。件数は現段 batch の状態確認由来。CanApply は取り込める完了段があるか。
+type BatchProgress struct {
+	Stage     string
+	Total     int
+	Pending   int
+	Succeeded int
+	Failed    int
+	CanApply  bool
+}
+
+// BuildProgress は進行段と現段 batch の状態から表示用スナップショットを組む純粋関数。
+// hasCurrentBatch=false（完了段、または現段の外部 ID が空の半端な進行）は件数 0・CanApply=false にする。
+// それ以外は件数を status から写し、CanApply は現段が終端（処理待ち 0）かで決める。
+// done 段は取り込む対象が無いので CanApply=false（早期に返す）。
+func BuildProgress(stage string, hasCurrentBatch bool, status provider.BatchStatus) BatchProgress {
+	if stage == model.BatchStageDone || !hasCurrentBatch {
+		return BatchProgress{Stage: stage}
+	}
+	return BatchProgress{
+		Stage:     stage,
+		Total:     status.Total,
+		Pending:   status.Pending,
+		Succeeded: status.Succeeded,
+		Failed:    status.Failed,
+		CanApply:  status.Done,
+	}
+}
+
 // RefreshStep は反映操作で、進行に対して次に取る行動。
 type RefreshStep int
 
