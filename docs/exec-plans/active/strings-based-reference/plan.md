@@ -4,7 +4,7 @@ plan は branch 情報と、やること・やらないことの要点を持つ�
 
 ## やること
 
-- 参照訳（`reference_translation`）と固有名権威訳（`master_term`）の日本語 dest 供給を、xTranslator 英日 XML から Data フォルダの Strings（english / japanese）へ移し、XML 依存を廃止する。
+- 参照訳（`reference_translation`）と固有名の確定訳語（`master_term`）の日本語 dest 供給を、xTranslator 英日 XML から Data フォルダの Strings（english / japanese）へ移し、XML 依存を廃止する。
 - 入力読み込みを C# 抽出器へ集約する。抽出器が japanese も解決し `extracted_field` に dest 列を書く。engine は DB（`extracted_field`・`record_type_master`）だけから `reference_translation`・`master_term` を組む。
 - english / japanese の片方しか無い時に画面警告を出す（既存訳を再利用できず全文 AI 翻訳になる旨）。
 
