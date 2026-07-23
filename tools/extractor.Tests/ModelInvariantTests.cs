@@ -8,7 +8,7 @@ namespace Extractor.Tests;
 // 形式は C# の型が保証するため、型で表せない不変条件だけをここで検証する）。
 public class ModelInvariantTests
 {
-    private static ExtractionResult Dawnguard => CountParityTests.ExtractCached("Dawnguard.esm");
+    private static ExtractionResult Dawnguard => ExtractionCache.ExtractCached("Dawnguard.esm");
 
     [Fact]
     public void 各カテゴリのidが重複しない()
@@ -96,7 +96,7 @@ public class ModelInvariantTests
     [Fact]
     public void 表示されないテキストはNotPlayerFacingで振り分けられる()
     {
-        var update = CountParityTests.ExtractCached("Update.esm");
+        var update = ExtractionCache.ExtractCached("Update.esm");
         // WI は radiant event の制御クエスト。FULL（Master WI quest）はあるが
         // journal 文（CNAM/NNAM）が無く、名前が画面に出ない。
         var wi = Assert.Single(update.Quests, q => q.EditorId == "WI");
@@ -115,8 +115,8 @@ public class ModelInvariantTests
     public void NotPlayerFacingは翻訳対象の件数に影響しない()
     {
         // hint であり除外ではない。xTranslator 辞書はこれらも翻訳対象に数えるため、
-        // 件数比較（CountParityTests）の入力からは除外されないこと。
-        var update = CountParityTests.ExtractCached("Update.esm");
+        // 翻訳対象の列挙（TranslationCounts）からは除外されないこと。
+        var update = ExtractionCache.ExtractCached("Update.esm");
         Assert.Contains(TranslationCounts.Enumerate(update),
             s => s.RecField == "QUST:FULL" && s.EditorId == "WI");
     }

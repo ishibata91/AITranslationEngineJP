@@ -36,7 +36,6 @@ type options struct {
 	mode      string
 	plugin    string
 	golden    string
-	xmlDir    string
 	nrcPath   string
 	rolePath  string
 	stopPath  string
@@ -50,7 +49,6 @@ func parseFlags() options {
 	flag.StringVar(&o.mode, "mode", "capture", "capture（golden 生成）または compare（golden 比較）")
 	flag.StringVar(&o.plugin, "plugin", "", "抽出対象の実 plugin パス（.esm/.esp）。必須")
 	flag.StringVar(&o.golden, "golden", "", "golden ファイルのパス（gitignore 配下を指定）。必須")
-	flag.StringVar(&o.xmlDir, "xml", "dictionaries/xTranslatorXMLs", "固有名派生が読む xTranslator XML ディレクトリ")
 	flag.StringVar(&o.nrcPath, "nrc", "dictionaries/nrc-emolex.txt", "感情辞書（NRC）のパス")
 	flag.StringVar(&o.rolePath, "roles", "assets/role-speech.tsv", "役割語テンプレートのパス")
 	flag.StringVar(&o.stopPath, "stopwords", "assets/stopwords-en.txt", "一般語 stoplist（stopwords-iso 配布）のパス")
@@ -107,14 +105,13 @@ func run() error {
 	})
 
 	captured, err := harness.Run(harness.RunConfig{
-		DBPath:      dbPath,
-		Extractor:   extractor,
-		Lexicon:     lex,
-		RoleSpeech:  roles,
-		Stoplist:    stop,
-		TermsXMLDir: o.xmlDir,
-		PluginPath:  o.plugin,
-		Model:       o.model,
+		DBPath:     dbPath,
+		Extractor:  extractor,
+		Lexicon:    lex,
+		RoleSpeech: roles,
+		Stoplist:   stop,
+		PluginPath: o.plugin,
+		Model:      o.model,
 	})
 	if err != nil {
 		return fmt.Errorf("実データ harness の実行: %w", err)

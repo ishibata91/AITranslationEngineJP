@@ -1,13 +1,12 @@
 package harness
 
-// Fixture は合成入力一式。著作物を含まない自作データで、抽出子が中心 DB へ書く層（extracted_field と話者素材）と、
-// 固有名派生が読む xTranslator XML を 1 つにまとめる。CI 恒久の非劣化回帰網の入力にする。
+// Fixture は合成入力一式。著作物を含まない自作データで、抽出子が中心 DB へ書く層（extracted_field と話者素材）を
+// 1 つにまとめる。固有名の確定訳語・参照訳の供給は SeedField.Dest（英日対）が担う。CI 恒久の非劣化回帰網の入力にする。
 type Fixture struct {
 	PluginName      string        // 抽出対象の plugin 名（fake 抽出子は内容を fixture で固定するため表示用）
-	ExtractedFields []SeedField   // C# 抽出器が素朴吸い出しする原文の受け皿（箱判定なし）
+	ExtractedFields []SeedField   // C# 抽出器が素朴吸い出しする原文と日本語既訳の受け皿（箱判定なし）
 	Speakers        []SeedSpeaker // 台詞の話者素材（種族・声型・INFO 橋渡し）。口調生成経路を通すために置く。
 	Emotions        []SeedEmotion // 台詞の感情型 staging（INFO 応答→TRDT）。感情がプロンプトへ乗る合流を通すために置く。
-	TermsXML        string        // 固有名派生（DeriveMasterTerms）が読む xTranslator 英日 XML の中身
 }
 
 // SeedEmotion は extracted_info_emotion の 1 行（INFO 応答単位の感情型）。取込段が (plugin, form_id, ordinal) で line へ結ぶ。
@@ -19,6 +18,7 @@ type SeedEmotion struct {
 }
 
 // SeedField は extracted_field の 1 行ぶんの seed 値（id は採番させる）。
+// Dest は日本語既訳（英日 Strings が両方あった field のみ非空）。確定訳語・参照訳・姓名分割可否の供給源。
 type SeedField struct {
 	Plugin  string
 	FormID  string
@@ -27,6 +27,7 @@ type SeedField struct {
 	Field   string
 	Ordinal int
 	Source  string
+	Dest    string
 }
 
 // SeedSpeaker は 1 話者の seed 値。種族・声型を一緒に作り、INFO（台詞の発生元）→ speaker の橋渡しを残す。
@@ -53,8 +54,11 @@ func SyntheticFixture() Fixture {
 	return Fixture{
 		PluginName: plugin,
 		ExtractedFields: []SeedField{
-			// 固有名: 本文より先に確定し、機械置換辞書へ載る訳の単位。
-			{Plugin: plugin, FormID: "0x100", EDID: "AventusNPC", Rec: "NPC_", Field: "FULL", Source: "Aventus Aretino"},
+			// 固有名: 本文より先に確定し、機械置換辞書へ載る訳の単位。英日対（Dest）を持ち、確定訳語（FULL 完全形）と
+			// 姓名分割（two）派生の供給源になる（アベンタス・アレティノ → アベンタス／アレティノ）。
+			{Plugin: plugin, FormID: "0x100", EDID: "AventusNPC", Rec: "NPC_", Field: "FULL", Source: "Aventus Aretino", Dest: "アベンタス・アレティノ"},
+			// 固有名（二つ名）: 英日対を持ち、二つ名前部（byname）派生 Grelod→グレロッド の供給源になる。
+			{Plugin: plugin, FormID: "0x110", EDID: "GrelodNPC", Rec: "NPC_", Field: "FULL", Source: "Grelod the Kind", Dest: "親切者のグレロッド"},
 			// 叙述文（説明体）: 本文中に固有名を含み、機械置換が当たることを観測する。
 			{Plugin: plugin, FormID: "0x200", EDID: "TestSword", Rec: "WEAP", Field: "DESC", Source: "A blade once held by Aventus Aretino."},
 			// 叙述文（書物体）: 文体 directive が説明体と分かれることを観測する。
@@ -86,11 +90,11 @@ func SyntheticFixture() Fixture {
 			// stoplist 選別後は原文のままプロンプトへ渡ることを観測する。
 			{Plugin: plugin, FormID: "0x830", EDID: "TestDagger", Rec: "WEAP", Field: "DESC", Source: "No matter what the weather, this blade holds its edge."},
 			// 叙述文（実行時タグ入り）: 本文に <Alias=...> を含む。退避→送信→復元でタグが原形保持されることを観測する
-			// （known-issues 項目8）。TermsXML には対応する既訳を置かないため、AI 翻訳経路（退避）を通る。
+			// （known-issues 項目8）。Dest（既訳）を置かないため、AI 翻訳経路（退避）を通る。
 			{Plugin: plugin, FormID: "0x900", EDID: "TagBook", Rec: "BOOK", Field: "DESC", Source: "Deliver this letter to <Alias=Player> at once."},
-			// 台詞（既訳と完全一致）: TermsXML に同一 (INFO:NAM1, source) の既訳を置き、AI を呼ばず既訳が
-			// 確定訳で流用されることを観測する（known-issues 項目7）。
-			{Plugin: plugin, FormID: "0x910", EDID: "KnownGreet", Rec: "INFO", Field: "NAM1", Source: "Well met, traveler."},
+			// 台詞（既訳と完全一致）: 英日対（Dest）を置き、参照訳（reference_translation）経由で AI を呼ばず
+			// 既訳が確定訳で流用されることを観測する（known-issues 項目7）。
+			{Plugin: plugin, FormID: "0x910", EDID: "KnownGreet", Rec: "INFO", Field: "NAM1", Source: "Well met, traveler.", Dest: "ようこそ、旅の方。"},
 		},
 		// 各話者は声型を 1 つだけ持つ（speaker.voice_type_id は 1 対 1 の FK）。複数声型の話者は作らない。
 		Speakers: []SeedSpeaker{
@@ -124,16 +128,5 @@ func SyntheticFixture() Fixture {
 		Emotions: []SeedEmotion{
 			{Plugin: plugin, InfoFormID: "0x510", Ordinal: 0, EmotionType: "Fear"},
 		},
-		// xTranslator 英日 XML。固有名派生（DeriveMasterTerms）が NPC_:FULL から名の部分形を派生して master_term へ載せる。
-		// Aventus Aretino は姓名分割（two）、Grelod the Kind は二つ名前部（byname）の派生経路を観測するために置く。
-		TermsXML: `<?xml version="1.0" encoding="utf-8"?>
-<SSTXMLRessources>
-  <Content>
-    <String><REC>NPC_:FULL</REC><Source>Aventus Aretino</Source><Dest>アベンタス・アレティノ</Dest></String>
-    <String><REC>NPC_:FULL</REC><Source>Grelod the Kind</Source><Dest>親切者のグレロッド</Dest></String>
-    <String><REC>INFO:NAM1</REC><Source>Well met, traveler.</Source><Dest>ようこそ、旅の方。</Dest></String>
-  </Content>
-</SSTXMLRessources>
-`,
 	}
 }

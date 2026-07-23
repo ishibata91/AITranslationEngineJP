@@ -7,7 +7,8 @@ import type {
   NarrationResultRow,
   RunPhase,
   RunProgress,
-  ResultsPaging
+  ResultsPaging,
+  StringsPresence
 } from "./translation-run-view"
 import { SUBMIT_NOTICE } from "./translation-run-presentation"
 
@@ -24,22 +25,18 @@ interface TranslationRunViewModel {
   progress?: RunProgress
   // 結果一覧のページング表示値。完了状態でだけ意味を持つ。未指定なら単一ページ扱い。
   paging?: ResultsPaging
+  // 翻訳対象 plugin の Strings の言語別有無。未指定（未判定）なら警告を出さない。
+  stringsPresence?: StringsPresence
   // 配送方式。未指定なら同期で従来表示。
   provider?: TranslationProvider
   // 送信の可否。xAI 選択時に意味を持つ。
   canSubmit?: boolean
-  // 反映の可否。xAI 選択時に意味を持つ。
-  canRefresh?: boolean
   // 送信中フラグ。
   submitting?: boolean
-  // 反映中フラグ（旧仕様。Container 互換のため残す）。
-  refreshing?: boolean
   // xAI の送信・取り込みの結果として出す案内。空なら出さない。
   notice?: string
   // xAI batch の進行状況（状態確認で取得）。未確認は未指定。
   batchProgress?: BatchProgressView
-  // 取り込みの可否。完了段があるとき true。
-  canApply?: boolean
   // 状態確認中フラグ。
   checking?: boolean
   // 取り込み中フラグ。
@@ -199,6 +196,18 @@ export const READY_STATE: TranslationRunViewModel = {
   errorMessage: ""
 }
 
+// 入力は揃ったが、翻訳対象の Data フォルダに日本語 Strings が無い。警告が出たまま実行はできる。
+export const MISSING_JAPANESE_STRINGS_STATE: TranslationRunViewModel = {
+  form: FILLED_FORM,
+  phase: "idle",
+  canRun: true,
+  models: MODELS,
+  modelsLoading: false,
+  results: [],
+  errorMessage: "",
+  stringsPresence: { english: true, japanese: false }
+}
+
 // 完了し、原文と訳文が並ぶ。一部は未訳のまま残る場合もある。全件が 1 ページに収まる単一ページ。
 export const DONE_STATE: TranslationRunViewModel = {
   form: FILLED_FORM,
@@ -313,28 +322,24 @@ export const XAI_CHECKING_STATE: TranslationRunViewModel = {
 // xAI（batch）で固有名段が処理中。ステッパー現在地=固有名、処理待ちが残り主アクションはグレーアウト。
 export const XAI_PROPER_PROCESSING_STATE: TranslationRunViewModel = {
   ...XAI_READY_STATE,
-  canApply: false,
   batchProgress: { stage: "proper", total: 12, pending: 5, succeeded: 7, failed: 0, canApply: false }
 }
 
 // xAI（batch）で固有名段が完了。主アクションは「取り込んで本文を送信」。
 export const XAI_PROPER_READY_STATE: TranslationRunViewModel = {
   ...XAI_READY_STATE,
-  canApply: true,
   batchProgress: { stage: "proper", total: 12, pending: 0, succeeded: 12, failed: 0, canApply: true }
 }
 
 // xAI（batch）で本文段が処理中。ステッパー現在地=本文、処理待ちが残り主アクションはグレーアウト。
 export const XAI_BODY_PROCESSING_STATE: TranslationRunViewModel = {
   ...XAI_READY_STATE,
-  canApply: false,
   batchProgress: { stage: "body", total: 113, pending: 2, succeeded: 111, failed: 0, canApply: false }
 }
 
 // xAI（batch）で本文段が完了。主アクションは「取り込んで完了」。
 export const XAI_BODY_READY_STATE: TranslationRunViewModel = {
   ...XAI_READY_STATE,
-  canApply: true,
   batchProgress: { stage: "body", total: 113, pending: 0, succeeded: 113, failed: 0, canApply: true }
 }
 
@@ -350,7 +355,6 @@ export const XAI_DONE_STATE: TranslationRunViewModel = {
   errorMessage: "",
   provider: "xai",
   canSubmit: true,
-  canApply: false,
   notice: "",
   batchProgress: { stage: "done", total: 113, pending: 0, succeeded: 113, failed: 0, canApply: false },
   paging: {

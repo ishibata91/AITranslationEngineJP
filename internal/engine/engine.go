@@ -6,8 +6,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -18,7 +16,8 @@ import (
 	"aitranslationenginejp/internal/core/prompt"
 	"aitranslationenginejp/internal/core/rolespeech"
 	"aitranslationenginejp/internal/core/runtimetag"
-	"aitranslationenginejp/internal/core/termxml"
+	"aitranslationenginejp/internal/core/termderive"
+	"aitranslationenginejp/internal/core/termusage"
 	"aitranslationenginejp/internal/core/tone"
 	"aitranslationenginejp/internal/model"
 	"aitranslationenginejp/internal/provider"
@@ -485,58 +484,87 @@ func (e *Engine) translationVocabulary(ctx context.Context) ([]model.MasterTerm,
 	return keptTerms, keptPropers, nil
 }
 
-// DeriveMasterTerms は xTranslator 英日 XML から人名の部分形（名のみ・短名）の確定訳語を派生し、
-// master_term へ追記する。base 既出の原語との衝突を避け、派生行は category="derive:<種別>" で由来を残す。
-// 翻訳 Run の抽出後に呼び、DB を作り直しても単独名（例 Aventus→アベンタス）が辞書へ入るようにする。
-// 追記した件数を返す。INSERT OR IGNORE のため二重実行でも増えない（冪等）。
-func (e *Engine) DeriveMasterTerms(ctx context.Context, xmlDir string) (int, error) {
+// DeriveMasterTerms は extracted_field の英日対（dest 非空行）から固有名の確定訳語を master_term へ組む。
+// 翻訳 Run の抽出後に呼ぶ。追記した件数を返す。INSERT OR IGNORE のため二重実行でも増えない（冪等）。
+// 手順は依存があるため固定する。
+//  1. record_type_master で箱＝固有名の FULL（source・dest 非空）を (source, dest, category=rec) で書く
+//     （旧 MasterTermXmlWriter の役目を畳んだもの）。
+//  2. master_term を baseSources として読む（手順 1 で書いた FULL を含む）。派生の衝突除外に使う。
+//  3. NPC_:FULL / NPC_:SHRT・INFO:NAM1 から termderive で人名の部分形（名のみ・短名）を派生して追記する。
+//     派生行は category="derive:<種別>" で由来を残す。
+func (e *Engine) DeriveMasterTerms(ctx context.Context) (int, error) {
+	fields, err := e.store.ListExtractedFields(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("確定訳語の供給元（extracted_field）の取得: %w", err)
+	}
+	masterRows, err := e.store.ListRecordTypeMaster(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("record_type_master の取得: %w", err)
+	}
+	master := recordMasterMap(masterRows)
+
+	// 手順 1: 箱＝固有名の FULL 完全形を確定訳語として書く。原語と訳語が同一の行は辞書にしない。
+	fulls := make([]model.MasterTerm, 0, len(fields))
+	for _, f := range fields {
+		rt, ok := master[RecordKey{Rec: f.Rec, Field: f.Field}]
+		if !ok || rt.Box != boxProperNoun || f.Field != fieldFull {
+			continue
+		}
+		src, dst := strings.TrimSpace(f.Source), strings.TrimSpace(f.Dest)
+		if src == "" || dst == "" || src == dst {
+			continue
+		}
+		fulls = append(fulls, model.MasterTerm{Source: src, Dest: dst, Category: f.Rec})
+	}
+	insertedFulls, err := e.store.InsertDerivedTerms(ctx, fulls)
+	if err != nil {
+		return 0, fmt.Errorf("固有名の完全形の追記: %w", err)
+	}
+
+	// 手順 2: 手順 1 の FULL を含む既存 master_term の原語集合。派生が既出原語と衝突しないための除外に使う。
 	terms, err := e.store.ListMasterTerms(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("base 辞書の取得: %w", err)
+		return insertedFulls, fmt.Errorf("base 辞書の取得: %w", err)
 	}
 	baseSources := make(map[string]bool, len(terms))
 	for _, t := range terms {
 		baseSources[t.Source] = true
 	}
-	files, err := readXMLDir(xmlDir)
-	if err != nil {
-		return 0, err
+
+	// 手順 3: termderive の入力を extracted_field から組む。姓名分割（two）の可否は英日対の有無で決める。
+	// dest 非空＝英日 Strings が揃う行だけが対になるため、対を組めた行はすべて two を許す
+	//（base ゲーム名（XML ファイル名接頭）による限定は廃止した）。
+	var fullPairs, shrtPairs []termderive.NamePair
+	var dialogues []string
+	for _, f := range fields {
+		src, dst := strings.TrimSpace(f.Source), strings.TrimSpace(f.Dest)
+		switch {
+		case f.Rec == "NPC_" && f.Field == fieldFull:
+			if src != "" && dst != "" {
+				fullPairs = append(fullPairs, termderive.NamePair{Source: src, Dest: dst, BaseGame: true})
+			}
+		case f.Rec == "NPC_" && f.Field == "SHRT":
+			if src != "" && dst != "" {
+				shrtPairs = append(shrtPairs, termderive.NamePair{Source: src, Dest: dst, BaseGame: true})
+			}
+		case f.Rec == recInfo && f.Field == fieldNam1:
+			// 会話文の英語原文は用法分布（一般語か固有名か）の材料。既訳が無くても使える。
+			if src != "" {
+				dialogues = append(dialogues, f.Source)
+			}
+		}
 	}
-	derived, err := termxml.DeriveTermsFromFiles(files, baseSources)
-	if err != nil {
-		return 0, fmt.Errorf("固有名の派生: %w", err)
-	}
+	usage := termusage.BuildUsage(dialogues)
+	derived := termderive.DeriveTerms(fullPairs, shrtPairs, usage, baseSources, termderive.DefaultDeriveConfig())
 	rows := make([]model.MasterTerm, len(derived))
 	for i, d := range derived {
 		rows[i] = model.MasterTerm{Source: d.Source, Dest: d.Dest, Category: "derive:" + d.Kind}
 	}
-	inserted, err := e.store.InsertDerivedTerms(ctx, rows)
+	insertedDerived, err := e.store.InsertDerivedTerms(ctx, rows)
 	if err != nil {
-		return inserted, fmt.Errorf("派生固有名の追記: %w", err)
+		return insertedFulls + insertedDerived, fmt.Errorf("派生固有名の追記: %w", err)
 	}
-	return inserted, nil
-}
-
-// readXMLDir はディレクトリ内の全 XML を読み込み、ファイル名昇順で termxml.XMLFile 群にして返す。
-// 純粋な派生（termxml.DeriveTermsFromFiles）へ渡す前段の os 読み。決定性のため名前順に並べる。
-func readXMLDir(xmlDir string) ([]termxml.XMLFile, error) {
-	entries, err := filepath.Glob(filepath.Join(xmlDir, "*.xml"))
-	if err != nil {
-		return nil, fmt.Errorf("XML の列挙: %w", err)
-	}
-	if len(entries) == 0 {
-		return nil, fmt.Errorf("XML が無い: %s", xmlDir)
-	}
-	sort.Strings(entries)
-	files := make([]termxml.XMLFile, 0, len(entries))
-	for _, path := range entries {
-		data, err := os.ReadFile(path) //nolint:gosec // G304: path は利用者が指定したディレクトリ配下の *.xml を Glob で列挙した結果。参照データの意図的な読み込みのため限定許可する。
-		if err != nil {
-			return nil, fmt.Errorf("%s の読み込み: %w", path, err)
-		}
-		files = append(files, termxml.XMLFile{Name: filepath.Base(path), Data: data})
-	}
-	return files, nil
+	return insertedFulls + insertedDerived, nil
 }
 
 // ToneDefaults は話者なし台詞（汎用・PC）の口調設定。利用者が編集する自由記述の口調と PC 性別。

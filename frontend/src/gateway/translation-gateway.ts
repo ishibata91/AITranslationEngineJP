@@ -5,6 +5,7 @@ import {
   ExportXTranslatorXML,
   GetBatchProgress,
   GetModels,
+  GetStringsPresence,
   GetXAIModels,
   ListResultsPage,
   ListTargetPlugins,
@@ -150,6 +151,15 @@ export async function fetchModels(conn: Connection): Promise<string[]> {
 export async function runExtractAndTranslate(input: RunInput): Promise<RunOutcome> {
   const result = await RunExtractAndTranslate(api.RunRequest.createFrom(input))
   return { translatedCount: result.translatedCount }
+}
+
+// 対象 plugin と同じ Data フォルダの strings/ にある english / japanese の Strings ファイルの有無を返す。
+// 片側欠け（既存訳の対を作れず全文 AI 翻訳になる状態）の画面警告の判定材料。
+export async function fetchStringsPresence(
+  pluginPath: string
+): Promise<{ english: boolean; japanese: boolean }> {
+  const view = await GetStringsPresence(pluginPath)
+  return { english: view.english, japanese: view.japanese }
 }
 
 // xAI（batch）の接続先で利用可能なモデル一覧を取得する（getXAIModels）。

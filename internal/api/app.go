@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -100,26 +101,24 @@ func (d *DotnetExtractor) Extract(ctx context.Context, pluginPath string) error 
 
 // App は Wails へ Bind する公開面。
 type App struct {
-	store       Store
-	engine      *engine.Engine
-	batch       *engine.BatchRunner // xAI batch 翻訳の送信・反映。batch を使わない配線では nil。
-	provider    provider.Translator
-	extractor   Extractor
-	termsXMLDir string // 抽出後の固有名派生（DeriveMasterTerms）で読む xTranslator 英日 XML ディレクトリ。
-	ctx         context.Context
+	store     Store
+	engine    *engine.Engine
+	batch     *engine.BatchRunner // xAI batch 翻訳の送信・反映。batch を使わない配線では nil。
+	provider  provider.Translator
+	extractor Extractor
+	ctx       context.Context
 }
 
 // New は App を生成する。extractor は抽出子の注入点（本番は DotnetExtractor。抽出に要するパスは extractor が保持する）。
-// termsXMLDir は抽出後の固有名派生で読む XML ディレクトリで、抽出設定（ExtractorConfig）とは別系統のため文字列で直接受ける。
 // batch は xAI batch 翻訳のオーケストレーション。batch を使わない配線（テスト用 harness など）では nil を渡してよい。
-func New(store Store, eng *engine.Engine, batch *engine.BatchRunner, p provider.Translator, termsXMLDir string, extractor Extractor) *App {
+func New(store Store, eng *engine.Engine, batch *engine.BatchRunner, p provider.Translator, extractor Extractor) *App {
 	if extractor == nil {
 		// 抽出子は必須の注入物。nil interface（リテラル nil や未設定の interface 変数）を渡す配線ミスを起動時に弾く。
 		// なお typed-nil（nil の concrete ポインタを interface に入れた値）は Go の制約で検出できないが、
 		// composition root は concrete を直接 new して渡すため該当しない。
 		panic("api.New: extractor は nil にできない")
 	}
-	return &App{store: store, engine: eng, batch: batch, provider: p, extractor: extractor, termsXMLDir: termsXMLDir}
+	return &App{store: store, engine: eng, batch: batch, provider: p, extractor: extractor}
 }
 
 // Startup は Wails 起動時に runtime context を受け取る。ファイルダイアログと進捗 event の push に使う。
@@ -481,19 +480,29 @@ func (a *App) prepareForTranslation(ctx context.Context, pluginPath string) erro
 		return fmt.Errorf("抽出に失敗: %w", err)
 	}
 
-	// 抽出後、人名の部分形（名のみ・短名）を派生して master_term へ追記する。C# が書いた base 辞書（FULL）の
-	// 後に走らせ、DB を作り直しても単独名（例 Aventus→アベンタス）が機械置換へ載るようにする。冪等。
+	// 抽出後、extracted_field の英日対から固有名の確定訳語（FULL 完全形）を書き、続けて人名の部分形
+	//（名のみ・短名）を派生して master_term へ追記する。DB を作り直しても単独名（例 Aventus→アベンタス）が
+	// 機械置換へ載るようにする。冪等。
 	a.emitProgress(ProgressEvent{Stage: "extract", Step: "derive"})
-	if _, err := a.engine.DeriveMasterTerms(ctx, a.termsXMLDir); err != nil {
+	derivedCount, err := a.engine.DeriveMasterTerms(ctx)
+	if err != nil {
 		return fmt.Errorf("固有名の派生に失敗: %w", err)
 	}
 
-	// 同じ xTranslator 英日 XML から record 単位の既存訳（参照訳）を取り込む。翻訳で原文が完全一致する
+	// 同じ extracted_field の英日対から record 単位の既存訳（参照訳）を取り込む。翻訳で原文が完全一致する
 	// 叙述文・台詞は AI を呼ばず既訳を流用する（known-issues 項目7）。冪等。
 	a.emitProgress(ProgressEvent{Stage: "extract", Step: "reference"})
-	if _, err := a.engine.LoadReferenceTranslations(ctx, a.termsXMLDir); err != nil {
+	referenceCount, err := a.engine.LoadReferenceTranslations(ctx)
+	if err != nil {
 		return fmt.Errorf("既存訳の取り込みに失敗: %w", err)
 	}
+	// 供給の集約件数を残す（英日対が無い時に確定訳語・参照訳が 0 のまま進む状態を切り分ける）。
+	slog.InfoContext(ctx, "extracted_field の英日対から既存訳と確定訳語を組んだ",
+		slog.String("event", "reference_supply_built"),
+		slog.String("where", "api.prepareForTranslation"),
+		slog.Int("masterTerms", derivedCount),
+		slog.Int("references", referenceCount),
+	)
 
 	// 取込段: C# が素朴吸い出しした extracted_field を record_type_master で振り分け、
 	// narration（叙述文・定型句）・proper_noun（固有名）・line（台詞）へ投入し、話者連関を解決する。

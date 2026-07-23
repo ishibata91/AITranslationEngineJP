@@ -4,6 +4,28 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-07-24 参照訳・確定訳語の供給源を xTranslator XML から Data フォルダの Strings へ移行
+
+### 変更
+
+- `tools/extractor/`（`PluginExtractor`・`Model`・`ExtractedFieldSqliteWriter`・`Program`）: 各 field を english と japanese の 2 言語で解決し、英日対のある行だけ `extracted_field.dest` に日本語本文を書く。`MasterTermXmlWriter` と `--terms-xml` 経路を削除。
+- `db/migrations/0014_extracted_field_dest.sql`: `extracted_field` に `dest TEXT NOT NULL DEFAULT ''` を ALTER で追加。
+- `internal/engine/`（`reference.go`・`engine.go`）: `LoadReferenceTranslations(ctx)` は dest 非空行から `reference_translation` を組む。`DeriveMasterTerms(ctx)` は「固有名箱の FULL 完全形 → baseSources 読み → termderive 派生」の固定順で `master_term` への書き込みを 1 関数に集約。姓名分割（two）の可否は英日対の有無で判定し、base ゲーム名の判定（`baseGamePrefixes`・`IsBaseGame`）を廃止。
+- `internal/core/termxml/`: XML 解析（読み込み側）を削除。xTranslator XML の書き出し（出力）は残す。
+- `internal/api/`: `api.New` から termsXMLDir を除去。`GetStringsPresence`（Data フォルダの strings/ の言語別有無をファイル名で判定）を Wails 公開面に追加。
+- `frontend/`: 翻訳実行画面に片側 Strings 欠け警告 `MissingStringsWarning`（状態と理由・影響・対処の 3 段構成、Storybook 人間レビュー承認済み）。`TranslationRunContainer` が判定を取得して供給。あわせて `TranslationRunScreen` の旧仕様 props 4 件（unused、eslint 既存赤）を削除。
+- `tools/extractor.Tests/CountParityTests.cs`: 削除。照合先の xTranslator XML が XML 依存廃止の対象のため。共有ヘルパは `ExtractionCache.cs` へ移設し `ModelInvariantTests` は維持。
+
+### 判断
+
+- 供給源の移行は「入力読み込みの差し替え」に限定し、テーブルの作り直しをしない。追加は `extracted_field.dest` の ALTER のみ。振り分け（`record_type_master`）と派生（termderive）の既存 Go ロジックは不変（人間承認済み design）。
+- 英日対を作れるのは Mutagen 環境を持つ C# 抽出器だけのため、2 言語解決を抽出器に置き、`engine` は DB だけから組む（人間承認済み design）。
+- 照合キーは `(rec, field, source)` を維持。form_id が使えるようになるが、`reference_translation` は対象横断で同一原文を再利用する設計のため絞らない（人間承認済み design）。
+- base ゲームの特別扱い（base 判定・base 限定の姓名分割）を廃止し、「英日 Strings が揃っているか」だけで判定する（人間確定）。
+- 片側 Strings 欠け警告の判定は Data フォルダの strings/ をフォルダ単位・ファイル名で見る。翻訳対象 mod 自身のローカライズ有無ではない（mod に日本語ローカライズがあるなら本ツールは不要のため。人間確定）。
+- 実 LLM（LM Studio、gemma-4-12b-qat）の手動 e2e: Dawnguard.esm 7398 件が完走し、叙述文・台詞は全件既訳流用、AI 送信は公式訳の無い固有名 56 件のみ。供給移行が実データで機能することを確認。
+- 根拠となる作業計画: `docs/exec-plans/completed/strings-based-reference/`。
+
 ## 2026-07-21 xAI batch 翻訳の進行状況を可視化し、観測と前進の操作を分離
 
 ### 変更

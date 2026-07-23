@@ -31,8 +31,6 @@ const (
 	// stopwordsPath は機械置換辞書・言及語彙の供給から除く一般語リスト（stopwords-iso 配布、MIT）。
 	// 出典・checksum は併置の assets/stopwords-en.LICENSE に記録する。
 	stopwordsPath = "assets/stopwords-en.txt"
-	// termsXMLDir は固有名辞書（master_term）の供給元 xTranslator 英日 XML。抽出後の人名部分形の派生で読む。
-	termsXMLDir = "dictionaries/xTranslatorXMLs"
 )
 
 // NewApp は中心 DB を開き、全層を配線して api.App を返す。Close 用に store も返す。
@@ -91,7 +89,7 @@ func NewApp() (*api.App, *store.Store, error) {
 		DBPath:    devDBPath,
 	}
 	// 抽出子は本番の dotnet 子プロセス起動。composition root が concrete を生成して注入する唯一の場所。
-	// App には固有名派生で読む XML ディレクトリ（termsXMLDir）だけ渡す（抽出に要するパスは DotnetExtractor が保持する）。
-	app := api.New(s, eng, batchRunner, p, termsXMLDir, api.NewDotnetExtractor(ext))
+	// 抽出に要するパスは DotnetExtractor が保持する。
+	app := api.New(s, eng, batchRunner, p, api.NewDotnetExtractor(ext))
 	return app, s, nil
 }

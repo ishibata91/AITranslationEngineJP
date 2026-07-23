@@ -3,40 +3,40 @@ package engine
 import (
 	"context"
 	"fmt"
+	"strings"
 
-	"aitranslationenginejp/internal/core/termxml"
 	"aitranslationenginejp/internal/model"
 )
 
 // ReferenceStore は engine が既存訳（参照訳）を読み書きするための中心データアクセス（使う分だけ宣言する）。
-// InsertReferenceTranslations は取込（xTranslator XML → 表）、ListReferenceTranslations は照合表の読み出し。
+// InsertReferenceTranslations は取込（extracted_field の英日対 → 表）、ListReferenceTranslations は照合表の読み出し。
 type ReferenceStore interface {
 	InsertReferenceTranslations(ctx context.Context, refs []model.ReferenceTranslation) (int, error)
 	ListReferenceTranslations(ctx context.Context) ([]model.ReferenceTranslation, error)
 }
 
-// referenceKey は既存訳の照合キー。xTranslator XML は FormID を持たないため、(rec, field, source) で照合する。
+// referenceKey は既存訳の照合キー。reference_translation は対象横断で同一原文を再利用するため、
+// form_id では絞らず (rec, field, source) で照合する。
 type referenceKey struct {
 	Rec    string
 	Field  string
 	Source string
 }
 
-// LoadReferenceTranslations は xTranslator 英日 XML から record 単位の既存訳を取り込み、reference_translation へ追記する。
-// 固有名派生（DeriveMasterTerms）と同じ XML ディレクトリを読み、翻訳 Run の前に呼ぶ。追記した件数を返す。
-// INSERT OR IGNORE のため二重実行でも増えない（冪等）。
-func (e *Engine) LoadReferenceTranslations(ctx context.Context, xmlDir string) (int, error) {
-	files, err := readXMLDir(xmlDir)
+// LoadReferenceTranslations は extracted_field の英日対（source・dest 非空行）から record 単位の既存訳を
+// 取り込み、reference_translation へ追記する。抽出（extracted_field への書き込み）の後、翻訳 Run の前に呼ぶ。
+// 追記した件数を返す。INSERT OR IGNORE のため二重実行でも増えない（冪等）。
+func (e *Engine) LoadReferenceTranslations(ctx context.Context) (int, error) {
+	fields, err := e.store.ListExtractedFields(ctx)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("既存訳の供給元（extracted_field）の取得: %w", err)
 	}
-	entries, err := termxml.ReferencesFromFiles(files)
-	if err != nil {
-		return 0, fmt.Errorf("既存訳の解析: %w", err)
-	}
-	refs := make([]model.ReferenceTranslation, len(entries))
-	for i, en := range entries {
-		refs[i] = model.ReferenceTranslation{Rec: en.Rec, Field: en.Field, Source: en.Source, Dest: en.Dest}
+	refs := make([]model.ReferenceTranslation, 0, len(fields))
+	for _, f := range fields {
+		if strings.TrimSpace(f.Source) == "" || strings.TrimSpace(f.Dest) == "" {
+			continue
+		}
+		refs = append(refs, model.ReferenceTranslation{Rec: f.Rec, Field: f.Field, Source: f.Source, Dest: f.Dest})
 	}
 	inserted, err := e.store.InsertReferenceTranslations(ctx, refs)
 	if err != nil {

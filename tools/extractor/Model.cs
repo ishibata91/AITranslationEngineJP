@@ -36,6 +36,9 @@ public sealed class ExtractionResult
     public List<NamedEntry> SoundCategories { get; } = [];// SNCT
     public List<NamedEntry> Eyes { get; } = [];           // EYES
     public List<RegionEntry> Regions { get; } = [];       // REGN（map_name = RDMP）
+    // 英日 Strings が両方解決できた field の (record, REC:FIELD, 英語本文) → 日本語本文。
+    // extracted_field.dest の供給源。片側の Strings しか無い field は載らない（dest は空になる）。
+    public Dictionary<(FormKey Id, string RecField, string English), string> JapanesePairs { get; } = [];
 }
 
 public abstract class RecordEntry
