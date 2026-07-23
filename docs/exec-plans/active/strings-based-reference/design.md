@@ -1,93 +1,85 @@
 # Design: strings-based-reference
 
-`design.md` は「どう実装し、どう直すか」だけを持つ。実装範囲の scope 列挙とテスト設計は持たない（実装モジュールが扱う）。
+この design は「どう実装しどう直すか」だけを持つ。scope 列挙・テスト設計は実装モジュールが扱う。
 
-## 実装方針
+## 目的（不変）
 
-**結論**: 日本語の既存訳と固有名の権威訳を、xTranslator 英日 XML でなく Data フォルダの Strings（english / japanese）から解決する。日本語本文を DB へ書く経路を C# 抽出器に新設し、xTranslator XML を供給源から外す。
+参照訳（`reference_translation`）と固有名権威訳（`master_term`）の日本語 dest の供給を、xTranslator 英日 XML から Data フォルダの Strings（english / japanese）へ移し、XML 依存を廃止する。役割は不変で、供給源だけ替える。
 
-### AS-IS（現状）
+## AS-IS
 
-固有名辞書（master_term）と参照訳（reference_translation）は、いずれも xTranslator 英日 XML を供給源にしている。
+### 日本語 dest は今すべて XML 由来（3 経路・同一ディレクトリ）
 
-- **固有名の base 既訳**: C# 抽出器 `MasterTermXmlWriter` が xTranslator XML の `REC:FULL` 行から `master_term (source, dest)` を書く（XML ディレクトリが無ければ skip）。
-- **固有名の部分形**: Go `DeriveMasterTerms` が XML から名のみ・短名を派生し `master_term` へ追記する（XML ディレクトリが無ければ error）。
-- **参照訳**: Go `LoadReferenceTranslations` が XML の `REC:Source/Dest` を `reference_translation (rec, field, source, dest)` へ取り込む（XML ディレクトリが無ければ error）。翻訳段は原文が完全一致する行で既存訳を流用し、AI 翻訳を省く。
-- **Data の Strings**: C# 抽出器は english と指定言語の Strings を読む機能を持つが、用途は差分正規化（無変更 stub の判定）に限る。`extracted_field` に書く原文は english のみで、japanese 本文は DB に落ちない。抽出器は既定言語 english で動く（Go は `--language` を渡さない）。
+`reference_translation` と `master_term` の日本語 dest は、gitignore 対象の xTranslator 英日 XML から得ている。消費は 3 経路あり、すべて同じ XML ディレクトリ（`dictionaries/xTranslatorXMLs`）を読む。
 
-現状は xTranslator XML が必須依存で、`dictionaries/xTranslatorXMLs` を削除済みのため、いま実行すると Go の派生・参照取込が「XML が無い」で失敗する。
+| 経路 | 場所 | 生成物 | 採る対象 |
+| --- | --- | --- | --- |
+| C# `MasterTermXmlWriter` | `Program.cs:82` | `master_term`（FULL 完全形） | `*:FULL`（`WOOP:FULL` 除外）、英 source → 日 dest |
+| Go `LoadReferenceTranslations` | `reference.go:28` | `reference_translation` | 全 rec:field で source・dest 非空の `<String>` |
+| Go `DeriveMasterTerms` | `engine.go:488` | `master_term`（部分形） | `NPC_:FULL`/`SHRT`・`INFO:NAM1` → termderive で派生 |
 
-### TO-BE（変更後）
+### 入力読み込みがエンジン中核へ食い込んでいる
 
-日本語の解決を C# 抽出器の Strings 読みへ寄せ、その結果を DB へ書く。
+XML の形が、翻訳エンジンの API と照合ロジックまで規定している。ただの入力読み込みが境界に留まらず中核へ達している。
 
-- **抽出器が english と japanese の Strings を対で読む**: 翻訳対象 record ごとに english 原文と、japanese Strings があれば japanese 既存訳を得る。現状の「取れた 1 言語だけ保持」を「english と japanese を対で保持」へ変える。
-- **既存訳を DB へ書く**: japanese Strings がある record は、english 原文と japanese 既存訳の対を `reference_translation (source=EN, dest=JP)` として書く。翻訳段は現状どおり完全一致で既存訳を流用する（翻訳段のロジックは変えない。供給元だけ替える）。
-- **固有名の権威訳を Strings 由来にする**: `NPC_:FULL` などの固有名フィールドの english 原文と japanese 既存訳の対を `master_term (source=EN, dest=JP)` として書く。Go の部分形派生は、供給元を XML から Strings 由来の対へ替えて再利用する（派生ロジック自体は変えない）。
-- **xTranslator XML を供給源から外す**: Go の `DeriveMasterTerms` / `LoadReferenceTranslations` の XML 読みと、C# `MasterTermXmlWriter` の XML 読みを撤去し、供給を Strings へ一本化する。XML が無くても翻訳前処理は破綻せず進む。
+- engine の public メソッドが XML ディレクトリを引数に取る（`DeriveMasterTerms(ctx, xmlDir)`・`LoadReferenceTranslations(ctx, xmlDir)`）。翻訳エンジンが入力の置き場を知っている。
+- engine 中核が形式パーサ `internal/core/termxml` を import している。
+- 照合キーが `(rec, field, source)` なのは「XML が FormID を持たない」ため（migration 0012・`reference.go:18`）。しかし `extracted_field` は form_id を持つ。XML の制約に合わせて、使えるはずの強いキーを捨てている。
+- base ゲーム判定が XML ファイル名の接頭（`Skyrim`/`Dawnguard`…、`termxml.go:20`）。ファイルの置き方が、姓名分割を派生してよいかという意味判断を決めている。
+- `record_type_master` が全 REC:FIELD の箱（叙述文/固有名/定型句/台詞）を既に持つのに、XML 経路が `NPC_:FULL`/`INFO:NAM1` を再パースして同じ振り分けを二重に持っている。
 
-**役割は不変**: `reference_translation`（原文と既存訳の対を完全一致で流用し AI 翻訳を省く）と `master_term`（固有名の権威訳）の役割は変えない。供給源を XML から Strings へ替えるだけで、テーブルの意味・翻訳段の使い方は同一。変わるのは供給源と、そこから来るカバレッジ（どの対が存在するか）だけ。
+### 抽出器は対を作る材料をほぼ持つが日本語を捨てている
 
-**片方しか無い時の画面警告**: Strings を使う plugin（localized）は、その時点でローカライズの意図がある。english / japanese の Strings が揃わず片方しか無い場合、対が欠けて既存訳を作れないため、画面に警告を出す。警告を出したうえで、既存訳なしで全文 AI 翻訳へ進む。localized でない plugin（Strings 不使用）はローカライズ意図が無いため警告しない。
+- `extracted_field.source` は english Strings を Mutagen で解決した本文。`plugin, form_id, edid, rec, field, ordinal` 付き（対象 plugin 分）。
+- japanese Strings は `RecordDataIndex` が差分正規化（`OwnsRecord` の master 一致判定）でだけ触り、本文はどの列にも書かず捨てる。本番起動は `--language` 未指定のため japanese を読み込みすらしない。
+- `extracted_field` に dest 列が無い。**日本語本文を DB へ通す口が無い**。これが移行の最大ギャップ。
 
-**どこまで動かすか**: english と japanese の Strings が揃う Data フォルダを指定して抽出すると、既存訳と固有名権威訳が Strings 由来で DB に入り、翻訳段が既存訳を流用する。片方しか無い localized plugin は画面警告のうえ全文 AI 翻訳へ進む。
+## TO-BE
 
-**観測点**:
-- 実データ（english と japanese の Strings を持つ Data フォルダ）で実画面から抽出→翻訳を通し、既存訳が流用されることを確認する。
-- 単体テストで、Strings の english/japanese 対から `reference_translation`・`master_term` を作る解決を確認する。
+### 軸: 入力読み込みを抽出器（入力の境界）へ集約する
 
-### AS-IS 図（現状の供給フロー）
+Strings の英日解決は Mutagen を持つ C# 抽出器でしか作れない。よって対の生成を抽出境界に集約し、engine は DB だけを読む。engine から XML 形式・termxml・xmlDir を除く。
 
-```mermaid
-flowchart LR
-  DS["Data/Strings (EN,JP)"]
-  XML["xTranslator XML"]
-  CEXT["C#抽出器"]
-  GO["Go 派生/参照取込"]
-  EF["extracted_field"]
-  MT["master_term"]
-  RT["reference_translation"]
+- **抽出器が japanese Strings も解決し、`extracted_field` に dest 列（日本語本文）を書く**。source（英語）は現状のまま。新テーブルは作らず、列追加 1 つ（ALTER）。
+- **`reference_translation` と `master_term` を `extracted_field` の (source, dest) 対から組む**。REC:FIELD の振り分けは `record_type_master`（箱）を引く。XML 再パースによる二重振り分けを廃止する。
+- **人名部分形の派生（termderive）は純粋・無 IO なのでそのまま**。XML を読む IO は呼び出し側（engine `DeriveMasterTerms` が `readXMLDir` で読み `store` へ書く／`termxml` が `[]byte` を解析）にある。この IO 側を、XML でなく `extracted_field` の `NPC_` 対を読む形へ替える。base ゲーム判定はファイル名接頭（`termxml`）でなく抽出時の master 連鎖から得た印を使う。
+- **廃止**: C# `MasterTermXmlWriter`、Go の XML 読み（`internal/core/termxml`・xmlDir 引数）、`dictionaries/xTranslatorXMLs` 配線。
 
-  DS -- "EN 原文" --> CEXT
-  DS -. "JP は差分正規化のみ" .-> CEXT
-  CEXT -- "source=EN" --> EF
-  XML -- "FULL 既訳" --> CEXT
-  CEXT --> MT
-  XML --> GO
-  GO -- "部分形" --> MT
-  GO -- "既存訳" --> RT
-```
+### 変える IF（どこを触るか）
 
-### TO-BE 図（変更後の供給フロー）
+C# 抽出器（英日ペアを作る本体。ここだけが Mutagen で英日を解決できる）。
 
-```mermaid
-flowchart LR
-  DS["Data/Strings (EN,JP)"]
-  CEXT["C#抽出器"]
-  GO["Go 派生"]
-  EF["extracted_field"]
-  MT["master_term"]
-  RT["reference_translation"]
+- `PluginEnvironment.Load`（`PluginEnvironment.cs`）: english に加え japanese Strings も解決可能に読む（現状は `TargetLanguage=English` 単一）。
+- `TranslationString`（`TranslationCounts.cs:6`、`(RecField, Id, EditorId, Text)`）: 日本語本文フィールドを足し、英語 `Text` と対で持つ。
+- `PluginExtractor`（`PluginExtractor.cs`）: 各 field を english と japanese の両方で解決して `TranslationString` に入れる。
+- `ExtractedFieldSqliteWriter.Write`（`ExtractedFieldSqliteWriter.cs:14`）: INSERT に dest 列を足し、日本語本文を書く。
 
-  DS -- "EN 原文" --> CEXT
-  DS -- "JP 既存訳" --> CEXT
-  CEXT -- "source=EN" --> EF
-  CEXT -- "FULL EN→JP" --> MT
-  CEXT -- "既存訳 EN→JP" --> RT
-  MT -- "FULL/SHRT" --> GO
-  GO -- "部分形" --> MT
-```
+DB schema。
 
-**AS-IS から消える要素**: `xTranslator XML` ノードと、そこから `C#抽出器`・`Go 派生/参照取込` への供給線。Go が XML を読む経路も消える。
-**TO-BE で増える要素**: `Data/Strings` の JP から `C#抽出器` を経て `master_term`・`reference_translation` へ日本語既存訳が書かれる供給線。現状 JP は DB に落ちていない。
+- 新 migration: `extracted_field` に `dest TEXT NOT NULL DEFAULT ''` を ALTER で足す。
 
-## 決定済み（人間回答で解消）
+Go（XML 読みを DB→DB の組み替えへ替える）。
 
-- **役割は不変**: 参照訳・固有名権威訳の意味と役割は変わらない。供給源とカバレッジだけが変わる。「意味の変化」という論点は成立しない。
-- **片方しか無い時**: 画面に警告を出したうえで、全文 AI 翻訳へ進む。条件は localized plugin で english / japanese の Strings が片方しか無い場合。
-- **XML は完全撤去**: 任意の補助 import としても残さず、供給を Strings へ一本化する。
-- **下流経路**: 画面警告の追加は表示変更のため `storybook-module` を経由し、その後 `implementation-module` へ進む。
+- `model.ExtractedField`・`extractedFieldColumns`（`store/ingest.go:12`）: dest 列を足す。読み口 `Store.ListExtractedFields`（`store/ingest.go:16`）はそのまま流用する。
+- `Engine.LoadReferenceTranslations(ctx, xmlDir)` → `(ctx)`（`reference.go:28`）: `ListExtractedFields` の dest 非空行から `reference_translation` を組む。
+- `Engine.DeriveMasterTerms(ctx, xmlDir)` → `(ctx)`（`engine.go:488`）: master_term への書き込みを 1 関数に畳む。順序は依存があるため固定する。
+  1. `ListExtractedFields` のうち `record_type_master` で箱＝固有名の全 FULL（source・dest 非空）を `(source, dest, category=rec)` で `master_term` へ書く（旧 `MasterTermXmlWriter` の役目）。
+  2. `ListMasterTerms` を baseSources として読む（手順 1 で書いた FULL を含む）。
+  3. 同じ `ListExtractedFields` の `NPC_:FULL`/`SHRT`・`INFO:NAM1` から termderive の入力（`NamePair`・dialogues）を作り、baseSources と衝突する部分形を除外して派生し `master_term` へ追記する。
+  - 手順 1 を派生より前に置くのは、派生が baseSources（既存 master_term の原語）との衝突を除外するため（`engine.go:493`）。FULL を先に入れないと除外が効かない。termderive・termusage は不変。base ゲーム判定は行の plugin 名で行う。
+- `api.New(..., termsXMLDir, ...)`（`app.go:115`）: termsXMLDir 引数と `App.termsXMLDir` を除く。`prepareForTranslation`（`app.go:487,494`）は `DeriveMasterTerms(ctx)`・`LoadReferenceTranslations(ctx)` を呼ぶ。
+- 配線から termsXMLDir を除く: `bootstrap.go:35,95`・`harness/run.go:28,45,87`・`goldcap main.go:115`。
+- 削除: `internal/core/termxml`（`ReferencesFromFiles`・`ParseReferences`・`DeriveTermsFromFiles`・`ParseTermXML`・`XMLFile`・`IsBaseGame`）と engine の `readXMLDir`。
 
-## 検討が必要なこと
+### 供給範囲の帰結（XML との差）
 
-- なし（人間回答で全て解消）。
+XML は base ゲーム既訳を対象横断で一括供給していた。Strings 化後、base ゲームの日本語 dest は「base master を日本語 Strings 付きで抽出した時」に入る。`reference_translation`・`master_term` は対象横断・永続テーブルなので、抽出を重ねて蓄積する。bundled base 辞書は持たない。
+
+### 片側 Strings 欠け時の警告
+
+english / japanese の片方しか無いと対を作れず、固有名は権威訳を再利用できず全文 AI 翻訳になる。この状態を利用者へ知らせる画面警告を出す（固有名機能の観測可能な成果に含む）。判定材料と配線は plan の scope に含める。
+
+## 決定が要る点
+
+- **対の置き場**（推奨: `extracted_field.dest` を足して Go が組む）。英日解決だけを境界に置き、振り分け（`record_type_master`）と派生（termderive）は既存 Go ロジックを再利用する。対案は抽出器が `reference_translation`・`master_term` を直接書く形。
+- **照合キー**（推奨: 現状の `(rec, field, source)` を維持）。form_id が使えるようになるが、`reference_translation` は対象横断で同一原文を再利用する設計のため form_id では絞れない。
