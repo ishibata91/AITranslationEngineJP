@@ -2,8 +2,6 @@ package harness
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"aitranslationenginejp/internal/api"
@@ -17,17 +15,16 @@ import (
 )
 
 // RunConfig は非劣化 harness の 1 回の実行に要る注入物。
-// 抽出子・感情辞書・役割語・XML ディレクトリ・plugin パスを差し替え可能にし、
+// 抽出子・感情辞書・役割語・plugin パスを差し替え可能にし、
 // 合成入力（SeedExtractor・最小辞書）と実 .esm 入力（dotnet 抽出子・実辞書）の両方を同じ Run で回す。
 type RunConfig struct {
-	DBPath      string        // 中心 DB（temp ファイル）のパス
-	Extractor   api.Extractor // 抽出段の注入（合成は SeedExtractor、実データは api.DotnetExtractor）
-	Lexicon     linefeatures.EmotionLexicon
-	RoleSpeech  *rolespeech.Table
-	Stoplist    *dictionary.Stoplist // 機械置換辞書・言及語彙の供給から一般語を除く選別（nil なら選別なし）
-	TermsXMLDir string               // 固有名派生が読む xTranslator XML ディレクトリ
-	PluginPath  string               // 抽出対象 plugin のパス
-	Model       string               // 送信モデル名（fake provider は記録のみ）
+	DBPath     string        // 中心 DB（temp ファイル）のパス
+	Extractor  api.Extractor // 抽出段の注入（合成は SeedExtractor、実データは api.DotnetExtractor）
+	Lexicon    linefeatures.EmotionLexicon
+	RoleSpeech *rolespeech.Table
+	Stoplist   *dictionary.Stoplist // 機械置換辞書・言及語彙の供給から一般語を除く選別（nil なら選別なし）
+	PluginPath string               // 抽出対象 plugin のパス
+	Model      string               // 送信モデル名（fake provider は記録のみ）
 }
 
 // Run は store・engine・provider・api を束ね、RunExtractAndTranslate を端から端まで通し、観測結果を捕獲する。
@@ -42,7 +39,7 @@ func Run(cfg RunConfig) (Capture, error) {
 	rec := &RecordingProvider{}
 	eng := engine.New(s, rec, cfg.Lexicon, cfg.RoleSpeech, cfg.Stoplist)
 	// harness は同期経路（RunExtractAndTranslate）だけを通す結合テスト基盤のため、batch runner は nil。
-	app := api.New(s, eng, nil, rec, cfg.TermsXMLDir, cfg.Extractor)
+	app := api.New(s, eng, nil, rec, cfg.Extractor)
 
 	runResult, runErr := app.RunExtractAndTranslate(api.RunRequest{PluginPath: cfg.PluginPath, Model: cfg.Model})
 	if runErr != nil {
@@ -61,15 +58,11 @@ func Run(cfg RunConfig) (Capture, error) {
 	return Capture{Model: cfg.Model, TranslatedCount: runResult.TranslatedCount, Prompts: rec.Prompts(), DBState: dbState}, nil
 }
 
-// SyntheticRun は合成 fixture で非劣化 harness を回す。XML を xmlDir へ書き、SeedExtractor・最小辞書を組んで Run へ渡す。
+// SyntheticRun は合成 fixture で非劣化 harness を回す。SeedExtractor・最小辞書を組んで Run へ渡す。
+// 固有名の確定訳語・参照訳の供給は fixture の英日対（SeedField.Dest）が担う（XML 直読みは廃止）。
 // CI 恒久の回帰網（著作物を含まない自作入力）の実行点。
-func SyntheticRun(dbPath, xmlDir string) (Capture, error) {
+func SyntheticRun(dbPath string) (Capture, error) {
 	f := SyntheticFixture()
-	// ファイル名接頭を base ゲーム（Skyrim*）にして、固有名派生の姓名分割（two）経路まで通す。
-	// 派生は base ゲーム由来の XML 限定のため、合成入力でもこの経路を golden で守るには接頭を合わせる。
-	if err := os.WriteFile(filepath.Join(xmlDir, "Skyrim_Synthetic.xml"), []byte(f.TermsXML), 0o600); err != nil {
-		return Capture{}, fmt.Errorf("合成 XML の書き出し: %w", err)
-	}
 	roleSpeech, err := rolespeech.ParseRoleSpeech(strings.NewReader(syntheticRoleSpeech))
 	if err != nil {
 		return Capture{}, fmt.Errorf("合成役割語の構築: %w", err)
@@ -79,14 +72,13 @@ func SyntheticRun(dbPath, xmlDir string) (Capture, error) {
 		return Capture{}, fmt.Errorf("合成 stoplist の構築: %w", err)
 	}
 	return Run(RunConfig{
-		DBPath:      dbPath,
-		Extractor:   &SeedExtractor{DBPath: dbPath, Fixture: f},
-		Lexicon:     fakeLexicon{},
-		RoleSpeech:  roleSpeech,
-		Stoplist:    stop,
-		TermsXMLDir: xmlDir,
-		PluginPath:  f.PluginName,
-		Model:       "fake-model",
+		DBPath:     dbPath,
+		Extractor:  &SeedExtractor{DBPath: dbPath, Fixture: f},
+		Lexicon:    fakeLexicon{},
+		RoleSpeech: roleSpeech,
+		Stoplist:   stop,
+		PluginPath: f.PluginName,
+		Model:      "fake-model",
 	})
 }
 

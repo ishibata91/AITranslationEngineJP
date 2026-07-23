@@ -173,6 +173,7 @@ erDiagram
         TEXT field "フィールド"
         INTEGER ordinal "フィールド"
         TEXT source "原文"
+        TEXT dest "既訳（英日 Strings が揃う行のみ非空）"
     }
     extracted_info_speaker {
         TEXT info_plugin FK
@@ -257,13 +258,13 @@ erDiagram
 | テーブル | 由来（どの実現方式か） | カラム | 一意制約 |
 |---|---|---|---|
 | master_term | 固有名の確定訳を Mod 横断で永続するマスター辞書（権威訳）。`proper_noun`（実行内 AI 訳）と分離 | source, dest, category | UNIQUE(category, source) |
-| reference_translation | 本文（叙述文・台詞）の既存訳（参照訳）。xTranslator 英日 XML から record 単位で取り込み、翻訳前に (rec, field, source) 完全一致で既訳を流用する。FormID を持たない XML に合わせ照合は rec:field＋原文、plugin 非依存 | rec, field, source, dest | UNIQUE(rec, field, source) |
+| reference_translation | 本文（叙述文・台詞）の既存訳（参照訳）。`extracted_field` の英日対（Data フォルダの english / japanese Strings 由来、dest 非空行）から取り込み、翻訳前に (rec, field, source) 完全一致で既訳を流用する。対象横断で同一原文を再利用するため照合は rec:field＋原文、plugin 非依存 | rec, field, source, dest | UNIQUE(rec, field, source) |
 | prompt_template | プロンプト構築の雛形（base 指示）。単一行 | base_directive, persona_template | PK(id=1) |
 | directive | REC:FIELD ごとの翻訳指示文。口調・文体・固有名・定型句を 1 つの「指示文」へ一般化（口調は `{traits}` 変数） | key, instruction, variables(JSON) | PK(key) |
 | record_type_master | REC:FIELD → box + directive の割り当て正本（取込段の振り分け表） | rec, field, box, directive(FK), logical_name | PK(rec, field) |
 | persona_character | 話者 box の口調属性を実現する生成ペルソナ（生成・キャッシュ） | speaker_plugin, speaker_form_id, attitude_band, emotion_band, marked, decision_path, hand_edited | UNIQUE(speaker_plugin, speaker_form_id) |
 | line_analysis | 台詞本文の解析キャッシュ（口調生成の中間、本文ハッシュで 1 度だけ） | source_hash, sentence_count, polite_count, insult_count, is_imperative, exclaim_count, elong_count, emotion_count | UNIQUE(source_hash) |
-| extracted_field | C# 抽出の生バッファ（箱判定前）。取込段が `record_type_master` で `narration`/`proper_noun`/`line` へ振り分ける | plugin, form_id, edid, rec, field, ordinal, source | UNIQUE(plugin, form_id, rec, field, ordinal) |
+| extracted_field | C# 抽出の生バッファ（箱判定前）。抽出器が english / japanese を両解決し、英日対のある行だけ dest に既訳を持つ。取込段が `record_type_master` で `narration`/`proper_noun`/`line` へ振り分け、dest 非空行は `reference_translation`・`master_term` の供給源になる | plugin, form_id, edid, rec, field, ordinal, source, dest | UNIQUE(plugin, form_id, rec, field, ordinal) |
 | extracted_info_speaker | INFO→speaker の橋渡し staging。`line` 作成後に `line_speaker` へ解決する | info_plugin, info_form_id, speaker_id(FK) | PK(info_plugin, info_form_id, speaker_id) |
 | extracted_info_condition | INFO→条件由来の性別の橋渡し staging。`line` 作成後に `line_condition` へ解決する | info_plugin, info_form_id, sex | PK(info_plugin, info_form_id) |
 | line_condition | 台詞の条件由来の性別（話者を解決できない汎用台詞の一人称・語尾の根拠）。台詞 1 件あたり 0..1 | line_id(PK,FK), sex | PK(line_id) |

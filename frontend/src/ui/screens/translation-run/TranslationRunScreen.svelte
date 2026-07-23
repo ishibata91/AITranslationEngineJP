@@ -5,6 +5,7 @@
   import TextField from "@ui/components/TextField.svelte"
   import SelectField from "@ui/components/SelectField.svelte"
   import ResultsPanel from "./ResultsPanel.svelte"
+  import MissingStringsWarning from "./MissingStringsWarning.svelte"
   import TranslationProgress from "./TranslationProgress.svelte"
   import BatchProgressPanel from "./BatchProgressPanel.svelte"
   import {
@@ -24,7 +25,8 @@
     NarrationResultRow,
     RunPhase,
     RunProgress,
-    ResultsPaging
+    ResultsPaging,
+    StringsPresence
   } from "./translation-run-view"
 
   interface Props {
@@ -40,6 +42,8 @@
     progress?: RunProgress
     // 結果一覧のページング表示値。未指定なら単一ページ（前後無効）として扱う。
     paging?: ResultsPaging
+    // 翻訳対象 plugin の Strings の言語別有無。未指定（未判定）なら警告を出さない。
+    stringsPresence?: StringsPresence
     onFieldInput: (field: TranslationRunFormField, value: string) => void
     onLoadModels: () => void
     onRun: () => void
@@ -56,16 +60,10 @@
     onProviderChange?: (provider: TranslationProvider) => void
     // xAI の batch 送信操作（plugin 単位）。
     onSubmit?: () => void
-    // xAI の batch 反映操作（旧仕様。Container 互換のため残す。現在の表示では使わない）。
-    onRefresh?: () => void
     // 送信の可否。接続情報とモデルが揃ったら true。
     canSubmit?: boolean
-    // 反映の可否（旧仕様。Container 互換のため残す。現在の表示では使わない）。
-    canRefresh?: boolean
     // 送信中フラグ。true の間は送信ボタンを無効化しスピナーを出す。
     submitting?: boolean
-    // 反映中フラグ（旧仕様。Container 互換のため残す。現在の表示では使わない）。
-    refreshing?: boolean
     // xAI の送信・取り込みの結果として出す案内。空なら出さない。
     notice?: string
     // xAI batch の進行状況（状態確認で取得）。未指定なら未確認としてパネルを控えめに出す。
@@ -76,8 +74,6 @@
     checking?: boolean
     // xAI の取り込み操作（完了段を dest へ取り込み、次段 batch を送る）。
     onApply?: () => void
-    // 取り込みの可否（旧仕様。Container 互換のため残す。現在の主アクションの活性は batchProgress.canApply から導く）。
-    canApply?: boolean
     // 取り込み中フラグ。true の間は取り込みボタンにスピナーを出す。
     applying?: boolean
   }
@@ -92,6 +88,7 @@
     errorMessage,
     progress,
     paging,
+    stringsPresence = undefined,
     onFieldInput,
     onLoadModels,
     onRun,
@@ -159,6 +156,7 @@
           {:else}
             <span class="text-base-content/45">翻訳対象プラグインが選ばれていません。</span>
           {/if}
+          <MissingStringsWarning presence={stringsPresence} />
         </div>
 
         <div class="flex flex-col gap-4">

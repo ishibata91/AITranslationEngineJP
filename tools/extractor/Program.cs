@@ -10,7 +10,7 @@ using Mutagen.Bethesda.Strings;
 //   dotnet run --project tools/extractor -- --data dictionaries/Data --plugin Dawnguard.esm \
 //       --xml dictionaries/xTranslatorXMLs/Dawnguard_english_japanese.xml
 
-string? dataFolder = null, plugin = null, xmlPath = null, dumpRecField = null, sqlitePath = null, schemaDir = null, termsXmlDir = null;
+string? dataFolder = null, plugin = null, xmlPath = null, dumpRecField = null, sqlitePath = null, schemaDir = null;
 var language = Language.English;
 
 for (var i = 0; i < args.Length; i++)
@@ -23,7 +23,6 @@ for (var i = 0; i < args.Length; i++)
         case "--dump": dumpRecField = Next(ref i).ToUpperInvariant(); break;
         case "--sqlite": sqlitePath = Next(ref i); break;
         case "--schema": schemaDir = Next(ref i); break;
-        case "--terms-xml": termsXmlDir = Next(ref i); break;
         case "--language": language = Enum.Parse<Language>(Next(ref i), ignoreCase: true); break;
         case "--help" or "-h": PrintUsage(); return 0;
         default:
@@ -72,20 +71,10 @@ if (sqlitePath != null)
     var emoCount = InfoEmotionSqliteWriter.Write(sqlitePath, dir, result);
     Console.WriteLine($"[sqlite] INFO 応答の感情型 {emoCount} 件を {sqlitePath} へ書き込み（{sw.ElapsedMilliseconds} ms）");
 
-    // T3 の固有名辞書（master_term）。xTranslator 英日辞書 XML（公式日本語版既訳）から FULL を読み、
-    // 叙述文・台詞の本文へ機械置換するための「原語 → 確定訳語」を書く。
-    // 既定は data folder の兄弟 xTranslatorXMLs、--terms-xml で上書きできる。
-    var xmlDir = termsXmlDir ?? Path.Combine(dataFolder, "..", "xTranslatorXMLs");
-    if (Directory.Exists(xmlDir))
-    {
-        var termXmls = Directory.GetFiles(xmlDir, "*.xml");
-        var termCount = MasterTermXmlWriter.Write(sqlitePath, dir, termXmls);
-        Console.WriteLine($"[sqlite] master_term {termCount} 件を {termXmls.Length} 個の XML から {sqlitePath} へ書き込み（{sw.ElapsedMilliseconds} ms）");
-    }
-    else
-    {
-        Console.WriteLine($"[sqlite] 固有名辞書の XML ディレクトリが無い（{xmlDir}）。master_term は作らない。");
-    }
+    // 固有名の確定訳語（master_term）と参照訳（reference_translation）は、extracted_field の
+    // 英日対（dest 非空行）から Go 側（DeriveMasterTerms / LoadReferenceTranslations）が組む。
+    // 抽出時の日本語解決の観測（dest 非空行数）だけをここに出す。
+    Console.WriteLine($"[sqlite] 英日対（japanese 解決済み field）{result.JapanesePairs.Count} 件（dest の供給源）");
     return 0;
 }
 
@@ -161,9 +150,8 @@ static void PrintUsage()
         使い方: extractor --data <DataFolder> --plugin <name.esp> [--sqlite <db>] [--xml <xTranslator XML>] [--language Japanese]
           --data      Skyrim の Data 相当フォルダ（esm/esp/esl + Strings/）
           --plugin    抽出対象 plugin ファイル名（master は同フォルダから自動解決）
-          --sqlite    中心 DB（SQLite）へ全 REC:FIELD の原文（extracted_field）と話者属性を書き込む。書込後に終了する
+          --sqlite    中心 DB（SQLite）へ全 REC:FIELD の原文と日本語既訳（extracted_field）と話者属性を書き込む。書込後に終了する
           --schema    --sqlite 用の migrations ディレクトリ（既定 repo の db/migrations を自動探索）
-          --terms-xml 固有名辞書（master_term）の供給元 xTranslator 英日 XML ディレクトリ（既定 data の兄弟 xTranslatorXMLs）
           --xml       xTranslator 辞書 XML と REC:FIELD 件数比較を行う（不一致なら exit 2）
           --language  localized strings の言語（既定 English。翻訳元テキストを解決する）
         """);

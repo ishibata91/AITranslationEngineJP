@@ -1,3 +1,6 @@
+// Package termxml は翻訳結果を xTranslator XML（SSTXMLRessources 形式）へ書き出す純粋ルール。
+// ファイル I/O は持たない。かつて持っていた XML 直読み（参照訳・固有名の取り込み）は
+// Data フォルダの Strings 由来（extracted_field の英日対）へ移して廃止した。書き出しだけが残る。
 package termxml
 
 import (

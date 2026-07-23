@@ -35,11 +35,11 @@ esac
 # golden 出力先の親ディレクトリを用意する（gitignore 配下を想定）。正規化後に作る。
 mkdir -p "$(dirname "$golden")"
 
-# gitignore のデータ（実辞書・xTranslator XML）は worktree に展開されないため、元 repo の絶対パスで渡す。
+# gitignore のデータ（実辞書）は worktree に展開されないため、元 repo の絶対パスで渡す。
+# 既存訳の供給は plugin と同じ Data フォルダの Strings（C# 抽出器が extracted_field.dest へ書く）が担う。
 # schema・C# project は追跡済みで worktree 側にあるため、そちらの相対既定を使う。
 # role-speech.tsv も追跡済みだが、compare を任意ディレクトリで回せるよう絶対パスで揃えて渡す。
 nrc_path="$repo_root/dictionaries/nrc-emolex.txt"
-xml_dir="$repo_root/dictionaries/xTranslatorXMLs"
 roles_path="$repo_root/assets/role-speech.tsv"
 
 # 指定 ref を一時 worktree へ展開し、その時点のコードで goldcap を build・実行する。
@@ -52,8 +52,8 @@ git worktree add --detach "$worktree" "$ref" >/dev/null
 
 cd "$worktree"
 echo "capture.sh: goldcap で golden を捕獲する -> $golden"
-go run ./cmd/goldcap -mode capture -plugin "$plugin" -golden "$golden" -nrc "$nrc_path" -xml "$xml_dir" -roles "$roles_path"
+go run ./cmd/goldcap -mode capture -plugin "$plugin" -golden "$golden" -nrc "$nrc_path" -roles "$roles_path"
 
 echo "capture.sh: 完了。golden=$golden"
 echo "capture.sh: 比較はリファクタ後の作業ツリーの repo root で次を実行する:"
-echo "  (cd '$repo_root' && go run ./cmd/goldcap -mode compare -plugin '$plugin' -golden '$golden' -nrc '$nrc_path' -xml '$xml_dir' -roles '$roles_path')"
+echo "  (cd '$repo_root' && go run ./cmd/goldcap -mode compare -plugin '$plugin' -golden '$golden' -nrc '$nrc_path' -roles '$roles_path')"

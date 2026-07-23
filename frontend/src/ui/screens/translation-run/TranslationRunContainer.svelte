@@ -11,7 +11,8 @@
     NarrationResultRow,
     RunPhase,
     RunProgress,
-    ResultsPaging
+    ResultsPaging,
+    StringsPresence
   } from "./translation-run-view"
   import {
     SUBMIT_NOTICE,
@@ -20,6 +21,7 @@
   } from "./translation-run-presentation"
   import {
     fetchModels,
+    fetchStringsPresence,
     fetchXaiModels,
     runExtractAndTranslate,
     submitBatchTranslation,
@@ -84,9 +86,6 @@
   const canSubmit = $derived(
     provider === "xai" && pluginPath.length > 0 && model.length > 0 && !submitting
   )
-  // xAI の取り込み可否。状態確認で得た進行状況に完了段があるとき true（主アクションの活性根拠にそろえる）。
-  const canApply = $derived(provider === "xai" && (batchProgress?.canApply ?? false))
-
   const paging: ResultsPaging = $derived({
     total,
     pageNumber: pageIndex + 1,
@@ -177,13 +176,31 @@
     phase = "idle"
   }
 
-  // 対象 plugin が変わったら進行状況と案内をクリアする（別 plugin の状態を持ち越さない）。
+  // 対象 plugin の Data フォルダにある Strings の言語別有無。undefined は未判定（警告を出さない）。
+  // 片側欠けだと既存訳（参照訳・固有名の確定訳語）の対を作れないため、画面警告の判定材料として取得する。
+  let stringsPresence = $state<StringsPresence | undefined>(undefined)
+
+  async function loadStringsPresence(path: string) {
+    if (path.length === 0) {
+      stringsPresence = undefined
+      return
+    }
+    try {
+      stringsPresence = await fetchStringsPresence(path)
+    } catch {
+      // 判定に失敗しても翻訳自体は進められるため、未判定（警告なし）のまま続行する。
+      stringsPresence = undefined
+    }
+  }
+
+  // 対象 plugin が変わったら進行状況と案内をクリアし（別 plugin の状態を持ち越さない）、Strings の有無を判定し直す。
   let lastPlugin = $state("")
   $effect(() => {
     if (pluginName !== lastPlugin) {
       lastPlugin = pluginName
       batchProgress = undefined
       notice = ""
+      void loadStringsPresence(pluginPath)
     }
   })
 
@@ -325,7 +342,7 @@
   {onCheckStatus}
   {checking}
   {onApply}
-  {canApply}
   {applying}
   {notice}
+  {stringsPresence}
 />

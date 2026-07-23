@@ -1,7 +1,6 @@
 package harness
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 )
@@ -14,11 +13,7 @@ import (
 func TestSyntheticDeterministic(t *testing.T) {
 	run := func() string {
 		dir := t.TempDir()
-		xmlDir := filepath.Join(dir, "xml")
-		if err := os.MkdirAll(xmlDir, 0o750); err != nil {
-			t.Fatalf("XML ディレクトリの作成: %v", err)
-		}
-		result, err := SyntheticRun(filepath.Join(dir, "synthetic.sqlite3"), xmlDir)
+		result, err := SyntheticRun(filepath.Join(dir, "synthetic.sqlite3"))
 		if err != nil {
 			t.Fatalf("合成 harness の実行: %v", err)
 		}

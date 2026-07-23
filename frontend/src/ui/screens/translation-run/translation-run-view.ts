@@ -26,6 +26,16 @@ export interface BatchProgressView {
   canApply: boolean
 }
 
+// 翻訳対象 plugin の Data フォルダにある Strings の言語別有無。
+// english / japanese の片方でも欠けると英日対を作れず、既存訳（参照訳・固有名の確定訳語）を再利用できない。
+// 判定は backend が行い、ここは表示専用の値。
+export interface StringsPresence {
+  // 英語 Strings（*_english.strings / .dlstrings / .ilstrings）があるか。
+  english: boolean
+  // 日本語 Strings（*_japanese.strings / .dlstrings / .ilstrings）があるか。
+  japanese: boolean
+}
+
 // 実行の進行段階。表示の出し分けに使う。
 export type RunPhase = "idle" | "running" | "done" | "error"
 

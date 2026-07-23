@@ -13,4 +13,6 @@ type ExtractedField struct {
 	Field   string `db:"field"`
 	Ordinal int    `db:"ordinal"`
 	Source  string `db:"source"`
+	// Dest は日本語既訳（英日 Strings が両方あった field のみ非空）。参照訳・固有名の確定訳語の供給源。
+	Dest string `db:"dest"`
 }

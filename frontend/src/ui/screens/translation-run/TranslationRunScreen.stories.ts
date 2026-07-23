@@ -4,6 +4,7 @@ import {
   EMPTY_STATE,
   MODELS_LOADING_STATE,
   READY_STATE,
+  MISSING_JAPANESE_STRINGS_STATE,
   RUNNING_EXTRACT_STATE,
   RUNNING_TRANSLATE_STATE,
   DONE_STATE,
@@ -36,7 +37,6 @@ const meta = {
     onPageNext: () => {},
     onProviderChange: () => {},
     onSubmit: () => {},
-    onRefresh: () => {},
     onCheckStatus: () => {},
     onApply: () => {}
   }
@@ -61,6 +61,13 @@ export const ModelsLoading: Story = {
 export const Ready: Story = {
   name: "入力済み",
   args: { ...READY_STATE }
+}
+
+// 入力済みだが日本語 Strings が無い。翻訳対象の直下に警告が出る（既存訳を再利用できない旨）。
+// Storybook 人間レビュー中の追加 story（xai-batch-ui と同じく既存 title のまま追加）。
+export const MissingJapaneseStrings: Story = {
+  name: "日本語 Strings 欠け",
+  args: { ...MISSING_JAPANESE_STRINGS_STATE }
 }
 
 // 実行中（台詞抽出）。不定の進捗バーが出る。

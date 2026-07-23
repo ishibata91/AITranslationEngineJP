@@ -89,7 +89,7 @@ flowchart TB
 
 - `api`: Wails Bind の公開面。辞書・ルール・設定の CRUD を `store` へ素通しし、翻訳ジョブを `engine` の goroutine として起動し、進捗を runtime events で push する。
 - `engine`: 翻訳手続きの本体（orchestration）。中心データを読み、取込段で抽出生テーブルを種別ごとに箱別テーブル（叙述文・固有名・定型句・台詞）へ振り分け（重複排除を含む）、辞書解決・ペルソナ生成のうえ、固有名を本文より先に訳す固有名フェーズ→叙述文・定型句・台詞の本文フェーズの順に AI 翻訳し、配置へ書き戻し、xTranslator XML を出力する純 Go の手続き。GUI から切り離して単体テストでき、CLI からも起動できる。翻訳プロンプトの組み立て・固有名派生・役割語照合などの純粋不変ルールは `core` が持ち、`engine` は store・provider・os の IO を伴ってそれらを束ねる。完成プロンプトを `provider` へ渡す。
-- `core`: 副作用のない決定的な計算ロジック（functional core）の集積。`internal/core/<name>` に純粋不変ルールを 1 つずつ別 package で持つ（辞書置換 `dictionary`、プロンプト組立 `prompt`、固有名派生 `termderive`・用法集計 `termusage`・XML 解析 `termxml`、役割語 `rolespeech`、行特徴抽出 `linefeatures`、口調指示組立 `personatone`、基底口調分類 `tone`、batch 管理の決定規則 `batchplan`）。os・provider・store・engine を import せず、`engine`・`api` 等が一方向に import する。不変ルールはユニットテスト 100% カバレッジを基準にする。
+- `core`: 副作用のない決定的な計算ロジック（functional core）の集積。`internal/core/<name>` に純粋不変ルールを 1 つずつ別 package で持つ（辞書置換 `dictionary`、プロンプト組立 `prompt`、固有名派生 `termderive`・用法集計 `termusage`、役割語 `rolespeech`、行特徴抽出 `linefeatures`、口調指示組立 `personatone`、基底口調分類 `tone`、batch 管理の決定規則 `batchplan`）。os・provider・store・engine を import せず、`engine`・`api` 等が一方向に import する。不変ルールはユニットテスト 100% カバレッジを基準にする。
 - `store`: SQLite への薄いデータアクセス。sqlx を使い、entity ごとの repository interface は作らず関数で持つ。プロンプトテンプレート（base 指示・口調指示の雛形）の CRUD を含む。残存の keyring secret store を secret 子に置く。
 - `provider`: AI クライアントの port と実装。多態 port を 2 つ持つ。同期の `Translator`（完成プロンプトを 1 件ずつ送り即時に訳文を受ける。OpenAI 互換・LM Studio 実装）と、非同期の `BatchTranslator`（大量リクエストを batch で送り、後から状態確認と結果取得を行う。xAI batch 実装）。どちらも `engine` が組んだ完成プロンプトを受け取って送るだけで、プロンプトの文面構築はしない。
 - `model`: [`concept-model.md`](./concept-model.md) の箱に対応するデータ構造。`engine` と `store` が参照する。
@@ -97,7 +97,7 @@ flowchart TB
 
 ### 別プロセス（C#/.NET）
 
-- `extractor`（Mutagen）: Skyrim の Data folder を明示パスで読み、対象 plugin を抽出し、結果を SQLite へ書く。抽出の正しさは C# テスト（`CountParityTests` / `ModelInvariantTests`）で担保する。
+- `extractor`（Mutagen）: Skyrim の Data folder を明示パスで読み、対象 plugin の各 field を english と japanese の 2 言語で解決して抽出し、結果（原文 source と、英日対のある行の訳文 dest）を SQLite へ書く。抽出の正しさは C# テスト（`ModelInvariantTests` / `ExtractedFieldSqliteWriterTests` ほか）で担保する。
 
 ### 中心データ・外部資源
 
@@ -122,8 +122,8 @@ flowchart TB
     - `main`（root）→ `bootstrap`。
     - `bootstrap` → `api`・`engine`・`provider`・`store`・`lexicon`・`rolespeech`（concrete を new し、asset の os 読みを行う唯一の層）。
     - `api` → `model`・`provider`・`engine`・`dictionary`・`prompt`。
-    - `engine` → `model`・`provider`・`core/*`（`dictionary`・`prompt`・`termderive`・`termxml`・`rolespeech`・`linefeatures`・`personatone`・`tone`・`batchplan`）。`engine` は orchestration として core の純粋ルールを一方向に import する。
-    - `core/*`（`internal/core/<name>`、functional core）は純粋ルール。内部依存は一方向のみ（`prompt`→`provider`、`batchplan`→`provider`・`model`、`termusage`→`termderive`、`termxml`→`termderive`・`termusage`、`linefeatures`→`tone`、`personatone`→`tone`・`model`・`rolespeech`）。`dictionary`・`termderive`・`rolespeech`・`tone` は leaf。core は engine・store・os を import しない。
+    - `engine` → `model`・`provider`・`core/*`（`dictionary`・`prompt`・`termderive`・`termusage`・`rolespeech`・`linefeatures`・`personatone`・`tone`・`batchplan`）。`engine` は orchestration として core の純粋ルールを一方向に import する。
+    - `core/*`（`internal/core/<name>`、functional core）は純粋ルール。内部依存は一方向のみ（`prompt`→`provider`、`batchplan`→`provider`・`model`、`termusage`→`termderive`、`linefeatures`→`tone`、`personatone`→`tone`・`model`・`rolespeech`）。`dictionary`・`termderive`・`rolespeech`・`tone` は leaf。core は engine・store・os を import しない。
     - `store` → `model`・`migrations`。`secret` は store 子（残存の keyring）。
     - `lexicon`（感情辞書 NRC の concrete アダプタ、os 読みを持つ）は leaf。`engine` は `core/linefeatures.EmotionLexicon` interface に依存し `lexicon` を import しない。
     - `harness`（合成 golden のテスト基盤）→ `api`・`engine`・`provider`・`store`・`linefeatures`・`rolespeech`。テスト用の composition root として層をまたぐことを明示的に許す。
@@ -159,7 +159,7 @@ flowchart TB
 - `internal/bootstrap`: composition root
 - `internal/api`: Wails Bind 公開面
 - `internal/engine`: 翻訳手続き pipeline（orchestration）。純粋ルールは `internal/core/*` を import して束ねる
-- `internal/core/`: 副作用のない純粋不変ルールの集積（functional core）。1 ルール 1 package（`dictionary`・`prompt`・`termderive`・`termusage`・`termxml`・`rolespeech`・`linefeatures`・`personatone`・`tone`・`batchplan`）。os・provider・store・engine を import しない
+- `internal/core/`: 副作用のない純粋不変ルールの集積（functional core）。1 ルール 1 package（`dictionary`・`prompt`・`termderive`・`termusage`・`rolespeech`・`linefeatures`・`personatone`・`tone`・`batchplan`）。os・provider・store・engine を import しない
 - `internal/store`: SQLite アクセス（sqlx）。keyring secret store は secret 子（`internal/store/secret`）に置く
 - `internal/provider`: AI クライアントの port と実装。多態 port 2 つ（同期 `Translator`・非同期 `BatchTranslator`）
 - `internal/model`: [`concept-model.md`](./concept-model.md) 対応のデータ構造
@@ -174,7 +174,7 @@ flowchart TB
 ### 別プロセス（`tools/` 配下）
 
 - `tools/extractor/`: C#/.NET Mutagen 抽出（SQLite writer を追加）
-- `tools/extractor.Tests/`: 抽出検証（`CountParityTests` / `ModelInvariantTests`）
+- `tools/extractor.Tests/`: 抽出検証（`ModelInvariantTests` / `ExtractedFieldSqliteWriterTests` / `OracleExtractionTests` ほか）
 
 ## 8. 現在の状態と移行（2026-06-14）
 
@@ -184,4 +184,5 @@ flowchart TB
 - T4（prompt-persona-customization、2026-06-20）で次を足した。プロンプト構築を `provider` から `engine` の純粋関数へ移し、`provider` は完成プロンプトを送るだけにした。プロンプトテンプレート（base 指示・口調指示の雛形）を中心 DB の専用テーブル `prompt_template`（単一行）へ永続し、抽出データと別に保つ。`api` の Wails 公開面に `GetPromptTemplate` / `SavePromptTemplate` を足した。結果取得（`ListResultsPage`）は各行で辞書とテンプレートを当て直し、機械置換内訳（`ResultView.terms`）と実プロンプト（`ResultView.prompt`）を再構成して供給する。口調指示は `prompt_template` の口調テンプレートの `{traits}` へ話者の性質列を差し込んで組む。
 - record-type-translation-expansion（2026-06-23）で次を足した。翻訳対象を `BOOK:DESC`・`INFO:NAM1` の 2 種別から全 translatable REC:FIELD へ広げた。C# 抽出器を箱判定なしの素朴吸い出しにし、箱の振り分けを `engine` の取込段（`extracted_field` → `record_type_master` で `narration`／`proper_noun`／`line` へ）へ集約した。固有名を本文より先に確定する固有名フェーズを足し、確定訳は `master_term`（権威訳）∪ `proper_noun`（実行内の AI 訳）を本文へ機械置換注入する。プロンプトを Base 指示 ＋ REC:FIELD ごとの指示文（`directive`、口調は `{traits}` 変数）へ一般化し、口調指示の供給を `prompt_template` の口調テンプレートから口調 `directive` へ移した。`api` の Wails 公開面に `GetDirectiveEditing` / `SaveDirective` を足した。
 - gemini-xai-batch-translation（2026-07-20）で xAI の非同期 batch 配送を足した。`provider` に 2 つ目の多態 port `BatchTranslator`（送信・状態確認・結果取得）と xAI 実装（`XAIBatch`、batch 専用）を足し、同期 `Translator`（`OpenAICompatible`）は変えない。batch の管理（送信・状態解釈・進行段遷移・結果適用・再送信可否）の純粋規則を `internal/core/batchplan`（100% カバレッジ）へ寄せ、IO は `engine` の薄いシェルが束ねる。xAI の翻訳は固有名 batch → 本文 batch の 2 段逐次で、送信の時点と反映の時点（起動時・画面操作の時点だけ状態確認）に割れる。batch 固有の永続（外部 batch ID・送信行対応・進行段）は専用テーブル（`batch_translation`・`batch_request`、migration 0013）へ閉じ、対象 plugin 単位の永続（`target_plugin`）の削除に手続き DELETE で連動する。結果適用（既存訳流用・タグ欠落 skip・skippable 失敗 skip）は同期と共有し、外から見て同期と batch の結果は区別が付かない。UI 導線は後続 task。
+- strings-based-reference（2026-07-24）で参照訳と固有名の確定訳語の供給源を xTranslator 英日 XML から Data フォルダの Strings（english / japanese）へ移した。C# `extractor` が両言語を解決して `extracted_field` の dest 列（migration 0014）へ日本語本文を書き、`engine` は DB（`extracted_field`・`record_type_master`）だけから `reference_translation`・`master_term` を組む（`DeriveMasterTerms` に FULL 完全形→派生の固定順で集約）。XML 読み込み経路（`core/termxml`・`MasterTermXmlWriter`・termsXMLDir 配線）を削除し、`engine` は `termderive`・`termusage` を直接 import する。`api` の Wails 公開面に `GetStringsPresence`（Data フォルダの Strings の言語別有無判定。片側欠け時の画面警告の判定材料）を足した。xTranslator XML は出力専用として残る。
 - 本骨格への再構築は `docs/exec-plans/active/` の active plan で進める。

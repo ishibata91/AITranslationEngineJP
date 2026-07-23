@@ -43,9 +43,9 @@ func seedFixture(db *sqlx.DB, f Fixture) error {
 	}
 	for _, ef := range f.ExtractedFields {
 		if _, err := tx.Exec(
-			`INSERT INTO extracted_field (plugin, form_id, edid, rec, field, ordinal, source)
-			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-			ef.Plugin, ef.FormID, ef.EDID, ef.Rec, ef.Field, ef.Ordinal, ef.Source); err != nil {
+			`INSERT INTO extracted_field (plugin, form_id, edid, rec, field, ordinal, source, dest)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			ef.Plugin, ef.FormID, ef.EDID, ef.Rec, ef.Field, ef.Ordinal, ef.Source, ef.Dest); err != nil {
 			return fmt.Errorf("extracted_field の seed (%s:%s %s): %w", ef.Rec, ef.Field, ef.FormID, err)
 		}
 	}

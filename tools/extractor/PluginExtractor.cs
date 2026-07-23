@@ -43,6 +43,17 @@ public static class PluginExtractor
     // localized string を解決する。strings file に entry が無い場合は空として扱う。
     private static string S(ITranslatedStringGetter? t) => t?.String ?? "";
 
+    // 英語（翻訳元）に加えて日本語の Strings も同じ field から解決し、両方非空なら英日対を
+    // result.JapanesePairs へ残して英語を返す。日本語は data folder に *_japanese の Strings が
+    // 有る時だけ解決できる（片側しか無い field は対にならず、extracted_field.dest は空のまま）。
+    private static string S2(ExtractionResult result, FormKey id, string recField, ITranslatedStringGetter? t)
+    {
+        var en = t?.String ?? "";
+        if (en.Length > 0 && t != null && t.TryLookup(Language.Japanese, out var ja) && !string.IsNullOrEmpty(ja))
+            result.JapanesePairs[(id, recField, en)] = ja;
+        return en;
+    }
+
     private static string Edid(IMajorRecordGetter rec) => rec.EditorID ?? "";
 
     private static bool Any(params string[] texts) => texts.Any(t => t.Length > 0);
@@ -54,10 +65,10 @@ public static class PluginExtractor
         foreach (var topic in env.TargetMod.DialogTopics)
         {
             var infos = topic.Responses
-                .Select(info => ExtractInfoNode(env, topic, info))
+                .Select(info => ExtractInfoNode(env, result, topic, info))
                 .ToList();
 
-            var name = S(topic.Name);
+            var name = S2(result, topic.FormKey, "DIAL:FULL", topic.Name);
             if (name.Length == 0 && infos.Count == 0) continue; // 出すものが無い
 
             // container 規則: 所有 INFO を持つ topic は FULL を text 不変でも所有する。
@@ -77,7 +88,7 @@ public static class PluginExtractor
         }
     }
 
-    private static InfoNode ExtractInfoNode(PluginEnvironment env, IDialogTopicGetter topic, IDialogResponsesGetter info)
+    private static InfoNode ExtractInfoNode(PluginEnvironment env, ExtractionResult result, IDialogTopicGetter topic, IDialogResponsesGetter info)
     {
         // r2a: 名指し話者。ANAM、GetIsID（NPC_/TACT）、GetIsAliasRef（quest alias の ALFR/ALUA）。
         var speakerIds = new List<FormKey>();
@@ -130,9 +141,9 @@ public static class PluginExtractor
             Id = info.FormKey,
             EditorId = Edid(info),
             IdenticalToMaster = !env.OwnsRecord(info),
-            Prompt = S(info.Prompt),
+            Prompt = S2(result, info.FormKey, "INFO:RNAM", info.Prompt),
             Responses = info.Responses
-                .Select(r => new ResponseLine(r.ResponseNumber, S(r.Text), r.Emotion.ToString()))
+                .Select(r => new ResponseLine(r.ResponseNumber, S2(result, info.FormKey, "INFO:NAM1", r.Text), r.Emotion.ToString()))
                 .Where(r => r.Text.Length > 0)
                 .ToList(),
             // 同じ対象が ANAM と条件の両方から来ても 1 回だけ持つ（重複排除）。
@@ -223,14 +234,14 @@ public static class PluginExtractor
             var stages = quest.Stages
                 .Select(st => new QuestStageEntry(
                     st.Index,
-                    st.LogEntries.Select(le => S(le.Entry)).Where(t => t.Length > 0).ToList()))
+                    st.LogEntries.Select(le => S2(result, quest.FormKey, "QUST:CNAM", le.Entry)).Where(t => t.Length > 0).ToList()))
                 .Where(st => st.LogEntries.Count > 0)
                 .ToList();
             var objectives = quest.Objectives
-                .Select(ob => new QuestObjectiveEntry(ob.Index, S(ob.DisplayText)))
+                .Select(ob => new QuestObjectiveEntry(ob.Index, S2(result, quest.FormKey, "QUST:NNAM", ob.DisplayText)))
                 .Where(ob => ob.DisplayText.Length > 0)
                 .ToList();
-            var name = S(quest.Name);
+            var name = S2(result, quest.FormKey, "QUST:FULL", quest.Name);
             if (!Any(name) && stages.Count == 0 && objectives.Count == 0) continue;
 
             result.Quests.Add(new QuestEntry
@@ -259,8 +270,8 @@ public static class PluginExtractor
 
         foreach (var race in mod.Races)
         {
-            var name = S(race.Name);
-            var desc = S(race.Description);
+            var name = S2(result, race.FormKey, "RACE:FULL", race.Name);
+            var desc = S2(result, race.FormKey, "RACE:DESC", race.Description);
             if (!Any(name, desc)) continue;
             result.Races.Add(new RaceEntry
             {
@@ -273,50 +284,64 @@ public static class PluginExtractor
         {
             var owned = env.OwnsRecord(fact);
             var ranks = fact.Ranks
-                .Select(r => new RankTitle(S(r.Title?.Male), S(r.Title?.Female)))
+                .Select(r => new RankTitle(
+                    S2(result, fact.FormKey, "FACT:MNAM", r.Title?.Male),
+                    S2(result, fact.FormKey, "FACT:FNAM", r.Title?.Female)))
                 .Where(r => Any(r.Male, r.Female))
                 .ToList();
+            var factName = S2(result, fact.FormKey, "FACT:FULL", fact.Name);
             // 所有 FACT は名前空でも emit する（Pascal 版と同じ。翻訳 context に効く可能性があるため）。
-            if (!owned && S(fact.Name).Length == 0 && ranks.Count == 0) continue;
+            if (!owned && factName.Length == 0 && ranks.Count == 0) continue;
             result.Factions.Add(new FactionEntry
             {
                 Id = fact.FormKey, EditorId = Edid(fact), Kind = "FACT",
-                Name = S(fact.Name), Ranks = ranks, IdenticalToMaster = !owned,
+                Name = factName, Ranks = ranks, IdenticalToMaster = !owned,
             });
         }
 
 
         // Item 系（FULL のみ）: KEYM/MISC/LIGH/CONT/SLGM/DOOR/FURN/APPA
-        AddNamed(result.Items, env, mod.Keys, "KEYM", r => r.Name);
-        AddNamed(result.Items, env, mod.MiscItems, "MISC", r => r.Name);
-        AddNamed(result.Items, env, mod.Lights, "LIGH", r => r.Name);
-        AddNamed(result.Items, env, mod.Containers, "CONT", r => r.Name);
-        AddNamed(result.Items, env, mod.SoulGems, "SLGM", r => r.Name);
-        AddNamed(result.Items, env, mod.Doors, "DOOR", r => r.Name);
-        AddNamed(result.Items, env, mod.Furniture, "FURN", r => r.Name);
-        AddNamed(result.Items, env, mod.AlchemicalApparatuses, "APPA", r => r.Name);
-        AddNamed(result.Items, env, mod.Hazards, "HAZD", r => r.Name);
+        AddNamed(result.Items, env, result, mod.Keys, "KEYM", r => r.Name);
+        AddNamed(result.Items, env, result, mod.MiscItems, "MISC", r => r.Name);
+        AddNamed(result.Items, env, result, mod.Lights, "LIGH", r => r.Name);
+        AddNamed(result.Items, env, result, mod.Containers, "CONT", r => r.Name);
+        AddNamed(result.Items, env, result, mod.SoulGems, "SLGM", r => r.Name);
+        AddNamed(result.Items, env, result, mod.Doors, "DOOR", r => r.Name);
+        AddNamed(result.Items, env, result, mod.Furniture, "FURN", r => r.Name);
+        AddNamed(result.Items, env, result, mod.AlchemicalApparatuses, "APPA", r => r.Name);
+        AddNamed(result.Items, env, result, mod.Hazards, "HAZD", r => r.Name);
 
         // Activator 系（FULL + RNAM）: ACTI/FLOR/TREE
         foreach (var a in mod.Activators)
-            AddActivator(result, a.FormKey, Edid(a), "ACTI", S(a.Name), S(a.ActivateTextOverride), !env.OwnsRecord(a));
+            AddActivator(result, a.FormKey, Edid(a), "ACTI",
+                S2(result, a.FormKey, "ACTI:FULL", a.Name),
+                S2(result, a.FormKey, "ACTI:RNAM", a.ActivateTextOverride), !env.OwnsRecord(a));
         foreach (var a in mod.Florae)
-            AddActivator(result, a.FormKey, Edid(a), "FLOR", S(a.Name), S(a.ActivateTextOverride), !env.OwnsRecord(a));
+            AddActivator(result, a.FormKey, Edid(a), "FLOR",
+                S2(result, a.FormKey, "FLOR:FULL", a.Name),
+                S2(result, a.FormKey, "FLOR:RNAM", a.ActivateTextOverride), !env.OwnsRecord(a));
         foreach (var a in mod.Trees)
-            AddActivator(result, a.FormKey, Edid(a), "TREE", S(a.Name), "", !env.OwnsRecord(a));
+            AddActivator(result, a.FormKey, Edid(a), "TREE",
+                S2(result, a.FormKey, "TREE:FULL", a.Name), "", !env.OwnsRecord(a));
 
         // Equipment（FULL + DESC + EITM）: WEAP/ARMO/AMMO。
         // NonPlayable flag の装備は inventory に出ない（NPC 専用 skin 等）。
         foreach (var w in mod.Weapons)
-            AddDescribed(result.Equipment, w.FormKey, Edid(w), "WEAP", S(w.Name), S(w.Description), !env.OwnsRecord(w),
+            AddDescribed(result.Equipment, w.FormKey, Edid(w), "WEAP",
+                S2(result, w.FormKey, "WEAP:FULL", w.Name),
+                S2(result, w.FormKey, "WEAP:DESC", w.Description), !env.OwnsRecord(w),
                 enchantmentId: w.ObjectEffect.IsNull ? null : w.ObjectEffect.FormKey,
                 notPlayerFacing: w.MajorFlags.HasFlag(Weapon.MajorFlag.NonPlayable));
         foreach (var a in mod.Armors)
-            AddDescribed(result.Equipment, a.FormKey, Edid(a), "ARMO", S(a.Name), S(a.Description), !env.OwnsRecord(a),
+            AddDescribed(result.Equipment, a.FormKey, Edid(a), "ARMO",
+                S2(result, a.FormKey, "ARMO:FULL", a.Name),
+                S2(result, a.FormKey, "ARMO:DESC", a.Description), !env.OwnsRecord(a),
                 enchantmentId: a.ObjectEffect.IsNull ? null : a.ObjectEffect.FormKey,
                 notPlayerFacing: a.MajorFlags.HasFlag(Armor.MajorFlag.NonPlayable));
         foreach (var a in mod.Ammunitions)
-            AddDescribed(result.Equipment, a.FormKey, Edid(a), "AMMO", S(a.Name), S(a.Description), !env.OwnsRecord(a),
+            AddDescribed(result.Equipment, a.FormKey, Edid(a), "AMMO",
+                S2(result, a.FormKey, "AMMO:FULL", a.Name),
+                S2(result, a.FormKey, "AMMO:DESC", a.Description), !env.OwnsRecord(a),
                 notPlayerFacing: a.Flags.HasFlag(Ammunition.Flag.NonPlayable));
 
         // Consumable（FULL + DESC + Effects）: ALCH/SCRL/INGR。
@@ -324,38 +349,48 @@ public static class PluginExtractor
         // 正規化比較（OwnsRecord）だけで件数一致が成立し、参照経由の特別扱いは不要
         //（KnownDeltas 表が監視している）。
         foreach (var c in mod.Ingestibles)
-            AddDescribed(result.Consumables, c.FormKey, Edid(c), "ALCH", S(c.Name), S(c.Description), !env.OwnsRecord(c), Effects(c.Effects));
+            AddDescribed(result.Consumables, c.FormKey, Edid(c), "ALCH",
+                S2(result, c.FormKey, "ALCH:FULL", c.Name),
+                S2(result, c.FormKey, "ALCH:DESC", c.Description), !env.OwnsRecord(c), Effects(c.Effects));
         foreach (var c in mod.Scrolls)
-            AddDescribed(result.Consumables, c.FormKey, Edid(c), "SCRL", S(c.Name), S(c.Description), !env.OwnsRecord(c), Effects(c.Effects));
+            AddDescribed(result.Consumables, c.FormKey, Edid(c), "SCRL",
+                S2(result, c.FormKey, "SCRL:FULL", c.Name),
+                S2(result, c.FormKey, "SCRL:DESC", c.Description), !env.OwnsRecord(c), Effects(c.Effects));
         foreach (var c in mod.Ingredients)
-            AddDescribed(result.Consumables, c.FormKey, Edid(c), "INGR", S(c.Name), "", !env.OwnsRecord(c), Effects(c.Effects));
+            AddDescribed(result.Consumables, c.FormKey, Edid(c), "INGR",
+                S2(result, c.FormKey, "INGR:FULL", c.Name), "", !env.OwnsRecord(c), Effects(c.Effects));
 
         // Magic / Enchantment / MagicEffect
         foreach (var s in mod.Spells)
-            AddDescribed(result.Magic, s.FormKey, Edid(s), "SPEL", S(s.Name), S(s.Description), !env.OwnsRecord(s), Effects(s.Effects));
+            AddDescribed(result.Magic, s.FormKey, Edid(s), "SPEL",
+                S2(result, s.FormKey, "SPEL:FULL", s.Name),
+                S2(result, s.FormKey, "SPEL:DESC", s.Description), !env.OwnsRecord(s), Effects(s.Effects));
         foreach (var e in mod.ObjectEffects)
         {
             var owned = env.OwnsRecord(e);
+            var enchName = S2(result, e.FormKey, "ENCH:FULL", e.Name);
             // 所有 ENCH は名前空でも emit する（装備品付与で意味を持つ。Pascal 版と同じ）。
-            if (!owned && S(e.Name).Length == 0) continue;
+            if (!owned && enchName.Length == 0) continue;
             result.Enchantments.Add(new DescribedEntry
             {
                 Id = e.FormKey, EditorId = Edid(e), Kind = "ENCH",
-                Name = S(e.Name), Description = "", MagicEffectIds = Effects(e.Effects),
+                Name = enchName, Description = "", MagicEffectIds = Effects(e.Effects),
                 IdenticalToMaster = !owned,
             });
         }
         // HideInUI flag の MGEF は effect 名も説明も UI に出ない。
         foreach (var m in mod.MagicEffects)
-            AddDescribed(result.MagicEffects, m.FormKey, Edid(m), "MGEF", S(m.Name), S(m.Description), !env.OwnsRecord(m),
+            AddDescribed(result.MagicEffects, m.FormKey, Edid(m), "MGEF",
+                S2(result, m.FormKey, "MGEF:FULL", m.Name),
+                S2(result, m.FormKey, "MGEF:DNAM", m.Description), !env.OwnsRecord(m),
                 notPlayerFacing: m.Flags.HasFlag(MagicEffect.Flag.HideInUI));
 
         // Shout + Word of Power
         foreach (var sh in mod.Shouts)
         {
             var owned = env.OwnsRecord(sh);
-            var name = S(sh.Name);
-            var desc = S(sh.Description);
+            var name = S2(result, sh.FormKey, "SHOU:FULL", sh.Name);
+            var desc = S2(result, sh.FormKey, "SHOU:DESC", sh.Description);
             var wordIds = sh.WordsOfPower
                 .Where(w => !w.Word.IsNull)
                 .Select(w => w.Word.FormKey)
@@ -371,8 +406,8 @@ public static class PluginExtractor
         }
         foreach (var w in mod.WordsOfPower)
         {
-            var spelling = S(w.Name);          // FULL（龍語綴り、翻訳禁止）
-            var translation = S(w.Translation); // TNAM（翻訳対象）
+            var spelling = S(w.Name);          // FULL（龍語綴り、翻訳禁止のため対も採らない）
+            var translation = S2(result, w.FormKey, "WOOP:TNAM", w.Translation); // TNAM（翻訳対象）
             if (!Any(spelling, translation)) continue;
             result.Words.Add(new WordOfPowerEntry
             {
@@ -385,9 +420,9 @@ public static class PluginExtractor
         // Book
         foreach (var b in mod.Books)
         {
-            var title = S(b.Name);
-            var body = S(b.BookText);        // DESC（本文）
-            var author = S(b.Description);   // CNAM（SSEEdit 表示名 Description）
+            var title = S2(result, b.FormKey, "BOOK:FULL", b.Name);
+            var body = S2(result, b.FormKey, "BOOK:DESC", b.BookText);        // DESC（本文）
+            var author = S2(result, b.FormKey, "BOOK:CNAM", b.Description);   // CNAM（SSEEdit 表示名 Description）
             if (!Any(title, body, author)) continue;
             result.Books.Add(new BookEntry
             {
@@ -398,10 +433,10 @@ public static class PluginExtractor
         }
 
         // Location 系（FULL のみ）: LCTN/WRLD/CELL。CELL は worldspace 配下も含めて深く列挙する。
-        AddNamed(result.Locations, env, mod.Locations, "LCTN", r => r.Name);
+        AddNamed(result.Locations, env, result, mod.Locations, "LCTN", r => r.Name);
         foreach (var w in mod.Worldspaces)
         {
-            var name = S(w.Name);
+            var name = S2(result, w.FormKey, "WRLD:FULL", w.Name);
             if (name.Length == 0) continue;
             result.Locations.Add(new NamedEntry
             {
@@ -414,7 +449,7 @@ public static class PluginExtractor
             // CELL は DIAL と同様に container として働く。plugin が所有する子
             //（新規または変更された配置 ref / navmesh / 地形）を持つ override は
             // record data 不変でも対象になる。子まで master と同一の cell は対象にしない。
-            var name = S(cell.Name);
+            var name = S2(result, cell.FormKey, "CELL:FULL", cell.Name);
             if (name.Length == 0) continue;
             var hasOwnedChildren =
                 cell.Persistent.Concat(cell.Temporary).Any(env.OwnsRecord)
@@ -430,9 +465,9 @@ public static class PluginExtractor
         // Message（FULL + DESC + ITXT）
         foreach (var m in mod.Messages)
         {
-            var title = S(m.Name);
-            var body = S(m.Description);
-            var buttons = m.MenuButtons.Select(b => S(b.Text)).Where(t => t.Length > 0).ToList();
+            var title = S2(result, m.FormKey, "MESG:FULL", m.Name);
+            var body = S2(result, m.FormKey, "MESG:DESC", m.Description);
+            var buttons = m.MenuButtons.Select(b => S2(result, m.FormKey, "MESG:ITXT", b.Text)).Where(t => t.Length > 0).ToList();
             if (!Any(title, body) && buttons.Count == 0) continue;
             result.Messages.Add(new MessageEntry
             {
@@ -448,7 +483,7 @@ public static class PluginExtractor
         // LoadScreen（DESC のみ）
         foreach (var l in mod.LoadScreens)
         {
-            var body = S(l.Description);
+            var body = S2(result, l.FormKey, "LSCR:DESC", l.Description);
             if (body.Length == 0) continue;
             result.LoadingScreens.Add(new BodyEntry
             {
@@ -459,7 +494,9 @@ public static class PluginExtractor
 
         // Perk（FULL + DESC。EPF2/EPFD は非対象）
         foreach (var p in mod.Perks)
-            AddDescribed(result.Perks, p.FormKey, Edid(p), "PERK", S(p.Name), S(p.Description), !env.OwnsRecord(p));
+            AddDescribed(result.Perks, p.FormKey, Edid(p), "PERK",
+                S2(result, p.FormKey, "PERK:FULL", p.Name),
+                S2(result, p.FormKey, "PERK:DESC", p.Description), !env.OwnsRecord(p));
 
         // VoiceType（翻訳テキスト無し、識別子のみ）
         foreach (var v in mod.VoiceTypes)
@@ -474,11 +511,11 @@ public static class PluginExtractor
         }
 
         // Skyrim 追加 record: SNCT / EYES / REGN（docs/mutagen-migration-plan.md §8-4）
-        AddNamed(result.SoundCategories, env, mod.SoundCategories, "SNCT", r => r.Name);
-        AddNamed(result.Eyes, env, mod.Eyes, "EYES", r => r.Name);
+        AddNamed(result.SoundCategories, env, result, mod.SoundCategories, "SNCT", r => r.Name);
+        AddNamed(result.Eyes, env, result, mod.Eyes, "EYES", r => r.Name);
         foreach (var r in mod.Regions)
         {
-            var mapName = S(r.Map?.Name);
+            var mapName = S2(result, r.FormKey, "REGN:RDMP", r.Map?.Name);
             if (mapName.Length == 0) continue;
             result.Regions.Add(new RegionEntry
             {
@@ -488,13 +525,13 @@ public static class PluginExtractor
         }
     }
 
-    private static void AddNamed<T>(List<NamedEntry> list, PluginEnvironment env, IEnumerable<T> records, string kind,
+    private static void AddNamed<T>(List<NamedEntry> list, PluginEnvironment env, ExtractionResult result, IEnumerable<T> records, string kind,
         Func<T, ITranslatedStringGetter?> name)
         where T : class, IMajorRecordGetter
     {
         foreach (var rec in records)
         {
-            var resolved = S(name(rec));
+            var resolved = S2(result, rec.FormKey, $"{kind}:FULL", name(rec));
             if (resolved.Length == 0) continue;
             list.Add(new NamedEntry
             {
@@ -541,8 +578,8 @@ public static class PluginExtractor
         {
             // 新規 NPC_ は名前空でも emit する（ペルソナ名が必ず解決できる、v18 仕様）。
             // override は text がある場合だけ出す。
-            var name = S(npc.Name);
-            var shortName = S(npc.ShortName);
+            var name = S2(result, npc.FormKey, "NPC_:FULL", npc.Name);
+            var shortName = S2(result, npc.FormKey, "NPC_:SHRT", npc.ShortName);
             if (npc.FormKey.ModKey != mod.ModKey && !Any(name, shortName)) continue;
 
             var isFemale = npc.Configuration.Flags.HasFlag(NpcConfiguration.Flag.Female);
@@ -567,7 +604,7 @@ public static class PluginExtractor
 
         foreach (var tact in mod.TalkingActivators)
         {
-            var name = S(tact.Name);
+            var name = S2(result, tact.FormKey, "TACT:FULL", tact.Name);
             if (tact.FormKey.ModKey != mod.ModKey && !Any(name)) continue;
             result.Speakers.Add(new SpeakerEntry
             {

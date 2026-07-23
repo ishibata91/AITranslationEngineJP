@@ -147,11 +147,7 @@ func runSynthetic(t *testing.T) probe {
 	t.Helper()
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "synthetic.sqlite3")
-	xmlDir := filepath.Join(dir, "xml")
-	if err := os.MkdirAll(xmlDir, 0o750); err != nil {
-		t.Fatalf("XML ディレクトリの作成: %v", err)
-	}
-	captured, err := SyntheticRun(dbPath, xmlDir)
+	captured, err := SyntheticRun(dbPath)
 	if err != nil {
 		t.Fatalf("合成 harness の実行: %v", err)
 	}

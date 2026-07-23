@@ -10,7 +10,7 @@ import (
 )
 
 // extractedFieldColumns は extracted_field の SELECT 列。model.ExtractedField の db タグと対応する。
-const extractedFieldColumns = `id, plugin, form_id, edid, rec, field, ordinal, source`
+const extractedFieldColumns = `id, plugin, form_id, edid, rec, field, ordinal, source, dest`
 
 // ListExtractedFields は C# が素朴吸い出しした原文を全件返す。取込段が record_type_master で振り分ける入力。
 func (s *Store) ListExtractedFields(ctx context.Context) ([]model.ExtractedField, error) {
