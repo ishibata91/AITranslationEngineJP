@@ -47,15 +47,7 @@
 - **stoplist 外の一般語 1 語の固有名**: stopwords-en に無い「名前全体が一般語 1 語」の固有名（例: Chest・Door・Summonable・Close・Health）は従来どおり辞書へ載る。本文の文頭・文中の大文字出現に当たり得る。stopword リストの独自拡張はしない方針（外部配布リストで賄う）のため、対策するなら注入方式の変更（本文置換をやめ、用語対訳ヒントをプロンプトへ添付する方式）の検討になる。プロンプト設計の再検討を伴うため未着手である。
 - **管理用勢力・階級称号の機械判定基準**: 画面に出ない管理用の勢力名・階級称号（対話状態の内部フラグ用。実例 inigo.esp の FACT:MNAM "Yes"・"No"）を翻訳対象から機械的に除く基準は未確定である。候補だった FACT の Hidden from PC flag は実データ観測で不成立と確定した（Yes/No の供給源勢力に flag が無く、Skyrim.esm では既訳ありの実在勢力名 154 件が誤って落ちる。観測は `docs/exec-plans/completed/dictionary-false-positive-guard/plan.md`）。現状は stoplist が同綴りの一般語だけを止めている。
 
-## 6. 口調生成段が base ゲーム規模で遅い
-
-翻訳前の口調生成（`engine` の `LinePersonas` → `ensureFeatures` → `core/linefeatures.ExtractFeatures`）が単核の逐次走査で、台詞行数×話者数に比例して時間がかかる。
-
-- 実測: Dawnguard.esm（台詞 5069 行・話者 58 人）で約 1.5 時間（2026-07-24、strings-based-reference の手動 e2e で観測）。mod 規模（台詞数百行）では表面化しない。
-- hot spot は `linefeatures.ExtractFeatures` 内の `isImperative`（stack sample で確認）。
-- 対策候補は行特徴の計算結果の永続キャッシュ、話者単位の並列化、`isImperative` の計算量削減。方式は未確定である。
-
-## 7. 配布 app での C# 抽出子の同梱未整備
+## 6. 配布 app での C# 抽出子の同梱未整備
 
 C# 抽出子（`tools/extractor`、Mutagen）は dev 経路でしか動かない。`slow-plugin-extraction` task で dev 起動を `dotnet run --project` から publish 済み DLL 直実行へ切り替えたが、配布 app 向けの同梱は未整備である。配布ビルドを立てる時に対応する（対応するまで配布 app では抽出が動かない）。
 

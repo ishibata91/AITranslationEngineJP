@@ -52,6 +52,15 @@ func TestExtractFeaturesCounts(t *testing.T) {
 	}
 }
 
+// ExtractFeatures は 1 本文あたりの所要時間の基準。base ゲーム規模（ユニーク本文 数千件）の
+// 口調生成段の実行時間は、この 1 回あたりの時間×件数で決まる。
+func BenchmarkExtractFeatures(b *testing.B) {
+	lex := fakeLexicon{}
+	for b.Loop() {
+		ExtractFeatures("Get out of my way, fool. I must ask you to leave!", lex)
+	}
+}
+
 // ExtractFeatures は威圧の命令を 1、誘導の命令（道案内）を 0 に分ける（修正1の保証）。
 func TestExtractFeaturesImperativeVsGuidance(t *testing.T) {
 	lex := fakeLexicon{}

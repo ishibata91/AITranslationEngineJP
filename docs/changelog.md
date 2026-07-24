@@ -4,6 +4,21 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-07-24 口調生成段の高速化（prose 品詞モデルの共有）
+
+### 変更
+
+- `internal/core/linefeatures/linefeatures.go`: `isImperative` が使う prose の品詞タグ付けモデルを `sync.Once` で 1 回だけ構築し、`prose.UsingModel` で全呼び出しに共有。
+- `internal/core/linefeatures/linefeatures_test.go`: `BenchmarkExtractFeatures` を追加（性能退行の検出用）。
+- `internal/engine/engine.go`（`ensureFeatures`）・`internal/engine/persona_generate.go`（`ensureLineAnalyses`）: 解析ループの本文ごとに `ctx` のキャンセルを確認し、長時間の走査を途中で止められるようにする。
+
+### 判断
+
+- 遅さの主因は prose v2.0.0 の `prose.NewDocument` がモデル未指定時に呼び出しごとへ学習済み重み（gob）をデコードし直す実装だった（known-issues 旧 §6。Dawnguard.esm で約 1.5 時間、stack sample と prose ソース読解で特定）。モデルのタグ付け処理は内部状態を書き換えないため、共有だけで解消できる。
+- 対策候補にあった話者単位の並列化と `isImperative` の計算量削減は不採用。モデル共有で 1 本文あたり約 45.5ms → 約 0.17ms（Apple M4 実測、約 260 倍）になり、ユニーク本文 5 千件規模でも秒単位に収まるため。
+- 行特徴の永続キャッシュ（`line_analysis`、本文ハッシュがキー）は既存実装がそのまま機能しており変更しない。
+- 実測は benchmark による。実 app での再測定は、dev DB に前回実行の `line_analysis` キャッシュが残っていて初回相当の測定にならないため未実施。
+
 ## 2026-07-24 参照訳・確定訳語の供給源を xTranslator XML から Data フォルダの Strings へ移行
 
 ### 変更

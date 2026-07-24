@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"regexp"
 	"strings"
+	"sync"
 	"unicode"
 
 	"aitranslationenginejp/internal/core/tone"
@@ -129,10 +130,27 @@ func isGuidanceImperative(text string) bool {
 	return false
 }
 
+// proseModel は品詞タグ付けモデルを 1 回だけ構築して全呼び出しで共有する。
+// prose.NewDocument はモデル未指定だと呼び出しごとに学習済み重み（gob）を
+// デコードし直し、1 本文あたり数十 ms かかる（base ゲーム規模で時間単位の遅さになる）。
+// モデルのタグ付け処理は内部状態を書き換えないため、共有しても安全である。
+var (
+	proseModelOnce sync.Once
+	proseModel     *prose.Model
+)
+
+func sharedProseModel() *prose.Model {
+	proseModelOnce.Do(func() {
+		proseModel = prose.ModelFromData("en-shared")
+	})
+	return proseModel
+}
+
 // isImperative は文頭の意味トークンが動詞原形(VB)なら命令文とみなす。
 // prose の品詞解析（Penn Treebank の外部学習モデル）を参照する文構造判定。
 func isImperative(text string) bool {
 	doc, err := prose.NewDocument(text,
+		prose.UsingModel(sharedProseModel()),
 		prose.WithExtraction(false), prose.WithSegmentation(false))
 	if err != nil {
 		return false

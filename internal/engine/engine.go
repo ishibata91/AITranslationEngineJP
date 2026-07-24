@@ -713,11 +713,14 @@ func (e *Engine) ensureFeatures(ctx context.Context, lines []model.Line) (map[st
 	}
 	out := make(map[string]tone.Features, len(hashes))
 	for _, h := range hashes {
+		if err := ctx.Err(); err != nil { // 解析ループは長時間になり得るため、本文ごとにキャンセルを確認する。
+			return nil, err
+		}
 		if row, ok := cached[h]; ok {
 			out[h] = featuresFromAnalysis(row)
 			continue
 		}
-		f := linefeatures.ExtractFeatures(hashToText[h], e.lexicon) // prose（重い）。キャッシュ未命中の本文だけ実行する。
+		f := linefeatures.ExtractFeatures(hashToText[h], e.lexicon) // prose。キャッシュ未命中の本文だけ実行する。
 		if err := e.store.UpsertLineAnalysis(ctx, analysisFromFeatures(h, f)); err != nil {
 			return nil, fmt.Errorf("行解析キャッシュの保存: %w", err)
 		}
