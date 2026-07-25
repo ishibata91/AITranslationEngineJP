@@ -6,9 +6,36 @@ agent には 2 種類ある。`fresh`（コンテキスト引き継ぎなしの 
 `fresh` は広範な探索など、文脈を持たなくても済む固定処理に使う。実装本体のような文脈が要る仕事は `fork` に委譲する。モデルはタスクに合わせて高効率のものを利用すること。
 レビュー用の `fresh` のモデルは速度・トークン効率よりも品質を優先すること。
 
-## MCP
+## コード調査の手段（claude のみ）
 
-go, typescriptを調査するときはLSPプラグインを利用すること。（claudeのみ）
+go、typescript、C# のコードを調べる時は、grep で入口を 1 点見つけ、そこから先の関係の追跡は LSP tool で行う。Read でファイルを丸ごと読んで関係を推測しない。
+
+LSP tool を使う場面を次に固定する。
+
+- 参照元を数える、洗い出す: `findReferences` を使う。grep は同名の別シンボル、コメント、テストの文字列まで拾い、偽陽性が出るため使わない。
+- interface の実装先を辿る: `goToImplementation` を使う。実装側の型に interface 名が現れないので、grep では原理的に見つからない。
+- 呼び出し関係を辿る: `incomingCalls`（誰がこの関数を呼ぶか）、`outgoingCalls`（この関数が何を呼ぶか）を使う。
+- ファイルの構造を把握する: `documentSymbol` を使う。関数と型の一覧が行番号つきで返るので、長い file を全文 Read しなくて済む。
+- 型と定義を確かめる: `hover`、`goToDefinition` を使う。
+
+grep を使う場面は次に限る。
+
+- 調べたいシンボル名がまだ分かっていない段階の探索。LSP tool は file と行・列の指定が要るので、起点がない状態では呼べない。
+- 文字列リテラル、md、json、設定 file の検索。LSP tool の対象外。
+
+LSP tool を呼べるのは本体セッションと `fork` に限る。`fresh`（Explore agent を含む）では tool 一覧に LSP が現れず、`ToolSearch` でも取得できない（2026-07-25 に実測）。この差から、委譲先を次のように分ける。
+
+- 参照元の列挙、interface 実装先の特定、呼び出し関係の追跡は、本体セッションか `fork` で行う。
+- `fresh` へ渡すのは、grep とファイル読解だけで完結する探索に限る。LSP が要る調査を `fresh` へ渡すと、grep で代替した不正確な結果が返る。
+
+本体セッションと `fork` でも LSP は最初から見えていない。遅延 tool なので、使う前に `ToolSearch` を query `select:LSP` で呼んで schema を読み込む。
+
+対応している言語は次のとおり（2026-07-25 に実測）。未対応の file に対しては LSP tool がエラーを返すので、grep へ落としたうえで、結果が全件である保証は無いと明示する。
+
+- go: 使える。language server は gopls。
+- typescript: `.ts` などの拡張子だけ使える。language server は typescript-language-server（brew で導入、root の `package.json` の typescript を参照する）。
+- svelte: 使えない。`.svelte` を解釈する language server が無い。frontend で `findReferences` を使う場合、`.svelte` 側からの参照が結果に出ないため、全件にならない。gateway や store の関数を変える時は grep で `.svelte` 側を補う。
+- C#: 使えない。language server が導入されていない。
 
 ## 実画面確認
 
