@@ -4,6 +4,17 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-07-26 japanese-tone-persona を保留し rejected へ移す
+
+### 変更
+
+- `docs/exec-plans/active/japanese-tone-persona/` を `docs/exec-plans/rejected/japanese-tone-persona/` へ移動。実装は着手していない（作業 branch を作っていない）。
+
+### 判断
+
+- 公式日本語既訳の形態素解析で話者の一人称と語尾を観測し、`assets/role-speech.tsv` の定型より優先して当てる方式を保留する。PoC の効果が十分に認められなかったためである。同 task の `design.md:136` が記録した一人称の取得率は 43.2% で、採用条件を緩めても 56.8% までしか上がらない。
+- 保留により、話者の一人称と語尾は `assets/role-speech.tsv` の定型で決める形が当面の正本として残る。本 repo が対象とする mod 新規 NPC は base ゲーム側の既訳を持たず、既訳観測の対象外だったため、保留による対象範囲の縮小は mod 翻訳では小さい。
+
 ## 2026-07-26 Mod Organizer 経由の起動を通し、配布ビルドの実行ログをファイルへ残す
 
 ### 変更
