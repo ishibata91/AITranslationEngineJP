@@ -4,6 +4,24 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-07-26 Mod Organizer 経由の起動を通し、配布ビルドの実行ログをファイルへ残す
+
+### 変更
+
+- `logging_production.go`（新規）: 配布ビルドの実行ログを exe と同じフォルダの `app.log` へ追記する。slog だけでなく標準出力と標準エラーも同じファイルへ向ける。起動ごとに区切り行と、画面が出ない場合の手がかりを書く。
+- `logging_dev.go`（新規）: dev 起動は従来どおり標準エラーへ出す。build tag（`production`）で出し分ける。
+- `appdir.go`（新規）: exe の場所と、利用者ごとの保存先（`%LOCALAPPDATA%` 配下）を返す。
+- `main.go`: `setupLogging()` の呼び出しを追加。WebView2 の作業データの置き場所を `%LOCALAPPDATA%\AITranslationEngineJp\webview2` へ固定。
+- `docs/build-windows.md`: 実行ログの節と、Mod Organizer から起動する場合の節を追加。
+
+### 判断
+
+- Mod Organizer 経由で起動するとウィンドウが出ないまま終了した。原因は、Mod Organizer が注入する仮想ファイルシステムの hook と、WebView2 の子 process（`msedgewebview2.exe`）に掛かる Chromium sandbox の hook が、同じ ntdll 関数（`NtCreateFile`・`NtClose`）で衝突することだった。usvfs のログに `existing hook ... in unknown` と `type chained patch` が並ぶことで機構を確認し、`msedgewebview2.exe` を Mod Organizer の実行ファイル ブラックリストへ入れると起動できることで確定した。
+- 対処は利用者側の Mod Organizer 設定に閉じる。app 側の設定では回避できないことを確認済みで、`options.App.Windows`（Wails v2.11.0）に追加の browser 引数を渡す項目が無く、`--no-sandbox` を渡すには `go-webview2` か Wails の fork が要る。fork は保守の負担が残るうえ、Mod Organizer を使わない利用者にも sandbox 無効の状態を配ることになるため採らない。
+- 途中で試して外した手が 2 つある。`WebviewDisableRendererCodeIntegrity`（renderer の整合性検査を無効化）は適用されたが結果が変わらず、守りを緩めるだけになるため外した。WebView2 の作業データの移動も単独では効かなかったが、配布フォルダがビルドのたびに作り直されること、書き込みできない場所へ配布される場合があることから、そのまま残した。
+- 実行ログをファイルへ残す判断は、配布ビルドが console を持たず、画面が出る前に落ちる事象を標準エラーでは読めないことによる。`[WebView2 Error]` の行は slog を通らず `fmt.Printf` で標準出力へ直接書かれるため（`go-webview2` の `chromium.go:31`）、標準出力と標準エラーごとファイルへ向ける必要がある。
+- Data フォルダと翻訳対象 plugin を別々に指定する案（`explicit-data-folder`）は廃案にした。Mod Organizer 経由で起動できるようになり、仮想 Data フォルダが統合された姿を見せるため、手で Data フォルダを指定する必要が無くなった。設計は commit せずに破棄した。
+
 ## 2026-07-25 extractor のテスト落ちを解消（実データ場所の .env 指定と一時 DB の後片付け）
 
 ### 変更
