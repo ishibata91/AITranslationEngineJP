@@ -1,12 +1,12 @@
 ---
 name: fix-workflow
-description: "修正フローの入口オーケストレーター。人間が確認した不具合、レビュー非通過、検証失敗の観測記録から、作業 branch と plan.md を固定し、観測ログ駆動の再現確認と原因究明を investigation.md に、どう直すかの修正方針を design.md に、修正後の確定仕様（対象集合と期待値表）を spec.md にまとめ、人間修正レビューを通してから implementation-module へ渡す。TRIGGER when: 修正系 task（バグ修正・refactor）の入口。SKIP when: 仕様変更や機能追加が必要と判明した場合は本モジュールを停止し、feature-workflow へ迂回する。"
+description: "修正フローの入口オーケストレーター。人間が確認した不具合、レビュー非通過、検証失敗の観測記録から、作業 branch と plan.md を固定し、観測ログ駆動の再現確認と原因究明を investigation.md に、どう直すかの修正方針を design.md に、修正後の確定仕様（対象集合と期待値表）を spec.md にまとめ、design-review（design_reviewer agent によるソース照合検証と記述検証）と人間修正レビューを通してから implementation-module へ渡す。TRIGGER when: 修正系 task（バグ修正・refactor）の入口。SKIP when: 仕様変更や機能追加が必要と判明した場合は本モジュールを停止し、feature-workflow へ迂回する。"
 ---
 # Fix Workflow
 
 ## 目的
 
-`fix-workflow` は、修正フローの入口オーケストレーターである。人間が確認した不具合、レビュー非通過、検証失敗の観測記録から、作業 branch と `plan.md` を固定する。再現確認と原因究明は `investigation.md`、どう直すかの修正方針は `design.md`、修正後の確定仕様は `spec.md` に分けて Claude 本体が固定し、人間修正レビューを通してから `implementation-module` へ渡す。
+`fix-workflow` は、修正フローの入口オーケストレーターである。人間が確認した不具合、レビュー非通過、検証失敗の観測記録から、作業 branch と `plan.md` を固定する。再現確認と原因究明は `investigation.md`、どう直すかの修正方針は `design.md`、修正後の確定仕様は `spec.md` に分けて Claude 本体が固定し、`design-review` と人間修正レビューを通してから `implementation-module` へ渡す。
 `design.md` は人間が読んで判断する説明を持ち、`spec.md` は下流が実装根拠にする対象集合と期待値を持つ。両者が食い違う場合は `spec.md` を優先する。
 再現確認・原因究明（investigation）と、どう直すかの設計（design）は責務を分ける。investigation は「何が起きてなぜか」を確定し、design は「どう直すか」だけを扱う。
 修正は fail-test ベースで進める前提で、先に不具合を検出できるテスト観点も引き継ぎに含める。
@@ -15,8 +15,8 @@ description: "修正フローの入口オーケストレーター。人間が確
 
 - 呼び出し元: 人間、または上位 agent。
 - 返却先: 呼び出し元。
-- モジュールが呼ぶ下位 skill: `fix-decision`（Claude 本体が読んで適用。原因究明の判断基準）。`presentation`（参照のみ。人間修正レビュー材料と AS-IS→TO-BE の変更図を作る）。
-- モジュールが呼ぶ下位 agent: なし。調査と設計は Claude 本体が task 文脈を持ったまま書く。
+- モジュールが呼ぶ下位 skill: `fix-decision`（Claude 本体が読んで適用。原因究明の判断基準）。`design-protocol`（Claude 本体が読んで適用。`design.md` と `spec.md` の書き方、`design-review` の検証規約）。`presentation`（参照のみ。人間修正レビュー材料と AS-IS→TO-BE の変更図を作る）。
+- モジュールが呼ぶ下位 agent: `design_reviewer`（`fresh`）。人間修正レビューの前に `design.md` と `spec.md` を実ソースと照合して検証する。調査、設計、仕様の本文は Claude 本体が task 文脈を持ったまま書く。
 - 下流の段: `implementation-module`、`finalization-module`。
 
 ## 入口条件
@@ -35,6 +35,7 @@ description: "修正フローの入口オーケストレーター。人間が確
 - `investigation.md` に観測済み問題、画面再現確認、原因仮説、観測ログ検証、確定原因が記録されている。
 - `design.md` にどう直すかの修正方針（AS-IS→TO-BE）と検討が必要なことが記録されている。
 - `spec.md` に対象集合と期待値表（AS-IS の期待値＝不具合時に観測された振る舞い、TO-BE の期待値＝修正後に成立させる振る舞い）が記録されている。
+- `design-review` が通過済み。
 - `人間修正レビュー` 承認済み。
 - 仕様変更または仕様追加が必要と判断された場合は停止して呼び出し元へ戻す（`feature-workflow` への迂回が必要か、人間判断を仰ぐ）。
 
@@ -46,9 +47,9 @@ description: "修正フローの入口オーケストレーター。人間が確
 | `plan.md` | Claude 本体 | `branch 準備` |
 | `人間観測記録` | Claude 本体 | `plan.md` |
 | `調査` | Claude 本体 | `人間観測記録` |
-| `設計` | Claude 本体 | `調査` |
-| `仕様` | Claude 本体 | `設計` |
-| `人間修正レビュー` | 人間 | `調査`, `設計`, `仕様` |
+| `設計と仕様` | Claude 本体 | `調査` |
+| `design-review` | `design_reviewer`（`fresh`） | `設計と仕様` |
+| `人間修正レビュー` | 人間 | `design-review` |
 | `実装への引き継ぎ` | Claude 本体 | `人間修正レビュー` |
 
 ## branch 準備
@@ -77,7 +78,7 @@ description: "修正フローの入口オーケストレーター。人間が確
 
 ### 調査
 
-- 再現確認と原因究明だけを扱う。どう直すかは `設計` で扱う。
+- 再現確認と原因究明だけを扱う。どう直すかは `設計と仕様` で扱う。
 - Claude 本体が `fix-decision` skill を Skill ツールで読んで適用する。
 - 入力: 人間観測記録、作業計画フォルダ、Wails 接続対象、画面の正本（Storybook の story と svelte コンポーネント）、観測ログ仕様。
 - テンプレートは `docs/exec-plans/templates/task-folder/investigation.md` を `investigation.md` として使う。
@@ -88,27 +89,25 @@ description: "修正フローの入口オーケストレーター。人間が確
     - 観測ログ検証（一時ログ追加、観測結果、削除確認）。
     - 確定原因（観測で確定したもののみ）。
 
-### 設計
+### 設計と仕様
 
-- どう直すかだけを扱う。再現確認・原因究明は `調査` の `investigation.md` を根拠にする。
-- テンプレートは `docs/exec-plans/templates/task-folder/design.md` を `design.md` として使う。
-- 結果を `design.md` に固定する。次を含める:
-    - 修正方針（`investigation.md` の確定原因に対応する直し方）。現状（AS-IS）と修正後（TO-BE）を対にして、症状だけを隠す対症療法を避ける。構造が変わる場合は AS-IS→TO-BE の 2 図で示す。図作法は `presentation` skill に従う。
-    - 検討が必要なこと（人間の回答なしに先へ進めない未解決の論点。なければ「なし」）。
-
-### 仕様
-
-- 修正後に成立させる確定仕様だけを扱う。直し方は `設計` の `design.md` が持つ。
-- テンプレートは `docs/exec-plans/templates/task-folder/spec.md` を `spec.md` として使う。
-- 結果を `spec.md` に固定する。次を含める:
-    - 対象集合（修正の効果が及ぶものと及ばないものを、それぞれ肯定形で列挙する。読み手が範囲を 1 通りに取れる粒度で書く）。
-    - 期待値表（AS-IS の期待値は不具合時に観測された振る舞い、TO-BE の期待値は修正後に成立させる振る舞い。TO-BE の期待値の語尾は「〜こと」で終え、そのまま実テストの test case 名として使う）。
+- 書き方は `design-protocol` skill に従う。Claude 本体が Skill ツールで読み、フロー種別として修正フローを渡して適用する。
+- `design.md`: どう直すかの修正方針と、検討が必要なこと。`investigation.md` の確定原因を根拠にする。
+- `spec.md`: 修正後に成立させる対象集合と期待値表。AS-IS の期待値は不具合時に観測された振る舞いとする。
 - TO-BE の期待値は、`実装への引き継ぎ` の追加する fail-test の観点と同じ文にする。修正前に fail し、修正後に pass する対象がこの文で一意に決まるようにする。
-- 「対応する実テスト」列は本モジュールでは空にする。`implementation-module` が最終検証で埋める。
+- 本モジュールが固定するのは書く順序と承認順序とし、両 file の書き方は `design-protocol` skill が持つ。
+
+### design-review
+
+- `design-review` は、人間修正レビューの前に、実現可能でない案と誤読の余地がある記述を否決する AI 検証である。`design_reviewer` agent（`fresh`、読み取り専用）が担う。
+- 検証内容、判断範囲、出力、否決時の扱いは `design-protocol` skill の `design-review` 節に従う。修正フローでは、修正方針が `investigation.md` の確定原因に対応しているかの検証を含める。
+- 起動入力: `design.md` のパス、`spec.md` のパス、`task-id`、対象 repo のルート、フロー種別（修正フロー）。
+- 戻し先: 本モジュール。
+- 完了: `design.md` の全 AS-IS 根拠と全 TO-BE 実現主張、および `spec.md` の対象集合と全期待値行に判定が付いている。
 
 ### 人間修正レビュー
 
-- `調査`、`設計`、`仕様` が固まった時点で人間へ返す。
+- `調査`、`設計と仕様`、`design-review` が固まった時点で人間へ返す。
 - レビュー材料は `presentation` skill に従い、人間がわかりやすい構成で書く。人間が仕様を短時間で確認できるよう `spec.md` の対象集合と期待値表を先に示す。
 - 差し戻しまたは追加質問の場合は、Claude 本体が同じ文脈で書き直す。
 
@@ -134,20 +133,16 @@ description: "修正フローの入口オーケストレーター。人間が確
 | `観測ログ検証` | 仮説を否定または支持するために追加した一時ログ、観測結果、削除確認を固定する。 |
 | `確定原因` | 観測で確定した原因だけを固定する。 |
 
-### 設計（design.md）の必須観点
+### 設計と仕様の必須観点
 
-| 観点 | 拘束する判断 |
-| --- | --- |
-| `修正方針` | `investigation.md` の確定原因に対応する直し方だけを固定する。仕様が不足していない場合だけ恒久修正を固定する。 |
-| `対症療法の回避` | 新しい状態値の追加、症状だけを隠す分岐など、症状だけを隠す直し方を採らない。 |
+- `design.md` と `spec.md` の必須観点は `design-protocol` skill が持つ。
+- 修正フロー固有の拘束は次の 2 つとする。
+    - 修正方針: `investigation.md` の確定原因に対応する直し方だけを固定する。仕様が不足していない場合だけ恒久修正を固定する。
+    - fail-test との一致: TO-BE の期待値の文と、追加する fail-test の観点を同じ文にする。
 
-### 仕様（spec.md）の必須観点
+### レビュー順序ゲート
 
-| 観点 | 拘束する判断 |
-| --- | --- |
-| `対象集合` | 修正の効果が及ぶものと及ばないものを、それぞれ肯定形で列挙する。 |
-| `期待値表` | 1 行 1 期待値で AS-IS と TO-BE を横に並べる。TO-BE の期待値の語尾は「〜こと」で終える。 |
-| `fail-test との一致` | TO-BE の期待値の文と、追加する fail-test の観点を同じ文にする。 |
+- `design-review` 通過なしで `人間修正レビュー` を依頼しない。
 
 ### 責務境界
 
@@ -175,6 +170,7 @@ description: "修正フローの入口オーケストレーター。人間が確
 - 確定原因: 観測で確定した原因。
 - 採用する修正方針: 恒久修正として採用する直し方。
 - 影響ファイル候補: 観測事実に基づく候補。
+- `design-review` の判定結果、否決理由、漏れ候補。
 - 実装への引き継ぎ: `implementation-module` へ渡すもの（確定原因、承認済み修正方針、確定仕様、影響ファイル候補、再現手順と期待状態、追加する fail-test の観点）。
 - 停止判定: 停止理由、不足項目、戻し先。
 
@@ -189,6 +185,7 @@ description: "修正フローの入口オーケストレーター。人間が確
 - 追加した一時観測ログを削除できない。
 - 原因が仮説に留まり、採用する修正方針を固定できない。
 - 対象集合または修正後の期待値を肯定形で固定できない（何が成立すれば直ったと言えるかが確定しない）。
+- `design-review` の否決理由を `design.md` または `spec.md` の書き直しで解消できない。
 - 修正方針が仕様変更・機能追加・受け入れ条件の新規判断を必要とすると判断した。
 - `人間修正レビュー` 承認が得られない、または差し戻しを解消できない。
 - 停止時は不足項目、固定できない判断、戻し先を返す。
