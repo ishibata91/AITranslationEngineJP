@@ -39,13 +39,12 @@ build/windows-dist/
   db/migrations/                     … schema（sqlite 本体は初回起動時に生成）
   assets/                            … 感情辞書・役割語・stoplist
   tools/extractor/bin/publish/       … 抽出器 DLL（exe が dotnet で起動）
-  dictionaries/xTranslatorXMLs/      … 固有名辞書（利用者供給、任意）
 ```
 
 ## 実行時の要件
 
 - **.NET 10 ランタイム**: exe は抽出器を `dotnet <DLL>` の子プロセスとして起動するため、実行機に .NET 10 ランタイムが要る（publish は framework-dependent）。
-- **固有名辞書**: `dictionaries/xTranslatorXMLs` は git 追跡外の利用者供給データ。固有名辞書を使う場合は配布フォルダへ後から置く。
+- **参照訳と確定訳語**: 供給源は翻訳対象の Data フォルダにある Strings（english / japanese）。配布フォルダへ辞書ファイルを置く必要は無い。
 - **provider 設定**: 翻訳先 LLM の接続設定は起動後に画面から行う。
 
 ## 制約

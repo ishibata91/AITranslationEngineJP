@@ -4,7 +4,7 @@
 # 実行: repo root で `pwsh scripts/windows/build-windows.ps1` （PowerShell 7 以降）。
 #
 # 生成物: build/windows-dist/ に exe と周辺データを同梱した実行フォルダを作る。
-# 背景: exe は相対パス前提で、作業ディレクトリ直下に db/・assets/・dictionaries/・
+# 背景: exe は相対パス前提で、作業ディレクトリ直下に db/・assets/・
 #       tools/extractor/bin/publish/ を要求する（frontend/dist だけが exe へ埋め込まれる）。
 #       単体 exe では動かないため、周辺データを 1 フォルダへ集約する。
 
@@ -55,13 +55,8 @@ $extDst = Join-Path $dist "tools\extractor\bin\publish"
 New-Item -ItemType Directory -Path $extDst -Force | Out-Null
 Copy-Item "tools\extractor\bin\publish\*" $extDst -Recurse
 
-# dictionaries/xTranslatorXMLs は git 追跡外の利用者供給データ。あれば同梱、無ければ警告に留める。
-if (Test-Path "dictionaries\xTranslatorXMLs") {
-  New-Item -ItemType Directory -Path (Join-Path $dist "dictionaries") -Force | Out-Null
-  Copy-Item "dictionaries\xTranslatorXMLs" (Join-Path $dist "dictionaries\xTranslatorXMLs") -Recurse
-} else {
-  Write-Warning "dictionaries\xTranslatorXMLs が無い。固有名辞書を使うなら配布フォルダへ後から置く。"
-}
+# dictionaries の XML は同梱しない。strings-based-reference で参照訳と確定訳語の供給源が
+# Data フォルダの Strings（english / japanese）へ移り、実行時に XML を読む経路は無くなった。
 
 Write-Host "[build-windows] done. 実行フォルダ: $dist"
 Write-Host "[build-windows] 実行時は .NET 10 ランタイムが要る（exe が dotnet で抽出器 DLL を起動するため）。"

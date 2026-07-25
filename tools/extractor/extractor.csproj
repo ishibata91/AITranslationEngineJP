@@ -12,7 +12,11 @@
 
   <ItemGroup>
     <PackageReference Include="Mutagen.Bethesda.Skyrim" Version="0.53.1" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.10" />
+    <!-- Microsoft.Data.Sqlite が推移的に引く SQLitePCLRaw は 2.1.11 止まりで、
+         GHSA-2m69-gcr7-jv3q（NU1903、高重大度）の対象範囲に入る。修正済みの
+         3.0.4 を直接参照して推移依存を上書きし、restore 時の警告を解消する。 -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.4" />
   </ItemGroup>
 
 </Project>
