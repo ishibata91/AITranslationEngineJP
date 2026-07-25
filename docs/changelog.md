@@ -4,6 +4,21 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-07-25 feature-workflow へ design-review（AI 設計検証）を追加
+
+### 変更
+
+- `docs/exec-plans/templates/task-folder/design.md`: 実装方針へ AS-IS と TO-BE の対応表を追加。列は変更点、AS-IS、AS-IS の根拠ソース、TO-BE、変更予定箇所と実現主張の 5 つ。
+- `.claude/skills/feature-workflow/SKILL.md`: 成果物 `design-review` を `design.md` と `人間設計レビュー` の間に追加。design-review 通過なしで人間設計レビューへ進めない不変条件を追加。
+- `.claude/agents/design_reviewer.md`: 新規。`fresh`、model は sonnet、読み取り専用。
+
+### 判断
+
+- design-review の目的は、実現可能でない設計案を人間設計レビューの前に否決し、人間との無駄な往復を減らすこと。検証は AS-IS の根拠ソース照合、TO-BE の実現主張の成立確認、変更予定箇所から漏れた影響先の検出の 3 点に限定する。
+- `design_reviewer` は判定と指摘だけを返し、`design.md` の書き直しは Claude 本体が同じ文脈で行う。文脈分散を避けるため。
+- model は「レビュー用の `fresh` は品質優先、ただし opus を使わない」の規約に従い sonnet とする。
+- テンプレートは fix-workflow と共有のため、根拠ソース列は修正フローの `design.md` にも適用される。`design_reviewer` の起動は feature-workflow だけに配線し、fix-workflow への適用は別判断とする。
+
 ## 2026-07-24 口調生成段の高速化（prose 品詞モデルの共有）
 
 ### 変更
