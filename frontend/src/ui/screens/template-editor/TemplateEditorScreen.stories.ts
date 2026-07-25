@@ -10,7 +10,8 @@ import {
 
 // プロンプトテンプレート画面。Base + 種別ごとの指示文モデルに、話者なし台詞の口調設定を足した。
 // generic-voice-tone-fallback で、汎用台詞・PC 発話の口調を自由記述で書き、PC の性別を選べるようにした。
-// Storybook 人間レビュー承認済み（2026-06-30）。通常分類（Screens）に置く。
+// translation-prompt-revision で Base 指示文を 4 段落へ、指示文を 9 種へ変えた。
+// Storybook 人間レビュー承認済み（2026-07-26）。通常分類（Screens）に置く。
 const meta = {
   title: "Screens/プロンプトテンプレート",
   component: TemplateEditorScreen,
@@ -76,7 +77,7 @@ export const RecordTabToneDefaultEdited: Story = {
   }
 }
 
-// レコード別タブで説明体の指示文を書き換えた未保存状態。未保存バッジが出て保存・戻すが有効。
+// レコード別タブで物品説明の指示文を書き換えた未保存状態。未保存バッジが出て保存・戻すが有効。
 export const RecordTabDirty: Story = {
   name: "レコード別タブ（未保存）",
   args: {

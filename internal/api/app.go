@@ -321,11 +321,11 @@ func (a *App) DeleteTargetPlugin(plugin string) error {
 }
 
 // PromptTemplateView はプロンプトテンプレート編集画面の表示用 DTO。
-// BaseDirective は叙述文・台詞の両方に付く base 翻訳指示文、PersonaTemplate は話者のいる台詞に付く口調指示の雛形。
+// BaseDirective は叙述文・台詞の両方に付く base 翻訳指示文。
 // GenericToneText・PcToneText・PcSex は話者なし台詞（汎用・PC）の口調設定（自由記述 2 つと PC 性別）。
+// 話者のいる台詞の口調雛形は directive「口調」が持つため、本 DTO では扱わない。
 type PromptTemplateView struct {
 	BaseDirective   string `json:"baseDirective"`
-	PersonaTemplate string `json:"personaTemplate"`
 	GenericToneText string `json:"genericToneText"`
 	PcToneText      string `json:"pcToneText"`
 	PcSex           string `json:"pcSex"`
@@ -339,7 +339,6 @@ func (a *App) GetPromptTemplate() (PromptTemplateView, error) {
 	}
 	return PromptTemplateView{
 		BaseDirective:   t.BaseDirective,
-		PersonaTemplate: t.PersonaTemplate,
 		GenericToneText: t.GenericToneText,
 		PcToneText:      t.PcToneText,
 		PcSex:           t.PcSex,
@@ -351,7 +350,6 @@ func (a *App) GetPromptTemplate() (PromptTemplateView, error) {
 func (a *App) SavePromptTemplate(req PromptTemplateView) error {
 	if err := a.store.SavePromptTemplate(a.baseCtx(), model.PromptTemplate{
 		BaseDirective:   req.BaseDirective,
-		PersonaTemplate: req.PersonaTemplate,
 		GenericToneText: req.GenericToneText,
 		PcToneText:      req.PcToneText,
 		PcSex:           req.PcSex,

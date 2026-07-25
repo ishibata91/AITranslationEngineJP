@@ -4,7 +4,8 @@ import { DIRECTIVES, RECORD_ASSIGNMENTS } from "./template-editor.fixtures"
 import { buildDirectiveSections } from "./directive-presentation"
 
 // 種別ごとの指示文の編集表示（本文 textarea ＋ 変数 ＋ 対象）。
-// Storybook 人間レビュー承認済み（2026-06-25）。通常分類（UI Components）に置く。
+// translation-prompt-revision で指示文を 7 種から 9 種へ増やした。
+// Storybook 人間レビュー承認済み（2026-07-26）。通常分類（UI Components）に置く。
 const meta = {
   title: "UI Components/DirectiveEditor",
   component: DirectiveEditor,
@@ -16,9 +17,10 @@ type Story = StoryObj<typeof meta>
 
 const noop = () => {}
 
-// 7 指示文（口調は {traits} 変数つき、固有名・定型句も指示文）を同じ形で並べる。
+// 9 指示文を同じ形で並べる。叙述文の 5 種（物品説明・効果説明・世界観断片・書物体・日記体）、
+// 固有名、短文の 2 種（操作名・語義）、口調（{traits} 変数つき）。行の増減以外に表示構造は変えない。
 export const Default: Story = {
-  name: "指示文一覧（口調・文体・固有名・定型句）",
+  name: "指示文一覧（9 種）",
   args: {
     sections: buildDirectiveSections(DIRECTIVES, RECORD_ASSIGNMENTS),
     onInstructionInput: noop

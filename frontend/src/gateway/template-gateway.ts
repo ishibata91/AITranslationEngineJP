@@ -9,11 +9,11 @@ import {
 } from "../../wailsjs/go/api/App"
 import { api } from "../../wailsjs/go/models"
 
-// 編集対象のプロンプトテンプレート。base 翻訳指示文・口調指示テンプレートと、話者なし台詞の口調設定。
+// 編集対象のプロンプトテンプレート。base 翻訳指示文と、話者なし台詞の口調設定。
 // genericToneText=汎用台詞の自由記述口調、pcToneText=PC 発話の自由記述口調、pcSex=PC の性別（Female/Male/空）。
+// 話者のいる台詞の口調雛形は指示文「口調」が持つため、本型では扱わない。
 export interface PromptTemplate {
   baseDirective: string
-  personaTemplate: string
   genericToneText: string
   pcToneText: string
   pcSex: string
@@ -50,7 +50,6 @@ export async function getPromptTemplate(): Promise<PromptTemplate> {
   const view = await GetPromptTemplate()
   return {
     baseDirective: view.baseDirective,
-    personaTemplate: view.personaTemplate,
     genericToneText: view.genericToneText,
     pcToneText: view.pcToneText,
     pcSex: view.pcSex

@@ -1,7 +1,7 @@
 package model
 
 // Directive は指示文の正本 1 件。プロンプト合成の「Base 指示 ＋ directive」の directive にあたる。
-// 口調・文体（説明体/書物体/日記体/世界観断片）・固有名・定型句を 1 つの概念へ揃える。
+// 口調・文体（物品説明/効果説明/世界観断片/書物体/日記体）・固有名・短文（操作名/語義）を 1 つの概念へ揃える。
 // Variables は実行時に埋める変数の宣言（JSON 配列 [{token, description}] の生文字列）。口調だけ {traits} を持つ。
 // db タグは db/migrations の directive 列に対応する。
 type Directive struct {

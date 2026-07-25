@@ -172,6 +172,14 @@
       "spec": "解決した話者の口調・人物像が、その台詞のプロンプトへ乗る（話者→ペルソナ→プロンプトの合流）"
     },
     {
+      "id": "narration-directive-injected",
+      "stage": "integration",
+      "attribute": "指示文",
+      "category": "正常",
+      "given": "叙述文・定型句の REC:FIELD に指示文が割り当てられている",
+      "spec": "その REC:FIELD へ割り当てた指示文が、本文のプロンプトへ乗る（割り当て→取込→プロンプトの合流）"
+    },
+    {
       "id": "stoplist-preserved-in-body",
       "stage": "integration",
       "attribute": "固有名",

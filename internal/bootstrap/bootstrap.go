@@ -28,6 +28,9 @@ const (
 	vaderDictPath = "assets/vader_lexicon.txt"
 	// roleSpeechPath は注入時に引く一人称・語尾テンプレート。中身は実画面確認で見直すため外部ファイルに置く。
 	roleSpeechPath = "assets/role-speech.tsv"
+	// roleSpeechExamplePath は口調の例文（英語原文と日本語訳文の 1 対）。役割語と同じキーで引く。
+	// 説明文だけでは同じ話者の台詞ごとに一人称・語尾が揺れるため、訳例で固定する。
+	roleSpeechExamplePath = "assets/role-speech-examples.tsv"
 	// stopwordsPath は機械置換辞書・言及語彙の供給から除く一般語リスト（stopwords-iso 配布、MIT）。
 	// 出典・checksum は併置の assets/stopwords-en.LICENSE に記録する。
 	stopwordsPath = "assets/stopwords-en.txt"
@@ -63,6 +66,20 @@ func NewApp() (*api.App, *store.Store, error) {
 	if err != nil {
 		_ = s.Close()
 		return nil, nil, fmt.Errorf("役割語テンプレートの読み込み: %w", err)
+	}
+
+	// 口調の例文を読み、同じ Table へ束ねる。役割語とキーが同じで値だけが違うため、
+	// 1 行が長くならないよう表を分けて置き、composition root で 1 つに組む。
+	exampleFile, err := os.Open(roleSpeechExamplePath)
+	if err != nil {
+		_ = s.Close()
+		return nil, nil, fmt.Errorf("口調例文テンプレートを開けない (%s): %w", roleSpeechExamplePath, err)
+	}
+	defer exampleFile.Close() //nolint:errcheck // 読み取り後の後始末。
+	roles, err = rolespeech.ParseRoleSpeechExamples(roles, exampleFile)
+	if err != nil {
+		_ = s.Close()
+		return nil, nil, fmt.Errorf("口調例文テンプレートの読み込み: %w", err)
 	}
 
 	// 一般語 stoplist を読む。固有名の供給が本文の通常語（Yes・No 等）へ誤って当たるのを供給側で止める。

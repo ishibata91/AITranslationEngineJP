@@ -33,15 +33,16 @@ func main() {
 
 // options は goldcap の実行設定。既定は dev のパス配置（bootstrap と同じ）に合わせる。
 type options struct {
-	mode      string
-	plugin    string
-	golden    string
-	nrcPath   string
-	rolePath  string
-	stopPath  string
-	dll       string
-	schemaDir string
-	model     string
+	mode            string
+	plugin          string
+	golden          string
+	nrcPath         string
+	rolePath        string
+	roleExamplePath string
+	stopPath        string
+	dll             string
+	schemaDir       string
+	model           string
 }
 
 func parseFlags() options {
@@ -51,6 +52,7 @@ func parseFlags() options {
 	flag.StringVar(&o.golden, "golden", "", "golden ファイルのパス（gitignore 配下を指定）。必須")
 	flag.StringVar(&o.nrcPath, "nrc", "dictionaries/nrc-emolex.txt", "感情辞書（NRC）のパス")
 	flag.StringVar(&o.rolePath, "roles", "assets/role-speech.tsv", "役割語テンプレートのパス")
+	flag.StringVar(&o.roleExamplePath, "role-examples", "assets/role-speech-examples.tsv", "口調例文テンプレートのパス")
 	flag.StringVar(&o.stopPath, "stopwords", "assets/stopwords-en.txt", "一般語 stoplist（stopwords-iso 配布）のパス")
 	flag.StringVar(&o.dll, "extractor-dll", "tools/extractor/bin/publish/extractor.dll", "publish 済み C# 抽出器 DLL のパス（先に dotnet publish tools/extractor が要る）")
 	flag.StringVar(&o.schemaDir, "schema", "db/migrations", "schema migration のディレクトリ")
@@ -79,6 +81,15 @@ func run() error {
 	roles, err := rolespeech.ParseRoleSpeech(rolesFile)
 	if err != nil {
 		return fmt.Errorf("役割語テンプレートの読み込み: %w", err)
+	}
+	exampleFile, err := os.Open(o.roleExamplePath)
+	if err != nil {
+		return fmt.Errorf("口調例文テンプレートを開けない (%s): %w", o.roleExamplePath, err)
+	}
+	defer exampleFile.Close() //nolint:errcheck // 読み取り後の後始末。
+	roles, err = rolespeech.ParseRoleSpeechExamples(roles, exampleFile)
+	if err != nil {
+		return fmt.Errorf("口調例文テンプレートの読み込み: %w", err)
 	}
 	stopFile, err := os.Open(o.stopPath)
 	if err != nil {

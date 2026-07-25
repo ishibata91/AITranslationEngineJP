@@ -11,8 +11,6 @@ export type PcSex = "" | "Male" | "Female"
 export interface PromptTemplateForm {
   // base 翻訳指示文。叙述文・台詞のどちらにも付く冒頭の system 指示。ベースタブで編集する。
   baseDirective: string
-  // 口調指示テンプレート。話者のいる台詞だけに付く。話者の性質列を差し込み口で展開する。レコード別タブで編集する。
-  personaTemplate: string
   // 汎用台詞（話者なし）の口調指示文。自由記述。感情と性別はシステムが自動で重ねる。レコード別タブで編集する。
   // 配線前（Container 未更新）でも壊れないよう任意にする。
   genericToneText?: string

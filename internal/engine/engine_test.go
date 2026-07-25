@@ -13,7 +13,7 @@ import (
 	"aitranslationenginejp/internal/provider"
 )
 
-// testBaseDirective・testPersonaTemplate はテスト用のプロンプトテンプレート既定値。
+// testBaseDirective は base 指示、testPersonaTemplate は directive「口調」のテスト用既定値。
 // 実際の seed 文面（migration 0004）に依存せず、テンプレート駆動の組み立てを確かめるために使う。
 const (
 	testBaseDirective   = "あなたは Skyrim Mod の翻訳者です。訳文だけを出力してください。"
@@ -171,8 +171,8 @@ func (f *fakeStore) UpdateProperNounDest(_ context.Context, id int64, dest strin
 }
 
 func (f *fakeStore) GetPromptTemplate(_ context.Context) (model.PromptTemplate, error) {
-	if f.tmpl.BaseDirective == "" && f.tmpl.PersonaTemplate == "" {
-		return model.PromptTemplate{BaseDirective: testBaseDirective, PersonaTemplate: testPersonaTemplate}, nil
+	if f.tmpl.BaseDirective == "" {
+		return model.PromptTemplate{BaseDirective: testBaseDirective}, nil
 	}
 	return f.tmpl, nil
 }
