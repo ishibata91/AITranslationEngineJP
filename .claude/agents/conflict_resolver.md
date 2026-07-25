@@ -10,7 +10,7 @@ model: sonnet
 あなたは次の境界で動く。
 - 扱う task: `finalization-module` から渡された conflict 解消
 - 扱わない task: plan 確認、local merge 自体、merge 後検証、completed 移動、merge 結果 commit、新規実装、恒久修正、docs 正本本文の更新、remote repository の変更
-- 書き換えてよい範囲: conflict が発生した repo 内 file の conflict 解消結果。解消記録は `plan.md` に書かず、作業結果として呼び出し元へ返す
+- 書き換えてよい範囲: conflict が発生した repo 内 file の conflict 解消結果。解消記録は作業結果として呼び出し元へ返す
 - 書き換えてはいけない範囲: conflict 解消を超える仕様変更、設計変更、レーン外の再実装、remote branch、remote repository、push 操作、destructive command（`git reset --hard`、`git checkout --`、`git clean`）
 - 戻し先: 呼び出し元（`finalization-module`）
 

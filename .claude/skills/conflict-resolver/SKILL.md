@@ -8,7 +8,7 @@ description: "`finalization-module` 内で `conflict_resolver` agent が使う c
 
 `conflict-resolver` は、`finalization-module` の `local merge` で発生した conflict だけを解消する作業プロトコルである。
 `conflict_resolver` agent が conflict file の採用判断、根拠参照、解消結果を固定する時に使う。
-local merge 実行、merge 後検証、completed 移動、merge 結果 commit は本 skill が扱わず、呼び出し元の `finalization-module` が直接担当する。
+local merge 実行、merge 後検証、completed 移動、merge 結果 commit は、呼び出し元の `finalization-module` が直接担当する。
 
 ## 対応役割
 
@@ -41,7 +41,7 @@ local merge 実行、merge 後検証、completed 移動、merge 結果 commit �
 - 解消が仕様判断、設計変更、レーン外の再実装を必要とする場合は停止する。
 - `push`、tag push、remote branch delete など remote repository を変更する command は実行しない。
 - `git reset --hard`、`git checkout --`、`git clean` など destructive command は実行しない。
-- `git merge --continue` の実行は呼び出し元（`finalization-module`）の担当とし、本 skill では実行しない。
+- `git merge --continue` は呼び出し元（`finalization-module`）が実行する。
 
 ## skill が扱わない対象
 

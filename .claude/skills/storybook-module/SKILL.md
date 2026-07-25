@@ -1,13 +1,13 @@
 ---
 name: storybook-module
-description: "Storybook 表示実装（svelte 表示コンポーネント、props、style、story、fixture）、Storybook 人間レビューループ、合意済み frontend 保護を兼ねるモジュール。表示実装と表示修正の作業本体は`fork`へ委譲し、本体セッションの文脈を汚さない。承認済みの story と svelte コンポーネントが画面の正本になる。state / API / Wails bridge / ルーティング / 副作用 などの frontend ロジックは扱わず implementation-module へ渡す。実装方針を越える画面変更は feature-workflow へ差し戻す。TRIGGER when: 画面の表示変更がある（layout、文言、style、表示構造のいずれか）。SKIP when: 表示を変えない、または state / API / Wails / ルーティング などの frontend ロジックだけの変更。"
+description: "Storybook 表示実装（svelte 表示コンポーネント、props、style、story、fixture）、Storybook 人間レビューループ、合意済み frontend 保護を兼ねるモジュール。表示実装と表示修正の作業本体は`fork`へ委譲し、本体セッションの文脈を汚さない。承認済みの story と svelte コンポーネントが画面の正本になる。state / API / Wails bridge / ルーティング / 副作用 などの frontend ロジックは implementation-module が扱う。実装方針を越える画面変更は feature-workflow へ差し戻す。TRIGGER when: 画面の表示変更がある（layout、文言、style、表示構造のいずれか）。SKIP when: 表示を変えない、または state / API / Wails / ルーティング などの frontend ロジックだけの変更。"
 ---
 # Storybook Module
 
 ## 目的
 
 `storybook-module` は、画面の表示変更がある時に、Storybook に出せる範囲の svelte 表示コンポーネント実装、Storybook 上の人間レビューループ、実装方針を越える画面変更時の入口オーケストレーターへの差し戻し、`合意済み frontend 保護` の固定を 1 つのモジュール skill として扱う。承認済みの story と svelte コンポーネントが画面の正本になる。
-frontend ロジック層（state、API、Wails bridge、ルーティング、副作用、フォーム validation）は本モジュールで扱わず、`implementation-module` の `frontend ロジック実装` で扱う。
+frontend ロジック層（state、API、Wails bridge、ルーティング、副作用、フォーム validation）は `implementation-module` の `frontend ロジック実装` が扱う。
 表示実装と表示修正の作業本体は`fork`へ委譲する。`fork`は親の文脈とモデルを継承し、本体セッションの文脈を実装詳細で汚さない。人間レビューの取り込み（人間コメントを表示修正の入力へ変える判断）は本体が担う。
 
 ## 扱う範囲と扱わない範囲
@@ -25,7 +25,7 @@ frontend ロジック層（state、API、Wails bridge、ルーティング、副
 | フォーム validation のロジック | - | 〇 |
 | backend、統合境界 | - | 〇 |
 
-「扱わない」列の変更が必要な場合は、本モジュールで進めず `implementation-module` の `frontend ロジック実装` または `backend 実装`、`統合境界実装` へ渡す。
+「扱わない」列の変更が必要な場合は `implementation-module` の `frontend ロジック実装` または `backend 実装`、`統合境界実装` へ渡す。
 
 ## 呼び出し関係
 
@@ -40,7 +40,7 @@ frontend ロジック層（state、API、Wails bridge、ルーティング、副
 - `frontend/.storybook/main.ts` の Storybook 設定と Storybook 規約が読める。
 - ブラウザ操作（`chrome-devtools` MCP ツール群、`mcp__plugin_chrome-devtools-mcp_chrome-devtools__*`）が利用できる。
 
-入口条件のいずれかが満たされない場合はモジュール全体を省略するか、停止して呼び出し元へ戻す。画面の表示変更がない場合は本モジュールを呼ばない。
+入口条件のいずれかが満たされない場合はモジュール全体を省略するか、停止して呼び出し元へ戻す。本モジュールを呼ぶのは、画面の表示変更がある時に限る。
 
 ## 出口条件
 
@@ -79,21 +79,21 @@ frontend ロジック層（state、API、Wails bridge、ルーティング、副
 - 本体が `chrome-devtools` MCP ツール群（`mcp__plugin_chrome-devtools-mcp_chrome-devtools__*`）を MCP ツールとして実行し、Storybook 上で人間レビューを反復する。
 - 反復で扱う対象: 人間コメント本文、対象 story、対象 selector、frame URL、marker screenshot。
 - 人間レビューを依頼する直前に、作業計画フォルダ に `summary.md` を一時作成し、レビュー終了後に削除する。固定セクションは「概要」と「図」の 2 つ。「概要」は今回のレビューで判断したい論点を 1〜数文で書く。「図」は Mermaid（シーケンス図、ロバストネス図、コンポーネント図、フロー図など）または表のうち、レビュー対象の論点に合うものを選んで貼る。
-- 人間コメントは frontend 表示修正の入力として扱う。`storybook-review-loop.md` には履歴として残さず、確定結果のみを記録する。
+- 人間コメントは frontend 表示修正の入力として扱う。`storybook-review-loop.md` には確定結果だけを記録する。
 - frontend 表示修正の作業本体は`fork`へ委譲する。本体は人間コメントを修正入力へ変えて`fork`へ渡す。
 - 実装方針を越える画面変更（新規画面、方針外要素の追加など）は行わない。越える必要がある場合は `feature-workflow` へ差し戻して実装方針を見直す。
-- 表示範囲を越える変更（state、API、Wails bridge、ルーティング、副作用）が必要になった場合は、本モジュールで進めず `implementation-module` へ戻す。
+- 表示範囲を越える変更（state、API、Wails bridge、ルーティング、副作用）が必要になった場合は `implementation-module` へ戻す。
 - 作業中分類: Storybook 人間レビュー中の story は Storybook 規約の作業中分類へ置く。承認後は通常分類へ戻す。
 - 検証コマンド: `npm --prefix frontend run build-storybook` と `npm run test:frontend` を実行し、通過結果または未実行理由を作業結果として返す。`storybook-review-loop.md` には書かない。
 
 ### 合意済み frontend 保護
 
 - 本体が固定する。
-- 次を作業結果として返す。判断履歴は `plan.md` に残さず、恒久的に残す判断は `docs/changelog.md` に書く。
+- 次を作業結果として返す。恒久的に残す判断は `docs/changelog.md` に書く。判断履歴は `plan.md` に残さない。
     - 承認済み画面、表示規則、確認済み Storybook 状態、変更禁止範囲。
     - 反映先 frontend ファイル、story、fixture、関連資源。
     - 通常分類へ戻した story の一覧。
-    - 後続実装で表示を変えずに済む境界（svelte 表示コンポーネントの構造、props 形、style）。
+    - 後続実装が表示を保ったまま進める境界（svelte 表示コンポーネントの構造、props 形、style）。
 - `合意済み frontend 保護` を固定するまで、実装モジュールの `frontend ロジック実装`、`backend 実装`、`統合境界実装` へ進めない。
 
 ## 不変条件
@@ -108,7 +108,7 @@ frontend ロジック層（state、API、Wails bridge、ルーティング、副
 
 - `Storybook 表示実装` を `frontend ロジック実装`、`backend 実装` より先に着手する。
 - Storybook 人間レビュー承認と、確認対象 story の通常分類への復帰がないまま `合意済み frontend 保護` へ進めない。
-- 実装方針を越える画面変更が必要な場合は、本モジュール内で勝手に進めず `feature-workflow` へ差し戻す。
+- 実装方針を越える画面変更が必要な場合は `feature-workflow` へ差し戻す。
 
 ### 責務境界
 
