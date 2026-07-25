@@ -10,7 +10,7 @@ public class ModelInvariantTests
 {
     private static ExtractionResult Dawnguard => ExtractionCache.ExtractCached("Dawnguard.esm");
 
-    [Fact]
+    [RealDataFact]
     public void 各カテゴリのidが重複しない()
     {
         var r = Dawnguard;
@@ -22,7 +22,7 @@ public class ModelInvariantTests
         AssertUniqueIds(r.Books.Select(x => x.Id), "books");
     }
 
-    [Fact]
+    [RealDataFact]
     public void 主要カテゴリが空でない()
     {
         var r = Dawnguard;
@@ -34,7 +34,7 @@ public class ModelInvariantTests
         Assert.NotEmpty(r.Words);
     }
 
-    [Fact]
+    [RealDataFact]
     public void Speakerはペルソナ名を必ず持つ()
     {
         // ペルソナ名解決順（FULL → TPLT 連鎖 → EditorID）により空にならないはず。
@@ -43,7 +43,7 @@ public class ModelInvariantTests
             $"persona 名が空: {s.Id} ({s.EditorId})"));
     }
 
-    [Fact]
+    [RealDataFact]
     public void InfoNodeの話者解決は名指しか集合のどちらかに分類される()
     {
         // r2a〜d のいずれも無い INFO は許容される（シーン会話等）が、
@@ -60,7 +60,7 @@ public class ModelInvariantTests
         }
     }
 
-    [Fact]
+    [RealDataFact]
     public void 話者解決は否定条件を採用しない()
     {
         var r = Dawnguard;
@@ -79,7 +79,7 @@ public class ModelInvariantTests
         Assert.Contains(lorekeeper.Infos, i => i.SpeakerIds.Contains(urag));
     }
 
-    [Fact]
+    [RealDataFact]
     public void stubのrecordはモデルに出るが翻訳対象に数えない()
     {
         var r = Dawnguard;
@@ -93,7 +93,7 @@ public class ModelInvariantTests
             s => s.RecField == "DIAL:FULL" && s.EditorId == "DialogueFollowerWaitTopic");
     }
 
-    [Fact]
+    [RealDataFact]
     public void 表示されないテキストはNotPlayerFacingで振り分けられる()
     {
         var update = ExtractionCache.ExtractCached("Update.esm");
@@ -111,7 +111,7 @@ public class ModelInvariantTests
         Assert.Contains(dg.Equipment, e => e.NotPlayerFacing);
     }
 
-    [Fact]
+    [RealDataFact]
     public void NotPlayerFacingは翻訳対象の件数に影響しない()
     {
         // hint であり除外ではない。xTranslator 辞書はこれらも翻訳対象に数えるため、
@@ -121,7 +121,7 @@ public class ModelInvariantTests
             s => s.RecField == "QUST:FULL" && s.EditorId == "WI");
     }
 
-    [Fact]
+    [RealDataFact]
     public void 龍語綴りは翻訳対象に数えない()
     {
         var counts = TranslationCounts.Flatten(Dawnguard);

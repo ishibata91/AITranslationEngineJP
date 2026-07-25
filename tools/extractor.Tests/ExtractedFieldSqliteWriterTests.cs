@@ -39,35 +39,28 @@ public class ExtractedFieldSqliteWriterTests
     [Fact]
     public void 本の_FULL_DESC_CNAM_を_extracted_field_へ書く()
     {
-        var dbPath = Path.Combine(Path.GetTempPath(), $"ef-{Guid.NewGuid():N}.sqlite3");
-        try
-        {
-            // FULL だけ英日対を持たせ、dest は対のある field だけ書かれる（他は空）ことを併せて確かめる。
-            var result = WithBook("TestBook", 0x800, "Lusty Argonian Maid", "Ancient Nord prose", "Crassius Curio");
-            var bookId = result.Books[0].Id;
-            result.JapanesePairs[(bookId, "BOOK:FULL", "Lusty Argonian Maid")] = "アルゴニアンの侍女";
+        using var db = new TempSqliteDb("ef");
 
-            var written = ExtractedFieldSqliteWriter.Write(dbPath, MigrationsDir(), result);
-            Assert.Equal(3, written); // FULL + DESC + CNAM
+        // FULL だけ英日対を持たせ、dest は対のある field だけ書かれる（他は空）ことを併せて確かめる。
+        var result = WithBook("TestBook", 0x800, "Lusty Argonian Maid", "Ancient Nord prose", "Crassius Curio");
+        var bookId = result.Books[0].Id;
+        result.JapanesePairs[(bookId, "BOOK:FULL", "Lusty Argonian Maid")] = "アルゴニアンの侍女";
 
-            using var conn = new SqliteConnection($"Data Source={dbPath}");
-            conn.Open();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT rec, field, ordinal, source, dest FROM extracted_field ORDER BY field";
-            using var reader = cmd.ExecuteReader();
+        var written = ExtractedFieldSqliteWriter.Write(db.Path, MigrationsDir(), result);
+        Assert.Equal(3, written); // FULL + DESC + CNAM
 
-            var got = new List<(string rec, string field, int ordinal, string source, string dest)>();
-            while (reader.Read())
-                got.Add((reader.GetString(0), reader.GetString(1), reader.GetInt32(2), reader.GetString(3), reader.GetString(4)));
+        using var conn = db.OpenConnection();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT rec, field, ordinal, source, dest FROM extracted_field ORDER BY field";
+        using var reader = cmd.ExecuteReader();
 
-            Assert.Contains(("BOOK", "FULL", 0, "Lusty Argonian Maid", "アルゴニアンの侍女"), got);
-            Assert.Contains(("BOOK", "DESC", 0, "Ancient Nord prose", ""), got);
-            Assert.Contains(("BOOK", "CNAM", 0, "Crassius Curio", ""), got);
-        }
-        finally
-        {
-            File.Delete(dbPath);
-        }
+        var got = new List<(string rec, string field, int ordinal, string source, string dest)>();
+        while (reader.Read())
+            got.Add((reader.GetString(0), reader.GetString(1), reader.GetInt32(2), reader.GetString(3), reader.GetString(4)));
+
+        Assert.Contains(("BOOK", "FULL", 0, "Lusty Argonian Maid", "アルゴニアンの侍女"), got);
+        Assert.Contains(("BOOK", "DESC", 0, "Ancient Nord prose", ""), got);
+        Assert.Contains(("BOOK", "CNAM", 0, "Crassius Curio", ""), got);
     }
 
     [Fact]
@@ -95,52 +88,38 @@ public class ExtractedFieldSqliteWriterTests
             Infos = { info },
         });
 
-        var dbPath = Path.Combine(Path.GetTempPath(), $"ef-{Guid.NewGuid():N}.sqlite3");
-        try
-        {
-            var written = ExtractedFieldSqliteWriter.Write(dbPath, MigrationsDir(), result);
-            Assert.Equal(3, written);
+        using var db = new TempSqliteDb("ef");
 
-            using var conn = new SqliteConnection($"Data Source={dbPath}");
-            conn.Open();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT ordinal, source FROM extracted_field WHERE rec='INFO' AND field='NAM1' ORDER BY ordinal";
-            using var reader = cmd.ExecuteReader();
+        var written = ExtractedFieldSqliteWriter.Write(db.Path, MigrationsDir(), result);
+        Assert.Equal(3, written);
 
-            Assert.True(reader.Read());
-            Assert.Equal(0, reader.GetInt32(0));
-            Assert.Equal("First.", reader.GetString(1));
-            Assert.True(reader.Read());
-            Assert.Equal(1, reader.GetInt32(0));
-            Assert.True(reader.Read());
-            Assert.Equal(2, reader.GetInt32(0));
-            Assert.False(reader.Read());
-        }
-        finally
-        {
-            File.Delete(dbPath);
-        }
+        using var conn = db.OpenConnection();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT ordinal, source FROM extracted_field WHERE rec='INFO' AND field='NAM1' ORDER BY ordinal";
+        using var reader = cmd.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0, reader.GetInt32(0));
+        Assert.Equal("First.", reader.GetString(1));
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(0));
+        Assert.True(reader.Read());
+        Assert.Equal(2, reader.GetInt32(0));
+        Assert.False(reader.Read());
     }
 
     [Fact]
     public void 同じ抽出を二度書いても重複しない()
     {
-        var dbPath = Path.Combine(Path.GetTempPath(), $"ef-{Guid.NewGuid():N}.sqlite3");
-        try
-        {
-            var r = WithBook("TestBook", 0x800, "Title", "prose", "Author");
-            ExtractedFieldSqliteWriter.Write(dbPath, MigrationsDir(), r);
-            ExtractedFieldSqliteWriter.Write(dbPath, MigrationsDir(), r);
+        using var db = new TempSqliteDb("ef");
 
-            using var conn = new SqliteConnection($"Data Source={dbPath}");
-            conn.Open();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT COUNT(*) FROM extracted_field";
-            Assert.Equal(3L, (long)cmd.ExecuteScalar()!);
-        }
-        finally
-        {
-            File.Delete(dbPath);
-        }
+        var r = WithBook("TestBook", 0x800, "Title", "prose", "Author");
+        ExtractedFieldSqliteWriter.Write(db.Path, MigrationsDir(), r);
+        ExtractedFieldSqliteWriter.Write(db.Path, MigrationsDir(), r);
+
+        using var conn = db.OpenConnection();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM extracted_field";
+        Assert.Equal(3L, (long)cmd.ExecuteScalar()!);
     }
 }
