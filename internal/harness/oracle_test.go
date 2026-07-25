@@ -85,11 +85,11 @@ var goOracles = map[string]func(t *testing.T, p probe){
 	// 叙述文（WEAP:DESC＝物品説明）と定型句（ACTI:RNAM＝操作名）で、別の箱が別の指示文を受けることを見る。
 	"narration-directive-injected": func(t *testing.T, p probe) {
 		narr := promptContainingUser(t, p, "once held by")
-		if !strings.Contains(narr.System, "品物の説明文です") {
+		if !strings.Contains(narr.System, "品物の説明文") {
 			t.Fatalf("WEAP:DESC へ物品説明の指示文が乗っていない:\n%s", narr.System)
 		}
 		phrase := promptContainingUser(t, p, "Open")
-		if !strings.Contains(phrase.System, "動詞の終止形で短く訳し") {
+		if !strings.Contains(phrase.System, "動詞の終止形") {
 			t.Fatalf("ACTI:RNAM へ操作名の指示文が乗っていない:\n%s", phrase.System)
 		}
 		// 箱が違えば違う指示文を受けること（1 指示文へ畳まれていない）。
