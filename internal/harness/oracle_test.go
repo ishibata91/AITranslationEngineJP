@@ -65,10 +65,36 @@ var goOracles = map[string]func(t *testing.T, p probe){
 	},
 
 	// 話者結線: 話者が結ばれた台詞のプロンプトへ、その話者の人物像・口調が乗る（話者→ペルソナ→プロンプト）。
+	// 人物像には役割語（一人称）と口調の例文も含む。役割語表と例文表は別 asset だが同じキーで引き、
+	// 1 つの口調指示へ束ねる。ここは合成表（syntheticRoleSpeech・syntheticRoleSpeechExamples）で配線だけを守る。
 	"speaker-tone-injected": func(t *testing.T, p probe) {
 		pr := promptContainingUser(t, p, "trouble in town")
 		if !strings.Contains(pr.System, "人物像") {
 			t.Fatalf("話者の人物像がプロンプトへ乗っていない:\n%s", pr.System)
+		}
+		if !strings.Contains(pr.System, "一人称は「わたし」") {
+			t.Fatalf("役割語の一人称がプロンプトへ乗っていない:\n%s", pr.System)
+		}
+		if !strings.Contains(pr.System, "- 例: I will go. → わたしが行きます。") {
+			t.Fatalf("口調の例文がプロンプトへ乗っていない:\n%s", pr.System)
+		}
+	},
+
+	// 指示文結線: REC:FIELD へ割り当てた指示文が、その本文のプロンプトへ乗る（割り当て→取込→プロンプト）。
+	// 割り当ての正本は migration の record_type_master seed で、harness は実 seed を通す。
+	// 叙述文（WEAP:DESC＝物品説明）と定型句（ACTI:RNAM＝操作名）で、別の箱が別の指示文を受けることを見る。
+	"narration-directive-injected": func(t *testing.T, p probe) {
+		narr := promptContainingUser(t, p, "once held by")
+		if !strings.Contains(narr.System, "品物の説明文です") {
+			t.Fatalf("WEAP:DESC へ物品説明の指示文が乗っていない:\n%s", narr.System)
+		}
+		phrase := promptContainingUser(t, p, "Open")
+		if !strings.Contains(phrase.System, "動詞の終止形で短く訳し") {
+			t.Fatalf("ACTI:RNAM へ操作名の指示文が乗っていない:\n%s", phrase.System)
+		}
+		// 箱が違えば違う指示文を受けること（1 指示文へ畳まれていない）。
+		if narr.System == phrase.System {
+			t.Fatalf("叙述文と定型句が同じ指示文を受けている:\n%s", narr.System)
 		}
 	},
 

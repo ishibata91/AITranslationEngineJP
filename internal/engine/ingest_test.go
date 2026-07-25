@@ -12,7 +12,7 @@ import (
 func TestDispatch(t *testing.T) {
 	master := map[RecordKey]model.RecordType{
 		{Rec: "BOOK", Field: "DESC"}: {Rec: "BOOK", Field: "DESC", Box: boxNarration, Directive: "書物体"},
-		{Rec: "ACTI", Field: "RNAM"}: {Rec: "ACTI", Field: "RNAM", Box: boxSetPhrase, Directive: "定型句"},
+		{Rec: "ACTI", Field: "RNAM"}: {Rec: "ACTI", Field: "RNAM", Box: boxSetPhrase, Directive: "操作名"},
 		{Rec: "WEAP", Field: "FULL"}: {Rec: "WEAP", Field: "FULL", Box: boxProperNoun, Directive: "固有名"},
 		{Rec: "INFO", Field: "NAM1"}: {Rec: "INFO", Field: "NAM1", Box: boxLine, Directive: "口調"},
 		{Rec: "BAD_", Field: "XXXX"}: {Rec: "BAD_", Field: "XXXX", Box: "未知の箱", Directive: "x"},
@@ -42,9 +42,9 @@ func TestDispatch(t *testing.T) {
 	if d.Narrations[0].Style != "書物体" || d.Narrations[0].Rec != "BOOK" {
 		t.Errorf("叙述文[0] = %+v, want style=書物体 rec=BOOK", d.Narrations[0])
 	}
-	// 定型句も narration へ入り、style に定型句 directive が入ること。
-	if d.Narrations[1].Style != "定型句" || d.Narrations[1].Rec != "ACTI" {
-		t.Errorf("定型句 = %+v, want style=定型句 rec=ACTI", d.Narrations[1])
+	// 定型句 box も narration へ入り、style に割り当て先の directive キー（操作名）が入ること。
+	if d.Narrations[1].Style != "操作名" || d.Narrations[1].Rec != "ACTI" {
+		t.Errorf("定型句 = %+v, want style=操作名 rec=ACTI", d.Narrations[1])
 	}
 	if len(d.Lines) != 1 || d.Lines[0].Source != "Hello." || d.Lines[0].ResponseOrder != 2 {
 		t.Errorf("台詞 = %+v, want [Hello./order2]", d.Lines)

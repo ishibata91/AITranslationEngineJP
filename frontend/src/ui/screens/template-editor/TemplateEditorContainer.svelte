@@ -25,9 +25,8 @@
   // 表示中のサブタブ。
   let activeTab = $state<TemplateTab>("base")
 
-  // 編集中の base 値。personaTemplate は口調 directive へ畳んだため編集せず、保存時の素通し用に保持する。
+  // 編集中の base 値。話者のいる台詞の口調雛形は指示文「口調」が持つため、ここでは扱わない。
   let baseDirective = $state("")
-  let personaTemplate = $state("")
   let savedBase = $state("")
 
   // 話者なし台詞の口調設定（汎用・PC の自由記述口調と PC 性別）。saved は dirty 判定と「戻す」の基準。
@@ -48,7 +47,6 @@
 
   const form: PromptTemplateForm = $derived({
     baseDirective,
-    personaTemplate,
     genericToneText,
     pcToneText,
     pcSex
@@ -72,7 +70,6 @@
 
   function onFieldInput(field: PromptTemplateField, value: string) {
     if (field === "baseDirective") baseDirective = value
-    else if (field === "personaTemplate") personaTemplate = value
     else if (field === "genericToneText") genericToneText = value
     else if (field === "pcToneText") pcToneText = value
     else if (field === "pcSex") pcSex = value as PcSex
@@ -101,7 +98,6 @@
     try {
       const template = await getPromptTemplate()
       baseDirective = template.baseDirective
-      personaTemplate = template.personaTemplate
       savedBase = template.baseDirective
       genericToneText = template.genericToneText
       pcToneText = template.pcToneText
@@ -129,7 +125,6 @@
       if (baseDirty || toneDirty) {
         await savePromptTemplate({
           baseDirective,
-          personaTemplate,
           genericToneText,
           pcToneText,
           pcSex

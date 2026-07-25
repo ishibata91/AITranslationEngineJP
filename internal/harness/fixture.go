@@ -47,7 +47,7 @@ type SeedSpeaker struct {
 }
 
 // SyntheticFixture は著作物を含まない決定的な合成入力を返す。
-// 叙述文（説明体・書物体）・固有名・定型句・話者付き台詞・話者なし台詞・翻訳対象外（skip）を 1 通り網羅し、
+// 叙述文（物品説明・書物体）・固有名・定型句・話者付き台詞・話者なし台詞・翻訳対象外（skip）を 1 通り網羅し、
 // 取込段の振り分け、固有名→本文の機械置換、口調生成、プロンプト合成を端から端まで通す。
 func SyntheticFixture() Fixture {
 	const plugin = "Synthetic.esm"
@@ -59,9 +59,9 @@ func SyntheticFixture() Fixture {
 			{Plugin: plugin, FormID: "0x100", EDID: "AventusNPC", Rec: "NPC_", Field: "FULL", Source: "Aventus Aretino", Dest: "アベンタス・アレティノ"},
 			// 固有名（二つ名）: 英日対を持ち、二つ名前部（byname）派生 Grelod→グレロッド の供給源になる。
 			{Plugin: plugin, FormID: "0x110", EDID: "GrelodNPC", Rec: "NPC_", Field: "FULL", Source: "Grelod the Kind", Dest: "親切者のグレロッド"},
-			// 叙述文（説明体）: 本文中に固有名を含み、機械置換が当たることを観測する。
+			// 叙述文（物品説明）: 本文中に固有名を含み、機械置換が当たることを観測する。
 			{Plugin: plugin, FormID: "0x200", EDID: "TestSword", Rec: "WEAP", Field: "DESC", Source: "A blade once held by Aventus Aretino."},
-			// 叙述文（書物体）: 文体 directive が説明体と分かれることを観測する。
+			// 叙述文（書物体）: 文体 directive が物品説明と分かれることを観測する。
 			// 末尾に Grelod を含め、二つ名前部（byname）派生語 Grelod→グレロッド が本文機械置換にかかる経路を観測する。
 			{Plugin: plugin, FormID: "0x300", EDID: "TestBook", Rec: "BOOK", Field: "DESC", Source: "A long account of the old kings of the north, told by Grelod."},
 			// 定型句: オブジェクト操作の短文。固有名でも台詞でもない箱。

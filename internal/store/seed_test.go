@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// migration の seed 整合を確かめる。directive は 7 指示文、record_type_master は全 REC:FIELD が
+// migration の seed 整合を確かめる。directive は 9 指示文、record_type_master は全 REC:FIELD が
 // directive を 1 つだけ持ち（排他）、参照先 directive が必ず存在し（網羅）、box と directive が対応すること。
 func TestSeedRecordTypeMasterIntegrity(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "seed.sqlite3")
@@ -23,8 +23,8 @@ func TestSeedRecordTypeMasterIntegrity(t *testing.T) {
 		t.Fatalf("ListDirectives: %v", err)
 	}
 	wantKeys := map[string]bool{
-		"説明体": true, "書物体": true, "日記体": true, "世界観断片": true,
-		"口調": true, "固有名": true, "定型句": true,
+		"物品説明": true, "効果説明": true, "世界観断片": true, "書物体": true, "日記体": true,
+		"固有名": true, "操作名": true, "語義": true, "口調": true,
 	}
 	if len(directives) != len(wantKeys) {
 		t.Errorf("directive 数 = %d, want %d", len(directives), len(wantKeys))
@@ -51,10 +51,17 @@ func TestSeedRecordTypeMasterIntegrity(t *testing.T) {
 	}
 
 	validBox := map[string]bool{"叙述文": true, "固有名": true, "定型句": true, "台詞": true}
-	// box ごとに許される directive。叙述文は 4 文体のいずれか、他は箱名と同じ単一 directive。
-	narrationDirectives := map[string]bool{"説明体": true, "書物体": true, "日記体": true, "世界観断片": true}
+	// box ごとに許される directive。叙述文は 5 文体のいずれか、定型句は短文 2 種のいずれか、
+	// 固有名と台詞は単一 directive（箱と 1 対 1）。
+	narrationDirectives := map[string]bool{
+		"物品説明": true, "効果説明": true, "世界観断片": true, "書物体": true, "日記体": true,
+	}
+	setPhraseDirectives := map[string]bool{"操作名": true, "語義": true}
 
 	seen := make(map[string]bool, len(rows))
+	// directiveOf は REC:FIELD → 割り当てた指示文キー、usedDirectives は 1 件以上から参照された指示文キー。
+	directiveOf := make(map[string]string, len(rows))
+	usedDirectives := make(map[string]bool, len(rows))
 	for _, r := range rows {
 		rf := r.Rec + ":" + r.Field
 		// 排他: 同じ (rec, field) が 2 度現れない（PK の担保を読み出し側でも確認）。
@@ -62,6 +69,8 @@ func TestSeedRecordTypeMasterIntegrity(t *testing.T) {
 			t.Errorf("REC:FIELD %q が重複している（排他違反）", rf)
 		}
 		seen[rf] = true
+		directiveOf[rf] = r.Directive
+		usedDirectives[r.Directive] = true
 
 		if !validBox[r.Box] {
 			t.Errorf("%s: 未知の box %q", rf, r.Box)
@@ -81,8 +90,8 @@ func TestSeedRecordTypeMasterIntegrity(t *testing.T) {
 				t.Errorf("%s: 固有名 box の directive = %q, want 固有名", rf, r.Directive)
 			}
 		case "定型句":
-			if r.Directive != "定型句" {
-				t.Errorf("%s: 定型句 box の directive = %q, want 定型句", rf, r.Directive)
+			if !setPhraseDirectives[r.Directive] {
+				t.Errorf("%s: 定型句 box の directive = %q, want 操作名・語義のいずれか", rf, r.Directive)
 			}
 		case "叙述文":
 			if !narrationDirectives[r.Directive] {
@@ -92,9 +101,32 @@ func TestSeedRecordTypeMasterIntegrity(t *testing.T) {
 	}
 
 	// 代表 REC:FIELD が網羅されていること（会話・本以外への拡張の最低保証）。
-	for _, rf := range []string{"BOOK:DESC", "INFO:NAM1", "WEAP:DESC", "WEAP:FULL", "ACTI:RNAM", "DIAL:FULL", "QUST:CNAM", "LSCR:DESC"} {
+	// SPEL:DESC・WOOP:TNAM・RACE:DESC は指示文を割り直した対象で、分割後の割り当てを固定する。
+	for _, rf := range []string{"BOOK:DESC", "INFO:NAM1", "WEAP:DESC", "WEAP:FULL", "ACTI:RNAM", "DIAL:FULL", "QUST:CNAM", "LSCR:DESC", "SPEL:DESC", "WOOP:TNAM", "RACE:DESC"} {
 		if !seen[rf] {
 			t.Errorf("代表 REC:FIELD %q が record_type_master に無い", rf)
+		}
+	}
+
+	// 分割後の割り当て。旧「説明体」を物品説明と効果説明へ、旧「定型句」を操作名と語義へ割り、
+	// RACE:DESC を世界観断片へ移した結果を固定する。
+	for _, tc := range []struct{ recField, directive string }{
+		{"WEAP:DESC", "物品説明"},
+		{"SPEL:DESC", "効果説明"},
+		{"MGEF:DNAM", "効果説明"},
+		{"RACE:DESC", "世界観断片"},
+		{"ACTI:RNAM", "操作名"},
+		{"WOOP:TNAM", "語義"},
+	} {
+		if got := directiveOf[tc.recField]; got != tc.directive {
+			t.Errorf("%s の directive = %q, want %q", tc.recField, got, tc.directive)
+		}
+	}
+
+	// 9 指示文すべてが 1 件以上の REC:FIELD から参照されること（使われない指示文を残さない）。
+	for k := range wantKeys {
+		if !usedDirectives[k] {
+			t.Errorf("指示文 %q を参照する REC:FIELD が無い", k)
 		}
 	}
 }

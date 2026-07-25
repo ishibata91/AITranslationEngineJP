@@ -129,7 +129,7 @@ erDiagram
     prompt_template {
         INTEGER id PK "=1"
         TEXT base_directive "base 指示"
-        TEXT persona_template "旧口調雛形"
+        TEXT persona_template "未使用（参照経路を削除）"
     }
     directive {
         TEXT key PK "指示文キー"
@@ -259,7 +259,7 @@ erDiagram
 |---|---|---|---|
 | master_term | 固有名の確定訳を Mod 横断で永続するマスター辞書（権威訳）。`proper_noun`（実行内 AI 訳）と分離 | source, dest, category | UNIQUE(category, source) |
 | reference_translation | 本文（叙述文・台詞）の既存訳（参照訳）。`extracted_field` の英日対（Data フォルダの english / japanese Strings 由来、dest 非空行）から取り込み、翻訳前に (rec, field, source) 完全一致で既訳を流用する。対象横断で同一原文を再利用するため照合は rec:field＋原文、plugin 非依存 | rec, field, source, dest | UNIQUE(rec, field, source) |
-| prompt_template | プロンプト構築の雛形（base 指示）。単一行 | base_directive, persona_template | PK(id=1) |
+| prompt_template | プロンプト構築の雛形（base 指示）。単一行。`persona_template` は読み書きの経路を削除した未使用列 | base_directive, persona_template | PK(id=1) |
 | directive | REC:FIELD ごとの翻訳指示文。口調・文体・固有名・定型句を 1 つの「指示文」へ一般化（口調は `{traits}` 変数） | key, instruction, variables(JSON) | PK(key) |
 | record_type_master | REC:FIELD → box + directive の割り当て正本（取込段の振り分け表） | rec, field, box, directive(FK), logical_name | PK(rec, field) |
 | persona_character | 話者 box の口調属性を実現する生成ペルソナ（生成・キャッシュ） | speaker_plugin, speaker_form_id, attitude_band, emotion_band, marked, decision_path, hand_edited | UNIQUE(speaker_plugin, speaker_form_id) |
@@ -273,10 +273,10 @@ erDiagram
 | batch_translation | xAI batch 翻訳の進行本体。対象 plugin と 1 対 1。進行段（固有名/本文/完了）、固有名 batch と本文 batch の外部 batch ID、model を持つ。進行中は 1 進行だけ | plugin, model, stage, proper_batch_id, body_batch_id, created_at | UNIQUE(plugin) |
 | batch_request | batch 送信行と結果の対応。custom_id（種別:id）で外部 batch のリクエストを翻訳対象行（種別 n/l/p ＝ 叙述文/台詞/固有名）へ結ぶ | batch_id(FK), external_batch_id, custom_id, kind, row_id | UNIQUE(batch_id, custom_id) |
 
-- `prompt_template.persona_template` は旧経路の口調雛形。口調指示の供給は口調 `directive`（`{traits}` 入り）へ移行済みで、現状の本文フェーズは `directive` を引く（`architecture.md` §8 参照）。
+- `prompt_template.persona_template` は口調雛形が 2 箇所にあった名残で、現在は読み書きの経路を持たない未使用列である。口調指示の供給は口調 `directive`（`{traits}` 入り）だけが行う。列を残すのは、C# 抽出器が全 migration を毎回 ensure する制約のもとで `ALTER TABLE DROP COLUMN` を避けるためである（migration 0007 の注記）。
 - `target_plugin` は翻訳成果を対象 plugin 単位で永続化・管理する登録表。翻訳開始時に upsert し、状態（未訳/訳済）は持たず既存行の `status` から導出する。削除は FK cascade でなく Go 側の手続き DELETE で、対象 plugin の `plugin`/`info_plugin` 行と連関を消す（共有 entity・横断辞書・seed は残す）。migration 0010 が持つ。
 - `batch_translation`・`batch_request` は xAI batch 翻訳の橋渡しを閉じ込める（同期は経由しない）。migration 0013 が持つ。`batch_translation` は対象 plugin と 1 対 1 で、固有名 batch → 本文 batch の 2 段逐次の進行段と、各段の外部 batch ID を保つ。送信の時点で作り、反映の時点で状態確認・結果取得して進める。`batch_request` は custom_id（`種別:id`、種別 n/l/p）で外部 batch のリクエストを翻訳対象行へ結ぶ。対象 plugin の削除に手続き DELETE で連動する（子 `batch_request` → 親 `batch_translation` の順）。`batch_request.kind`/`row_id` は custom_id と重複する保持で、現状の反映経路は custom_id から行を再導出する（対応表は冗長）。
-- `directive` と `record_type_master` の seed（指示文 7・REC:FIELD 割り当て 65）は migration 0006 が持つ。
+- `directive` と `record_type_master` の seed（指示文 9・REC:FIELD 割り当て 65）は migration 0006 が持つ。指示文は 物品説明・効果説明・世界観断片・書物体・日記体・固有名・操作名・語義・口調 の 9 種で、文体の要求が違う対象を分けている（効果説明は数値と実行時タグを含む記述、語義は龍語の語釈）。
 - `extracted_info_condition`・`line_condition`・`tone_default` は migration 0007（generic-voice-tone-fallback）が持つ。話者を解決できない汎用台詞・PC 発話へ口調を付けるための実現テーブル。`extracted_info_speaker`→`line_speaker` と対称に、INFO の条件由来の性別を staging から domain へ解決する。
 
 ### 3. 未実装（概念モデル由来・後続 task）

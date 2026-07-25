@@ -71,59 +71,20 @@ func TestComposePromptAddsTagGuardWhenTagPresent(t *testing.T) {
 	}
 }
 
-// FillVariables は directive の指示文中の変数トークンを vars の値へ差し込むこと。
-// 口調 directive の {traits} に話者の性質を埋める経路と、変数なしの directive（固有名・定型句・文体）で
-// 指示文をそのまま返す経路の両方を確かめる。
-func TestFillVariables(t *testing.T) {
-	cases := []struct {
-		name        string
-		instruction string
-		vars        map[string]string
-		want        string
-	}{
-		{
-			name:        "口調 directive の {traits} を性質で埋める",
-			instruction: "この台詞の話者の人物像:\n{traits}\nこの人物像に合う口調で訳すこと。",
-			vars:        map[string]string{"{traits}": "- 口調: 柔らかく丁寧"},
-			want:        "この台詞の話者の人物像:\n- 口調: 柔らかく丁寧\nこの人物像に合う口調で訳すこと。",
-		},
-		{
-			name:        "変数なし（vars 空）は指示文をそのまま返す",
-			instruction: "これは固有名詞です。簡潔に訳すこと。",
-			vars:        nil,
-			want:        "これは固有名詞です。簡潔に訳すこと。",
-		},
-		{
-			name:        "宣言外のトークンはそのまま残す",
-			instruction: "説明文を訳すこと。{unknown} は残す。",
-			vars:        map[string]string{"{traits}": "x"},
-			want:        "説明文を訳すこと。{unknown} は残す。",
-		},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			if got := FillVariables(c.instruction, c.vars); got != c.want {
-				t.Errorf("FillVariables = %q, want %q", got, c.want)
-			}
-		})
-	}
-}
-
-// プロンプト合成（MECE）: Base 指示 ＋ 変数を埋めた directive 指示文 ＋ 機械置換済み原文。
-// 口調 directive（変数あり）と固有名 directive（変数なし）の両経路で完成プロンプトを確かめる。
+// プロンプト合成（MECE）: Base 指示 ＋ 差し込み済みの directive 指示文 ＋ 機械置換済み原文。
+// 口調 directive（差し込み済み）と固有名 directive（差し込みなし）の両経路で完成プロンプトを確かめる。
+// {traits} の差し込みは personatone.BuildToneDirective が担うため、ここは差し込み後の文字列を入力にする。
 func TestComposeWithFilledDirective(t *testing.T) {
 	const base = "あなたは翻訳者です。"
 
-	// 口調 directive: {traits} を埋めてから base へ合成する。
-	tone := FillVariables("人物像:\n{traits}", map[string]string{"{traits}": "- 丁寧"})
-	got := ComposePrompt(base, tone, "Hello")
+	// 口調 directive: 話者の性質を差し込んだ状態で base へ合成する。
+	got := ComposePrompt(base, "人物像:\n- 丁寧", "Hello")
 	if got.System != base+"\n\n人物像:\n- 丁寧" {
 		t.Errorf("口調合成の System = %q", got.System)
 	}
 
-	// 固有名 directive: 変数なしで、base へ指示文をそのまま合成する。
-	proper := FillVariables("これは固有名詞です。", nil)
-	got = ComposePrompt(base, proper, "Dragonbane")
+	// 固有名 directive: 差し込む変数を持たず、base へ指示文をそのまま合成する。
+	got = ComposePrompt(base, "これは固有名詞です。", "Dragonbane")
 	if got.System != base+"\n\nこれは固有名詞です。" || got.User != "Dragonbane" {
 		t.Errorf("固有名合成 = %+v", got)
 	}

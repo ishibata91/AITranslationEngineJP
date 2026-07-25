@@ -14,7 +14,8 @@ import (
 const traitsToken = "{traits}"
 
 // toneTraits は基底口調セル（[感情段階][対人段階]）の性質文。翻訳プロンプトの口調指示へ入れる。
-// implementation-scope.md のとおり v1 はコード定数で持つ。一人称・語尾を確定する few-shot 例文は後続の精緻化で足す。
+// implementation-scope.md のとおり v1 はコード定数で持つ。
+// 一人称・語尾を確定する例文は assets/role-speech-examples.tsv が持ち、役割語と同じキーで引いて口調指示へ足す。
 var toneTraits = [3][3]string{
 	// 抑制（感情を抑える）
 	{
@@ -70,9 +71,7 @@ func BuildToneTraits(in model.LinePersonaInput, roles *rolespeech.Table) []strin
 		return nil
 	}
 	traits := []string{"- 口調: " + trait}
-	if line := roleSpeechLine(in, roles); line != "" {
-		traits = append(traits, line)
-	}
+	traits = append(traits, roleSpeechLines(in, roles)...)
 	if m := raceMarkerTrait(in.RaceEDID); m != "" {
 		traits = append(traits, "- 種族訛り: "+m)
 	}
@@ -82,31 +81,35 @@ func BuildToneTraits(in model.LinePersonaInput, roles *rolespeech.Table) []strin
 	return traits
 }
 
-// roleSpeechLine は役割語テンプレートを引いて口調指示の 1 行へ整える。
+// roleSpeechLines は役割語テンプレートを引いて口調指示の行へ整える。
 // 照合は決定経路に依らず、性別・race 由来の区分・基底口調セルだけで決める（フォールバック・保留でも付く）。
-// 一致が無い、または一人称も言い回しも空なら空文字を返す（役割語マーカーなし）。
-func roleSpeechLine(in model.LinePersonaInput, roles *rolespeech.Table) string {
+// 一致が無い、または一人称・言い回し・例文がすべて空なら行を返さない（役割語マーカーなし）。
+func roleSpeechLines(in model.LinePersonaInput, roles *rolespeech.Table) []string {
 	cell := tone.CellName(in.AttitudeBand, in.EmotionBand)
 	tmpl, ok := roles.Lookup(rolespeech.RoleClassOfRace(in.RaceEDID), strings.ToLower(in.Sex), cell)
 	if !ok {
-		return ""
+		return nil
 	}
 	return formatRoleSpeech(tmpl)
 }
 
-// formatRoleSpeech は役割語テンプレート（一人称・言い回し）を口調指示の 1 行へ整える。
-// 一人称も言い回しも空なら空文字を返す。名指し話者と汎用・PC で共通の整形。
-func formatRoleSpeech(tmpl rolespeech.Template) string {
+// formatRoleSpeech は役割語テンプレート（一人称・言い回し・例文）を口調指示の行へ整える。
+// 例文は説明文だけでは揺れる一人称・語尾を訳例で固定するために置く。
+// 一人称も言い回しも例文も空なら行を返さない。名指し話者と汎用・PC で共通の整形。
+func formatRoleSpeech(tmpl rolespeech.Template) []string {
+	var lines []string
 	switch {
 	case tmpl.FirstPerson != "" && tmpl.Register != "":
-		return "- 人称と言い回し: 一人称は「" + tmpl.FirstPerson + "」。" + tmpl.Register
+		lines = append(lines, "- 人称と言い回し: 一人称は「"+tmpl.FirstPerson+"」。"+tmpl.Register)
 	case tmpl.FirstPerson != "":
-		return "- 人称と言い回し: 一人称は「" + tmpl.FirstPerson + "」。"
+		lines = append(lines, "- 人称と言い回し: 一人称は「"+tmpl.FirstPerson+"」。")
 	case tmpl.Register != "":
-		return "- 言い回し: " + tmpl.Register
-	default:
-		return ""
+		lines = append(lines, "- 言い回し: "+tmpl.Register)
 	}
+	if !tmpl.Example.IsZero() {
+		lines = append(lines, "- 例: "+tmpl.Example.Source+" → "+tmpl.Example.Dest)
+	}
+	return lines
 }
 
 // emotionAdvice は感情段階を口調指示へ重ねる助言文を返す。上書き命令でなく助言にとどめ、
@@ -144,22 +147,21 @@ func lineEmotionLine(emotionType string) string {
 	return "- 感情: この台詞は" + word + "を込めた口調で話す。"
 }
 
-// freeRoleSpeechLine は性別だけから一人称・語尾の 1 行を引く（汎用・PC 用）。
+// freeRoleSpeechLines は性別だけから一人称・語尾・例文の行を引く（汎用・PC 用）。
 // 汎用・PC は対人段階・セルを持たないため、年齢区分は成人、セルはワイルドカードで照合する。
-// 性別が空、または一致が無いなら空文字を返す（一人称・語尾の指定なし）。
-func freeRoleSpeechLine(sex string, roles *rolespeech.Table) string {
-	if strings.TrimSpace(sex) == "" {
-		return ""
-	}
-	tmpl, ok := roles.Lookup(rolespeech.RoleClassOfRace(""), strings.ToLower(sex), "")
+// 性別が空でも引く。空文字は性別列のワイルドカード行に一致し、性別を取れない話者の既定行へ落ちる。
+// 一致が無いなら行を返さない（一人称・語尾の指定なし）。
+func freeRoleSpeechLines(sex string, roles *rolespeech.Table) []string {
+	tmpl, ok := roles.Lookup(rolespeech.RoleClassOfRace(""), strings.ToLower(strings.TrimSpace(sex)), "")
 	if !ok {
-		return ""
+		return nil
 	}
 	return formatRoleSpeech(tmpl)
 }
 
 // BuildFreeToneTraits は汎用台詞・PC 発話の口調指示の箇条書きを組む。
-// 自由記述の口調（baseText）→ 台詞の感情（TRDT 種別、無ければ本文 1 行の感情段階の助言）→ 性別の一人称・語尾 の順に並べる。
+// 自由記述の口調（baseText）→ 台詞の感情（TRDT 種別、無ければ本文 1 行の感情段階の助言）→ 性別の一人称・語尾・例文 の順に並べる。
+// 性別が空でも役割語を引く。PC 性別の未設定は「性別を取れない話者」と同じ扱いにし、性別列のワイルドカード行へ落とす。
 // baseText が空なら空（口調指示なし）。対人段階・セルは持たず、台詞の感情と性別だけを重ねる。
 func BuildFreeToneTraits(baseText string, emotionBand int, sex string, roles *rolespeech.Table, emotionType string) []string {
 	base := strings.TrimSpace(baseText)
@@ -173,9 +175,7 @@ func BuildFreeToneTraits(baseText string, emotionBand int, sex string, roles *ro
 	} else if adv := emotionAdvice(emotionBand); adv != "" {
 		traits = append(traits, "- 感情: "+adv)
 	}
-	if line := freeRoleSpeechLine(sex, roles); line != "" {
-		traits = append(traits, line)
-	}
+	traits = append(traits, freeRoleSpeechLines(sex, roles)...)
 	return traits
 }
 

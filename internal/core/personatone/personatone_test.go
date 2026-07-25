@@ -205,19 +205,84 @@ func TestBuildFreeToneTraitsLineEmotion(t *testing.T) {
 	}
 }
 
-// freeRoleSpeechLine（formatRoleSpeech）は一人称のみ・言い回しのみ・両方空を出し分ける。
+// freeRoleSpeechLines（formatRoleSpeech）は一人称のみ・言い回しのみ・両方空を出し分ける。
 func TestFreeRoleSpeechFormatting(t *testing.T) {
 	firstOnly, _ := rolespeech.ParseRoleSpeech(strings.NewReader("adult\tmale\t*\t俺\t\n"))
-	if got := freeRoleSpeechLine("Male", firstOnly); got != "- 人称と言い回し: 一人称は「俺」。" {
-		t.Errorf("一人称のみ = %q", got)
+	if got := freeRoleSpeechLines("Male", firstOnly); len(got) != 1 || got[0] != "- 人称と言い回し: 一人称は「俺」。" {
+		t.Errorf("一人称のみ = %v", got)
 	}
 	registerOnly, _ := rolespeech.ParseRoleSpeech(strings.NewReader("adult\tmale\t*\t\t男性らしい言い回し。\n"))
-	if got := freeRoleSpeechLine("Male", registerOnly); got != "- 言い回し: 男性らしい言い回し。" {
-		t.Errorf("言い回しのみ = %q", got)
+	if got := freeRoleSpeechLines("Male", registerOnly); len(got) != 1 || got[0] != "- 言い回し: 男性らしい言い回し。" {
+		t.Errorf("言い回しのみ = %v", got)
 	}
 	bothEmpty, _ := rolespeech.ParseRoleSpeech(strings.NewReader("adult\tmale\t*\t\t\n"))
-	if got := freeRoleSpeechLine("Male", bothEmpty); got != "" {
-		t.Errorf("一人称も言い回しも空で = %q, want 空", got)
+	if got := freeRoleSpeechLines("Male", bothEmpty); len(got) != 0 {
+		t.Errorf("一人称も言い回しも空で = %v, want 行なし", got)
+	}
+}
+
+// 性別を取れない話者（汎用台詞、PC 性別が未設定の PC 発話）でも役割語を引き、
+// 性別列のワイルドカード行へ落ちること。早期 return で打ち切らない。
+func TestFreeRoleSpeechUnknownSexFallsBackToWildcard(t *testing.T) {
+	roles, err := rolespeech.ParseRoleSpeech(strings.NewReader(
+		"adult\tmale\t*\t俺\t\nadult\t*\t*\t私\t\n"))
+	if err != nil {
+		t.Fatalf("役割語表の解析: %v", err)
+	}
+	got := freeRoleSpeechLines("", roles)
+	if len(got) != 1 || !strings.Contains(got[0], "「私」") {
+		t.Fatalf("性別不明でワイルドカード行へ落ちない: %v", got)
+	}
+	// 口調指示の組み立てまで通ること（PC 発話・汎用台詞の経路）。
+	traits := BuildFreeToneTraits("汎用台詞。", tone.EmotionMid, "", roles, "")
+	if len(traits) != 2 || !strings.Contains(traits[1], "「私」") {
+		t.Fatalf("性別不明の口調指示に一人称が乗らない: %v", traits)
+	}
+}
+
+// 名指し話者の口調指示にも、人称の行に続けて例文の行が乗ること（セル別に引く経路）。
+func TestBuildToneTraitsIncludesExample(t *testing.T) {
+	roles, err := rolespeech.ParseRoleSpeech(strings.NewReader("adult\tmale\t*\t俺\t\n"))
+	if err != nil {
+		t.Fatalf("役割語表の解析: %v", err)
+	}
+	cell := tone.CellName(tone.AttitudeArrogant, tone.EmotionMid)
+	roles, err = rolespeech.ParseRoleSpeechExamples(roles,
+		strings.NewReader("adult\tmale\t"+cell+"\tMove.\tどけ。俺の邪魔だ。\n"))
+	if err != nil {
+		t.Fatalf("例文表の解析: %v", err)
+	}
+	got := BuildToneTraits(model.LinePersonaInput{
+		AttitudeBand: tone.AttitudeArrogant,
+		EmotionBand:  tone.EmotionMid,
+		Sex:          "Male",
+		RaceEDID:     "NordRace",
+	}, roles)
+	if len(got) != 3 {
+		t.Fatalf("口調・人称・例文の 3 行を期待: %v", got)
+	}
+	if got[2] != "- 例: Move. → どけ。俺の邪魔だ。" {
+		t.Errorf("例文行 = %q", got[2])
+	}
+}
+
+// 例文を持つテンプレートは、人称の行に続けて「- 例:」の行を口調指示へ足す。
+func TestRoleSpeechExampleLine(t *testing.T) {
+	roles, err := rolespeech.ParseRoleSpeech(strings.NewReader("adult\tmale\t*\t俺\t\n"))
+	if err != nil {
+		t.Fatalf("役割語表の解析: %v", err)
+	}
+	roles, err = rolespeech.ParseRoleSpeechExamples(roles,
+		strings.NewReader("adult\tmale\t*\tI got it!\tやったぞ、俺がやった。\n"))
+	if err != nil {
+		t.Fatalf("例文表の解析: %v", err)
+	}
+	got := freeRoleSpeechLines("Male", roles)
+	if len(got) != 2 {
+		t.Fatalf("人称と例文の 2 行を期待: %v", got)
+	}
+	if got[1] != "- 例: I got it! → やったぞ、俺がやった。" {
+		t.Errorf("例文行 = %q", got[1])
 	}
 }
 
