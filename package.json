@@ -2,7 +2,8 @@
   "name": "aitranslationenginejp",
   "private": true,
   "devDependencies": {
-    "@playwright/test": "^1.51.0"
+    "@playwright/test": "^1.51.0",
+    "typescript": "^5.9.3"
   },
   "scripts": {
     "backendlint": "npm run lint:backend",

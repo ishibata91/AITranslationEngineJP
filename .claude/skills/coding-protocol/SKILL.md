@@ -41,7 +41,7 @@ backend、frontend ロジック、統合境界、テスト、観測ログを、`
 
 ## 共通の判断基準
 
-- 同一 task の文脈を`fork`が保つ。実装、テスト、観測を、`fresh` に渡さない。広範な探索だけ `Explore` agent に渡してよい。
+- 同一 task の文脈を`fork`が保つ。実装、テスト、観測を、`fresh` に渡さない。広範な探索だけ `Explore` agent に渡してよい。ただし後述の影響範囲の確定は `Explore` agent に渡さない。`fresh` は型解決を伴う参照解決の手段を持たないので、文字列一致で代替した不正確な一覧が返る。
 - `docs/architecture.md` の依存方向、強い制約、Wails 境界を守る。違反が要る場合は停止し人間判断へ戻す。
 - Bootstrap 以外の層で concrete 実装を new しない（手動 DI）。
 - 公開境界（DTO、API、Wails Bind、Repository Port、UseCase Port）を勝手に拡張しない。範囲外の境界変更は停止理由。
@@ -53,6 +53,24 @@ backend、frontend ロジック、統合境界、テスト、観測ログを、`
 - 触る範囲を 1 文脈で書く。backend、frontend、統合境界を、`fresh` に渡さない。
 - 各層の具体的 path、名前、責務は `docs/architecture.md` と `docs/coding-guidelines-*.md` を入口に決める。
 - 表示範囲（svelte 表示コンポーネント、props、style、story、fixture）に触る必要が出た場合は本 skill では進めず `storybook-module` へ戻す。
+
+### 影響範囲の確定
+
+既存のシンボルへ手を入れる前に、変更が波及する箇所を確定する。
+
+| 変更の種類 | 確定すべきこと | 使う operation |
+| --- | --- | --- |
+| 関数、method の signature 変更、リネーム、削除 | 壊れる呼び出し元の全件 | `findReferences`、`incomingCalls` |
+| interface への method 追加、既存 method の変更 | 追従が要る実装型の全件 | `goToImplementation` |
+| 依存の向きの変更、層をまたぐ移動 | その対象が依存している先の全件 | `outgoingCalls` |
+
+確定の手段は LSP tool とし、文字列一致の検索で代替しない。文字列一致は同名の別シンボル、コメント、テスト内の文字列まで拾い、逆に interface の実装型のように名前が現れない関係を取りこぼすので、全件を主張する根拠にならない。文字列一致で足りる場面の切り分けは `CLAUDE.md` の「コード調査の手段」節に従う。
+
+上の operation 名は LSP protocol の標準で、言語には依存しない。ただし対象 file の言語の language server が無い場合は使えない。対応状況は `CLAUDE.md` の「コード調査の手段」節に従う。使えない場合は文字列一致の検索へ落とし、影響範囲の一覧が全件である保証は無いと明示する。
+
+frontend では特に注意が要る。`.svelte` を解釈する language server が無いため、`.ts` の関数に対する参照解決の結果へ `.svelte` 側の呼び出しが現れない。gateway、store など `.ts` 側の公開関数を変える時は、`.svelte` 側の呼び出しを文字列一致の検索で補ってから影響範囲を確定する。
+
+書き換え自体は LSP tool では行えない（編集系の operation を持たない）。全件の一覧を確定してから、その一覧を根拠に自分で書き換える。
 
 ### モジュール内検証
 
