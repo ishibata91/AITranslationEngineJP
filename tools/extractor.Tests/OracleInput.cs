@@ -36,8 +36,10 @@ public static class OracleInput
 
     public sealed class TempDb : IDisposable
     {
-        public string Path { get; } =
-            System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"oracle-{Guid.NewGuid():N}.sqlite3");
+        // 一時ファイルの作成と破棄は TempSqliteDb が持つ（破棄は接続プールの解放を含む）。
+        private readonly TempSqliteDb _db = new("oracle");
+
+        public string Path => _db.Path;
 
         // 感情型 staging を INFO form_id で索く。
         public List<(int Ordinal, string Emotion)> Emotions(string infoFormId) =>
@@ -52,8 +54,7 @@ public static class OracleInput
 
         private List<T> Rows<T>(string formId, string sql, Func<SqliteDataReader, T> map)
         {
-            using var conn = new SqliteConnection($"Data Source={Path}");
-            conn.Open();
+            using var conn = _db.OpenConnection();
             using var cmd = conn.CreateCommand();
             cmd.CommandText = sql;
             cmd.Parameters.AddWithValue("$f", formId);
@@ -63,9 +64,6 @@ public static class OracleInput
             return got;
         }
 
-        public void Dispose()
-        {
-            if (File.Exists(Path)) File.Delete(Path);
-        }
+        public void Dispose() => _db.Dispose();
     }
 }

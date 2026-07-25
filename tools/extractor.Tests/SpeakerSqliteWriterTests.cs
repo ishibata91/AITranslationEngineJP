@@ -56,43 +56,29 @@ public class SpeakerSqliteWriterTests
     [Fact]
     public void 話者が解決できない_INFO_は橋渡しを書かない()
     {
-        var dbPath = Path.Combine(Path.GetTempPath(), $"sp-{Guid.NewGuid():N}.sqlite3");
-        try
-        {
-            // 空 LinkCache では話者 NPC を解決できない（info.SpeakerIds も空）。橋渡し 0 件で落ちないこと。
-            var count = SpeakerSqliteWriter.Write(dbPath, MigrationsDir(), WithInfo("InfoA", 0x800, "Hello.", "Goodbye."), EmptyLinkCache());
-            Assert.Equal(0, count);
+        using var db = new TempSqliteDb("sp");
 
-            using var conn = new SqliteConnection($"Data Source={dbPath}");
-            conn.Open();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT COUNT(*) FROM extracted_info_speaker";
-            Assert.Equal(0L, (long)cmd.ExecuteScalar()!);
-        }
-        finally
-        {
-            File.Delete(dbPath);
-        }
+        // 空 LinkCache では話者 NPC を解決できない（info.SpeakerIds も空）。橋渡し 0 件で落ちないこと。
+        var count = SpeakerSqliteWriter.Write(db.Path, MigrationsDir(), WithInfo("InfoA", 0x800, "Hello.", "Goodbye."), EmptyLinkCache());
+        Assert.Equal(0, count);
+
+        using var conn = db.OpenConnection();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM extracted_info_speaker";
+        Assert.Equal(0L, (long)cmd.ExecuteScalar()!);
     }
 
     [Fact]
     public void 二度書いても落ちない_冪等()
     {
-        var dbPath = Path.Combine(Path.GetTempPath(), $"sp-{Guid.NewGuid():N}.sqlite3");
-        try
-        {
-            SpeakerSqliteWriter.Write(dbPath, MigrationsDir(), WithInfo("InfoA", 0x800, "Hello."), EmptyLinkCache());
-            SpeakerSqliteWriter.Write(dbPath, MigrationsDir(), WithInfo("InfoA", 0x800, "Hello."), EmptyLinkCache());
+        using var db = new TempSqliteDb("sp");
 
-            using var conn = new SqliteConnection($"Data Source={dbPath}");
-            conn.Open();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT COUNT(*) FROM extracted_info_speaker";
-            Assert.Equal(0L, (long)cmd.ExecuteScalar()!);
-        }
-        finally
-        {
-            File.Delete(dbPath);
-        }
+        SpeakerSqliteWriter.Write(db.Path, MigrationsDir(), WithInfo("InfoA", 0x800, "Hello."), EmptyLinkCache());
+        SpeakerSqliteWriter.Write(db.Path, MigrationsDir(), WithInfo("InfoA", 0x800, "Hello."), EmptyLinkCache());
+
+        using var conn = db.OpenConnection();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM extracted_info_speaker";
+        Assert.Equal(0L, (long)cmd.ExecuteScalar()!);
     }
 }

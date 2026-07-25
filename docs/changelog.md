@@ -4,6 +4,32 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-07-25 extractor のテスト落ちを解消（実データ場所の .env 指定と一時 DB の後片付け）
+
+### 変更
+
+- `tools/extractor.Tests/ExtractionCache.cs`: `TestPaths` へ実データ場所の解決順を追加。repo root の `.env` のキー `AITRANSLATIONENGINEJP_SKYRIM_DATA_DIR` が実在する場所を指していればそれを使い、そうでなければ既定 `<repo>/dictionaries/Data` へ落ちる。`.env` は `KEY=VALUE` 行を読み、`#` 行を飛ばし、値のクォートを剥がす範囲だけ解釈する。
+- `tools/extractor.Tests/TempSqliteDb.cs`: 新規。一時 SQLite ファイルの生成と破棄を担う。破棄は `SqliteConnection.ClearPool` でプールを解放してから削除する。
+- `tools/extractor.Tests/RealDataFactAttribute.cs`: 新規。実データが無い機械で該当テストを skip として記録する `FactAttribute` 派生。
+- `tools/extractor.Tests/TestPathsTests.cs`: 新規。実データ場所の解決順の検証 6 件。
+- `tools/extractor.Tests/TempSqliteDbTests.cs`: 新規。一時ファイルを破棄で削除できることの検証 2 件。
+- `tools/extractor.Tests/OracleInput.cs`: `TempDb` の一時ファイル管理を `TempSqliteDb` へ委譲。
+- `tools/extractor.Tests/ExtractedFieldSqliteWriterTests.cs`: `try`/`finally` での手書き削除 3 箇所を `using var db = new TempSqliteDb(...)` へ置換。
+- `tools/extractor.Tests/SpeakerSqliteWriterTests.cs`: 同 2 箇所を置換。
+- `tools/extractor.Tests/ModelInvariantTests.cs`: `[Fact]` 9 件を `[RealDataFact]` へ差し替え。
+- `.env.example`: `AITRANSLATIONENGINEJP_SKYRIM_DATA_DIR` の設定例と、未設定時の振る舞いを追記。
+
+### 判断
+
+- 失敗 18 件は原因の異なる 2 系統だった。9 件は実データ不在（`PluginEnvironment.cs:82` の `FileNotFoundException`）、9 件は一時 SQLite ファイルの削除失敗（`IOException`）。テスト本体の検証は通っており、抽出結果の正しさは問題ではなかった。
+- 削除失敗の原因は `Microsoft.Data.Sqlite` の接続プールで、`SqliteConnection.Dispose` の後もファイルを開いたまま保持する。最小再現で、既定（プール有効）では削除が拒否され、`Pooling=False` と `ClearPool` のどちらでも通ることを確認した。
+- `Pooling=False` は採らない。一時 DB へ書くのは writer 側（`ExtractedFieldSqliteWriter.cs:17` ほか）で、接続文字列をプロダクトコードが固定して組み立てるため、テストから変えられない。テストの都合でプロダクトコードの接続文字列を変える形も避けた。
+- 実データの指定手段は `.env` だけとし、プロセスの環境変数は読まない。`dotnet test` は `scripts/dev/run-wails.sh` を経由せず `.env` が環境変数にならないため、テスト側で `.env` ファイルを直接読む。
+- 実データが無い機械では skip にする。失敗のままだと「実データが無い」と「抽出が壊れている」を実行結果から区別できないため。実データ検証が走ったかどうかは skip 件数で判断する。
+- skip の手段は `FactAttribute` 派生。xunit 2.9.2 は動的 skip（`Assert.Skip` 系）を持たず、`Assert.SkipUnless` はコンパイルが通らないことを確認した。
+- 直近の commit（`2eae843a`）で入れた `Microsoft.Data.Sqlite 10.0.10` への更新は原因ではない。更新前の `9.0.0` へ戻しても同じ 18 件が同じ理由で失敗することを確認した。
+- `docs/architecture.md` への反映は不要と判断した。層構成、依存方向、強い制約、Wails 境界のいずれも変わらず、テストの前提と後片付けの修正に閉じるため。
+
 ## 2026-07-25 feature-workflow へ design-review（AI 設計検証）を追加
 
 ### 変更
