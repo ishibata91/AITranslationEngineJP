@@ -150,6 +150,11 @@ func (r *BatchRunner) submitBodyBatch(ctx context.Context, conn provider.Connect
 
 // planBodyRequests は確定固有名で辞書を組み、未訳の叙述文・台詞を送信計画へ積んで返す。既存訳一致は即確定し載せない。
 func (r *BatchRunner) planBodyRequests(ctx context.Context, plugin string) ([]batchplan.PlannedRequest, error) {
+	// 確定した NPC 名から人名の部分形を派生し、対象 plugin の proper_noun へ足す（同期 Run と同じ位置＝辞書を組む前）。
+	// 固有名 batch を反映した後に本文を組むこの経路でも、部分形が機械置換辞書へ載るようにする。
+	if _, err := r.e.deriveRunProperNouns(ctx, plugin); err != nil {
+		return nil, err
+	}
 	// 確定した固有名で本文の機械置換辞書を組む（master_term ∪ proper_noun）。固有名反映後に呼ぶ。
 	dict, err := r.e.LoadDictionary(ctx)
 	if err != nil {

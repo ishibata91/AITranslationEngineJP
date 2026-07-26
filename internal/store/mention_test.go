@@ -19,7 +19,7 @@ func execSQL(t *testing.T, dbPath, query string) {
 		t.Fatalf("test connect: %v", err)
 	}
 	defer func() { _ = db.Close() }()
-	if _, err := db.Exec(query); err != nil {
+	if _, err := db.ExecContext(context.Background(), query); err != nil {
 		t.Fatalf("test exec: %v", err)
 	}
 }

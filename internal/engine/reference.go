@@ -3,16 +3,16 @@ package engine
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"aitranslationenginejp/internal/model"
 )
 
-// ReferenceStore は engine が既存訳（参照訳）を読み書きするための中心データアクセス（使う分だけ宣言する）。
-// InsertReferenceTranslations は取込（extracted_field の英日対 → 表）、ListReferenceTranslations は照合表の読み出し。
+// ReferenceStore は engine が既存訳（参照訳）を読むための中心データアクセス（使う分だけ宣言する）。
+// reference_translation へ書くのは C# 抽出器（Data フォルダ全 plugin の走査）で、engine は読むだけ。
+// ListReferenceTranslations は照合表と横断辞書の派生が読む全件、CountReferenceTranslations は観測ログ用の件数。
 type ReferenceStore interface {
-	InsertReferenceTranslations(ctx context.Context, refs []model.ReferenceTranslation) (int, error)
 	ListReferenceTranslations(ctx context.Context) ([]model.ReferenceTranslation, error)
+	CountReferenceTranslations(ctx context.Context) (int, error)
 }
 
 // referenceKey は既存訳の照合キー。reference_translation は対象横断で同一原文を再利用するため、
@@ -23,26 +23,13 @@ type referenceKey struct {
 	Source string
 }
 
-// LoadReferenceTranslations は extracted_field の英日対（source・dest 非空行）から record 単位の既存訳を
-// 取り込み、reference_translation へ追記する。抽出（extracted_field への書き込み）の後、翻訳 Run の前に呼ぶ。
-// 追記した件数を返す。INSERT OR IGNORE のため二重実行でも増えない（冪等）。
-func (e *Engine) LoadReferenceTranslations(ctx context.Context) (int, error) {
-	fields, err := e.store.ListExtractedFields(ctx)
+// CountReferenceTranslations は既訳（参照訳）の件数を返す。翻訳前区間が供給の観測ログへ出す。
+func (e *Engine) CountReferenceTranslations(ctx context.Context) (int, error) {
+	n, err := e.store.CountReferenceTranslations(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("既存訳の供給元（extracted_field）の取得: %w", err)
+		return 0, fmt.Errorf("既存訳の件数取得: %w", err)
 	}
-	refs := make([]model.ReferenceTranslation, 0, len(fields))
-	for _, f := range fields {
-		if strings.TrimSpace(f.Source) == "" || strings.TrimSpace(f.Dest) == "" {
-			continue
-		}
-		refs = append(refs, model.ReferenceTranslation{Rec: f.Rec, Field: f.Field, Source: f.Source, Dest: f.Dest})
-	}
-	inserted, err := e.store.InsertReferenceTranslations(ctx, refs)
-	if err != nil {
-		return inserted, fmt.Errorf("既存訳の追記: %w", err)
-	}
-	return inserted, nil
+	return n, nil
 }
 
 // referenceIndex は reference_translation を (rec, field, source)→dest の照合表へ畳む。

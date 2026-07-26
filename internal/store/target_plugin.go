@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"aitranslationenginejp/internal/model"
@@ -23,19 +24,47 @@ func (s *Store) UpsertTargetPlugin(ctx context.Context, plugin, sourcePath strin
 	return nil
 }
 
+// translationTargetTables は 1 つの対象 plugin について翻訳対象を数える表。
+// 叙述文（narration）・台詞（line）・固有名（proper_noun）を数え合わせる。alias は状態列と絞りの前置。
+// extra は表ごとの追加の絞りで、固有名は機械派生した人名の部分形を翻訳対象から外す条件を持つ。
+// 数え合わせる表と外す条件をここ 1 箇所で持ち、一覧の進捗と対象 plugin 1 件の未訳件数が別々の数え方にならないようにする。
+var translationTargetTables = []struct{ table, alias, extra string }{
+	{table: "narration", alias: "n"},
+	{table: "line", alias: "l"},
+	{table: "proper_noun", alias: "p", extra: translationTargetProperNounAsP},
+}
+
+// translationTargetCountExpr は翻訳対象の件数を数える SQL 式（3 表の COUNT の和）を組む。
+// pluginRef は plugin 値の参照で、一覧は相関副問い合わせの列（tp.plugin）、対象 plugin 1 件の集計は placeholder（?）を渡す。
+// statusCond は状態の絞りで、空なら総数、`status != 0` なら訳済み、`status = 0` なら未訳を数える（前置の alias は本関数が付ける）。
+func translationTargetCountExpr(pluginRef, statusCond string) string {
+	terms := make([]string, 0, len(translationTargetTables))
+	for _, t := range translationTargetTables {
+		conds := []string{t.alias + ".plugin = " + pluginRef}
+		if statusCond != "" {
+			conds = append(conds, t.alias+"."+statusCond)
+		}
+		if t.extra != "" {
+			conds = append(conds, t.extra)
+		}
+		terms = append(terms,
+			"(SELECT COUNT(*) FROM "+t.table+" "+t.alias+" WHERE "+strings.Join(conds, " AND ")+")")
+	}
+	return strings.Join(terms, " + ")
+}
+
 // targetPluginListQuery は登録済み plugin を、束ねる翻訳対象の総数（total）と訳済み数（translated）付きで返す。
-// total / translated は叙述文（narration）・台詞（line）・固有名（proper_noun）を plugin で数え合わせる。
 // 訳済みは status != 0（未訳は status = 0）。新しい登録が先頭に来るよう created_at 降順で並べる。
-const targetPluginListQuery = `
+var targetPluginListQuery = `
 SELECT tp.plugin, tp.source_path, tp.created_at,
-  (SELECT COUNT(*) FROM narration   n WHERE n.plugin = tp.plugin)
-  + (SELECT COUNT(*) FROM line        l WHERE l.plugin = tp.plugin)
-  + (SELECT COUNT(*) FROM proper_noun p WHERE p.plugin = tp.plugin) AS total,
-  (SELECT COUNT(*) FROM narration   n WHERE n.plugin = tp.plugin AND n.status != 0)
-  + (SELECT COUNT(*) FROM line        l WHERE l.plugin = tp.plugin AND l.status != 0)
-  + (SELECT COUNT(*) FROM proper_noun p WHERE p.plugin = tp.plugin AND p.status != 0) AS translated
+  ` + translationTargetCountExpr("tp.plugin", "") + ` AS total,
+  ` + translationTargetCountExpr("tp.plugin", "status != 0") + ` AS translated
 FROM target_plugin tp
 ORDER BY tp.created_at DESC, tp.plugin`
+
+// targetPluginUntranslatedQuery は対象 plugin 1 件の未訳件数（status = 0）を返す。
+// 3 表それぞれの副問い合わせが plugin 値の placeholder を 1 つ持つため、同じ plugin 値を 3 回渡す。
+var targetPluginUntranslatedQuery = `SELECT ` + translationTargetCountExpr("?", "status = 0")
 
 // ListTargetPlugins は登録済みの対象 plugin を一覧する（新しい順）。各行に進捗（total / translated）を付ける。
 func (s *Store) ListTargetPlugins(ctx context.Context) ([]model.TargetPlugin, error) {
@@ -44,6 +73,13 @@ func (s *Store) ListTargetPlugins(ctx context.Context) ([]model.TargetPlugin, er
 		return nil, fmt.Errorf("target_plugin の一覧取得: %w", err)
 	}
 	return rows, nil
+}
+
+// CountUntranslated は対象 plugin に残る未訳（status = 0）の件数を返す。
+// 翻訳の実行は未訳の全件を対象に取るため、実行後のこの件数がその実行で未訳のまま残した件数になる。
+// 数え方は一覧の進捗（total / translated）と同じ表・同じ絞りを共有する。
+func (s *Store) CountUntranslated(ctx context.Context, plugin string) (int, error) {
+	return s.count(ctx, targetPluginUntranslatedQuery, plugin, plugin, plugin)
 }
 
 // targetPluginDeleteStmts は対象 plugin の翻訳成果を消す削除文の並び。

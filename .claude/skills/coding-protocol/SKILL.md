@@ -7,7 +7,7 @@ description: "implementation-module 内で`fork`が読む実装作業プロト�
 ## 目的
 
 `implementation-module` 内で実装フェーズに入った`fork`が読む作業プロトコル。
-backend、frontend ロジック、統合境界、テスト、観測ログを、`fresh` に分割せず、task 全体の文脈を持ったまま 1 文脈で書く。`fork`は親の文脈とモデルを継承する。
+backend、frontend ロジック、統合境界、テスト、観測ログを、task 全体の文脈を持ったまま 1 文脈で書く。`fork`は親の文脈とモデルを継承する。
 
 ## 適用範囲
 
@@ -23,7 +23,7 @@ backend、frontend ロジック、統合境界、テスト、観測ログを、`
 | story file、表示用 fixture | - | 〇 |
 | docs 正本反映、commit、merge、completed 移動 | - | 〇 |
 
-「扱わない」列の変更が必要な場合は、`implementation-module` で進めず `storybook-module` または `finalization-module` へ戻す。
+「扱わない」列の変更が必要な場合は `storybook-module` または `finalization-module` へ戻す。
 
 ## 作業前に読む正本
 
@@ -50,9 +50,9 @@ backend、frontend ロジック、統合境界、テスト、観測ログを、`
 
 ### 共通
 
-- 触る範囲を 1 文脈で書く。backend、frontend、統合境界を、`fresh` に渡さない。
+- 触る範囲は`fork`が 1 文脈で書く。backend、frontend、統合境界を同じ文脈に置く。
 - 各層の具体的 path、名前、責務は `docs/architecture.md` と `docs/coding-guidelines-*.md` を入口に決める。
-- 表示範囲（svelte 表示コンポーネント、props、style、story、fixture）に触る必要が出た場合は本 skill では進めず `storybook-module` へ戻す。
+- 表示範囲（svelte 表示コンポーネント、props、style、story、fixture）に触る必要が出た場合は `storybook-module` へ戻す。
 
 ### 影響範囲の確定
 
@@ -101,7 +101,7 @@ frontend では特に注意が要る。`.svelte` を解釈する language server
 
 ### 注意
 
-- テストは実装と同じ文脈で書く。`fork`が同じ文脈で書くので、引き継ぎ入力を分離しない。
+- テストは実装と同じ文脈で`fork`が書く。
 
 ## 観測ログ追加
 

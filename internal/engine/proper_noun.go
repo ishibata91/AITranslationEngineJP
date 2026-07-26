@@ -3,8 +3,11 @@ package engine
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	"aitranslationenginejp/internal/core/batchplan"
 	"aitranslationenginejp/internal/core/prompt"
+	"aitranslationenginejp/internal/core/termderive"
 	"aitranslationenginejp/internal/model"
 	"aitranslationenginejp/internal/provider"
 )
@@ -52,14 +55,93 @@ func SelectSupply(source string, authoritative map[string]string) TermSupply {
 type ProperNounStore interface {
 	ListUntranslatedProperNouns(ctx context.Context, plugin string) ([]model.ProperNoun, error)
 	UpdateProperNounDest(ctx context.Context, id int64, dest string, status int) error
+	ListConfirmedNPCNames(ctx context.Context, plugin string) ([]model.ConfirmedName, error)
+	InsertDerivedProperNouns(ctx context.Context, rows []model.ProperNoun) (int, error)
+}
+
+// deriveRunProperNouns は実行内で訳が確定した対象 plugin の NPC 名から人名の部分形（名のみ・苗字のみ・短名）を
+// 作り、同じ plugin の proper_noun へ書く。追記した件数を返す。
+// 固有名フェーズの後・機械置換辞書を組む前に呼ぶ。同期翻訳と batch の両方が本文を組む前に通す。
+// mod が追加した NPC は既訳を持たないため実行内の AI 訳でしか氏名が確定せず、抽出直後に走る
+// DeriveMasterTerms（既訳が入力）では部分形を作れない。この段がその穴を埋める。
+// 書き込み先は proper_noun に固定する。横断永続辞書 master_term へは昇格させない（方針A の不変境界）。
+// 既出原語（横断辞書 ∪ その実行で確定済みの固有名）は派生に含めないため、同じ原語へ 2 つの訳が立たない。
+// 派生の採否は termderive の語形の防御が決める（用法分布の材料は翻訳対象 plugin の台詞の英語原文）。
+func (e *Engine) deriveRunProperNouns(ctx context.Context, plugin string) (int, error) {
+	names, err := e.store.ListConfirmedNPCNames(ctx, plugin)
+	if err != nil {
+		return 0, fmt.Errorf("確定した NPC 名の取得: %w", err)
+	}
+	if len(names) == 0 {
+		return 0, nil
+	}
+	var fullPairs, shrtPairs []termderive.NamePair
+	for _, n := range names {
+		pair := termderive.NamePair{Source: strings.TrimSpace(n.Source), Dest: strings.TrimSpace(n.Dest)}
+		if pair.Source == "" || pair.Dest == "" {
+			continue
+		}
+		switch n.Field {
+		case fieldFull:
+			fullPairs = append(fullPairs, pair)
+		case fieldShrt:
+			shrtPairs = append(shrtPairs, pair)
+		}
+	}
+
+	baseSources, err := e.derivedBaseSources(ctx, names)
+	if err != nil {
+		return 0, err
+	}
+	usage, err := e.dialogueUsage(ctx)
+	if err != nil {
+		return 0, err
+	}
+	derived := termderive.DeriveTerms(fullPairs, shrtPairs, usage, baseSources, termderive.DefaultDeriveConfig())
+	rows := make([]model.ProperNoun, len(derived))
+	for i, d := range derived {
+		// origin で翻訳対象と分ける。category は空にする。派生行は原文 record を持たないので rec の値が無い。
+		// 空にすることで原文位置の解決（言及・出力位置。category を rec と突き合わせる）が派生行を拾わない。
+		// UNIQUE(plugin, category, source) は source が抽出由来と重ならないため衝突しない
+		// （既出原語は derivedBaseSources が派生から外す）。
+		rows[i] = model.ProperNoun{
+			Plugin: plugin, Source: d.Source, Dest: d.Dest,
+			Status: statusProvisional, Origin: model.OriginDerived,
+		}
+	}
+	inserted, err := e.store.InsertDerivedProperNouns(ctx, rows)
+	if err != nil {
+		return inserted, fmt.Errorf("派生した人名の部分形の追記: %w", err)
+	}
+	return inserted, nil
+}
+
+// derivedBaseSources は部分形の派生から外す既出原語の集合を作る。
+// 横断辞書（master_term）の原語と、その実行で確定済みの固有名の原語の両方を入れ、同じ原語へ 2 つの訳が立たないようにする。
+func (e *Engine) derivedBaseSources(ctx context.Context, names []model.ConfirmedName) (map[string]bool, error) {
+	terms, err := e.store.ListMasterTerms(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("横断辞書の取得: %w", err)
+	}
+	base := make(map[string]bool, len(terms)+len(names))
+	for _, t := range terms {
+		base[t.Source] = true
+	}
+	for _, n := range names {
+		base[strings.TrimSpace(n.Source)] = true
+	}
+	return base, nil
 }
 
 // translateProperNouns は本文フェーズより前に、与えられた未訳固有名 pending を確定する。
 // 各固有名を SelectSupply で振り分け、既訳ありは権威訳を、既訳なしは AI 訳を proper_noun へ書く。
 // authoritative は master_term の source→dest、base は base 指示、instruction は固有名 directive の指示文。
-// onProcessed は固有名 1 件を処理し終えるたびに呼ぶ進捗通知（既訳流用・AI 訳の両方で呼ぶ）。
+// onProcessed は固有名 1 件を確定し終えるたびに呼ぶ進捗通知（既訳流用・AI 訳の両方で呼ぶ）。
+// AI 訳が飛ばせる失敗（構造化出力の空・スキーマ違反、応答エンベロープの読み取り失敗、サーバ一時失敗）で
+// 終わった固有名は未訳のまま残し、次の固有名へ進む。据え置いた件数は理由別に数え、フェーズ末で 1 度出す。
 func (e *Engine) translateProperNouns(ctx context.Context, conn provider.Connection, model string,
 	pending []model.ProperNoun, authoritative map[string]string, base, instruction string, onProcessed func()) error {
+	var skips lineSkips
 	for _, pn := range pending {
 		sup := SelectSupply(pn.Source, authoritative)
 		switch sup.Kind {
@@ -70,17 +152,46 @@ func (e *Engine) translateProperNouns(ctx context.Context, conn provider.Connect
 			}
 		default:
 			// 既訳なし。固有名 directive で AI 翻訳し、仮訳として proper_noun へ書く。
-			dest, err := e.provider.Translate(ctx, conn, model, prompt.ComposePrompt(base, instruction, pn.Source))
+			confirmed, err := e.translateProperNounByAI(ctx, conn, model, pn, base, instruction, &skips)
 			if err != nil {
-				return fmt.Errorf("固有名の翻訳: %w", err)
+				return err
 			}
-			if err := e.store.UpdateProperNounDest(ctx, pn.ID, dest, statusProvisional); err != nil {
-				return fmt.Errorf("固有名（AI 訳）の書き戻し: %w", err)
+			if !confirmed {
+				// 未訳のまま残した固有名は進捗に数えない（本文フェーズが確定時だけ数えるのに揃える）。
+				continue
 			}
 		}
 		if onProcessed != nil {
 			onProcessed()
 		}
 	}
+	skips.log(ctx, "translateProperNouns")
 	return nil
+}
+
+// translateProperNounByAI は固有名 1 件を固有名 directive で AI 翻訳し、結果の適用を本文フェーズと
+// batch 反映が共有する純粋規則（DecideApply）で振り分ける。訳を確定できたら true を返す。
+// 飛ばせる失敗はその固有名を未訳のまま残して false を返し、理由別に skips へ数える（再実行で再翻訳）。
+// それ以外の失敗（通信断、認証などの設定起因）だけ error を返し、呼び出し元が実行を止める。
+// 欠落タグ数は常に 0 で渡す。固有名の原文は本文の実行時タグを含まないため、タグ欠落の据え置きは起きない。
+func (e *Engine) translateProperNounByAI(ctx context.Context, conn provider.Connection, model string,
+	pn model.ProperNoun, base, instruction string, skips *lineSkips) (bool, error) {
+	dest, err := e.provider.Translate(ctx, conn, model, prompt.ComposePrompt(base, instruction, pn.Source))
+	switch batchplan.DecideApply(dest, err, 0).Kind {
+	case batchplan.ApplySkipStructuredParse:
+		skips.structuredParse++
+		return false, nil
+	case batchplan.ApplySkipResponseUnreadable:
+		skips.responseUnreadable++
+		return false, nil
+	case batchplan.ApplySkipServerTransient:
+		skips.serverTransient++
+		return false, nil
+	case batchplan.ApplyFatal:
+		return false, fmt.Errorf("固有名の翻訳: %w", err)
+	}
+	if writeErr := e.store.UpdateProperNounDest(ctx, pn.ID, dest, statusProvisional); writeErr != nil {
+		return false, fmt.Errorf("固有名（AI 訳）の書き戻し: %w", writeErr)
+	}
+	return true, nil
 }

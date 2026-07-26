@@ -97,7 +97,7 @@ func (g *PersonaGenerator) ensureLineAnalyses(ctx context.Context, rows []model.
 	// 並びを固定した hashes でキャッシュ未命中の本文を処理し、書き込み順を決定的にする。
 	for _, h := range hashes {
 		if err := ctx.Err(); err != nil { // 解析ループは長時間になり得るため、本文ごとにキャンセルを確認する。
-			return nil, err
+			return nil, fmt.Errorf("行特徴の解析中断: %w", err)
 		}
 		text := hashToText[h]
 		if row, ok := cached[h]; ok {

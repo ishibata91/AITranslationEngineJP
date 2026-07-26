@@ -162,6 +162,15 @@ export const APPLIED_PROPER_NOTICE = "固有名を取り込み、本文の翻訳
 export const APPLIED_BODY_NOTICE = "本文を取り込みました。翻訳が完了しました。"
 export const APPLY_NOTHING_NOTICE = "取り込める完了段はまだありません。"
 
+// 実行の完了時に、未訳のまま残った件数を伝える案内文を組む。
+// 0 件なら空文字を返し、案内を出さない（残りが無い完了は状態表示だけで足りる）。
+// 1 件以上なら残った件数と、再実行でその件数を訳し直せることを伝える。
+// 未訳が残るのは、応答が空だった行やサーバの一時失敗で飛ばした行があるため。内訳は実行ログが持つ。
+export function untranslatedNotice(untranslatedCount: number): string {
+  if (untranslatedCount <= 0) return ""
+  return `${untranslatedCount} 件が未訳のまま残りました。もう一度実行すると、残った ${untranslatedCount} 件だけを翻訳します。`
+}
+
 // 段階ごとの表示ラベルと、StatusBadge の意味トーン。
 export const PHASE_PRESENTATION: Record<
   RunPhase,
