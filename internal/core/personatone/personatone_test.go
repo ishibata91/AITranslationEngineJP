@@ -73,25 +73,25 @@ func TestBuildToneTraitsWithRoleSpeech(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ParseRoleSpeech: %v", err)
 	}
-	// 老女（ElderRace + Female）・物腰やわ（丁寧×中）。口調 ＋ 人称と言い回し の 2 行（種族訛り無し）。
+	// 老女（ElderRace + Female）・物腰やわ（丁寧×中）。口調 ＋ 性別 ＋ 人称と言い回し の 3 行（種族訛り無し）。
 	traits := BuildToneTraits(model.LinePersonaInput{
 		AttitudeBand: tone.AttitudePolite, EmotionBand: tone.EmotionMid,
 		Sex: "Female", RaceEDID: "ElderRace",
 	}, roles)
-	if len(traits) != 2 {
-		t.Fatalf("老女の口調指示行 = %d, want 2: %v", len(traits), traits)
+	if len(traits) != 3 {
+		t.Fatalf("老女の口調指示行 = %d, want 3: %v", len(traits), traits)
 	}
-	if !strings.HasPrefix(traits[1], "- 人称と言い回し: ") || !strings.Contains(traits[1], "わたし") {
-		t.Errorf("役割語の行が想定外: %q", traits[1])
+	if !strings.HasPrefix(traits[2], "- 人称と言い回し: ") || !strings.Contains(traits[2], "わたし") {
+		t.Errorf("役割語の行が想定外: %q", traits[2])
 	}
 
-	// テンプレートに当たらない成人男（adult/male、行なし）は役割語を付けず口調行のみ。
+	// テンプレートに当たらない成人男（adult/male、行なし）は役割語を付けず、口調 ＋ 性別 の 2 行。
 	none := BuildToneTraits(model.LinePersonaInput{
 		AttitudeBand: tone.AttitudeNeutral, EmotionBand: tone.EmotionMid,
 		Sex: "Male", RaceEDID: "NordRace",
 	}, roles)
-	if len(none) != 1 {
-		t.Fatalf("成人男の口調指示行 = %d, want 1: %v", len(none), none)
+	if len(none) != 2 {
+		t.Fatalf("成人男の口調指示行 = %d, want 2: %v", len(none), none)
 	}
 }
 
@@ -108,12 +108,12 @@ func TestBuildFreeToneTraits(t *testing.T) {
 		t.Errorf("自由記述が空で traits = %v, want nil", got)
 	}
 
-	// 感情が中（1）は助言を出さない。女性は一人称・語尾が付く。口調 ＋ 人称 の 2 行。
+	// 感情が中（1）は助言を出さない。女性は性別行と一人称・語尾が付く。口調 ＋ 性別 ＋ 人称 の 3 行。
 	mid := BuildFreeToneTraits("衛兵の汎用台詞。", tone.EmotionMid, "Female", roles, "")
-	if len(mid) != 2 {
-		t.Fatalf("中・女性の口調指示行 = %d, want 2: %v", len(mid), mid)
+	if len(mid) != 3 {
+		t.Fatalf("中・女性の口調指示行 = %d, want 3: %v", len(mid), mid)
 	}
-	if !strings.HasPrefix(mid[0], "- 口調: ") || !strings.Contains(mid[1], "わたし") {
+	if !strings.HasPrefix(mid[0], "- 口調: ") || !strings.Contains(mid[2], "わたし") {
 		t.Errorf("行の組み立てが想定外: %v", mid)
 	}
 
@@ -126,16 +126,16 @@ func TestBuildFreeToneTraits(t *testing.T) {
 		t.Errorf("感情助言の行が想定外: %v", intense)
 	}
 
-	// 抑制（0）＋ 性別なし ＋ roles nil は口調 ＋ 感情 の 2 行（一人称・語尾なし）。
+	// 抑制（0）＋ 男性 ＋ roles nil は口調 ＋ 性別 ＋ 感情 の 3 行（一人称・語尾なし）。
 	suppressed := BuildFreeToneTraits("PC の選択肢。", tone.EmotionSuppressed, "Male", nil, "")
-	if len(suppressed) != 2 {
-		t.Fatalf("抑制の口調指示行 = %d, want 2: %v", len(suppressed), suppressed)
+	if len(suppressed) != 3 {
+		t.Fatalf("抑制の口調指示行 = %d, want 3: %v", len(suppressed), suppressed)
 	}
 
-	// テンプレートに当たらない成人男（adult/male、行なし）は一人称・語尾を付けず、中なら口調行のみ。
+	// テンプレートに当たらない成人男（adult/male、行なし）は一人称・語尾を付けず、中なら口調 ＋ 性別 の 2 行。
 	maleMid := BuildFreeToneTraits("汎用台詞。", tone.EmotionMid, "Male", roles, "")
-	if len(maleMid) != 1 {
-		t.Fatalf("中・成人男の口調指示行 = %d, want 1: %v", len(maleMid), maleMid)
+	if len(maleMid) != 2 {
+		t.Fatalf("中・成人男の口調指示行 = %d, want 2: %v", len(maleMid), maleMid)
 	}
 }
 
@@ -258,11 +258,11 @@ func TestBuildToneTraitsIncludesExample(t *testing.T) {
 		Sex:          "Male",
 		RaceEDID:     "NordRace",
 	}, roles)
-	if len(got) != 3 {
-		t.Fatalf("口調・人称・例文の 3 行を期待: %v", got)
+	if len(got) != 4 {
+		t.Fatalf("口調・性別・人称・例文の 4 行を期待: %v", got)
 	}
-	if got[2] != "- 例: Move. → どけ。俺の邪魔だ。" {
-		t.Errorf("例文行 = %q", got[2])
+	if got[3] != "- 例: Move. → どけ。俺の邪魔だ。" {
+		t.Errorf("例文行 = %q", got[3])
 	}
 }
 
@@ -307,4 +307,92 @@ func TestBuildToneLabel(t *testing.T) {
 	if BuildToneLabel(model.LinePersonaInput{AttitudeBand: 9, EmotionBand: 9}) != "" {
 		t.Error("範囲外段階で空文字を返さない")
 	}
+}
+
+// R-4-1: 性別が取れる名指し話者の台詞について、口調指示に性別を示す行が出ること。
+// 行は一人称・言い回しの行とは別に立てる。役割語は成人男性と性別不明が同じ出力になるため、
+// 引いた結果だけでは男女の区別がプロンプトに現れない。
+func TestBuildToneTraitsHasSexLine(t *testing.T) {
+	roles, err := rolespeech.ParseRoleSpeech(strings.NewReader("adult\t*\t*\t私\t\n"))
+	if err != nil {
+		t.Fatalf("役割語表の解析: %v", err)
+	}
+	for _, tc := range []struct{ sex, want string }{
+		{"Male", "- 性別: 男性。男性の話者として訳す。"},
+		{"Female", "- 性別: 女性。女性の話者として訳す。"},
+	} {
+		traits := BuildToneTraits(model.LinePersonaInput{
+			AttitudeBand: tone.AttitudeNeutral, EmotionBand: tone.EmotionMid,
+			Sex: tc.sex, RaceEDID: "NordRace",
+		}, roles)
+		if !hasLine(traits, tc.want) {
+			t.Errorf("性別 %q の口調指示に性別の行が無い: %v", tc.sex, traits)
+		}
+		// 性別の行と一人称・言い回しの行が、それぞれ独立した行として並ぶこと（1 行へ畳まない）。
+		if !hasPrefix(traits, "- 人称と言い回し: ") {
+			t.Errorf("性別 %q の口調指示に一人称の行が無い: %v", tc.sex, traits)
+		}
+	}
+}
+
+// R-4-2: 話者を解決できない汎用台詞とプレイヤーの選択肢についても、性別が取れる時は
+// 名指し話者と同じ形の行が出ること。
+func TestBuildFreeToneTraitsHasSameSexLine(t *testing.T) {
+	roles, err := rolespeech.ParseRoleSpeech(strings.NewReader("adult\t*\t*\t私\t\n"))
+	if err != nil {
+		t.Fatalf("役割語表の解析: %v", err)
+	}
+	for _, sex := range []string{"Male", "Female"} {
+		named := BuildToneTraits(model.LinePersonaInput{
+			AttitudeBand: tone.AttitudeNeutral, EmotionBand: tone.EmotionMid,
+			Sex: sex, RaceEDID: "NordRace",
+		}, roles)
+		free := BuildFreeToneTraits("汎用台詞。", tone.EmotionMid, sex, roles, "")
+		want := sexTrait(sex)
+		if !hasLine(named, want) || !hasLine(free, want) {
+			t.Errorf("性別 %q で名指し話者と汎用台詞の性別の行が揃わない:\n  名指し=%v\n  汎用=%v", sex, named, free)
+		}
+	}
+}
+
+// R-4-3: 性別を取れない話者の台詞に、性別を示す行が出ないこと。
+// プレイヤーの性別が未設定の選択肢（空文字）も、性別を取れない話者と同じ扱いにする。
+func TestSexLineAbsentWhenSexUnknown(t *testing.T) {
+	roles, err := rolespeech.ParseRoleSpeech(strings.NewReader("adult\t*\t*\t私\t\n"))
+	if err != nil {
+		t.Fatalf("役割語表の解析: %v", err)
+	}
+	for _, sex := range []string{"", "  ", "Unknown"} {
+		named := BuildToneTraits(model.LinePersonaInput{
+			AttitudeBand: tone.AttitudeNeutral, EmotionBand: tone.EmotionMid,
+			Sex: sex, RaceEDID: "NordRace",
+		}, roles)
+		free := BuildFreeToneTraits("汎用台詞。", tone.EmotionMid, sex, roles, "")
+		if hasPrefix(named, "- 性別: ") {
+			t.Errorf("性別 %q（取れない）の名指し話者に性別の行が出た: %v", sex, named)
+		}
+		if hasPrefix(free, "- 性別: ") {
+			t.Errorf("性別 %q（取れない）の汎用台詞に性別の行が出た: %v", sex, free)
+		}
+	}
+}
+
+// hasLine は口調指示の行に want と完全一致する行があるかを返す。
+func hasLine(traits []string, want string) bool {
+	for _, l := range traits {
+		if l == want {
+			return true
+		}
+	}
+	return false
+}
+
+// hasPrefix は口調指示の行に prefix で始まる行があるかを返す。
+func hasPrefix(traits []string, prefix string) bool {
+	for _, l := range traits {
+		if strings.HasPrefix(l, prefix) {
+			return true
+		}
+	}
+	return false
 }

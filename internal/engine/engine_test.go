@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"testing"
 
@@ -34,6 +35,8 @@ type fakeStore struct {
 	updates        []update
 	lineUpdates    []update
 	properUpdates  []update           // UpdateProperNounDest の記録（固有名フェーズの観測）
+	derivedPropers []model.ProperNoun // InsertDerivedProperNouns で投入された人名の部分形（派生段の観測）
+	insertedTerms  []model.MasterTerm // InsertDerivedTerms で投入された横断辞書の行（昇格しない不変境界の観測）
 	ingestedNarr   []model.Narration  // IngestNarrations で投入された行
 	ingestedPN     []model.ProperNoun // IngestProperNouns で投入された行
 	ingestedLine   []model.Line       // IngestLines で投入された行
@@ -158,6 +161,40 @@ func (f *fakeStore) ListUntranslatedProperNouns(_ context.Context, plugin string
 	return out, nil
 }
 
+// ListConfirmedNPCNames は実 DB の結合（proper_noun × extracted_field で field を取り戻す）を模す。
+// 訳が確定した NPC_ の固有名を、原文の field（FULL / SHRT）つきで返す。並びは (field, source) で固定する。
+func (f *fakeStore) ListConfirmedNPCNames(_ context.Context, plugin string) ([]model.ConfirmedName, error) {
+	var out []model.ConfirmedName
+	for _, pn := range f.proper {
+		if pn.Dest == "" || pn.Category != "NPC_" || (plugin != "" && pn.Plugin != plugin) {
+			continue
+		}
+		for _, ef := range f.extracted {
+			if ef.Plugin != pn.Plugin || ef.Rec != pn.Category || ef.Source != pn.Source {
+				continue
+			}
+			if ef.Field != "FULL" && ef.Field != "SHRT" {
+				continue
+			}
+			out = append(out, model.ConfirmedName{Field: ef.Field, Source: pn.Source, Dest: pn.Dest})
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Field != out[j].Field {
+			return out[i].Field < out[j].Field
+		}
+		return out[i].Source < out[j].Source
+	})
+	return out, nil
+}
+
+func (f *fakeStore) InsertDerivedProperNouns(_ context.Context, rows []model.ProperNoun) (int, error) {
+	f.derivedPropers = append(f.derivedPropers, rows...)
+	// 実 DB と同じく backing 行にも足す（派生した部分形が機械置換辞書へ合流する経路を再現する）。
+	f.proper = append(f.proper, rows...)
+	return len(rows), nil
+}
+
 func (f *fakeStore) UpdateProperNounDest(_ context.Context, id int64, dest string, status int) error {
 	f.properUpdates = append(f.properUpdates, update{id: id, dest: dest, status: status})
 	// 実 DB と同じく backing 行も更新する（未訳一覧の除外・proper_noun→辞書合流を batch 結合テストで再現する）。
@@ -232,15 +269,16 @@ func (f *fakeStore) ListMasterTerms(_ context.Context) ([]model.MasterTerm, erro
 }
 
 func (f *fakeStore) InsertDerivedTerms(_ context.Context, terms []model.MasterTerm) (int, error) {
+	f.insertedTerms = append(f.insertedTerms, terms...)
 	return len(terms), nil
-}
-
-func (f *fakeStore) InsertReferenceTranslations(_ context.Context, refs []model.ReferenceTranslation) (int, error) {
-	return len(refs), nil
 }
 
 func (f *fakeStore) ListReferenceTranslations(_ context.Context) ([]model.ReferenceTranslation, error) {
 	return f.refs, nil
+}
+
+func (f *fakeStore) CountReferenceTranslations(_ context.Context) (int, error) {
+	return len(f.refs), nil
 }
 
 // --- PersonaStore（生成入力・キャッシュ・保存・注入） ---

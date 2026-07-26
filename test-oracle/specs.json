@@ -202,6 +202,38 @@
       "category": "正常",
       "given": "原文が既存訳（参照訳）と (rec, field, source) で完全一致する台詞",
       "spec": "AI を呼ばず既訳を確定訳（status=1）で流用する（既存訳取込→完全一致→流用の合流）"
+    },
+    {
+      "id": "reference-supply-cross-plugin",
+      "stage": "integration",
+      "attribute": "既存訳",
+      "category": "正常",
+      "given": "翻訳対象の plugin が日本語 Strings を持たず、同じ Data フォルダの別 plugin が英日対を持つ",
+      "spec": "別 plugin の英日対から既存訳と固有名の訳を組み、対象 plugin の本文へその訳を当てる"
+    },
+    {
+      "id": "run-name-part-derived",
+      "stage": "integration",
+      "attribute": "固有名",
+      "category": "正常",
+      "given": "既存訳を持たない mod の NPC が空白 2 語の氏名を持ち、本文に名だけ・苗字だけで出る",
+      "spec": "実行内で確定した氏名から名だけ・苗字だけの訳を作り、本文の該当語をその訳へ置き換える"
+    },
+    {
+      "id": "run-byname-part-derived",
+      "stage": "integration",
+      "attribute": "固有名",
+      "category": "正常",
+      "given": "既存訳を持たない mod の NPC が二つ名を含む氏名を持ち、本文に二つ名を除いた名だけで出る",
+      "spec": "実行内で確定した氏名から二つ名を除いた名の訳を作り、本文の該当語をその訳へ置き換える"
+    },
+    {
+      "id": "run-common-word-part-skipped",
+      "stage": "integration",
+      "attribute": "固有名",
+      "category": "異常",
+      "given": "既存訳を持たない mod の NPC の名が、本文の台詞に小文字始まりでも出る一般語と同じ綴りである",
+      "spec": "その名を人名の部分形として置き換えず、本文の一般語の出現を原文のまま残す"
     }
   ]
 }

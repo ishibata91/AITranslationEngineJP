@@ -18,20 +18,19 @@ import (
 // あるが、台詞の Grelod 単独は当たらない）。本ルールは部分形の訳を機械派生し、安全フィルタで一般語衝突を
 // 防いで辞書へ足せる対だけを返す。
 
-// 派生の由来種別。master_term の category 印（"derive:"+Kind）にも使う。
+// 派生の由来種別。master_term・proper_noun の category 印（"derive:"+Kind）にも使う。
 const (
 	KindShrt   = "shrt"   // NPC_:SHRT（作者記述の短縮別名）の通過。
 	KindByname = "byname" // " the " を含むフルネームの前部（二つ名の前の名）。
-	KindTwo    = "two"    // 空白 2 語・中黒 2 語で割れる姓名分割（base ゲーム限定）。
+	KindTwo    = "two"    // 空白 2 語・中黒 2 語で割れる姓名分割。
 )
 
-// NamePair は NPC レコードの「原語（英語）→ 確定訳語（日本語）」の 1 対。派生規則の入力。
-// BaseGame は供給元 XML が base ゲーム（Skyrim.esm ほか）かを表す。姓名分割（two）は patch/mod の
-// Source/Dest 対応ずれによる誤訳を避けるため base ゲーム限定にする。
+// NamePair は NPC レコードの「原語（英語）→ 訳語（日本語）」の 1 対。派生規則の入力。
+// 訳の作者（人間の既訳か、実行内の AI 訳か）で扱いを変えない。採否は語形の防御（safePair・landmine と
+// 各派生の構造判定）だけで決める。
 type NamePair struct {
-	Source   string
-	Dest     string
-	BaseGame bool
+	Source string
+	Dest   string
 }
 
 // Usage は本文中の各英単語の用法分布。語は小文字化して数える。
@@ -130,10 +129,11 @@ func deriveByname(fullPairs []NamePair, usage Usage, cfg DeriveConfig, add func(
 }
 
 // deriveTwo は two 由来（姓名分割）の安全な対を add へ渡す。
-// base ゲーム限定。空白 2 語の姓名を、漢字を含まない中黒区切りの Dest と同数で整列する。
+// 空白 2 語の姓名を、漢字を含まない中黒区切りの Dest と同数で整列する。語数一致・中黒区切り・漢字なしが
+// 対応ずれの防御になるため、供給元（base ゲームか mod か、人間の既訳か AI 訳か）では絞らない。
 func deriveTwo(fullPairs []NamePair, usage Usage, cfg DeriveConfig, add func(source, dest, kind string)) {
 	for _, p := range fullPairs {
-		if !p.BaseGame || hasByname(p.Source) {
+		if hasByname(p.Source) {
 			continue
 		}
 		toks := strings.Fields(p.Source)

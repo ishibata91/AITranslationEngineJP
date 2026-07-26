@@ -37,8 +37,7 @@ INSERT OR IGNORE INTO directive (key, instruction, variables) VALUES
     ('口調', 'この台詞の話者の人物像:
 {traits}
 この人物像に合う口調と人称で訳すこと。
-台詞は文末に句点を打たない。原文が疑問符・感嘆符で終わる時だけ ？ ！ を置く。
-1 つの台詞に文が 2 つ以上ある時は、句点でつなげず全角空白で区切る。
+原文が疑問符・感嘆符で終わる時は ？ ！ を置く。
 一人称は漢字で書く（私・俺・僕）。ひらがなの一人称（わたし・おれ・ぼく）は使わない。', '[{"token":"{traits}","description":"話者の性質（生成済みの基底口調と種族訛り）"}]');
 
 -- record_type_master: REC:FIELD → box・directive の割り当て正本。rec/field は Skyrim 仕様の固定行。

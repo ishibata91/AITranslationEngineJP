@@ -362,3 +362,21 @@ func propersWithIDs(ids ...int64) []model.ProperNoun {
 	}
 	return rows
 }
+
+// R-1-2: 翻訳対象に選んだ plugin 自身が日本語訳を持つ時も、その plugin の英日対が既訳として集まること。
+// 既訳の収集は対象 plugin が置かれた Data フォルダ全体を走査対象にするため、対象 plugin も走査に入る。
+// 走査を 1 本へ絞る --plugin を渡さないこと（渡すと対象以外の plugin が供給から落ちる）を併せて固定する。
+func TestBuildReferenceScanArgs(t *testing.T) {
+	dll := "tools/extractor/bin/publish/extractor.dll"
+	args := buildReferenceScanArgs(dll, "/sky/Data", "db/c.sqlite3", "db/migrations")
+	joined := strings.Join(args, " ")
+	want := dll + " --data /sky/Data --sqlite db/c.sqlite3 --schema db/migrations --references"
+	if joined != want {
+		t.Errorf("args = %q, want %q", joined, want)
+	}
+	for _, a := range args {
+		if a == "--plugin" {
+			t.Errorf("走査を 1 本へ絞る --plugin が渡っている: %q", joined)
+		}
+	}
+}

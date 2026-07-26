@@ -19,7 +19,8 @@ func insertNarration(t *testing.T, dbPath string, n model.Narration) {
 		t.Fatalf("test connect: %v", err)
 	}
 	defer func() { _ = db.Close() }()
-	_, err = db.Exec(
+	_, err = db.ExecContext(
+		context.Background(),
 		`INSERT INTO narration (plugin, form_id, edid, rec, field, ordinal, source, status)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		n.Plugin, n.FormID, n.EDID, n.Rec, n.Field, n.Ordinal, n.Source, n.Status,

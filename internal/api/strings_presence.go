@@ -7,8 +7,10 @@ import (
 	"strings"
 )
 
-// StringsPresenceView は対象 plugin の Data フォルダにある Strings ファイルの言語別有無。
+// StringsPresenceView は対象 plugin が置かれた Data フォルダにある Strings ファイルの言語別有無。
 // 翻訳実行画面の警告（片側 Strings 欠け＝既存訳の対を作れず全文 AI 翻訳になる）の判定材料。
+// 既訳の供給は Data フォルダ全 plugin の走査で立つため、警告が指す状態は
+// 「Data フォルダに片方の言語の Strings が 1 本も無い」であり、選んだ plugin 自身の Strings の有無ではない。
 type StringsPresenceView struct {
 	English  bool `json:"english"`
 	Japanese bool `json:"japanese"`
@@ -38,7 +40,7 @@ func (a *App) GetStringsPresence(pluginPath string) (StringsPresenceView, error)
 	}
 	view = classifyStringsPresence(names)
 	// 実行時にしか確定しない判定結果を残す（画面警告が出た・出ない理由の切り分け用）。
-	slog.Info("Strings の言語別有無を判定した",
+	slog.InfoContext(a.baseCtx(), "Strings の言語別有無を判定した",
 		slog.String("event", "strings_presence"),
 		slog.String("where", "api.GetStringsPresence"),
 		slog.Bool("english", view.English),
@@ -48,7 +50,7 @@ func (a *App) GetStringsPresence(pluginPath string) (StringsPresenceView, error)
 }
 
 // stringsDir は Data フォルダ配下の Strings フォルダのパスを返す。大文字小文字の揺れ
-//（strings / Strings）を許し、どちらも無ければ空を返す。
+// （strings / Strings）を許し、どちらも無ければ空を返す。
 func stringsDir(dataFolder string) string {
 	for _, name := range []string{"strings", "Strings"} {
 		p := filepath.Join(dataFolder, name)

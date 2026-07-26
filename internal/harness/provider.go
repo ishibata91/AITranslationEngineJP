@@ -20,6 +20,9 @@ type RecordingProvider struct {
 	mu      sync.Mutex
 	prompts []RecordedPrompt
 	models  []string
+	// Fixed は原文（user メッセージ）ごとの固定訳。連番訳では通せない訳形（中黒区切りのカタカナ人名など）を
+	// 与えて、その訳形に依る経路を決定的に通すために使う。ここに無い原文は連番訳へ落ちる。
+	Fixed map[string]string
 }
 
 // RecordedPrompt は 1 回の Translate 呼び出しの記録（送信モデルと完成プロンプト）。
@@ -31,10 +34,14 @@ type RecordedPrompt struct {
 
 // Translate は規則訳を返し、プロンプトを送信順に記録する。訳文は呼び出し順の連番で決定的にする
 // （DB 最終状態の dest が安定し、プロンプト列とは独立に書き戻し順序を観測できる）。
+// Fixed に原文がある場合はその固定訳を返す（訳形に依る経路を通すため）。
 func (r *RecordingProvider) Translate(_ context.Context, _ provider.Connection, model string, prompt provider.Prompt) (string, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.prompts = append(r.prompts, RecordedPrompt{Model: model, System: prompt.System, User: prompt.User})
+	if fixed, ok := r.Fixed[prompt.User]; ok {
+		return fixed, nil
+	}
 	dest := fmt.Sprintf("訳%03d", len(r.prompts))
 	// 送信プロンプトに含まれる生タグ（<...>）を保持するモデルを模す。engine の CountMissing が欠落 0 と判定でき、
 	// タグ保護（機械置換から守る退避 → 生タグで送信 → モデルが保持）を結合オラクルで観測できるようにする。

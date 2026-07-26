@@ -41,7 +41,7 @@ public class ExtractedFieldSqliteWriterTests
     {
         using var db = new TempSqliteDb("ef");
 
-        // FULL だけ英日対を持たせ、dest は対のある field だけ書かれる（他は空）ことを併せて確かめる。
+        // FULL に英日対を持たせても extracted_field は原文だけを持つ（日本語は reference_translation が持つ）。
         var result = WithBook("TestBook", 0x800, "Lusty Argonian Maid", "Ancient Nord prose", "Crassius Curio");
         var bookId = result.Books[0].Id;
         result.JapanesePairs[(bookId, "BOOK:FULL", "Lusty Argonian Maid")] = "アルゴニアンの侍女";
@@ -51,16 +51,16 @@ public class ExtractedFieldSqliteWriterTests
 
         using var conn = db.OpenConnection();
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT rec, field, ordinal, source, dest FROM extracted_field ORDER BY field";
+        cmd.CommandText = "SELECT rec, field, ordinal, source FROM extracted_field ORDER BY field";
         using var reader = cmd.ExecuteReader();
 
-        var got = new List<(string rec, string field, int ordinal, string source, string dest)>();
+        var got = new List<(string rec, string field, int ordinal, string source)>();
         while (reader.Read())
-            got.Add((reader.GetString(0), reader.GetString(1), reader.GetInt32(2), reader.GetString(3), reader.GetString(4)));
+            got.Add((reader.GetString(0), reader.GetString(1), reader.GetInt32(2), reader.GetString(3)));
 
-        Assert.Contains(("BOOK", "FULL", 0, "Lusty Argonian Maid", "アルゴニアンの侍女"), got);
-        Assert.Contains(("BOOK", "DESC", 0, "Ancient Nord prose", ""), got);
-        Assert.Contains(("BOOK", "CNAM", 0, "Crassius Curio", ""), got);
+        Assert.Contains(("BOOK", "FULL", 0, "Lusty Argonian Maid"), got);
+        Assert.Contains(("BOOK", "DESC", 0, "Ancient Nord prose"), got);
+        Assert.Contains(("BOOK", "CNAM", 0, "Crassius Curio"), got);
     }
 
     [Fact]

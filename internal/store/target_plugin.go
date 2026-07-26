@@ -25,15 +25,17 @@ func (s *Store) UpsertTargetPlugin(ctx context.Context, plugin, sourcePath strin
 
 // targetPluginListQuery は登録済み plugin を、束ねる翻訳対象の総数（total）と訳済み数（translated）付きで返す。
 // total / translated は叙述文（narration）・台詞（line）・固有名（proper_noun）を plugin で数え合わせる。
+// 固有名のうち機械派生した人名の部分形は翻訳対象でないため、進捗の分母にも分子にも入れない。
 // 訳済みは status != 0（未訳は status = 0）。新しい登録が先頭に来るよう created_at 降順で並べる。
 const targetPluginListQuery = `
 SELECT tp.plugin, tp.source_path, tp.created_at,
   (SELECT COUNT(*) FROM narration   n WHERE n.plugin = tp.plugin)
   + (SELECT COUNT(*) FROM line        l WHERE l.plugin = tp.plugin)
-  + (SELECT COUNT(*) FROM proper_noun p WHERE p.plugin = tp.plugin) AS total,
+  + (SELECT COUNT(*) FROM proper_noun p WHERE p.plugin = tp.plugin AND ` + translationTargetProperNounAsP + `) AS total,
   (SELECT COUNT(*) FROM narration   n WHERE n.plugin = tp.plugin AND n.status != 0)
   + (SELECT COUNT(*) FROM line        l WHERE l.plugin = tp.plugin AND l.status != 0)
-  + (SELECT COUNT(*) FROM proper_noun p WHERE p.plugin = tp.plugin AND p.status != 0) AS translated
+  + (SELECT COUNT(*) FROM proper_noun p WHERE p.plugin = tp.plugin AND p.status != 0
+       AND ` + translationTargetProperNounAsP + `) AS translated
 FROM target_plugin tp
 ORDER BY tp.created_at DESC, tp.plugin`
 

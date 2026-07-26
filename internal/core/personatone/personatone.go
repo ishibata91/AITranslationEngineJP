@@ -49,6 +49,22 @@ func toneTraitOf(attitudeBand, emotionBand int) string {
 	return row[attitudeBand]
 }
 
+// sexTrait は話者の性別から口調指示の 1 行を返す。役割語（一人称・言い回し）とは別の行にして、
+// 性別そのものを翻訳モデルへ伝える。役割語テンプレートは成人男性と性別不明が同じ出力になるため、
+// 引いた結果だけでは男女の区別がプロンプトに現れない。
+// 性別を取れない話者（空・未知の値）は行を返さない。取れない話者へ既定の性別を当てない。
+// 名指し話者と汎用台詞・PC 発話で同じ形の行を出す（呼ぶ側が違っても文面を変えない）。
+func sexTrait(sex string) string {
+	switch strings.ToLower(strings.TrimSpace(sex)) {
+	case "male":
+		return "- 性別: 男性。男性の話者として訳す。"
+	case "female":
+		return "- 性別: 女性。女性の話者として訳す。"
+	default:
+		return ""
+	}
+}
+
 // raceMarkerTrait は種族 EditorID から種族訛りの注記を返す。基底口調へ重ねる語彙マーカー（R7、軸と直交）。
 // 古風さは skyrim に一貫使用のキャラがおらず雑音のため入れない（persona-design.md）。未対応の種族は空。
 func raceMarkerTrait(raceEDID string) string {
@@ -63,7 +79,7 @@ func raceMarkerTrait(raceEDID string) string {
 }
 
 // BuildToneTraits は注入入力（生成済み基底口調＋性別＋種族）から口調指示の箇条書き行を組む。
-// 性質文（基底口調）→ 役割語（一人称・言い回し）→ 種族訛り の順に並べる。性質文が無ければ空（口調指示なし）。
+// 性質文（基底口調）→ 性別 → 役割語（一人称・言い回し）→ 種族訛り の順に並べる。性質文が無ければ空（口調指示なし）。
 // 役割語は roles テンプレートを 性別×年齢（race 由来）×セル で引く。roles が nil なら役割語は付けない。
 func BuildToneTraits(in model.LinePersonaInput, roles *rolespeech.Table) []string {
 	trait := toneTraitOf(in.AttitudeBand, in.EmotionBand)
@@ -71,6 +87,9 @@ func BuildToneTraits(in model.LinePersonaInput, roles *rolespeech.Table) []strin
 		return nil
 	}
 	traits := []string{"- 口調: " + trait}
+	if line := sexTrait(in.Sex); line != "" {
+		traits = append(traits, line)
+	}
 	traits = append(traits, roleSpeechLines(in, roles)...)
 	if m := raceMarkerTrait(in.RaceEDID); m != "" {
 		traits = append(traits, "- 種族訛り: "+m)
@@ -160,8 +179,10 @@ func freeRoleSpeechLines(sex string, roles *rolespeech.Table) []string {
 }
 
 // BuildFreeToneTraits は汎用台詞・PC 発話の口調指示の箇条書きを組む。
-// 自由記述の口調（baseText）→ 台詞の感情（TRDT 種別、無ければ本文 1 行の感情段階の助言）→ 性別の一人称・語尾・例文 の順に並べる。
-// 性別が空でも役割語を引く。PC 性別の未設定は「性別を取れない話者」と同じ扱いにし、性別列のワイルドカード行へ落とす。
+// 自由記述の口調（baseText）→ 性別 → 台詞の感情（TRDT 種別、無ければ本文 1 行の感情段階の助言）
+// → 性別の一人称・語尾・例文 の順に並べる。
+// 性別の行は名指し話者（BuildToneTraits）と同じ形にする。性別を取れない話者と PC 性別の未設定は行を出さない。
+// 性別が空でも役割語は引く（性別列のワイルドカード行へ落ちる）。
 // baseText が空なら空（口調指示なし）。対人段階・セルは持たず、台詞の感情と性別だけを重ねる。
 func BuildFreeToneTraits(baseText string, emotionBand int, sex string, roles *rolespeech.Table, emotionType string) []string {
 	base := strings.TrimSpace(baseText)
@@ -169,6 +190,9 @@ func BuildFreeToneTraits(baseText string, emotionBand int, sex string, roles *ro
 		return nil
 	}
 	traits := []string{"- 口調: " + base}
+	if line := sexTrait(sex); line != "" {
+		traits = append(traits, line)
+	}
 	// TRDT 種別があれば台詞の感情行を優先し、本文推定の強度助言は出さない（二重回避）。無ければ従来の強度助言を出す。
 	if line := lineEmotionLine(emotionType); line != "" {
 		traits = append(traits, line)

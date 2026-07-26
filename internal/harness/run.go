@@ -25,6 +25,7 @@ type RunConfig struct {
 	Stoplist   *dictionary.Stoplist // 機械置換辞書・言及語彙の供給から一般語を除く選別（nil なら選別なし）
 	PluginPath string               // 抽出対象 plugin のパス
 	Model      string               // 送信モデル名（fake provider は記録のみ）
+	Fixed      map[string]string    // 原文ごとの固定訳（nil なら全て連番訳）
 }
 
 // Run は store・engine・provider・api を束ね、RunExtractAndTranslate を端から端まで通し、観測結果を捕獲する。
@@ -36,7 +37,7 @@ func Run(cfg RunConfig) (Capture, error) {
 	}
 	defer s.Close() //nolint:errcheck // 実行後の後始末。観測は別接続で行う。
 
-	rec := &RecordingProvider{}
+	rec := &RecordingProvider{Fixed: cfg.Fixed}
 	eng := engine.New(s, rec, cfg.Lexicon, cfg.RoleSpeech, cfg.Stoplist)
 	// harness は同期経路（RunExtractAndTranslate）だけを通す結合テスト基盤のため、batch runner は nil。
 	app := api.New(s, eng, nil, rec, cfg.Extractor)
@@ -59,7 +60,7 @@ func Run(cfg RunConfig) (Capture, error) {
 }
 
 // SyntheticRun は合成 fixture で非劣化 harness を回す。SeedExtractor・最小辞書を組んで Run へ渡す。
-// 固有名の確定訳語・参照訳の供給は fixture の英日対（SeedField.Dest）が担う（XML 直読みは廃止）。
+// 既訳（横断辞書・参照訳）の供給は fixture の References（Data フォルダ全 plugin の英日対）が担う。
 // CI 恒久の回帰網（著作物を含まない自作入力）の実行点。
 func SyntheticRun(dbPath string) (Capture, error) {
 	f := SyntheticFixture()
@@ -83,6 +84,7 @@ func SyntheticRun(dbPath string) (Capture, error) {
 		Stoplist:   stop,
 		PluginPath: f.PluginName,
 		Model:      "fake-model",
+		Fixed:      SyntheticAITranslations(),
 	})
 }
 

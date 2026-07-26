@@ -64,8 +64,11 @@ type ExtractorConfig struct {
 // これは provider のような多態 port ではなく、子プロセス起動を呼び出し側から切り離してテスト可能にするための
 // consumer 側 interface。api コンポーネント内に閉じ、.go-arch-lint.yml に新コンポーネントや新依存規則を足さない。
 type Extractor interface {
-	// Extract は pluginPath の plugin を抽出し、結果を中心 DB へ書き込む。書き込み先 DB は実装が保持する。
+	// Extract は pluginPath の plugin を抽出し、翻訳対象の原文を中心 DB へ書き込む。書き込み先 DB は実装が保持する。
 	Extract(ctx context.Context, pluginPath string) error
+	// CollectReferences は dataFolder にある全 plugin を走査し、英日対を既訳（reference_translation）へ書き込む。
+	// 対象 plugin 単体でなくフォルダ全体を見るため、日本語 Strings を持たない mod でも既訳が立つ。
+	CollectReferences(ctx context.Context, dataFolder string) error
 }
 
 // DotnetExtractor は C# 抽出器（Mutagen）を publish 済み DLL の dotnet 直実行で起動する本番 Extractor。
@@ -82,13 +85,23 @@ func NewDotnetExtractor(ext ExtractorConfig) *DotnetExtractor {
 // Extract は publish 済み DLL を dotnet で直接実行し、pluginPath の plugin を抽出して extracted_field へ書き込む。
 // DLL は起動前に build 済みである前提で、抽出のたびに MSBuild を通さない。DLL が無ければ無言でビルドせずエラーを返す。
 func (d *DotnetExtractor) Extract(ctx context.Context, pluginPath string) error {
+	dataFolder := filepath.Dir(pluginPath)
+	pluginName := filepath.Base(pluginPath)
+	return d.run(ctx, buildExtractorArgs(d.ext.DLLPath, dataFolder, pluginName, d.ext.DBPath, d.ext.SchemaDir))
+}
+
+// CollectReferences は publish 済み DLL を --references 付きで実行し、dataFolder の全 plugin から
+// 英日対を reference_translation へ書き込む。plugin を 1 本ずつ走査する繰り返しは C# 側が持つ。
+func (d *DotnetExtractor) CollectReferences(ctx context.Context, dataFolder string) error {
+	return d.run(ctx, buildReferenceScanArgs(d.ext.DLLPath, dataFolder, d.ext.DBPath, d.ext.SchemaDir))
+}
+
+// run は publish 済み DLL を dotnet で直接実行する。DLL 不在と子プロセス失敗の扱いを 1 箇所に集める。
+func (d *DotnetExtractor) run(ctx context.Context, args []string) error {
 	// 抽出時にビルドを起こさない方針のため、DLL 不在はここで「未ビルド」として明示的に落とす。
 	if _, err := os.Stat(d.ext.DLLPath); err != nil {
 		return fmt.Errorf("抽出子が未ビルド（%s）。dev 起動 script が publish していない可能性がある: %w", d.ext.DLLPath, err)
 	}
-	dataFolder := filepath.Dir(pluginPath)
-	pluginName := filepath.Base(pluginPath)
-	args := buildExtractorArgs(d.ext.DLLPath, dataFolder, pluginName, d.ext.DBPath, d.ext.SchemaDir)
 	// dotnet は固定コマンド、引数は内部生成のパスのみ。利用者が選んだ plugin を抽出するための意図的な子プロセス起動。
 	out, err := exec.CommandContext(ctx, "dotnet", args...).CombinedOutput() //nolint:gosec // 固定コマンド dotnet・内部生成引数
 	if err != nil {
@@ -461,7 +474,7 @@ func (a *App) RunExtractAndTranslate(req RunRequest) (RunResult, error) {
 	return result, nil
 }
 
-// prepareForTranslation は翻訳前区間（対象 plugin 登録 → 抽出 → 固有名派生 → 既存訳取込 → 取込段）を実行する。
+// prepareForTranslation は翻訳前区間（対象 plugin 登録 → 既訳の収集 → 抽出 → 固有名派生 → 取込段）を実行する。
 // 同期翻訳（RunExtractAndTranslate）と batch 送信（SubmitBatchTranslation）が共有する。各段は冪等。
 // 4 サブ段は無音で進むため段ごとに 1 回進捗を push し、frontend が見出しを出し分けられるようにする。
 func (a *App) prepareForTranslation(ctx context.Context, pluginPath string) error {
@@ -472,32 +485,39 @@ func (a *App) prepareForTranslation(ctx context.Context, pluginPath string) erro
 		return fmt.Errorf("翻訳対象プラグインの登録に失敗: %w", err)
 	}
 
+	// 既訳の収集: Data フォルダにある全 plugin を走査し、英日対を reference_translation へ集める。
+	// 対象 plugin も同じフォルダにあるので同じ経路で入る。日本語 Strings を持たない mod を選んでも、
+	// 同じフォルダの公式 plugin の英日対が既訳として立つ。冪等（UNIQUE(rec, field, source) で増えない）。
+	a.emitProgress(ProgressEvent{Stage: "extract", Step: "reference"})
+	dataFolder := filepath.Dir(pluginPath)
+	if err := a.extractor.CollectReferences(ctx, dataFolder); err != nil {
+		return fmt.Errorf("既存訳の収集に失敗: %w", err)
+	}
+
 	a.emitProgress(ProgressEvent{Stage: "extract", Step: "extract"})
 	// 抽出子は注入点（本番は dotnet 子プロセス、テストは DB 直 seed の fake）。利用者が選んだ plugin を抽出する。
 	if err := a.extractor.Extract(ctx, pluginPath); err != nil {
 		return fmt.Errorf("抽出に失敗: %w", err)
 	}
 
-	// 抽出後、extracted_field の英日対から固有名の確定訳語（FULL 完全形）を書き、続けて人名の部分形
-	//（名のみ・短名）を派生して master_term へ追記する。DB を作り直しても単独名（例 Aventus→アベンタス）が
+	// 抽出後、既訳の英日対から固有名の確定訳語（FULL 完全形）を書き、続けて人名の部分形
+	// （名のみ・短名）を派生して master_term へ追記する。DB を作り直しても単独名（例 Aventus→アベンタス）が
 	// 機械置換へ載るようにする。冪等。
 	a.emitProgress(ProgressEvent{Stage: "extract", Step: "derive"})
 	derivedCount, err := a.engine.DeriveMasterTerms(ctx)
 	if err != nil {
 		return fmt.Errorf("固有名の派生に失敗: %w", err)
 	}
-
-	// 同じ extracted_field の英日対から record 単位の既存訳（参照訳）を取り込む。翻訳で原文が完全一致する
-	// 叙述文・台詞は AI を呼ばず既訳を流用する（known-issues 項目7）。冪等。
-	a.emitProgress(ProgressEvent{Stage: "extract", Step: "reference"})
-	referenceCount, err := a.engine.LoadReferenceTranslations(ctx)
+	referenceCount, err := a.engine.CountReferenceTranslations(ctx)
 	if err != nil {
-		return fmt.Errorf("既存訳の取り込みに失敗: %w", err)
+		return fmt.Errorf("既存訳の件数取得に失敗: %w", err)
 	}
 	// 供給の集約件数を残す（英日対が無い時に確定訳語・参照訳が 0 のまま進む状態を切り分ける）。
-	slog.InfoContext(ctx, "extracted_field の英日対から既存訳と確定訳語を組んだ",
+	// dataFolder は走査した範囲。どのフォルダを供給源にしたかで 0 件の原因を切り分ける。
+	slog.InfoContext(ctx, "Data フォルダの英日対から既存訳と確定訳語を組んだ",
 		slog.String("event", "reference_supply_built"),
 		slog.String("where", "api.prepareForTranslation"),
+		slog.String("dataFolder", dataFolder),
 		slog.Int("masterTerms", derivedCount),
 		slog.Int("references", referenceCount),
 	)
@@ -968,6 +988,18 @@ func buildExtractorArgs(dllPath, dataFolder, plugin, dbPath, schemaDir string) [
 		"--plugin", plugin,
 		"--sqlite", dbPath,
 		"--schema", schemaDir,
+	}
+}
+
+// buildReferenceScanArgs は既訳の収集（Data フォルダ全 plugin の走査）を起動する引数列を組む。
+// 対象を 1 本へ絞らないため --plugin を渡さない。走査対象の列挙は C# 側が dataFolder から行う。
+func buildReferenceScanArgs(dllPath, dataFolder, dbPath, schemaDir string) []string {
+	return []string{
+		dllPath,
+		"--data", dataFolder,
+		"--sqlite", dbPath,
+		"--schema", schemaDir,
+		"--references",
 	}
 }
 

@@ -102,3 +102,66 @@ func TestProperNounPlacementsForExportPluginScoped(t *testing.T) {
 		t.Errorf("B.esp の位置解決の訳 = %q, want 霜B", b[0].Dest)
 	}
 }
+
+// R-2-6: 派生した部分形を、翻訳対象の固有名として数えないこと。
+// 部分形（origin が derive の行）は機械置換辞書の材料で、原文 record を持たない（category は空）。
+// 画面の固有名の一覧（ページ・総件数）と、対象 plugin の進捗件数から外れることを確かめる。
+// 一方で機械置換辞書の供給源（ListProperNouns）は部分形を返し続ける（外すと本文の置換が効かなくなる）。
+func TestDerivedProperNounsAreNotTranslationTargets(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "central.sqlite3")
+	s, err := Open(dbPath)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer func() { _ = s.Close() }()
+
+	execSQL(t, dbPath, `INSERT INTO target_plugin (plugin, source_path) VALUES ('Mod.esp', '/data/Mod.esp')`)
+	// 翻訳対象の固有名（原文 record 由来）1 件と、そこから機械派生した部分形 2 件。
+	execSQL(t, dbPath, `INSERT INTO proper_noun (plugin, source, category, dest, status)
+		VALUES ('Mod.esp', 'Sorine Trueblade', 'NPC_', 'ソリーヌ・トゥルーブレイド', 3)`)
+	execSQL(t, dbPath, `INSERT INTO proper_noun (plugin, source, category, dest, status, origin)
+		VALUES ('Mod.esp', 'Sorine', '', 'ソリーヌ', 3, 'derive')`)
+	execSQL(t, dbPath, `INSERT INTO proper_noun (plugin, source, category, dest, status, origin)
+		VALUES ('Mod.esp', 'Trueblade', '', 'トゥルーブレイド', 3, 'derive')`)
+
+	ctx := context.Background()
+
+	// 総件数は翻訳対象の 1 件だけ（部分形 2 件を数えない）。
+	got, err := s.CountProperNouns(ctx, "Mod.esp")
+	if err != nil {
+		t.Fatalf("CountProperNouns: %v", err)
+	}
+	if got != 1 {
+		t.Errorf("固有名の総件数 = %d, want 1（部分形を数えない）", got)
+	}
+
+	// 一覧のページにも部分形の行が出ない。
+	page, err := s.ProperNounsAfter(ctx, "Mod.esp", 0, 10)
+	if err != nil {
+		t.Fatalf("ProperNounsAfter: %v", err)
+	}
+	if len(page) != 1 || page[0].Source != "Sorine Trueblade" {
+		t.Fatalf("一覧のページ = %+v, want 翻訳対象の 1 件だけ", page)
+	}
+
+	// 対象 plugin の進捗件数も部分形のぶん増えない（分母・分子とも）。
+	plugins, err := s.ListTargetPlugins(ctx)
+	if err != nil {
+		t.Fatalf("ListTargetPlugins: %v", err)
+	}
+	if len(plugins) != 1 {
+		t.Fatalf("target_plugin の件数 = %d, want 1", len(plugins))
+	}
+	if plugins[0].Total != 1 || plugins[0].Translated != 1 {
+		t.Errorf("進捗 = %d/%d, want 1/1（部分形を数えない）", plugins[0].Translated, plugins[0].Total)
+	}
+
+	// 機械置換辞書の供給源は部分形を返し続ける（辞書の材料そのもの）。
+	all, err := s.ListProperNouns(ctx)
+	if err != nil {
+		t.Fatalf("ListProperNouns: %v", err)
+	}
+	if len(all) != 3 {
+		t.Errorf("機械置換辞書の供給源 = %d 件, want 3（部分形を含む）: %+v", len(all), all)
+	}
+}

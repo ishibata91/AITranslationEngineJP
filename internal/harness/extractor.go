@@ -15,16 +15,41 @@ import (
 type SeedExtractor struct {
 	DBPath  string
 	Fixture Fixture
+	// Calls は呼ばれた段の記録（"references:<dataFolder>" / "extract:<pluginPath>"）。
+	// 既訳の収集がどのフォルダを対象にし、抽出との順序がどうなるかを結合テストから観測するために残す。
+	Calls []string
 }
 
-// Extract は fixture を中心 DB へ seed する。pluginPath は本番の plugin 選択に対応するが、fake は内容を fixture で固定する。
-func (s *SeedExtractor) Extract(_ context.Context, _ string) error {
+// Extract は fixture の翻訳対象の原文と話者素材を中心 DB へ seed する。
+// pluginPath は本番の plugin 選択に対応するが、fake は内容を fixture で固定する。
+func (s *SeedExtractor) Extract(_ context.Context, pluginPath string) error {
+	s.Calls = append(s.Calls, "extract:"+pluginPath)
 	db, err := sqlx.Connect("sqlite", s.DBPath)
 	if err != nil {
 		return fmt.Errorf("seed 用 DB を開けない: %w", err)
 	}
 	defer db.Close() //nolint:errcheck // 読み書き後の後始末。失敗しても seed 自体の成否は下の戻り値で判断する。
 	return seedFixture(db, s.Fixture)
+}
+
+// CollectReferences は fixture の既訳（Data フォルダ全 plugin の英日対）を reference_translation へ seed する。
+// 本番は C# 抽出器が dataFolder の plugin を走査して書く層で、fake は内容を fixture で固定する。
+// INSERT OR IGNORE のため、同じ fixture で 2 回呼んでも件数は増えない（本番の冪等と同じ）。
+func (s *SeedExtractor) CollectReferences(_ context.Context, dataFolder string) error {
+	s.Calls = append(s.Calls, "references:"+dataFolder)
+	db, err := sqlx.Connect("sqlite", s.DBPath)
+	if err != nil {
+		return fmt.Errorf("seed 用 DB を開けない: %w", err)
+	}
+	defer db.Close() //nolint:errcheck // 読み書き後の後始末。失敗しても seed 自体の成否は下の戻り値で判断する。
+	for _, r := range s.Fixture.References {
+		if _, err := db.Exec(
+			`INSERT OR IGNORE INTO reference_translation (rec, field, source, dest) VALUES (?, ?, ?, ?)`,
+			r.Rec, r.Field, r.Source, r.Dest); err != nil {
+			return fmt.Errorf("reference_translation の seed (%s:%s %q): %w", r.Rec, r.Field, r.Source, err)
+		}
+	}
+	return nil
 }
 
 // seedFixture は話者素材（race・voice_type・speaker・INFO 橋渡し）と extracted_field を 1 トランザクションで投入する。
@@ -43,9 +68,9 @@ func seedFixture(db *sqlx.DB, f Fixture) error {
 	}
 	for _, ef := range f.ExtractedFields {
 		if _, err := tx.Exec(
-			`INSERT INTO extracted_field (plugin, form_id, edid, rec, field, ordinal, source, dest)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-			ef.Plugin, ef.FormID, ef.EDID, ef.Rec, ef.Field, ef.Ordinal, ef.Source, ef.Dest); err != nil {
+			`INSERT INTO extracted_field (plugin, form_id, edid, rec, field, ordinal, source)
+			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			ef.Plugin, ef.FormID, ef.EDID, ef.Rec, ef.Field, ef.Ordinal, ef.Source); err != nil {
 			return fmt.Errorf("extracted_field の seed (%s:%s %s): %w", ef.Rec, ef.Field, ef.FormID, err)
 		}
 	}

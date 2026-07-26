@@ -27,13 +27,20 @@ import (
 const (
 	recInfo   = "INFO"
 	recDial   = "DIAL"
+	recNPC    = "NPC_" // NPC レコード。人名の部分形を派生する対の供給元。
 	fieldNam1 = "NAM1" // NPC の返答
 	fieldRnam = "RNAM" // 選択肢の条件別上書き（PC 発話）
-	fieldFull = "FULL" // 選択肢の既定文（PC 発話）
+	fieldFull = "FULL" // 選択肢の既定文（PC 発話）。NPC_ では氏名。
+	fieldShrt = "SHRT" // NPC_ の短縮名（作者記述の別名）
 )
 
 // statusProvisional は xTranslator の訳状態 3（仮）。AI 翻訳は仮訳として書き戻す。
 const statusProvisional = 3
+
+// masterDerivedCategoryPrefix は master_term の派生行に付ける由来印（category の接頭）。
+// 続く語が派生の規則（shrt・byname・two）で、どの規則で作った対かを後から辿れる。
+// proper_noun は同じ判別を origin 列で行う（category に rec を持つため由来印を入れられない）。
+const masterDerivedCategoryPrefix = "derive:"
 
 // NarrationStore は engine が叙述文の翻訳に使う中心データアクセス（使う分だけ宣言する）。
 type NarrationStore interface {
@@ -196,6 +203,12 @@ func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string
 	// 固有名フェーズ: 本文より先に固有名を確定する。既訳ありは権威訳、既訳なしは固有名 directive で AI 訳。
 	if err = e.translateProperNouns(ctx, conn, model, propers, authoritative,
 		tmpl.BaseDirective, instructionByKey[directiveProperNoun], p.step); err != nil {
+		return p.done, err
+	}
+
+	// 確定した NPC 名から人名の部分形（名のみ・苗字のみ・短名）を派生し、対象 plugin の proper_noun へ足す。
+	// mod NPC は既訳を持たず抽出直後の派生に入らないため、本文を組む前にここで部分形を作る。
+	if _, err = e.deriveRunProperNouns(ctx, plugin); err != nil {
 		return p.done, err
 	}
 
@@ -484,39 +497,30 @@ func (e *Engine) translationVocabulary(ctx context.Context) ([]model.MasterTerm,
 	return keptTerms, keptPropers, nil
 }
 
-// DeriveMasterTerms は extracted_field の英日対（dest 非空行）から固有名の確定訳語を master_term へ組む。
+// DeriveMasterTerms は既訳（reference_translation の英日対）から固有名の確定訳語を master_term へ組む。
+// 既訳は Data フォルダ全 plugin の英日対なので、日本語 Strings を持たない mod を対象にした実行でも供給が立つ。
 // 翻訳 Run の抽出後に呼ぶ。追記した件数を返す。INSERT OR IGNORE のため二重実行でも増えない（冪等）。
 // 手順は依存があるため固定する。
 //  1. record_type_master で箱＝固有名の FULL（source・dest 非空）を (source, dest, category=rec) で書く
 //     （旧 MasterTermXmlWriter の役目を畳んだもの）。
 //  2. master_term を baseSources として読む（手順 1 で書いた FULL を含む）。派生の衝突除外に使う。
-//  3. NPC_:FULL / NPC_:SHRT・INFO:NAM1 から termderive で人名の部分形（名のみ・短名）を派生して追記する。
-//     派生行は category="derive:<種別>" で由来を残す。
+//  3. NPC_:FULL / NPC_:SHRT から termderive で人名の部分形（名のみ・短名）を派生して追記する。
+//     派生行は category="derive:<種別>" で由来と規則を残す（master_term は record 種別を持たないため
+//     category が空いており、由来印を入れられる。proper_noun は category に rec を持つので origin 列で分ける）。
+//     用法分布の材料になる台詞の英語原文だけは、既訳の有無に依らないため extracted_field
+//     （翻訳対象 plugin の原文）から取る。
 func (e *Engine) DeriveMasterTerms(ctx context.Context) (int, error) {
-	fields, err := e.store.ListExtractedFields(ctx)
+	refs, err := e.store.ListReferenceTranslations(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("確定訳語の供給元（extracted_field）の取得: %w", err)
+		return 0, fmt.Errorf("確定訳語の供給元（reference_translation）の取得: %w", err)
 	}
 	masterRows, err := e.store.ListRecordTypeMaster(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("record_type_master の取得: %w", err)
 	}
-	master := recordMasterMap(masterRows)
 
-	// 手順 1: 箱＝固有名の FULL 完全形を確定訳語として書く。原語と訳語が同一の行は辞書にしない。
-	fulls := make([]model.MasterTerm, 0, len(fields))
-	for _, f := range fields {
-		rt, ok := master[RecordKey{Rec: f.Rec, Field: f.Field}]
-		if !ok || rt.Box != boxProperNoun || f.Field != fieldFull {
-			continue
-		}
-		src, dst := strings.TrimSpace(f.Source), strings.TrimSpace(f.Dest)
-		if src == "" || dst == "" || src == dst {
-			continue
-		}
-		fulls = append(fulls, model.MasterTerm{Source: src, Dest: dst, Category: f.Rec})
-	}
-	insertedFulls, err := e.store.InsertDerivedTerms(ctx, fulls)
+	// 手順 1: 箱＝固有名の FULL 完全形を確定訳語として書く。
+	insertedFulls, err := e.store.InsertDerivedTerms(ctx, properNounFulls(refs, recordMasterMap(masterRows)))
 	if err != nil {
 		return 0, fmt.Errorf("固有名の完全形の追記: %w", err)
 	}
@@ -531,40 +535,74 @@ func (e *Engine) DeriveMasterTerms(ctx context.Context) (int, error) {
 		baseSources[t.Source] = true
 	}
 
-	// 手順 3: termderive の入力を extracted_field から組む。姓名分割（two）の可否は英日対の有無で決める。
-	// dest 非空＝英日 Strings が揃う行だけが対になるため、対を組めた行はすべて two を許す
-	//（base ゲーム名（XML ファイル名接頭）による限定は廃止した）。
-	var fullPairs, shrtPairs []termderive.NamePair
-	var dialogues []string
-	for _, f := range fields {
-		src, dst := strings.TrimSpace(f.Source), strings.TrimSpace(f.Dest)
-		switch {
-		case f.Rec == "NPC_" && f.Field == fieldFull:
-			if src != "" && dst != "" {
-				fullPairs = append(fullPairs, termderive.NamePair{Source: src, Dest: dst, BaseGame: true})
-			}
-		case f.Rec == "NPC_" && f.Field == "SHRT":
-			if src != "" && dst != "" {
-				shrtPairs = append(shrtPairs, termderive.NamePair{Source: src, Dest: dst, BaseGame: true})
-			}
-		case f.Rec == recInfo && f.Field == fieldNam1:
-			// 会話文の英語原文は用法分布（一般語か固有名か）の材料。既訳が無くても使える。
-			if src != "" {
-				dialogues = append(dialogues, f.Source)
-			}
-		}
+	// 手順 3: termderive の入力を既訳から組む。姓名分割（two）の可否は語形の防御が決める（供給元では絞らない）。
+	fullPairs, shrtPairs := npcNamePairs(refs)
+	usage, err := e.dialogueUsage(ctx)
+	if err != nil {
+		return insertedFulls, err
 	}
-	usage := termusage.BuildUsage(dialogues)
 	derived := termderive.DeriveTerms(fullPairs, shrtPairs, usage, baseSources, termderive.DefaultDeriveConfig())
 	rows := make([]model.MasterTerm, len(derived))
 	for i, d := range derived {
-		rows[i] = model.MasterTerm{Source: d.Source, Dest: d.Dest, Category: "derive:" + d.Kind}
+		rows[i] = model.MasterTerm{Source: d.Source, Dest: d.Dest, Category: masterDerivedCategoryPrefix + d.Kind}
 	}
 	insertedDerived, err := e.store.InsertDerivedTerms(ctx, rows)
 	if err != nil {
 		return insertedFulls + insertedDerived, fmt.Errorf("派生固有名の追記: %w", err)
 	}
 	return insertedFulls + insertedDerived, nil
+}
+
+// properNounFulls は既訳のうち、箱＝固有名に割り当てられた FULL の行を横断辞書の完全形へ写す純粋関数。
+// 原語と訳語が同一の行は辞書にしない（置換しても本文が変わらないため）。
+func properNounFulls(refs []model.ReferenceTranslation, master map[RecordKey]model.RecordType) []model.MasterTerm {
+	fulls := make([]model.MasterTerm, 0, len(refs))
+	for _, r := range refs {
+		rt, ok := master[RecordKey{Rec: r.Rec, Field: r.Field}]
+		if !ok || rt.Box != boxProperNoun || r.Field != fieldFull {
+			continue
+		}
+		src, dst := strings.TrimSpace(r.Source), strings.TrimSpace(r.Dest)
+		if src == "" || dst == "" || src == dst {
+			continue
+		}
+		fulls = append(fulls, model.MasterTerm{Source: src, Dest: dst, Category: r.Rec})
+	}
+	return fulls
+}
+
+// npcNamePairs は既訳から NPC の氏名（FULL）・短縮名（SHRT）の対を取り出す純粋関数。人名の部分形の派生の入力。
+func npcNamePairs(refs []model.ReferenceTranslation) (fullPairs, shrtPairs []termderive.NamePair) {
+	for _, r := range refs {
+		src, dst := strings.TrimSpace(r.Source), strings.TrimSpace(r.Dest)
+		if src == "" || dst == "" || r.Rec != recNPC {
+			continue
+		}
+		switch r.Field {
+		case fieldFull:
+			fullPairs = append(fullPairs, termderive.NamePair{Source: src, Dest: dst})
+		case fieldShrt:
+			shrtPairs = append(shrtPairs, termderive.NamePair{Source: src, Dest: dst})
+		}
+	}
+	return fullPairs, shrtPairs
+}
+
+// dialogueUsage は翻訳対象 plugin の台詞の英語原文から用法分布（一般語か固有名か）を集計する。
+// 材料は既訳の有無に依らないため extracted_field（翻訳対象の原文）から取る。
+// 部分形の派生（DeriveMasterTerms と deriveRunProperNouns）が一般語との衝突を落とすのに使う。
+func (e *Engine) dialogueUsage(ctx context.Context) (termderive.Usage, error) {
+	fields, err := e.store.ListExtractedFields(ctx)
+	if err != nil {
+		return termderive.Usage{}, fmt.Errorf("用法分布の材料（extracted_field）の取得: %w", err)
+	}
+	dialogues := make([]string, 0, len(fields))
+	for _, f := range fields {
+		if f.Rec == recInfo && f.Field == fieldNam1 && strings.TrimSpace(f.Source) != "" {
+			dialogues = append(dialogues, f.Source)
+		}
+	}
+	return termusage.BuildUsage(dialogues), nil
 }
 
 // ToneDefaults は話者なし台詞（汎用・PC）の口調設定。利用者が編集する自由記述の口調と PC 性別。
@@ -714,7 +752,7 @@ func (e *Engine) ensureFeatures(ctx context.Context, lines []model.Line) (map[st
 	out := make(map[string]tone.Features, len(hashes))
 	for _, h := range hashes {
 		if err := ctx.Err(); err != nil { // 解析ループは長時間になり得るため、本文ごとにキャンセルを確認する。
-			return nil, err
+			return nil, fmt.Errorf("行特徴の解析中断: %w", err)
 		}
 		if row, ok := cached[h]; ok {
 			out[h] = featuresFromAnalysis(row)

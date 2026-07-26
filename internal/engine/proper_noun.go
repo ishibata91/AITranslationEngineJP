@@ -3,8 +3,10 @@ package engine
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"aitranslationenginejp/internal/core/prompt"
+	"aitranslationenginejp/internal/core/termderive"
 	"aitranslationenginejp/internal/model"
 	"aitranslationenginejp/internal/provider"
 )
@@ -52,6 +54,82 @@ func SelectSupply(source string, authoritative map[string]string) TermSupply {
 type ProperNounStore interface {
 	ListUntranslatedProperNouns(ctx context.Context, plugin string) ([]model.ProperNoun, error)
 	UpdateProperNounDest(ctx context.Context, id int64, dest string, status int) error
+	ListConfirmedNPCNames(ctx context.Context, plugin string) ([]model.ConfirmedName, error)
+	InsertDerivedProperNouns(ctx context.Context, rows []model.ProperNoun) (int, error)
+}
+
+// deriveRunProperNouns は実行内で訳が確定した対象 plugin の NPC 名から人名の部分形（名のみ・苗字のみ・短名）を
+// 作り、同じ plugin の proper_noun へ書く。追記した件数を返す。
+// 固有名フェーズの後・機械置換辞書を組む前に呼ぶ。同期翻訳と batch の両方が本文を組む前に通す。
+// mod が追加した NPC は既訳を持たないため実行内の AI 訳でしか氏名が確定せず、抽出直後に走る
+// DeriveMasterTerms（既訳が入力）では部分形を作れない。この段がその穴を埋める。
+// 書き込み先は proper_noun に固定する。横断永続辞書 master_term へは昇格させない（方針A の不変境界）。
+// 既出原語（横断辞書 ∪ その実行で確定済みの固有名）は派生に含めないため、同じ原語へ 2 つの訳が立たない。
+// 派生の採否は termderive の語形の防御が決める（用法分布の材料は翻訳対象 plugin の台詞の英語原文）。
+func (e *Engine) deriveRunProperNouns(ctx context.Context, plugin string) (int, error) {
+	names, err := e.store.ListConfirmedNPCNames(ctx, plugin)
+	if err != nil {
+		return 0, fmt.Errorf("確定した NPC 名の取得: %w", err)
+	}
+	if len(names) == 0 {
+		return 0, nil
+	}
+	var fullPairs, shrtPairs []termderive.NamePair
+	for _, n := range names {
+		pair := termderive.NamePair{Source: strings.TrimSpace(n.Source), Dest: strings.TrimSpace(n.Dest)}
+		if pair.Source == "" || pair.Dest == "" {
+			continue
+		}
+		switch n.Field {
+		case fieldFull:
+			fullPairs = append(fullPairs, pair)
+		case fieldShrt:
+			shrtPairs = append(shrtPairs, pair)
+		}
+	}
+
+	baseSources, err := e.derivedBaseSources(ctx, names)
+	if err != nil {
+		return 0, err
+	}
+	usage, err := e.dialogueUsage(ctx)
+	if err != nil {
+		return 0, err
+	}
+	derived := termderive.DeriveTerms(fullPairs, shrtPairs, usage, baseSources, termderive.DefaultDeriveConfig())
+	rows := make([]model.ProperNoun, len(derived))
+	for i, d := range derived {
+		// origin で翻訳対象と分ける。category は空にする。派生行は原文 record を持たないので rec の値が無い。
+		// 空にすることで原文位置の解決（言及・出力位置。category を rec と突き合わせる）が派生行を拾わない。
+		// UNIQUE(plugin, category, source) は source が抽出由来と重ならないため衝突しない
+		// （既出原語は derivedBaseSources が派生から外す）。
+		rows[i] = model.ProperNoun{
+			Plugin: plugin, Source: d.Source, Dest: d.Dest,
+			Status: statusProvisional, Origin: model.OriginDerived,
+		}
+	}
+	inserted, err := e.store.InsertDerivedProperNouns(ctx, rows)
+	if err != nil {
+		return inserted, fmt.Errorf("派生した人名の部分形の追記: %w", err)
+	}
+	return inserted, nil
+}
+
+// derivedBaseSources は部分形の派生から外す既出原語の集合を作る。
+// 横断辞書（master_term）の原語と、その実行で確定済みの固有名の原語の両方を入れ、同じ原語へ 2 つの訳が立たないようにする。
+func (e *Engine) derivedBaseSources(ctx context.Context, names []model.ConfirmedName) (map[string]bool, error) {
+	terms, err := e.store.ListMasterTerms(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("横断辞書の取得: %w", err)
+	}
+	base := make(map[string]bool, len(terms)+len(names))
+	for _, t := range terms {
+		base[t.Source] = true
+	}
+	for _, n := range names {
+		base[strings.TrimSpace(n.Source)] = true
+	}
+	return base, nil
 }
 
 // translateProperNouns は本文フェーズより前に、与えられた未訳固有名 pending を確定する。

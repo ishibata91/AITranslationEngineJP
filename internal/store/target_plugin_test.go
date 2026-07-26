@@ -138,7 +138,8 @@ func readTargetPlugin(t *testing.T, dbPath, plugin string, createdAt, sourcePath
 		t.Fatalf("test connect: %v", err)
 	}
 	defer func() { _ = db.Close() }()
-	row := db.QueryRow(`SELECT created_at, source_path FROM target_plugin WHERE plugin = ?`, plugin)
+	row := db.QueryRowContext(context.Background(),
+		`SELECT created_at, source_path FROM target_plugin WHERE plugin = ?`, plugin)
 	if err := row.Scan(createdAt, sourcePath); err != nil {
 		t.Fatalf("target_plugin の読み取り: %v", err)
 	}

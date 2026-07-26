@@ -4,14 +4,17 @@ using Mutagen.Bethesda.Strings;
 
 // Mutagen 抽出 CLI。data folder と plugin を直指定して抽出し、カテゴリ別件数を表示する。
 // --xml を渡すと xTranslator 辞書 XML との REC:FIELD 件数比較も行う（不一致なら exit 2）。
+// --references を渡すと plugin 指定なしで Data フォルダ全体を走査し、英日対だけを書いて終わる。
 //
 // 使い方:
 //   dotnet run --project tools/extractor -- --data dictionaries/Data --plugin Dawnguard.esm
+//   dotnet run --project tools/extractor -- --data dictionaries/Data --sqlite db/central.sqlite3 --references
 //   dotnet run --project tools/extractor -- --data dictionaries/Data --plugin Dawnguard.esm \
 //       --xml dictionaries/xTranslatorXMLs/Dawnguard_english_japanese.xml
 
 string? dataFolder = null, plugin = null, xmlPath = null, dumpRecField = null, sqlitePath = null, schemaDir = null;
 var language = Language.English;
+var referencesOnly = false;
 
 for (var i = 0; i < args.Length; i++)
 {
@@ -23,6 +26,7 @@ for (var i = 0; i < args.Length; i++)
         case "--dump": dumpRecField = Next(ref i).ToUpperInvariant(); break;
         case "--sqlite": sqlitePath = Next(ref i); break;
         case "--schema": schemaDir = Next(ref i); break;
+        case "--references": referencesOnly = true; break;
         case "--language": language = Enum.Parse<Language>(Next(ref i), ignoreCase: true); break;
         case "--help" or "-h": PrintUsage(); return 0;
         default:
@@ -32,9 +36,42 @@ for (var i = 0; i < args.Length; i++)
     }
 }
 
-if (dataFolder == null || plugin == null)
+if (dataFolder == null)
 {
-    Console.Error.WriteLine("--data と --plugin は必須。");
+    Console.Error.WriteLine("--data は必須。");
+    PrintUsage();
+    return 1;
+}
+
+if (referencesOnly)
+{
+    // 既訳の供給: Data フォルダにある plugin を 1 本ずつ走査し、英日対を reference_translation へ書く。
+    // 利用者が選んだ plugin も同じフォルダにあるので同じ経路で入る。翻訳対象の原文（extracted_field）は書かない。
+    // plugin が読めない・master が壊れている場合は例外のまま落とす（呼び出し側の Go がエラーとして受ける）。
+    if (sqlitePath == null)
+    {
+        Console.Error.WriteLine("--references は --sqlite が必須。");
+        PrintUsage();
+        return 1;
+    }
+    var refSchemaDir = schemaDir ?? FindSchemaDir();
+    var refSw = Stopwatch.StartNew();
+    var scanned = 0;
+    var pairs = 0;
+    foreach (var name in EnumeratePluginFiles(dataFolder))
+    {
+        using var refEnv = PluginEnvironment.Load(dataFolder, name, language);
+        pairs += ReferenceTranslationSqliteWriter.Write(sqlitePath, refSchemaDir, PluginExtractor.Extract(refEnv));
+        scanned++;
+    }
+    Console.WriteLine($"[references] {scanned} plugin を走査し、英日対 {pairs} 件を {sqlitePath} へ書き込み（{refSw.ElapsedMilliseconds} ms）");
+    return 0;
+}
+
+// ここから先は 1 plugin を対象にする経路。--references はこの上で完結して戻る。
+if (plugin == null)
+{
+    Console.Error.WriteLine("--references を付けない場合は --plugin が必須。");
     PrintUsage();
     return 1;
 }
@@ -71,10 +108,9 @@ if (sqlitePath != null)
     var emoCount = InfoEmotionSqliteWriter.Write(sqlitePath, dir, result);
     Console.WriteLine($"[sqlite] INFO 応答の感情型 {emoCount} 件を {sqlitePath} へ書き込み（{sw.ElapsedMilliseconds} ms）");
 
-    // 固有名の確定訳語（master_term）と参照訳（reference_translation）は、extracted_field の
-    // 英日対（dest 非空行）から Go 側（DeriveMasterTerms / LoadReferenceTranslations）が組む。
-    // 抽出時の日本語解決の観測（dest 非空行数）だけをここに出す。
-    Console.WriteLine($"[sqlite] 英日対（japanese 解決済み field）{result.JapanesePairs.Count} 件（dest の供給源）");
+    // 既訳（reference_translation）は --references の走査が Data フォルダ全体から書く。この起動では書かない。
+    // 抽出時の日本語解決の観測（この plugin 単体で対になった field 数）だけをここに出す。
+    Console.WriteLine($"[sqlite] 英日対（japanese 解決済み field）{result.JapanesePairs.Count} 件（--references の走査が書く）");
     return 0;
 }
 
@@ -132,6 +168,16 @@ string Next(ref int i)
     return args[++i];
 }
 
+// data folder 直下の plugin ファイル名を昇順で返す（--references の走査対象）。
+// 走査順を Ordinal 昇順で固定し、同じフォルダなら毎回同じ順で走る。
+static IEnumerable<string> EnumeratePluginFiles(string dataFolder) =>
+    new[] { "*.esm", "*.esp", "*.esl" }
+        .SelectMany(pattern => Directory.GetFiles(dataFolder, pattern))
+        .Select(Path.GetFileName)
+        .OfType<string>()
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(name => name, StringComparer.Ordinal);
+
 // db/migrations を、作業ディレクトリから repo root（go.mod がある所）まで遡って探す。
 static string FindSchemaDir()
 {
@@ -148,9 +194,11 @@ static void PrintUsage()
 {
     Console.WriteLine("""
         使い方: extractor --data <DataFolder> --plugin <name.esp> [--sqlite <db>] [--xml <xTranslator XML>] [--language Japanese]
+                extractor --data <DataFolder> --sqlite <db> --references
           --data      Skyrim の Data 相当フォルダ（esm/esp/esl + Strings/）
           --plugin    抽出対象 plugin ファイル名（master は同フォルダから自動解決）
-          --sqlite    中心 DB（SQLite）へ全 REC:FIELD の原文と日本語既訳（extracted_field）と話者属性を書き込む。書込後に終了する
+          --sqlite    中心 DB（SQLite）へ全 REC:FIELD の原文（extracted_field）と話者属性を書き込む。書込後に終了する
+          --references Data フォルダの全 plugin を走査し、英日対だけを reference_translation へ書く。--plugin は要らない
           --schema    --sqlite 用の migrations ディレクトリ（既定 repo の db/migrations を自動探索）
           --xml       xTranslator 辞書 XML と REC:FIELD 件数比較を行う（不一致なら exit 2）
           --language  localized strings の言語（既定 English。翻訳元テキストを解決する）

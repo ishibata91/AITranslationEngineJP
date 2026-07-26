@@ -17,6 +17,11 @@ import (
 // 守るのは単体で守れない継ぎ目だけ（件数保存・未知除外・固有名一貫・感情結線・話者結線・stoplist 一貫）。
 // 単段で純粋に閉じるルール（口調閾値・派生・stoplist 判定・役割語引き等）は core package の単体テストが守る。
 
+// translationTargetProperNoun は proper_noun のうち翻訳対象（抽出由来）に絞る条件。
+// 判別の正本は model.OriginDerived だが、harness は architecture 上 model へ依存できないため
+// 本 package ではこの 1 定数へ写し、各 SQL には同じ条件文を書かない。
+const translationTargetProperNoun = "origin = ''"
+
 // probe は 1 回の入口→出口の出口。Capture（プロンプト・件数）と最終 DB を持つ。read-only。
 type probe struct {
 	cap Capture
@@ -26,8 +31,10 @@ type probe struct {
 // 1 spec = 1 関数。左が id、右が出口への期待値（Assert）。given は fixture 側にある。
 var goOracles = map[string]func(t *testing.T, p probe){
 	// 件数保存: 翻訳対象に数えた件数と、出力した件数が一致する（取込→翻訳で落ちない）。
+	// 人名の部分形（origin が derive の行）は取込段を通らない機械派生で、翻訳対象に数えない。
+	// 数えると派生の増減が件数保存の崩れに見えるため、取り込んだ固有名だけを対象にする。
 	"count-parity": func(t *testing.T, p probe) {
-		out := countRows(t, p.db, `SELECT count(*) FROM proper_noun`) +
+		out := countRows(t, p.db, `SELECT count(*) FROM proper_noun WHERE `+translationTargetProperNoun) +
 			countRows(t, p.db, `SELECT count(*) FROM narration`) +
 			countRows(t, p.db, `SELECT count(*) FROM line`)
 		if p.cap.TranslatedCount != out {
@@ -124,6 +131,74 @@ var goOracles = map[string]func(t *testing.T, p probe){
 		}
 		if !strings.Contains(dest, "<Alias=Player>") {
 			t.Fatalf("実行時タグが最終出力に残っていない: dest=%q", dest)
+		}
+	},
+
+	// 既存訳の横断供給: 翻訳対象が日本語 Strings を持たない plugin でも、同じ Data フォルダの別 plugin の
+	// 英日対から既存訳と固有名の訳が組まれ、対象 plugin の本文へその訳が当たる。
+	// 合成 fixture の Synthetic.esm は日本語を持たず、既訳はすべて別 plugin 由来（References）で供給する。
+	"reference-supply-cross-plugin": func(t *testing.T, p probe) {
+		// 別 plugin の英日対から横断辞書へ固有名の完全形が入る。
+		var dest string
+		if err := p.db.Get(&dest,
+			`SELECT dest FROM master_term WHERE source='Aventus Aretino'`); err != nil {
+			t.Fatalf("別 plugin 由来の固有名が横断辞書に無い: %v", err)
+		}
+		if dest != "アベンタス・アレティノ" {
+			t.Fatalf("別 plugin 由来の訳語 = %q, want アベンタス・アレティノ", dest)
+		}
+		// 対象 plugin の本文へ、その訳が機械置換で当たる。
+		narr := promptContainingUser(t, p, "once held by")
+		if !strings.Contains(narr.User, dest) {
+			t.Fatalf("別 plugin 由来の訳が本文へ当たっていない:\n%s", narr.User)
+		}
+	},
+
+	// 実行内で確定した氏名からの部分形（姓名分割）: 既存訳を持たない mod NPC の氏名は AI 訳で確定する。
+	// その確定訳から名だけ・苗字だけの訳を作り、本文の該当語へ当てる。
+	"run-name-part-derived": func(t *testing.T, p probe) {
+		var full string
+		if err := p.db.Get(&full, `SELECT dest FROM proper_noun WHERE source='Sorine Trueblade'`); err != nil {
+			t.Fatalf("mod NPC の氏名が確定していない: %v", err)
+		}
+		given, family, ok := strings.Cut(full, "・")
+		if !ok {
+			t.Fatalf("氏名の確定訳が中黒区切りでない: %q", full)
+		}
+		pr := promptContainingUser(t, p, "guards the gate")
+		if strings.Contains(pr.User, "Sorine") || !strings.Contains(pr.User, given) {
+			t.Fatalf("名だけの人名が訳語へ置き換わっていない（want %q）:\n%s", given, pr.User)
+		}
+		if strings.Contains(pr.User, "Trueblade") || !strings.Contains(pr.User, family) {
+			t.Fatalf("苗字だけの人名が訳語へ置き換わっていない（want %q）:\n%s", family, pr.User)
+		}
+	},
+
+	// 実行内で確定した氏名からの部分形（二つ名）: 二つ名を除いた名だけが本文へ出た時も訳語へ置き換わる。
+	"run-byname-part-derived": func(t *testing.T, p probe) {
+		var full string
+		if err := p.db.Get(&full, `SELECT dest FROM proper_noun WHERE source='Ulfarr the Grim'`); err != nil {
+			t.Fatalf("二つ名を持つ mod NPC の氏名が確定していない: %v", err)
+		}
+		pr := promptContainingUser(t, p, "old shrine")
+		if strings.Contains(pr.User, "Ulfarr") {
+			t.Fatalf("二つ名を除いた名が原文のまま残った（確定訳 %q）:\n%s", full, pr.User)
+		}
+	},
+
+	// 一般語との衝突: mod NPC の名が本文の一般語と同綴りなら、部分形として辞書へ載せない。
+	// 載せると一般語の出現（文頭の大文字を含む）が訳語へ置き換わり、原文が壊れる。
+	"run-common-word-part-skipped": func(t *testing.T, p probe) {
+		assertCount(t, p.db, 0, `SELECT count(*) FROM proper_noun WHERE source='Hunter' AND NOT `+translationTargetProperNoun)
+		// 文頭で大文字になる一般語の出現が原文のまま残る（実データで観測した破壊置換の形）。
+		head := promptContainingUser(t, p, "tracks are fresh")
+		if !strings.Contains(head.User, "Hunter tracks are fresh") {
+			t.Fatalf("文頭の一般語 Hunter が置換された:\n%s", head.User)
+		}
+		// 小文字始まりの出現も原文のまま残る。
+		low := promptContainingUser(t, p, "near the ridge")
+		if !strings.Contains(low.User, "a hunter near the ridge") {
+			t.Fatalf("小文字始まりの一般語 hunter が置換された:\n%s", low.User)
 		}
 	},
 
