@@ -1,13 +1,13 @@
 ---
 name: feature-workflow
-description: "新規実装フローの入口オーケストレーター。プロダクト変更を伴う実装系 task の入口で、作業 branch と plan.md を固定し、実装方針（現状 AS-IS と変更後 TO-BE をソース根拠つきで示し、流れ・関係・責務が変わる箇所は図を添える）を design.md に、確定仕様（対象集合と期待値表）を spec.md にまとめ、design-review（design_reviewer agent によるソース照合検証と記述検証）と人間設計レビューを通してから下流の段（storybook-module / implementation-module / finalization-module）へ渡す。実装範囲・テスト設計は扱わない。TRIGGER when: プロダクト変更を伴う実装系 task の入口。SKIP when: 修正系 task（バグ修正・refactor）は fix-workflow へ。"
+description: "新規実装フローの入口オーケストレーター。プロダクト変更を伴う実装系 task の入口で、作業 branch と plan.md を固定し、実装方針（現況の理解とあるべき形と変更点をソース根拠つきで示し、流れ・関係・責務が変わる箇所は図を添える）を design.md に、確定仕様（要求ごとの仕様）を spec.md にまとめ、design-review（design_reviewer agent によるソース照合検証と記述検証）と人間設計レビューを通してから下流の段（storybook-module / implementation-module / finalization-module）へ渡す。実装範囲・テスト設計は扱わない。TRIGGER when: プロダクト変更を伴う実装系 task の入口。SKIP when: 修正系 task（バグ修正・refactor）は fix-workflow へ。"
 ---
 # Feature Workflow
 
 ## 目的
 
 `feature-workflow` は、新規実装フローの入口オーケストレーターである。プロダクト変更を伴う実装系 task の入口で、作業 branch と `plan.md` を固定し、実装方針を `design.md` に、確定仕様を `spec.md` にまとめ、`design-review` と人間設計レビューを通してから下流の段へ渡す。
-`design.md` は人間が読んで判断する説明を持ち、`spec.md` は下流が実装根拠にする対象集合と期待値を持つ。両者が食い違う場合は `spec.md` を優先する。
+`design.md` は人間が読んで判断する説明を持ち、`spec.md` は下流が実装根拠にする仕様を持つ。`design.md` と `spec.md` は `plan.md` の要求ごとの節に分ける。両者が食い違う場合は `spec.md` を優先する。
 
 実装系 task は重さによらず本モジュールを通す。
 修正系 task（バグ修正、refactor）は `fix-workflow` が扱う。
@@ -16,8 +16,8 @@ description: "新規実装フローの入口オーケストレーター。プロ
 
 - 呼び出し元: 人間、または上位 agent。
 - 返却先: 呼び出し元。
-- モジュールが呼ぶ下位 skill: `design-protocol`（Claude 本体が読んで適用。`design.md` と `spec.md` の書き方、`design-review` の検証規約）。`presentation`（参照のみ。Claude 本体が読んで適用し、AS-IS→TO-BE の変更図と設計レビュー材料を作る）。
-- モジュールが呼ぶ下位 agent: `design_reviewer`（`fresh`）。人間設計レビューの前に `design.md` の AS-IS 根拠と TO-BE 実現主張を実ソースと照合して検証し、`spec.md` の記述に誤読の余地がないかを検証する。設計判断と `design.md`、`spec.md` は Claude 本体が task 文脈を持ったまま書く。
+- モジュールが呼ぶ下位 skill: `design-protocol`（Claude 本体が読んで適用。`design.md` と `spec.md` の書き方、`design-review` の検証規約）。`presentation`（参照のみ。Claude 本体が読んで適用し、現況とあるべき形の 2 図と設計レビュー材料を作る）。
+- モジュールが呼ぶ下位 agent: `design_reviewer`（`fresh`）。人間設計レビューの前に `design.md` の現況の理解と変更点を実ソースと照合して検証し、`spec.md` の各仕様が要求の節に置かれ、確かめ方を持つかを検証する。設計判断と `design.md`、`spec.md` は Claude 本体が task 文脈を持ったまま書く。
 - 下流の段: `storybook-module`（画面表示の変更がある場合）、`implementation-module`、`finalization-module`。
 
 ## 入口条件
@@ -30,8 +30,8 @@ description: "新規実装フローの入口オーケストレーター。プロ
 - 作業 branch が `claude/<task-id>` として local に存在する。
 - 作業計画フォルダ `docs/exec-plans/active/<task-id>/` が存在する。
 - `plan.md` に branch 情報と対象 task でやること・扱わないことの要点が記録されている。
-- `design.md` に実装方針（AS-IS→TO-BE を文章で、必要なら図を添える）と検討が必要なことが記録されている。
-- `spec.md` に対象集合と期待値表（AS-IS の期待値と TO-BE の期待値）が記録されている。
+- `design.md` の各要求の節に現況の理解、あるべき形、変更点が記録され、末尾に検討が必要なことが記録されている。
+- `spec.md` の各要求の節に仕様が記録され、各仕様に前提条件と確かめ方が書かれている。
 - `design.md` の検討が必要なことに未解決の論点が残っていない（人間回答で解消済み）。
 - `design-review` が通過済み。
 - `人間設計レビュー` が承認済み。
@@ -68,7 +68,7 @@ description: "新規実装フローの入口オーケストレーター。プロ
 書き方は `design-protocol` skill に従う。Claude 本体が Skill ツールで読み、フロー種別として新規実装フローを渡して適用する。
 
 - `design.md`: 人間が読んで判断する説明（実装方針、検討が必要なこと）。
-- `spec.md`: 下流の段が実装根拠にする確定仕様（対象集合、期待値表）。
+- `spec.md`: 下流の段が実装根拠にする確定仕様（要求ごとの仕様）。
 - 本モジュールが固定するのは書く順序と承認順序とし、両 file の書き方は `design-protocol` skill が持つ。
 
 ## design-review
@@ -78,11 +78,11 @@ description: "新規実装フローの入口オーケストレーター。プロ
 - 検証内容、判断範囲、出力、否決時の扱いは `design-protocol` skill の `design-review` 節に従う。
 - 起動入力: `design.md` のパス、`spec.md` のパス、`task-id`、対象 repo のルート、フロー種別（新規実装フロー）。
 - 戻し先: 本モジュール。
-- 完了: `design.md` の全 AS-IS 根拠と全 TO-BE 実現主張、および `spec.md` の対象集合と全期待値行に判定が付いている。
+- 完了: `design.md` の全ての現況の理解と全ての変更点、および `spec.md` の全ての仕様に判定が付いている。
 
 ## 人間設計レビュー
 
-- `design-review` 通過後に人間へレビューを依頼する。人間が仕様を短時間で確認できるよう `spec.md` の対象集合と期待値表を先に示し、`design.md` は理由と変え方の説明として添える。`design-review` の判定結果（漏れ候補を含む）もレビュー材料に添える。画面表示の視覚レビューは `storybook-module` の Storybook 人間レビューループで行う。
+- `design-review` 通過後に人間へレビューを依頼する。人間が仕様を短時間で確認できるよう `spec.md` の要求ごとの節を先に示し、`design.md` は理由と変え方の説明として添える。`design-review` の判定結果（漏れ候補を含む）もレビュー材料に添える。画面表示の視覚レビューは `storybook-module` の Storybook 人間レビューループで行う。
 - レビュー材料は `presentation` skill に従い、人間がわかりやすい構成で書く。材料は対象 task に当たる論点だけ残す。
 - 差し戻しまたは追加質問の場合は、Claude 本体が同じ文脈で `design.md` と `spec.md` を書き直す。
 - `検討が必要なこと` に未解決の論点が残る場合は、人間の回答を得るまで承認へ進めない。
@@ -98,7 +98,7 @@ description: "新規実装フローの入口オーケストレーター。プロ
 - `design-review` 通過なしで `人間設計レビュー` を依頼しない。
 - `人間設計レビュー` 承認なしで下流の段へ進めない。
 - `検討が必要なこと` に未解決の論点が残るまま下流の段へ進めない。
-- `spec.md` の対象集合と期待値表を固定せずに下流の段へ進めない。
+- `spec.md` の要求ごとの仕様を固定せずに下流の段へ進めない。
 - 差し戻し時は Claude 本体が同じ文脈で書き直す。`fresh` に分割しない。
 - プロダクトコード、プロダクトテスト、docs 正本本文を本モジュールでは変更しない。
 - remote repository を変更しない。
@@ -107,10 +107,10 @@ description: "新規実装フローの入口オーケストレーター。プロ
 
 - 作業 branch 名、統合先 branch、分岐元 commit。
 - 作業計画フォルダのパス、`plan.md` のパス、`design.md` のパス、`spec.md` のパス。
-- 確定仕様の要約: `spec.md` の対象集合と TO-BE の期待値。
+- 確定仕様の要約: `spec.md` の要求ごとの仕様。
 - `design-review` の判定結果、否決理由、漏れ候補。
 - 人間設計レビューの承認状態、差し戻し記録。
-- 下流への引き継ぎ: `task-id`、`design.md` の実装方針、`spec.md` の対象集合と期待値表、画面表示の変更の有無、`storybook-module` へ進むかどうか。
+- 下流への引き継ぎ: `task-id`、`design.md` の実装方針、`spec.md` の要求ごとの仕様、画面表示の変更の有無、`storybook-module` へ進むかどうか。
 
 ## 作業を止める条件
 
@@ -118,7 +118,7 @@ description: "新規実装フローの入口オーケストレーター。プロ
 - 既存の作業 branch と `task-id` が衝突する。
 - 統合先 branch が存在しない、または local に取得できない。
 - goal とやらないことが矛盾し、実装方針を矛盾なく固定できない。
-- 対象集合または期待値を肯定形で固定できない（何を含めるかが人間回答なしに確定しない）。
+- 仕様が `plan.md` のどの要求の節にも置けない。
 - `検討が必要なこと` の未解決の論点に人間回答が得られない。
 - `design-review` の否決理由を `design.md` または `spec.md` の書き直しで解消できない。
 - `人間設計レビュー` 承認が得られない、または差し戻しを解消できない。

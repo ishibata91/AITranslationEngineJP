@@ -1,13 +1,13 @@
 ---
 name: fix-workflow
-description: "修正フローの入口オーケストレーター。人間が確認した不具合、レビュー非通過、検証失敗の観測記録から、作業 branch と plan.md を固定し、観測ログ駆動の再現確認と原因究明を investigation.md に、どう直すかの修正方針を design.md に、修正後の確定仕様（対象集合と期待値表）を spec.md にまとめ、design-review（design_reviewer agent によるソース照合検証と記述検証）と人間修正レビューを通してから implementation-module へ渡す。TRIGGER when: 修正系 task（バグ修正・refactor）の入口。SKIP when: 仕様変更や機能追加が必要と判明した場合は本モジュールを停止し、feature-workflow へ迂回する。"
+description: "修正フローの入口オーケストレーター。人間が確認した不具合、レビュー非通過、検証失敗の観測記録から、作業 branch と plan.md を固定し、観測ログ駆動の再現確認と原因究明を investigation.md に、どう直すかの修正方針を design.md に、修正後の確定仕様（要求ごとの仕様）を spec.md にまとめ、design-review（design_reviewer agent によるソース照合検証と記述検証）と人間修正レビューを通してから implementation-module へ渡す。TRIGGER when: 修正系 task（バグ修正・refactor）の入口。SKIP when: 仕様変更や機能追加が必要と判明した場合は本モジュールを停止し、feature-workflow へ迂回する。"
 ---
 # Fix Workflow
 
 ## 目的
 
 `fix-workflow` は、修正フローの入口オーケストレーターである。人間が確認した不具合、レビュー非通過、検証失敗の観測記録から、作業 branch と `plan.md` を固定する。再現確認と原因究明は `investigation.md`、どう直すかの修正方針は `design.md`、修正後の確定仕様は `spec.md` に分けて Claude 本体が固定し、`design-review` と人間修正レビューを通してから `implementation-module` へ渡す。
-`design.md` は人間が読んで判断する説明を持ち、`spec.md` は下流が実装根拠にする対象集合と期待値を持つ。両者が食い違う場合は `spec.md` を優先する。
+`design.md` は人間が読んで判断する説明を持ち、`spec.md` は下流が実装根拠にする仕様を持つ。`design.md` と `spec.md` は `plan.md` の要求ごとの節に分ける。両者が食い違う場合は `spec.md` を優先する。
 再現確認・原因究明（investigation）と、どう直すかの設計（design）は責務を分ける。investigation は「何が起きてなぜか」を確定し、design は「どう直すか」だけを扱う。
 修正は fail-test ベースで進める前提で、先に不具合を検出できるテスト観点も引き継ぎに含める。
 
@@ -15,7 +15,7 @@ description: "修正フローの入口オーケストレーター。人間が確
 
 - 呼び出し元: 人間、または上位 agent。
 - 返却先: 呼び出し元。
-- モジュールが呼ぶ下位 skill: `fix-decision`（Claude 本体が読んで適用。原因究明の判断基準）。`design-protocol`（Claude 本体が読んで適用。`design.md` と `spec.md` の書き方、`design-review` の検証規約）。`presentation`（参照のみ。人間修正レビュー材料と AS-IS→TO-BE の変更図を作る）。
+- モジュールが呼ぶ下位 skill: `fix-decision`（Claude 本体が読んで適用。原因究明の判断基準）。`design-protocol`（Claude 本体が読んで適用。`design.md` と `spec.md` の書き方、`design-review` の検証規約）。`presentation`（参照のみ。人間修正レビュー材料と、現況とあるべき形の 2 図を作る）。
 - モジュールが呼ぶ下位 agent: `design_reviewer`（`fresh`）。人間修正レビューの前に `design.md` と `spec.md` を実ソースと照合して検証する。調査、設計、仕様の本文は Claude 本体が task 文脈を持ったまま書く。
 - 下流の段: `implementation-module`、`finalization-module`。
 
@@ -33,8 +33,8 @@ description: "修正フローの入口オーケストレーター。人間が確
 - 作業計画フォルダ `docs/exec-plans/active/<task-id>/` が存在する。
 - `plan.md` に branch 情報と対象 task でやること・扱わないことの要点が記録されている。
 - `investigation.md` に観測済み問題、画面再現確認、原因仮説、観測ログ検証、確定原因が記録されている。
-- `design.md` にどう直すかの修正方針（AS-IS→TO-BE）と検討が必要なことが記録されている。
-- `spec.md` に対象集合と期待値表（AS-IS の期待値＝不具合時に観測された振る舞い、TO-BE の期待値＝修正後に成立させる振る舞い）が記録されている。
+- `design.md` の各要求の節に現況の理解、あるべき形、変更点が記録され、末尾に検討が必要なことが記録されている。
+- `spec.md` の各要求の節に仕様が記録され、各仕様に前提条件と確かめ方が書かれている。
 - `design-review` が通過済み。
 - `人間修正レビュー` 承認済み。
 - 仕様変更または仕様追加が必要と判断された場合は停止して呼び出し元へ戻す（`feature-workflow` への迂回が必要か、人間判断を仰ぐ）。
@@ -93,8 +93,8 @@ description: "修正フローの入口オーケストレーター。人間が確
 
 - 書き方は `design-protocol` skill に従う。Claude 本体が Skill ツールで読み、フロー種別として修正フローを渡して適用する。
 - `design.md`: どう直すかの修正方針と、検討が必要なこと。`investigation.md` の確定原因を根拠にする。
-- `spec.md`: 修正後に成立させる対象集合と期待値表。AS-IS の期待値は不具合時に観測された振る舞いとする。
-- TO-BE の期待値は、`実装への引き継ぎ` の追加する fail-test の観点と同じ文にする。修正前に fail し、修正後に pass する対象がこの文で一意に決まるようにする。
+- `spec.md`: 修正後に成立させる仕様。
+- 仕様は、`実装への引き継ぎ` の追加する fail-test の観点と同じ文にする。修正前に fail し、修正後に pass する対象がこの文で一意に決まるようにする。
 - 本モジュールが固定するのは書く順序と承認順序とし、両 file の書き方は `design-protocol` skill が持つ。
 
 ### design-review
@@ -103,12 +103,12 @@ description: "修正フローの入口オーケストレーター。人間が確
 - 検証内容、判断範囲、出力、否決時の扱いは `design-protocol` skill の `design-review` 節に従う。修正フローでは、修正方針が `investigation.md` の確定原因に対応しているかの検証を含める。
 - 起動入力: `design.md` のパス、`spec.md` のパス、`task-id`、対象 repo のルート、フロー種別（修正フロー）。
 - 戻し先: 本モジュール。
-- 完了: `design.md` の全 AS-IS 根拠と全 TO-BE 実現主張、および `spec.md` の対象集合と全期待値行に判定が付いている。
+- 完了: `design.md` の全ての現況の理解と全ての変更点、および `spec.md` の全ての仕様に判定が付いている。
 
 ### 人間修正レビュー
 
 - `調査`、`設計と仕様`、`design-review` が固まった時点で人間へ返す。
-- レビュー材料は `presentation` skill に従い、人間がわかりやすい構成で書く。人間が仕様を短時間で確認できるよう `spec.md` の対象集合と期待値表を先に示す。
+- レビュー材料は `presentation` skill に従い、人間がわかりやすい構成で書く。人間が仕様を短時間で確認できるよう `spec.md` の要求ごとの節を先に示す。
 - 差し戻しまたは追加質問の場合は、Claude 本体が同じ文脈で書き直す。
 
 ### 実装への引き継ぎ
@@ -117,9 +117,9 @@ description: "修正フローの入口オーケストレーター。人間が確
     - 確定原因（`investigation.md` から）。
     - 承認済み修正方針（`design.md` の直し方）。
     - 影響ファイル候補（観測事実に基づく候補）。
-    - 確定仕様（`spec.md` の対象集合と期待値表）。
+    - 確定仕様（`spec.md` の要求ごとの仕様）。
     - 再現手順と修正後に満たすべき期待状態（`investigation.md` の画面再現確認から）。
-    - 追加する fail-test の観点（`spec.md` の TO-BE の期待値と同じ文。修正前に追加して fail を確認、修正後に pass を確認）。
+    - 追加する fail-test の観点（`spec.md` の仕様と同じ文。修正前に追加して fail を確認、修正後に pass を確認）。
 
 ## 不変条件
 
@@ -138,7 +138,7 @@ description: "修正フローの入口オーケストレーター。人間が確
 - `design.md` と `spec.md` の必須観点は `design-protocol` skill が持つ。
 - 修正フロー固有の拘束は次の 2 つとする。
     - 修正方針: `investigation.md` の確定原因に対応する直し方だけを固定する。仕様が不足していない場合だけ恒久修正を固定する。
-    - fail-test との一致: TO-BE の期待値の文と、追加する fail-test の観点を同じ文にする。
+    - fail-test との一致: 仕様の文と、追加する fail-test の観点を同じ文にする。
 
 ### レビュー順序ゲート
 
@@ -164,7 +164,7 @@ description: "修正フローの入口オーケストレーター。人間が確
 
 - 作業 branch 名、統合先 branch、分岐元 commit。
 - 作業計画フォルダのパス、`plan.md` のパス、`investigation.md` のパス、`design.md` のパス、`spec.md` のパス。
-- 確定仕様の要約: `spec.md` の対象集合と TO-BE の期待値。
+- 確定仕様の要約: `spec.md` の要求ごとの仕様。
 - 観測済み問題: 根拠から確認できる問題。
 - 画面再現確認: 再現手順、操作結果、画面状態、証跡参照。
 - 確定原因: 観測で確定した原因。
@@ -184,7 +184,7 @@ description: "修正フローの入口オーケストレーター。人間が確
 - 観測ログを追加または確認できず、仮説を検証できない。
 - 追加した一時観測ログを削除できない。
 - 原因が仮説に留まり、採用する修正方針を固定できない。
-- 対象集合または修正後の期待値を肯定形で固定できない（何が成立すれば直ったと言えるかが確定しない）。
+- 仕様が `plan.md` のどの要求の節にも置けない。
 - `design-review` の否決理由を `design.md` または `spec.md` の書き直しで解消できない。
 - 修正方針が仕様変更・機能追加・受け入れ条件の新規判断を必要とすると判断した。
 - `人間修正レビュー` 承認が得られない、または差し戻しを解消できない。
