@@ -17,7 +17,8 @@
   import {
     SUBMIT_NOTICE,
     APPLIED_PROPER_NOTICE,
-    APPLIED_BODY_NOTICE
+    APPLIED_BODY_NOTICE,
+    untranslatedNotice
   } from "./translation-run-presentation"
   import {
     fetchModels,
@@ -268,8 +269,15 @@
     results = []
     progress = { stage: "extract", done: 0, total: 0 }
     try {
-      await runExtractAndTranslate({ pluginPath, endpoint, apiKey, model })
+      const outcome = await runExtractAndTranslate({
+        pluginPath,
+        endpoint,
+        apiKey,
+        model
+      })
       await resetToFirstPage()
+      // 未訳のまま残った件数を案内として出す。0 件なら untranslatedNotice が空文字を返し、案内は出ない。
+      notice = untranslatedNotice(outcome.untranslatedCount)
       phase = "done"
     } catch (error) {
       errorMessage = messageOf(error)

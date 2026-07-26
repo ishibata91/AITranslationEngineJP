@@ -80,8 +80,11 @@ export interface ResultRow {
 }
 
 // 実行結果の要約。結果一覧は数万件になりうるため実行時には返さず、listResultsPage で取得する。
+// untranslatedCount は実行後に対象 plugin へ残る未訳の件数。飛ばせる失敗（応答が空、サーバの一時失敗など）で
+// 未訳のまま残した分がここに出る。画面はこの件数を出し、利用者が再実行の必要を判断する材料にする。
 export interface RunOutcome {
   translatedCount: number
+  untranslatedCount: number
 }
 
 // 結果一覧の keyset cursor ページ。total は総件数、nextCursor は次ページ取得用、hasMore は次ページの有無。
@@ -147,10 +150,13 @@ export async function fetchModels(conn: Connection): Promise<string[]> {
   return GetModels(api.ConnRequest.createFrom(conn))
 }
 
-// plugin を抽出し未訳を翻訳して、翻訳件数の要約を返す。結果一覧は listResultsPage で取得する。
+// plugin を抽出し未訳を翻訳して、翻訳件数と残った未訳件数の要約を返す。結果一覧は listResultsPage で取得する。
 export async function runExtractAndTranslate(input: RunInput): Promise<RunOutcome> {
   const result = await RunExtractAndTranslate(api.RunRequest.createFrom(input))
-  return { translatedCount: result.translatedCount }
+  return {
+    translatedCount: result.translatedCount,
+    untranslatedCount: result.untranslatedCount
+  }
 }
 
 // 対象 plugin と同じ Data フォルダの strings/ にある english / japanese の Strings ファイルの有無を返す。

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"aitranslationenginejp/internal/core/batchplan"
 	"aitranslationenginejp/internal/core/prompt"
 	"aitranslationenginejp/internal/core/termderive"
 	"aitranslationenginejp/internal/model"
@@ -135,9 +136,12 @@ func (e *Engine) derivedBaseSources(ctx context.Context, names []model.Confirmed
 // translateProperNouns は本文フェーズより前に、与えられた未訳固有名 pending を確定する。
 // 各固有名を SelectSupply で振り分け、既訳ありは権威訳を、既訳なしは AI 訳を proper_noun へ書く。
 // authoritative は master_term の source→dest、base は base 指示、instruction は固有名 directive の指示文。
-// onProcessed は固有名 1 件を処理し終えるたびに呼ぶ進捗通知（既訳流用・AI 訳の両方で呼ぶ）。
+// onProcessed は固有名 1 件を確定し終えるたびに呼ぶ進捗通知（既訳流用・AI 訳の両方で呼ぶ）。
+// AI 訳が飛ばせる失敗（構造化出力の空・スキーマ違反、応答エンベロープの読み取り失敗、サーバ一時失敗）で
+// 終わった固有名は未訳のまま残し、次の固有名へ進む。据え置いた件数は理由別に数え、フェーズ末で 1 度出す。
 func (e *Engine) translateProperNouns(ctx context.Context, conn provider.Connection, model string,
 	pending []model.ProperNoun, authoritative map[string]string, base, instruction string, onProcessed func()) error {
+	var skips lineSkips
 	for _, pn := range pending {
 		sup := SelectSupply(pn.Source, authoritative)
 		switch sup.Kind {
@@ -148,17 +152,46 @@ func (e *Engine) translateProperNouns(ctx context.Context, conn provider.Connect
 			}
 		default:
 			// 既訳なし。固有名 directive で AI 翻訳し、仮訳として proper_noun へ書く。
-			dest, err := e.provider.Translate(ctx, conn, model, prompt.ComposePrompt(base, instruction, pn.Source))
+			confirmed, err := e.translateProperNounByAI(ctx, conn, model, pn, base, instruction, &skips)
 			if err != nil {
-				return fmt.Errorf("固有名の翻訳: %w", err)
+				return err
 			}
-			if err := e.store.UpdateProperNounDest(ctx, pn.ID, dest, statusProvisional); err != nil {
-				return fmt.Errorf("固有名（AI 訳）の書き戻し: %w", err)
+			if !confirmed {
+				// 未訳のまま残した固有名は進捗に数えない（本文フェーズが確定時だけ数えるのに揃える）。
+				continue
 			}
 		}
 		if onProcessed != nil {
 			onProcessed()
 		}
 	}
+	skips.log(ctx, "translateProperNouns")
 	return nil
+}
+
+// translateProperNounByAI は固有名 1 件を固有名 directive で AI 翻訳し、結果の適用を本文フェーズと
+// batch 反映が共有する純粋規則（DecideApply）で振り分ける。訳を確定できたら true を返す。
+// 飛ばせる失敗はその固有名を未訳のまま残して false を返し、理由別に skips へ数える（再実行で再翻訳）。
+// それ以外の失敗（通信断、認証などの設定起因）だけ error を返し、呼び出し元が実行を止める。
+// 欠落タグ数は常に 0 で渡す。固有名の原文は本文の実行時タグを含まないため、タグ欠落の据え置きは起きない。
+func (e *Engine) translateProperNounByAI(ctx context.Context, conn provider.Connection, model string,
+	pn model.ProperNoun, base, instruction string, skips *lineSkips) (bool, error) {
+	dest, err := e.provider.Translate(ctx, conn, model, prompt.ComposePrompt(base, instruction, pn.Source))
+	switch batchplan.DecideApply(dest, err, 0).Kind {
+	case batchplan.ApplySkipStructuredParse:
+		skips.structuredParse++
+		return false, nil
+	case batchplan.ApplySkipResponseUnreadable:
+		skips.responseUnreadable++
+		return false, nil
+	case batchplan.ApplySkipServerTransient:
+		skips.serverTransient++
+		return false, nil
+	case batchplan.ApplyFatal:
+		return false, fmt.Errorf("固有名の翻訳: %w", err)
+	}
+	if writeErr := e.store.UpdateProperNounDest(ctx, pn.ID, dest, statusProvisional); writeErr != nil {
+		return false, fmt.Errorf("固有名（AI 訳）の書き戻し: %w", writeErr)
+	}
+	return true, nil
 }

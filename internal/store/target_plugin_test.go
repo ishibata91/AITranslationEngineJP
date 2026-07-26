@@ -181,3 +181,70 @@ INSERT INTO line_speaker (line_id, speaker_id) VALUES (20, 1);
 INSERT INTO line_condition (line_id, sex) VALUES (20, 'Female');
 `)
 }
+
+// 仕様: 実行が完了し未訳が複数残ったとき／1 件だけ残ったとき／0 件のとき、CountUntranslated がその件数を返すこと。
+// 数え方は一覧の進捗（total - translated）と一致し、機械派生した人名の部分形は数えない。
+func TestCountUntranslated(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "central.sqlite3")
+	s, err := Open(dbPath)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer func() { _ = s.Close() }()
+	ctx := context.Background()
+
+	if err = s.UpsertTargetPlugin(ctx, "A.esp", "/data/A.esp"); err != nil {
+		t.Fatalf("A の登録: %v", err)
+	}
+	if err = s.UpsertTargetPlugin(ctx, "B.esp", "/data/B.esp"); err != nil {
+		t.Fatalf("B の登録: %v", err)
+	}
+	// A.esp: 未訳 3 件（叙述文 1・台詞 1・固有名 1）。訳済み 2 件と、派生した部分形（origin != ''）1 件も置く。
+	// 派生の部分形は未訳（status=0）でも翻訳対象でないため数えない。B.esp の未訳は A の集計へ入らない。
+	execSQL(t, dbPath, `
+INSERT INTO narration (id, source, plugin, form_id, edid, rec, field, status) VALUES
+  (10, 's', 'A.esp', '0x10', 'eA', 'BOOK', 'DESC', 0),
+  (11, 's', 'A.esp', '0x11', 'eA', 'BOOK', 'DESC', 3),
+  (12, 's', 'B.esp', '0x12', 'eB', 'BOOK', 'DESC', 0);
+INSERT INTO line (id, source, plugin, form_id, edid, rec, field, status) VALUES
+  (20, 's', 'A.esp', '0x20', 'eA', 'INFO', 'NAM1', 0),
+  (21, 's', 'A.esp', '0x21', 'eA', 'INFO', 'NAM1', 1);
+INSERT INTO proper_noun (id, plugin, source, category, status, origin) VALUES
+  (30, 'A.esp', 'Inigo', 'NPC_', 0, ''),
+  (31, 'A.esp', 'Sorine', 'NPC_', 0, 'derived');
+`)
+
+	// 未訳が複数（叙述文 10・台詞 20・固有名 30 の 3 件）。
+	got, err := s.CountUntranslated(ctx, "A.esp")
+	if err != nil {
+		t.Fatalf("CountUntranslated: %v", err)
+	}
+	if got != 3 {
+		t.Errorf("未訳件数 = %d, want 3（派生した部分形と別 plugin は数えない）", got)
+	}
+	// 一覧の進捗（total - translated）と同じ値になること。
+	rows, err := s.ListTargetPlugins(ctx)
+	if err != nil {
+		t.Fatalf("ListTargetPlugins: %v", err)
+	}
+	for _, r := range rows {
+		if r.Plugin != "A.esp" {
+			continue
+		}
+		if diff := r.Total - r.Translated; diff != got {
+			t.Errorf("一覧の未訳 = %d, CountUntranslated = %d（同じ数え方であるべき）", diff, got)
+		}
+	}
+
+	// 未訳が 1 件だけ残った状態（叙述文と台詞を訳済みにする）。
+	execSQL(t, dbPath, `UPDATE narration SET status = 3 WHERE id = 10; UPDATE line SET status = 3 WHERE id = 20;`)
+	if got, err = s.CountUntranslated(ctx, "A.esp"); err != nil || got != 1 {
+		t.Errorf("未訳 1 件の集計 = %d（err=%v）, want 1", got, err)
+	}
+
+	// 未訳が 0 件（固有名も訳済み）。
+	execSQL(t, dbPath, `UPDATE proper_noun SET status = 3 WHERE id = 30;`)
+	if got, err = s.CountUntranslated(ctx, "A.esp"); err != nil || got != 0 {
+		t.Errorf("未訳 0 件の集計 = %d（err=%v）, want 0", got, err)
+	}
+}

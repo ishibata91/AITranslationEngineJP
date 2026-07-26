@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"strings"
 	"testing"
@@ -83,6 +84,11 @@ type fakePageStore struct {
 	narrations []model.Narration
 	lines      []model.Line
 	propers    []model.ProperNoun
+	// untranslated は CountUntranslated が返す未訳件数、untranslatedErr はその集計の失敗（既定は成功）。
+	// untranslatedCalls は CountUntranslated の呼び出し回数。
+	untranslated      int
+	untranslatedErr   error
+	untranslatedCalls int
 }
 
 // plugin フィルタは pageRows の cursor 境界ロジック確認には使わないため無視する（呼び出しは "" を渡す）。
@@ -141,6 +147,13 @@ func (f *fakePageStore) ListTargetPlugins(_ context.Context) ([]model.TargetPlug
 	return nil, nil
 }
 func (f *fakePageStore) DeleteTargetPlugin(_ context.Context, _ string) error { return nil }
+
+// CountUntranslated は未訳件数の集計。実行結果の要約テストで値を差し替えるため、fake は保持値を返す。
+// 呼び出し回数も数え、実行が失敗した経路で件数を数えていないことを確かめられるようにする。
+func (f *fakePageStore) CountUntranslated(_ context.Context, _ string) (int, error) {
+	f.untranslatedCalls++
+	return f.untranslated, f.untranslatedErr
+}
 
 // pageRows の cursor 境界ロジックだけを確かめる fake のため、テンプレート・directive CRUD は未使用のスタブにする。
 func (f *fakePageStore) GetPromptTemplate(_ context.Context) (model.PromptTemplate, error) {
@@ -378,5 +391,31 @@ func TestBuildReferenceScanArgs(t *testing.T) {
 		if a == "--plugin" {
 			t.Errorf("走査を 1 本へ絞る --plugin が渡っている: %q", joined)
 		}
+	}
+}
+
+// failingExtractor は既訳の収集で失敗する抽出段の fake。実行が翻訳へ進む前に止まる経路を作る。
+type failingExtractor struct{}
+
+func (failingExtractor) Extract(_ context.Context, _ string) error { return nil }
+func (failingExtractor) CollectReferences(_ context.Context, _ string) error {
+	return errors.New("既存訳の収集に失敗した")
+}
+
+// 仕様: 実行が失敗で終わったとき、件数を画面へ出さないこと。
+// 実行が失敗した場合は未訳件数を数えず、失敗だけを返す（画面は失敗の文言を出す）。
+func TestRunExtractAndTranslateOmitsCountOnFailure(t *testing.T) {
+	store := &fakePageStore{untranslated: 7}
+	app := New(store, nil, nil, nil, failingExtractor{})
+
+	result, err := app.RunExtractAndTranslate(RunRequest{PluginPath: "/data/A.esp"})
+	if err == nil {
+		t.Fatal("実行の失敗が返らなかった")
+	}
+	if result.UntranslatedCount != 0 {
+		t.Errorf("失敗時の未訳件数 = %d, want 0（件数を出さない）", result.UntranslatedCount)
+	}
+	if store.untranslatedCalls != 0 {
+		t.Errorf("失敗時に未訳件数を数えた（%d 回）。数えるのは実行が完了したときだけ", store.untranslatedCalls)
 	}
 }

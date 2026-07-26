@@ -46,6 +46,7 @@ type Store interface {
 	UpsertTargetPlugin(ctx context.Context, plugin, sourcePath string) error
 	ListTargetPlugins(ctx context.Context) ([]model.TargetPlugin, error)
 	DeleteTargetPlugin(ctx context.Context, plugin string) error
+	CountUntranslated(ctx context.Context, plugin string) (int, error)
 }
 
 // ExtractorConfig は抽出子プロセス（C#）の起動設定。dotnet 起動に要するパスだけを持つ。
@@ -238,8 +239,12 @@ type ResultView struct {
 
 // RunResult は実行結果の要約。結果一覧は数万件になりうるためここでは返さず、
 // frontend が ListResultsPage で先頭ページから取得する。
+// UntranslatedCount は実行後に対象 plugin へ残る未訳の件数。飛ばせる失敗（構造化出力の空・スキーマ違反、
+// 応答エンベロープの読み取り失敗、サーバ一時失敗）と実行時タグの欠落で未訳のまま残した分がここに出る。
+// 画面はこの件数を出し、利用者が再実行の必要を判断する材料にする。
 type RunResult struct {
-	TranslatedCount int `json:"translatedCount"`
+	TranslatedCount   int `json:"translatedCount"`
+	UntranslatedCount int `json:"untranslatedCount"`
 }
 
 // ResultPage は結果一覧の keyset cursor ページ。Total は叙述文＋台詞の総件数。
@@ -471,6 +476,20 @@ func (a *App) RunExtractAndTranslate(req RunRequest) (RunResult, error) {
 	if runErr != nil {
 		return result, fmt.Errorf("翻訳に失敗: %w", runErr)
 	}
+
+	// 実行後に残る未訳の件数を数える。実行は未訳の全件を対象に取るため、この件数がこの実行で未訳のまま
+	// 残した件数になる。数えられなかった場合も翻訳自体は成功しているため、件数なしで成功を返す。
+	remaining, countErr := a.store.CountUntranslated(ctx, filepath.Base(req.PluginPath))
+	if countErr != nil {
+		slog.WarnContext(ctx, "未訳件数を数えられず画面へ出せなかった",
+			slog.String("event", "untranslated_count_failed"),
+			slog.String("where", "api.RunExtractAndTranslate"),
+			slog.String("result", "skipped"),
+			slog.String("reason", countErr.Error()),
+		)
+		return result, nil
+	}
+	result.UntranslatedCount = remaining
 	return result, nil
 }
 

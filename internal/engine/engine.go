@@ -375,8 +375,9 @@ func logLostRuntimeTags(ctx context.Context, where string, lost int) {
 	)
 }
 
-// lineSkips は本文フェーズで未訳のまま飛ばした行を、飛ばした理由別に数える。フェーズ末で集約して観測ログへ出す。
+// lineSkips は未訳のまま飛ばした行を、飛ばした理由別に数える。フェーズ末で集約して観測ログへ出す。
 // 対象は provider の skippable な失敗（構造化出力の空・スキーマ違反、応答エンベロープの読み取り失敗、サーバ一時失敗）。
+// 本文フェーズ（translateNarrations / translateLines）と固有名フェーズ（translateProperNouns）が同じ型で数える。
 type lineSkips struct {
 	structuredParse    int // 構造化出力の空・スキーマ違反（provider.ErrStructuredParse）
 	responseUnreadable int // 応答エンベロープの読み取り失敗（provider.ErrResponseUnreadable）
@@ -384,7 +385,7 @@ type lineSkips struct {
 }
 
 // log は未訳のまま飛ばした行の件数を、飛ばした理由別に集約して観測ログへ出す。
-// where は飛ばした段（translateNarrations / translateLines）。件数 0 の理由は出さない。
+// where は飛ばした段（translateProperNouns / translateNarrations / translateLines）。件数 0 の理由は出さない。
 // 該当行は未訳のまま残す（再実行で再翻訳）ため result は skipped とする。
 // loop 内の 1 件ごとには出さず、フェーズ末で件数を集約する（観測ログ規約の大量処理集約に従う）。
 func (s lineSkips) log(ctx context.Context, where string) {

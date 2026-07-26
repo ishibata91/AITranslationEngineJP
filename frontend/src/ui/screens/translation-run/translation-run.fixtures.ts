@@ -10,7 +10,7 @@ import type {
   ResultsPaging,
   StringsPresence
 } from "./translation-run-view"
-import { SUBMIT_NOTICE } from "./translation-run-presentation"
+import { SUBMIT_NOTICE, untranslatedNotice } from "./translation-run-presentation"
 
 // 画面全体の表示状態。story の固定状態を組むための型。
 interface TranslationRunViewModel {
@@ -33,7 +33,7 @@ interface TranslationRunViewModel {
   canSubmit?: boolean
   // 送信中フラグ。
   submitting?: boolean
-  // xAI の送信・取り込みの結果として出す案内。空なら出さない。
+  // 実行の完了、送信、取り込みの結果として出す案内。空なら出さない。
   notice?: string
   // xAI batch の進行状況（状態確認で取得）。未確認は未指定。
   batchProgress?: BatchProgressView
@@ -223,6 +223,13 @@ export const DONE_STATE: TranslationRunViewModel = {
     canPrev: false,
     canNext: false
   }
+}
+
+// 完了したが、未訳のまま残った行がある。残った件数と再実行の案内が出る。
+// 固有名や本文のうち、応答が空だった行やサーバの一時失敗で飛ばした行が未訳で残った状態。
+export const DONE_UNTRANSLATED_STATE: TranslationRunViewModel = {
+  ...DONE_STATE,
+  notice: untranslatedNotice(3)
 }
 
 // 実行中（台詞を抽出している段階）。件数は出ず、不定バーを出す。

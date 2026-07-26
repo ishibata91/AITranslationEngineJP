@@ -64,7 +64,7 @@
     canSubmit?: boolean
     // 送信中フラグ。true の間は送信ボタンを無効化しスピナーを出す。
     submitting?: boolean
-    // xAI の送信・取り込みの結果として出す案内。空なら出さない。
+    // 実行の完了、送信、取り込みの結果として出す案内。空なら出さない。配送方式で出し分けない。
     notice?: string
     // xAI batch の進行状況（状態確認で取得）。未指定なら未確認としてパネルを控えめに出す。
     batchProgress?: BatchProgressView
@@ -214,7 +214,7 @@
           </div>
         </div>
 
-        {#if provider === "xai" && notice.length > 0}
+        {#if notice.length > 0}
           <div role="status" class="alert alert-info alert-soft">
             <span>{notice}</span>
           </div>

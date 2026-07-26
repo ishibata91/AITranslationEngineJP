@@ -8,6 +8,7 @@ import {
   RUNNING_EXTRACT_STATE,
   RUNNING_TRANSLATE_STATE,
   DONE_STATE,
+  DONE_UNTRANSLATED_STATE,
   DONE_PERSONA_STATE,
   ERROR_STATE,
   XAI_EMPTY_STATE,
@@ -86,6 +87,13 @@ export const RunningTranslate: Story = {
 export const Done: Story = {
   name: "完了",
   args: { ...DONE_STATE }
+}
+
+// 完了だが、未訳のまま残った行がある。残った件数と、再実行でその件数を訳し直せる案内が出る。
+// Storybook 人間レビュー中の追加 story（既存 title のまま追加）。
+export const DoneUntranslated: Story = {
+  name: "完了（未訳が残る）",
+  args: { ...DONE_UNTRANSLATED_STATE }
 }
 
 // 完了（台詞）。訳文と口調指示が並び、話者ごとの口調差が観測できる。
