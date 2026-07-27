@@ -22,66 +22,66 @@
 #
 # race	sex	cell	英語原文	日本語訳文
 # child male
-child	male	冷然・見下し	I have nothing to say to you.	君と話すことなんてない。
-child	male	淡々・実務	I close the gate at sundown.	日が暮れたら門を閉めるんだ。
-child	male	慇懃・端正	I would be grateful for your help.	手を貸してくれたら、すごくうれしい。
-child	male	ぞんざい	I said move. You are in my way.	どいてよ。邪魔なんだ。
-child	male	平明	I work the forge here.	ここで鍛冶の仕事をしてる。
-child	male	物腰やわ	I hope you travel safely.	無事に旅ができるといいね。
-child	male	居丈高・罵倒	Do you know who I am? Watch your tongue.	僕が誰だか分かってるの。口の利き方に気をつけてよ。
-child	male	率直・興奮	I got it! The beast is down!	やった、倒したよ。
-child	male	情に厚い懇願	Please, I beg you, save my family.	お願い、家族を助けて。
+child	male	冷然・見下し	I have nothing to say to you.	話すことないよ。
+child	male	淡々・実務	I close the gate at sundown.	日が暮れたら閉めるんだ。
+child	male	慇懃・端正	I would be grateful for your help.	手を貸してほしい。
+child	male	ぞんざい	I said move. You are in my way.	どいて。邪魔だ。
+child	male	平明	I work the forge here.	鍛冶をしてる。
+child	male	物腰やわ	I hope you travel safely.	気をつけてね。
+child	male	居丈高・罵倒	Do you know who I am? Watch your tongue.	誰に言ってるの。口を慎んで。
+child	male	率直・興奮	I got it! The beast is down!	やった、倒した。
+child	male	情に厚い懇願	Please, I beg you, save my family.	家族を助けて。
 # child female
-child	female	冷然・見下し	I have nothing to say to you.	あなたと話すことなんてない。
-child	female	淡々・実務	I close the gate at sundown.	日が暮れたら門を閉めるよ。
-child	female	慇懃・端正	I would be grateful for your help.	手を貸してくれたら、すごくうれしい。
+child	female	冷然・見下し	I have nothing to say to you.	話すことない。
+child	female	淡々・実務	I close the gate at sundown.	日が暮れたら閉めるよ。
+child	female	慇懃・端正	I would be grateful for your help.	手を貸してほしい。
 child	female	ぞんざい	I said move. You are in my way.	どいて。邪魔だよ。
-child	female	平明	I work the forge here.	ここで鍛冶の仕事をしてる。
-child	female	物腰やわ	I hope you travel safely.	無事に旅ができるといいね。
-child	female	居丈高・罵倒	Do you know who I am? Watch your tongue.	私が誰だか分かってるの。口の利き方に気をつけて。
-child	female	率直・興奮	I got it! The beast is down!	やった、倒したよ。
-child	female	情に厚い懇願	Please, I beg you, save my family.	お願い、家族を助けて。
+child	female	平明	I work the forge here.	鍛冶をしてる。
+child	female	物腰やわ	I hope you travel safely.	気をつけてね。
+child	female	居丈高・罵倒	Do you know who I am? Watch your tongue.	誰に言ってるの。口を慎んで。
+child	female	率直・興奮	I got it! The beast is down!	やった、倒した。
+child	female	情に厚い懇願	Please, I beg you, save my family.	家族を助けて。
 # adult male
-adult	male	冷然・見下し	I have nothing to say to you.	お前と話すことなど無い。
+adult	male	冷然・見下し	I have nothing to say to you.	話すことなど無い。
 adult	male	淡々・実務	I close the gate at sundown.	日が暮れたら門を閉める。
-adult	male	慇懃・端正	I would be grateful for your help.	手を貸してもらえるなら、ありがたい。
-adult	male	ぞんざい	I said move. You are in my way.	どけと言った。邪魔だ。
-adult	male	平明	I work the forge here.	ここで鍛冶を生業にしている。
-adult	male	物腰やわ	I hope you travel safely.	無事に旅を続けられることを願っている。
-adult	male	居丈高・罵倒	Do you know who I am? Watch your tongue.	俺が誰だか分かっているのか。口の利き方に気をつけろ。
-adult	male	率直・興奮	I got it! The beast is down!	やったぞ、仕留めた。獣は倒れた。
-adult	male	情に厚い懇願	Please, I beg you, save my family.	頼む、この通りだ。家族を助けてくれ。
+adult	male	慇懃・端正	I would be grateful for your help.	手を貸してほしい。
+adult	male	ぞんざい	I said move. You are in my way.	どけ。邪魔だ。
+adult	male	平明	I work the forge here.	鍛冶をしている。
+adult	male	物腰やわ	I hope you travel safely.	気をつけてくれ。
+adult	male	居丈高・罵倒	Do you know who I am? Watch your tongue.	誰に言っている。口を慎め。
+adult	male	率直・興奮	I got it! The beast is down!	やったぞ、仕留めた。
+adult	male	情に厚い懇願	Please, I beg you, save my family.	頼む、助けてくれ。
 # adult female
-adult	female	冷然・見下し	I have nothing to say to you.	あなたと話すことなど無い。
+adult	female	冷然・見下し	I have nothing to say to you.	話すことなど無い。
 adult	female	淡々・実務	I close the gate at sundown.	日が暮れたら門を閉める。
-adult	female	慇懃・端正	I would be grateful for your help.	手を貸してもらえるなら、ありがたい。
-adult	female	ぞんざい	I said move. You are in my way.	どいて。邪魔になってる。
-adult	female	平明	I work the forge here.	ここで鍛冶の仕事をしてる。
-adult	female	物腰やわ	I hope you travel safely.	無事に旅を続けられるよう願ってる。
-adult	female	居丈高・罵倒	Do you know who I am? Watch your tongue.	私が誰だか分かっているの。口の利き方に気をつけなさい。
-adult	female	率直・興奮	I got it! The beast is down!	やった、仕留めた。獣は倒れた。
-adult	female	情に厚い懇願	Please, I beg you, save my family.	お願い、家族を助けて。
+adult	female	慇懃・端正	I would be grateful for your help.	手を貸してほしい。
+adult	female	ぞんざい	I said move. You are in my way.	どいて。邪魔だよ。
+adult	female	平明	I work the forge here.	鍛冶をしてる。
+adult	female	物腰やわ	I hope you travel safely.	気をつけてね。
+adult	female	居丈高・罵倒	Do you know who I am? Watch your tongue.	誰に言ってるの。口を慎みなさい。
+adult	female	率直・興奮	I got it! The beast is down!	やった、仕留めたよ。
+adult	female	情に厚い懇願	Please, I beg you, save my family.	家族を助けて。
 # elder male
-elder	male	冷然・見下し	I have nothing to say to you.	あなたと話すことなど無い。
+elder	male	冷然・見下し	I have nothing to say to you.	話すことなど無い。
 elder	male	淡々・実務	I close the gate at sundown.	日が暮れれば門を閉める。
-elder	male	慇懃・端正	I would be grateful for your help.	手を貸してもらえるなら、ありがたい。
+elder	male	慇懃・端正	I would be grateful for your help.	手を貸してほしい。
 elder	male	ぞんざい	I said move. You are in my way.	どいてくれ。邪魔だ。
-elder	male	平明	I work the forge here.	ここで長く鍛冶を続けている。
-elder	male	物腰やわ	I hope you travel safely.	旅が無事であることを願っている。
-elder	male	居丈高・罵倒	Do you know who I am? Watch your tongue.	私が誰だか分かっているのか。口の利き方に気をつけなさい。
-elder	male	率直・興奮	I got it! The beast is down!	やった、仕留めた。獣は倒れた。
-elder	male	情に厚い懇願	Please, I beg you, save my family.	頼む、この通りだ。家族を助けてほしい。
+elder	male	平明	I work the forge here.	長く鍛冶をしている。
+elder	male	物腰やわ	I hope you travel safely.	気をつけてくれ。
+elder	male	居丈高・罵倒	Do you know who I am? Watch your tongue.	誰に言っている。口を慎め。
+elder	male	率直・興奮	I got it! The beast is down!	やった、仕留めたぞ。
+elder	male	情に厚い懇願	Please, I beg you, save my family.	頼む、助けてくれ。
 # elder female
-elder	female	冷然・見下し	I have nothing to say to you.	あなたと話すつもりは無い。
+elder	female	冷然・見下し	I have nothing to say to you.	話すつもりは無い。
 elder	female	淡々・実務	I close the gate at sundown.	日が暮れれば門を閉める。
-elder	female	慇懃・端正	I would be grateful for your help.	手を貸してもらえるなら、ありがたい。
+elder	female	慇懃・端正	I would be grateful for your help.	手を貸してほしい。
 elder	female	ぞんざい	I said move. You are in my way.	どいて。邪魔だから。
-elder	female	平明	I work the forge here.	ここで長く鍛冶を続けている。
-elder	female	物腰やわ	I hope you travel safely.	旅が無事であることを願っている。
-elder	female	居丈高・罵倒	Do you know who I am? Watch your tongue.	私が誰だか分かっているのか。口の利き方に気をつけなさい。
-elder	female	率直・興奮	I got it! The beast is down!	やった、仕留めた。獣は倒れた。
-elder	female	情に厚い懇願	Please, I beg you, save my family.	お願いだから、家族を助けて。
+elder	female	平明	I work the forge here.	長く鍛冶をしてる。
+elder	female	物腰やわ	I hope you travel safely.	気をつけてね。
+elder	female	居丈高・罵倒	Do you know who I am? Watch your tongue.	誰に言っている。口を慎みなさい。
+elder	female	率直・興奮	I got it! The beast is down!	やった、仕留めたよ。
+elder	female	情に厚い懇願	Please, I beg you, save my family.	頼む、助けて。
 # cell を持たない経路（汎用台詞・PC 発話）の既定。Lookup(adult, sex, "") が当たる。
-adult	male	*	I have work to do here.	ここでやるべき仕事がある。
-adult	female	*	I have work to do here.	ここでやるべき仕事がある。
-adult	*	*	I have work to do here.	ここでやるべき仕事がある。
+adult	male	*	I have work to do here.	ここで仕事がある。
+adult	female	*	I have work to do here.	ここで仕事がある。
+adult	*	*	I have work to do here.	ここで仕事がある。
