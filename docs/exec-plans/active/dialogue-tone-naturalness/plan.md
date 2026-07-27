@@ -5,7 +5,7 @@
 
 ## 引き継ぎ
 
-準備の段（`experiment-workflow`）の途中。作業する機械を Mac から Windows（RTX4090 と 9800X3D）へ移した。`tmp/` の道具と凍結した標本、中心 DB `db/aitranslation.dev.sqlite3` は人間が手で運んだ。
+準備の段（`experiment-workflow`）は 2026-07-28 に終えた。ループの段の回 2 から始める。作業する機械を Mac から Windows（RTX4090 と 9800X3D）へ移した。`tmp/` の道具と凍結した標本、中心 DB `db/aitranslation.dev.sqlite3` は人間が手で運んだ。
 
 **済んでいること**
 
@@ -14,11 +14,12 @@
 - 運んだ DB で凍結標本 1,196 件すべてが `line.id` で引け、原文が一致し、基底口調が存在することの確認。
 - `criteria.md` の人間承認。達成条件の表・選択肢の表・標本の表の全ての行が 2026-07-27 に承認済み。
 - 測る道具 5 つ。達成条件の 4 値と破損行（`measure/measure.py`）、判別しにくさ（`discriminator/discriminate.py`）、読む 60 件を選ぶ道具（`pickreview`）、読んだ結果を数える道具（`tallyreview`）、目盛りを作る道具（`calibrate/calibrate.py`）。
+- 回 1（口調の対象を変える前の測定）。開発用 598 件を 2 度訳し、達成条件の 6 行と診断を測って `measurements.csv` へ書いた。60 件を読んだ結果も取ってある。
+- `達成条件レビュー` 3 回と、指摘への対応。4 回目は掛けずに回 2 へ入る判断を 2026-07-28 に人間が下した。指摘と対応の内訳は `criteria.md` の `レビュー` の節が持つ。
 
 **次の一手**
 
-1. `criteria_reviewer` の達成条件レビューを通す。通過するまでループの段へ入らない。
-2. 回 2 で要因 A（例文と `assets/role-speech.tsv`）と B（指示文）を組み合わせで振る。
+回 2 で要因 A（例文と `assets/role-speech.tsv`）と B（指示文）を組み合わせで振る。手順は `criteria.md` の `要因の振り方` が持つ。
 
 **砂場は commit に入らない。** 道具と凍結した標本と訳した出力は `tmp/` にあり `.gitignore` の 14 行目で除外される。中心 DB も `db/*.sqlite3` で除外される。別マシンで続ける場合は、`tmp/` と中心 DB を手で運ぶ。凍結した標本は `line.id` で DB を引くので、DB を作り直すと標本が引けなくなる。
 
@@ -51,7 +52,7 @@
 - `assets/role-speech-examples.tsv`: 口調の例文 57 行。区分ごとに原文と訳例の対を持ち、翻訳の指示文へ差し込まれる。
 - `assets/role-speech.tsv`: 一人称と言い回しの傾向。区分ごとに文字列で持つ。上の例文と 1 つの要因として一緒に振る。理由は `criteria.md` の要因の振り方が持つ。
 - `internal/core/personatone`: 区分から口調指示を組む処理。種族に応じた注記を足す分岐を含む。
-- 口調の指示文（`record_type_translation` の `口調`）: app が使う DB の実値。画面編集済みで migration のどの文面とも一致しないため、変えるなら画面から入れる。
+- 口調の指示文（中心 DB の `directive` の key `口調`、162 文字）: app が使う DB の実値。画面編集済みで migration のどの文面とも一致しないため、変えるなら画面から入れる。
 
 変えない対象。
 

@@ -4,7 +4,7 @@ round,stage,changed_target,sample_set,sample_eval_use_count,counted,excluded,met
 1,確証,モデル（hy-mt2-7b→translategemma:12b）,dev,0,596,2,二人称を書く割合,17.4,15%以下,満たさない,
 1,確証,モデル（hy-mt2-7b→translategemma:12b）,dev,0,596,2,訳の文字数÷原文の文字数（中央値）,0.571,0.40以上0.52以下,満たさない,
 1,確証,モデル（hy-mt2-7b→translategemma:12b）,dev,0,598,0,破損行の件数,2,1%以下,満たす,
-1,確証,モデル（hy-mt2-7b→translategemma:12b）,dev,0,60,0,意味の取り違えの件数（大きい）,6,回1の件数を超えない,基準,
+1,確証,モデル（hy-mt2-7b→translategemma:12b）,dev,0,60,0,意味の取り違えの件数（大きい）,6,12件未満,満たす,
 1,確証,モデル（hy-mt2-7b→translategemma:12b）,dev,0,596,2,公式訳との判別しにくさ（AUC・診断）,0.771,診断,診断,
 1,確証,モデル（hy-mt2-7b→translategemma:12b）,dev-b,0,594,4,敬体を含む割合,36.9,15%以下,満たさない,
 1,確証,モデル（hy-mt2-7b→translategemma:12b）,dev-b,0,594,4,一人称を書く割合,43.7,25%以下,満たさない,
