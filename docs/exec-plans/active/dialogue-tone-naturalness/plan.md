@@ -13,14 +13,12 @@
 - 標本の凍結。開発用 598 件・評価用 598 件を `tmp/dialogue-tone-naturalness/dataset/` へ書いた。以後選び直さない。
 - 運んだ DB で凍結標本 1,196 件すべてが `line.id` で引け、原文が一致し、基底口調が存在することの確認。
 - `criteria.md` の人間承認。達成条件の表・選択肢の表・標本の表の全ての行が 2026-07-27 に承認済み。
-- 測る道具 4 つ。判別器（`discriminator/discriminate.py`）、診断と破損行（`main.go`）、読む 60 件を選ぶ道具（`pickreview`）、読んだ結果を数える道具（`tallyreview`）。
+- 測る道具 5 つ。達成条件の 4 値と破損行（`measure/measure.py`）、判別しにくさ（`discriminator/discriminate.py`）、読む 60 件を選ぶ道具（`pickreview`）、読んだ結果を数える道具（`tallyreview`）、目盛りを作る道具（`calibrate/calibrate.py`）。
 
 **次の一手**
 
-1. LM Studio（`http://192.168.0.226:1234`、この Windows マシン自身）を上げ、`gemma-4-12B-it-QAT` を載せる。
-2. `go run ./tmp/dialogue-tone-naturalness/translate -set dev -model <API の model 名> -round 1` で開発用 598 件を訳す。続けて `-suffix -b` を付けてもう 1 度訳し、生成の揺れを測る。
-3. 判別器と診断の道具を回し、回 1 を `measurements.csv` へ書く。`pickreview` が選んだ 60 件を `fresh` が読み、`tallyreview` で数える。
-4. `criteria_reviewer` の達成条件レビューを通す。通過するまでループの段へ入らない。
+1. `criteria_reviewer` の達成条件レビューを通す。通過するまでループの段へ入らない。
+2. 回 2 で要因 A（例文と `assets/role-speech.tsv`）と B（指示文）を組み合わせで振る。
 
 **砂場は commit に入らない。** 道具と凍結した標本と訳した出力は `tmp/` にあり `.gitignore` の 14 行目で除外される。中心 DB も `db/*.sqlite3` で除外される。別マシンで続ける場合は、`tmp/` と中心 DB を手で運ぶ。凍結した標本は `line.id` で DB を引くので、DB を作り直すと標本が引けなくなる。
 
@@ -28,9 +26,14 @@
 
 人間が見たことだけを書く。
 
+- **原文の主語をそのまま日本語へ写すため、一人称が常に出てくる。** 日本語は場面から分かる主語を落とすが、訳が落とさない。人間はこれを事象の中心と見ている。
 - 会話の訳が全体的に丁寧すぎて、機械で訳したような硬さが残る。
 - 意訳が足りず、英語の構文をそのまま日本語へ写した訳になっている。
 - クエストログと叙述系（物品説明、効果説明、書物、世界観断片）の訳は現状でも良い。
+
+事象の順は人間が付けた重さの順とする。1 行目を最も重く見る。
+
+語の選び方が微妙であることは事象へ入れない。人間が 2026-07-27 に、手元で動かすモデルの限界として許容すると決めた。固有名のカタカナ表記の崩れ（Grelod がグレートロスになるなど）もここに入る。件数は記録するが、達成の線を持たせない。
 
 ## 対象
 
@@ -59,8 +62,8 @@
 
 ## 砂場
 
-- 場所: `tmp/dialogue-tone-naturalness/`。実験の道具、測定結果、標本を読んだ結果（`sample-review.jsonl`）を置く。
-- 除外の根拠: `.gitignore` の 14 行目に `tmp` があり、`git check-ignore -v tmp/dialogue-tone-naturalness/main.go` で 14 行目に当たることを確かめた。
+- 場所: `tmp/dialogue-tone-naturalness/`。実験の道具、測定結果、標本を読んだ結果（`sample-review-round<N>-<set>.jsonl`）を置く。
+- 除外の根拠: `.gitignore` の 14 行目に `tmp` があり、`git check-ignore -v tmp/dialogue-tone-naturalness/measure/measure.py` で 14 行目に当たることを確かめた。
 
 ## 接続先
 
@@ -79,6 +82,6 @@
 
 - 会話の場面を翻訳へ渡すこと（会話の種類、クエストの場面、応答が答えている選択肢文、同一応答の続き行）。後続 task で扱う。
 - 会話の手前の連鎖を翻訳へ渡すこと（`LinkTo` の 1 段逆引き、作成順による並びの近似）。後続 task で扱う。
-- 訳文の破損の原因を直すこと。件数を診断として出すところまでとする。
+- 訳文の破損の原因を直すこと。件数を数えて達成条件の 1 行として見張るところまでとする。
 - 叙述系とクエストログの訳の書き方を変えること。
 - プロダクト正本（`docs/architecture.md` など）への反映。実験の採否が決まった後に、本 task の外で人間が決める。
