@@ -13,68 +13,75 @@
 # 一人称は assets/role-speech.tsv と矛盾させない。成人男性は尊大 3 セルと率直・興奮が「俺」、他は「私」。
 # 値は現実的にする。フィクションの老人語（わし・〜じゃ）や戯画的な女性語（〜だわ・〜のよ）は使わない。
 #
+# 訳例が英語の主語をそのまま写さない形にしてある（2026-07-28）。原文の I や you を主語として
+# 書くのは、誰の話かが場面から取れない行に限る。57 行のうち一人称を書くのは 6 行で、
+# いずれも "Do you know who I am?" の「私が誰だか」のように、主語そのものが台詞の要点になる行。
+# 敬体を使うのも 4 行に限る（慇懃・端正と情に厚い懇願の女性 2 区分）。
+# 割合を公式日本語訳の水準（一人称 15.6%、敬体 6.9%）へ寄せた。
+# 変更前は 57 行すべてが一人称を書き、13 行が敬体だった。
+#
 # race	sex	cell	英語原文	日本語訳文
 # child male
-child	male	冷然・見下し	I have nothing to say to you.	僕は君と話すことなんてない。
-child	male	淡々・実務	I close the gate at sundown.	僕は日が暮れたら門を閉めるんだ。
-child	male	慇懃・端正	I would be grateful for your help.	手を貸してくれたら、僕はすごくうれしい。
-child	male	ぞんざい	I said move. You are in my way.	どいてよ。僕の邪魔なんだ。
-child	male	平明	I work the forge here.	僕はここで鍛冶の仕事をしてる。
-child	male	物腰やわ	I hope you travel safely.	僕は、君が無事に旅できるといいなと思ってる。
+child	male	冷然・見下し	I have nothing to say to you.	君と話すことなんてない。
+child	male	淡々・実務	I close the gate at sundown.	日が暮れたら門を閉めるんだ。
+child	male	慇懃・端正	I would be grateful for your help.	手を貸してくれたら、すごくうれしい。
+child	male	ぞんざい	I said move. You are in my way.	どいてよ。邪魔なんだ。
+child	male	平明	I work the forge here.	ここで鍛冶の仕事をしてる。
+child	male	物腰やわ	I hope you travel safely.	無事に旅ができるといいね。
 child	male	居丈高・罵倒	Do you know who I am? Watch your tongue.	僕が誰だか分かってるの。口の利き方に気をつけてよ。
-child	male	率直・興奮	I got it! The beast is down!	やった、僕がやったんだ。あいつを倒したよ。
-child	male	情に厚い懇願	Please, I beg you, save my family.	お願い、僕の家族を助けて。
+child	male	率直・興奮	I got it! The beast is down!	やった、倒したよ。
+child	male	情に厚い懇願	Please, I beg you, save my family.	お願い、家族を助けて。
 # child female
-child	female	冷然・見下し	I have nothing to say to you.	私はあなたと話すことなんてない。
-child	female	淡々・実務	I close the gate at sundown.	私は日が暮れたら門を閉めるよ。
-child	female	慇懃・端正	I would be grateful for your help.	手を貸してくれたら、私はすごくうれしい。
-child	female	ぞんざい	I said move. You are in my way.	どいて。私の邪魔だよ。
-child	female	平明	I work the forge here.	私はここで鍛冶の仕事をしてる。
-child	female	物腰やわ	I hope you travel safely.	私は、あなたが無事に旅できるといいなと思ってる。
+child	female	冷然・見下し	I have nothing to say to you.	あなたと話すことなんてない。
+child	female	淡々・実務	I close the gate at sundown.	日が暮れたら門を閉めるよ。
+child	female	慇懃・端正	I would be grateful for your help.	手を貸してくれたら、すごくうれしい。
+child	female	ぞんざい	I said move. You are in my way.	どいて。邪魔だよ。
+child	female	平明	I work the forge here.	ここで鍛冶の仕事をしてる。
+child	female	物腰やわ	I hope you travel safely.	無事に旅ができるといいね。
 child	female	居丈高・罵倒	Do you know who I am? Watch your tongue.	私が誰だか分かってるの。口の利き方に気をつけて。
-child	female	率直・興奮	I got it! The beast is down!	やった、私がやったんだ。あいつを倒したよ。
-child	female	情に厚い懇願	Please, I beg you, save my family.	お願い、私の家族を助けて。
+child	female	率直・興奮	I got it! The beast is down!	やった、倒したよ。
+child	female	情に厚い懇願	Please, I beg you, save my family.	お願い、家族を助けて。
 # adult male
-adult	male	冷然・見下し	I have nothing to say to you.	俺はお前と話すことなど無い。
-adult	male	淡々・実務	I close the gate at sundown.	私は日が暮れたら門を閉める。
-adult	male	慇懃・端正	I would be grateful for your help.	手を貸していただけるなら、私はありがたい。
-adult	male	ぞんざい	I said move. You are in my way.	どけと言った。俺の邪魔だ。
-adult	male	平明	I work the forge here.	私はここで鍛冶を生業にしている。
-adult	male	物腰やわ	I hope you travel safely.	私は、あなたが無事に旅を続けられることを願っている。
+adult	male	冷然・見下し	I have nothing to say to you.	お前と話すことなど無い。
+adult	male	淡々・実務	I close the gate at sundown.	日が暮れたら門を閉める。
+adult	male	慇懃・端正	I would be grateful for your help.	手を貸してもらえるなら、ありがたい。
+adult	male	ぞんざい	I said move. You are in my way.	どけと言った。邪魔だ。
+adult	male	平明	I work the forge here.	ここで鍛冶を生業にしている。
+adult	male	物腰やわ	I hope you travel safely.	無事に旅を続けられることを願っている。
 adult	male	居丈高・罵倒	Do you know who I am? Watch your tongue.	俺が誰だか分かっているのか。口の利き方に気をつけろ。
-adult	male	率直・興奮	I got it! The beast is down!	やったぞ、俺が仕留めた。あの獣は倒れた。
-adult	male	情に厚い懇願	Please, I beg you, save my family.	頼む、この通りだ。私の家族を助けてくれ。
+adult	male	率直・興奮	I got it! The beast is down!	やったぞ、仕留めた。獣は倒れた。
+adult	male	情に厚い懇願	Please, I beg you, save my family.	頼む、この通りだ。家族を助けてくれ。
 # adult female
-adult	female	冷然・見下し	I have nothing to say to you.	私はあなたと話すことなど無い。
-adult	female	淡々・実務	I close the gate at sundown.	私は日が暮れたら門を閉めます。
-adult	female	慇懃・端正	I would be grateful for your help.	手を貸していただけるなら、私はありがたく思います。
-adult	female	ぞんざい	I said move. You are in my way.	どいて。私の邪魔になってる。
-adult	female	平明	I work the forge here.	私はここで鍛冶の仕事をしています。
-adult	female	物腰やわ	I hope you travel safely.	私は、あなたが無事に旅を続けられるよう願っています。
+adult	female	冷然・見下し	I have nothing to say to you.	あなたと話すことなど無い。
+adult	female	淡々・実務	I close the gate at sundown.	日が暮れたら門を閉める。
+adult	female	慇懃・端正	I would be grateful for your help.	手を貸していただけるなら、ありがたく思います。
+adult	female	ぞんざい	I said move. You are in my way.	どいて。邪魔になってる。
+adult	female	平明	I work the forge here.	ここで鍛冶の仕事をしてる。
+adult	female	物腰やわ	I hope you travel safely.	無事に旅を続けられるよう願ってる。
 adult	female	居丈高・罵倒	Do you know who I am? Watch your tongue.	私が誰だか分かっているの。口の利き方に気をつけなさい。
-adult	female	率直・興奮	I got it! The beast is down!	やった、私が仕留めた。あの獣は倒れた。
-adult	female	情に厚い懇願	Please, I beg you, save my family.	お願いです、私の家族を助けてください。
+adult	female	率直・興奮	I got it! The beast is down!	やった、仕留めた。獣は倒れた。
+adult	female	情に厚い懇願	Please, I beg you, save my family.	お願いです、家族を助けてください。
 # elder male
-elder	male	冷然・見下し	I have nothing to say to you.	私はあなたと話すことなど無い。
-elder	male	淡々・実務	I close the gate at sundown.	私は日が暮れれば門を閉める。
-elder	male	慇懃・端正	I would be grateful for your help.	手を貸していただけるなら、私はありがたい。
-elder	male	ぞんざい	I said move. You are in my way.	どいてくれ。私の邪魔だ。
-elder	male	平明	I work the forge here.	私はここで長く鍛冶を続けている。
-elder	male	物腰やわ	I hope you travel safely.	私は、あなたの旅が無事であることを願っている。
+elder	male	冷然・見下し	I have nothing to say to you.	あなたと話すことなど無い。
+elder	male	淡々・実務	I close the gate at sundown.	日が暮れれば門を閉める。
+elder	male	慇懃・端正	I would be grateful for your help.	手を貸してもらえるなら、ありがたい。
+elder	male	ぞんざい	I said move. You are in my way.	どいてくれ。邪魔だ。
+elder	male	平明	I work the forge here.	ここで長く鍛冶を続けている。
+elder	male	物腰やわ	I hope you travel safely.	旅が無事であることを願っている。
 elder	male	居丈高・罵倒	Do you know who I am? Watch your tongue.	私が誰だか分かっているのか。口の利き方に気をつけなさい。
-elder	male	率直・興奮	I got it! The beast is down!	やった、私が仕留めた。あの獣は倒れた。
-elder	male	情に厚い懇願	Please, I beg you, save my family.	頼む、この通りだ。私の家族を助けてほしい。
+elder	male	率直・興奮	I got it! The beast is down!	やった、仕留めた。獣は倒れた。
+elder	male	情に厚い懇願	Please, I beg you, save my family.	頼む、この通りだ。家族を助けてほしい。
 # elder female
-elder	female	冷然・見下し	I have nothing to say to you.	私はあなたと話すつもりは無い。
-elder	female	淡々・実務	I close the gate at sundown.	私は日が暮れれば門を閉めます。
-elder	female	慇懃・端正	I would be grateful for your help.	手を貸していただけるなら、私はありがたく思います。
-elder	female	ぞんざい	I said move. You are in my way.	どいてください。私の邪魔です。
-elder	female	平明	I work the forge here.	私はここで長く鍛冶を続けています。
-elder	female	物腰やわ	I hope you travel safely.	私は、あなたの旅が無事であることを願っています。
-elder	female	居丈高・罵倒	Do you know who I am? Watch your tongue.	私が誰だか分かっているのですか。口の利き方に気をつけなさい。
-elder	female	率直・興奮	I got it! The beast is down!	やりました、私が仕留めました。あの獣は倒れた。
-elder	female	情に厚い懇願	Please, I beg you, save my family.	お願いします、私の家族を助けてください。
+elder	female	冷然・見下し	I have nothing to say to you.	あなたと話すつもりは無い。
+elder	female	淡々・実務	I close the gate at sundown.	日が暮れれば門を閉める。
+elder	female	慇懃・端正	I would be grateful for your help.	手を貸していただけるなら、ありがたく思います。
+elder	female	ぞんざい	I said move. You are in my way.	どいて。邪魔だから。
+elder	female	平明	I work the forge here.	ここで長く鍛冶を続けている。
+elder	female	物腰やわ	I hope you travel safely.	旅が無事であることを願っている。
+elder	female	居丈高・罵倒	Do you know who I am? Watch your tongue.	私が誰だか分かっているのか。口の利き方に気をつけなさい。
+elder	female	率直・興奮	I got it! The beast is down!	やった、仕留めた。獣は倒れた。
+elder	female	情に厚い懇願	Please, I beg you, save my family.	お願いします、家族を助けてください。
 # cell を持たない経路（汎用台詞・PC 発話）の既定。Lookup(adult, sex, "") が当たる。
-adult	male	*	I have work to do here.	私はここでやるべき仕事がある。
-adult	female	*	I have work to do here.	私はここでやるべき仕事があります。
-adult	*	*	I have work to do here.	私はここでやるべき仕事がある。
+adult	male	*	I have work to do here.	ここでやるべき仕事がある。
+adult	female	*	I have work to do here.	ここでやるべき仕事がある。
+adult	*	*	I have work to do here.	ここでやるべき仕事がある。

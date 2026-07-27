@@ -88,7 +88,11 @@ func TestRealTableCoversFreeLinePath(t *testing.T) {
 }
 
 // 成人男性の一人称は、対人段階が尊大の 3 セルと、感情段階が激情で対人段階が中立の 1 セルだけ「俺」。
-// 残る 5 セルは「私」。例文の一人称も同じ語を含み、役割語と食い違わないこと。
+// 残る 5 セルは「私」。
+//
+// 例文訳は一人称を書かないことがある。日本語は場面から分かる主語を落とすので、例文の側も
+// 落とした形にしてある（2026-07-28）。よって「一人称を含むこと」は要求せず、含む場合に
+// 役割語と食い違わないことだけを見る。「私」のセルへ「俺」が現れる取り違えはここで落ちる。
 func TestRealTableAdultMaleFirstPerson(t *testing.T) {
 	tbl := realTable(t)
 	// 対人段階が尊大の 3 セル（抑制・中・激情）と、感情段階が激情で対人段階が中立の 1 セル。
@@ -110,8 +114,12 @@ func TestRealTableAdultMaleFirstPerson(t *testing.T) {
 		if tmpl.FirstPerson != want {
 			t.Errorf("adult/male/%s の一人称 = %q, want %q", cell, tmpl.FirstPerson, want)
 		}
-		if !strings.Contains(tmpl.Example.Dest, want) {
-			t.Errorf("adult/male/%s の例文訳が一人称 %q を含まない: %q", cell, want, tmpl.Example.Dest)
+		other := "俺"
+		if want == "俺" {
+			other = "私"
+		}
+		if strings.Contains(tmpl.Example.Dest, other) {
+			t.Errorf("adult/male/%s の例文訳が役割語と違う一人称 %q を含む: %q", cell, other, tmpl.Example.Dest)
 		}
 	}
 }
