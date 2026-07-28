@@ -602,7 +602,7 @@ func TestRunTranslatesLinesWithPersonaDirective(t *testing.T) {
 	}
 	// 口調指示は完成プロンプトの system へ合成される（base 指示の後ろに続く）。
 	system := tr.gotPrompts["mother?"].System
-	if !strings.Contains(system, "柔らかく丁寧") {
+	if !strings.Contains(system, "穏やかに話す") {
 		t.Errorf("基底口調の性質文が system に無い: %q", system)
 	}
 	if !strings.Contains(system, "三人称") {
