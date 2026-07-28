@@ -312,14 +312,18 @@ func TestBuildToneLabel(t *testing.T) {
 // R-4-1: 性別が取れる名指し話者の台詞について、口調指示に性別を示す行が出ること。
 // 行は一人称・言い回しの行とは別に立てる。役割語は成人男性と性別不明が同じ出力になるため、
 // 引いた結果だけでは男女の区別がプロンプトに現れない。
+//
+// 性別の行は 2026-07-28 に「- 性別: 男性」だけへ短縮した。変える前は「男性の話者として訳す。」を
+// 続けていたが、実験 task dialogue-tone-naturalness が指示文の長さと破損行の件数の関係を測り、
+// 口調指示が長いほど JSON が壊れる行が増えることを確かめた。事実だけを置く形へ縮めた。
 func TestBuildToneTraitsHasSexLine(t *testing.T) {
 	roles, err := rolespeech.ParseRoleSpeech(strings.NewReader("adult\t*\t*\t私\t\n"))
 	if err != nil {
 		t.Fatalf("役割語表の解析: %v", err)
 	}
 	for _, tc := range []struct{ sex, want string }{
-		{"Male", "- 性別: 男性。男性の話者として訳す。"},
-		{"Female", "- 性別: 女性。女性の話者として訳す。"},
+		{"Male", "- 性別: 男性"},
+		{"Female", "- 性別: 女性"},
 	} {
 		traits := BuildToneTraits(model.LinePersonaInput{
 			AttitudeBand: tone.AttitudeNeutral, EmotionBand: tone.EmotionMid,

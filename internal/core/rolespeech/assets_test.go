@@ -3,7 +3,6 @@ package rolespeech
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -78,8 +77,8 @@ func TestRealTableCoversFreeLinePath(t *testing.T) {
 			t.Errorf("汎用経路 adult/%q/（セルなし）: 一致する行が無い", sex)
 			continue
 		}
-		if tmpl.FirstPerson == "" {
-			t.Errorf("汎用経路 adult/%q: 一人称が空", sex)
+		if tmpl.FirstPerson == "" && tmpl.Register == "" {
+			t.Errorf("汎用経路 adult/%q: 一人称も言い回しも空（役割語が付かない）", sex)
 		}
 		if tmpl.Example.IsZero() {
 			t.Errorf("汎用経路 adult/%q: 例文が無い", sex)
@@ -87,39 +86,33 @@ func TestRealTableCoversFreeLinePath(t *testing.T) {
 	}
 }
 
-// 成人男性の一人称は、対人段階が尊大の 3 セルと、感情段階が激情で対人段階が中立の 1 セルだけ「俺」。
-// 残る 5 セルは「私」。
+// 役割語の一人称の欄は全区分で空にしてある（2026-07-28）。誤って値を戻すことを落とす。
 //
-// 例文訳は一人称を書かないことがある。日本語は場面から分かる主語を落とすので、例文の側も
-// 落とした形にしてある（2026-07-28）。よって「一人称を含むこと」は要求せず、含む場合に
-// 役割語と食い違わないことだけを見る。「私」のセルへ「俺」が現れる取り違えはここで落ちる。
-func TestRealTableAdultMaleFirstPerson(t *testing.T) {
+// 空にした理由を書く。実験 task dialogue-tone-naturalness が、欄へ「私」と書くこと自体が
+// モデルへ「毎回一人称を書け」という指示として届いていると実測した。一人称の欄が元から
+// 空だった elder-male だけ、訳文が一人称を書く割合が他区分より 7 ポイント以上低かった。
+// 全区分で空にすると、開発用 598 件の一人称を書く割合が 33.7% から 26.0% へ下がった。
+// 公式日本語既訳の同じ 598 行は 15.6% であり、空にした側が公式訳に近い。
+// 測定の記録は docs/exec-plans/active/dialogue-tone-naturalness/loop-log.md の回 7 が持つ。
+//
+// 主語を書くかどうかの指示は、言い回しの傾向の欄が持つ。Template.FirstPerson の仕組み自体は
+// 残す（空なら口調指示へ一人称の行を出さない）。将来この設計を変える時は、本テストも変える。
+func TestRealTableFirstPersonIsEmpty(t *testing.T) {
 	tbl := realTable(t)
-	// 対人段階が尊大の 3 セル（抑制・中・激情）と、感情段階が激情で対人段階が中立の 1 セル。
-	assertive := map[string]bool{
-		"冷然・見下し": true,
-		"ぞんざい":   true,
-		"居丈高・罵倒": true,
-		"率直・興奮":  true,
-	}
-	for _, cell := range allCells {
-		want := "私"
-		if assertive[cell] {
-			want = "俺"
-		}
-		tmpl, ok := tbl.Lookup("adult", "male", cell)
-		if !ok {
-			t.Fatalf("adult/male/%s: 一致する行が無い", cell)
-		}
-		if tmpl.FirstPerson != want {
-			t.Errorf("adult/male/%s の一人称 = %q, want %q", cell, tmpl.FirstPerson, want)
-		}
-		other := "俺"
-		if want == "俺" {
-			other = "私"
-		}
-		if strings.Contains(tmpl.Example.Dest, other) {
-			t.Errorf("adult/male/%s の例文訳が役割語と違う一人称 %q を含む: %q", cell, other, tmpl.Example.Dest)
+	for _, race := range []string{"child", "adult", "elder"} {
+		for _, sex := range []string{"male", "female"} {
+			for _, cell := range allCells {
+				tmpl, ok := tbl.Lookup(race, sex, cell)
+				if !ok {
+					t.Fatalf("%s/%s/%s: 一致する行が無い", race, sex, cell)
+				}
+				if tmpl.FirstPerson != "" {
+					t.Errorf("%s/%s/%s の一人称 = %q, want 空", race, sex, cell, tmpl.FirstPerson)
+				}
+				if tmpl.Register == "" {
+					t.Errorf("%s/%s/%s: 一人称が空なのに言い回しも空（役割語が付かない）", race, sex, cell)
+				}
+			}
 		}
 	}
 }
