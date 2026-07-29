@@ -23,10 +23,10 @@ Claude 本体が複数の原因仮説、観測ログによる仮説検証、確�
 
 ## 作業前に読む正本
 
-- 修正モジュールの進行境界は [fix-workflow](/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/fix-workflow/SKILL.md) に従う。
-- 修正方針判断の報告形式は [fix-decision-report-template.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/fix-decision/fix-decision-report-template.md) に従う。
+- 修正モジュールの進行境界は [fix-workflow](.claude/skills/fix-workflow/SKILL.md) に従う。
+- 修正方針判断の報告形式は [fix-decision-report-template.md](.claude/skills/fix-decision/fix-decision-report-template.md) に従う。
 - 画面の正本は Storybook（story と svelte コンポーネント）に従う。実装済みコンポーネントの `data-testid` を含む。
-- 観測ログ仕様は [observability-logging.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/observability-logging.md) に従う。
+- 観測ログ仕様は [observability-logging.md](docs/observability-logging.md) に従う。
 - ブラウザ操作は `chrome-devtools` MCP ツール群（`mcp__plugin_chrome-devtools-mcp_chrome-devtools__*`）を MCP ツールとして実行する。
 - 外部成果物が不足または衝突する場合は停止し、衝突箇所を返す。
 

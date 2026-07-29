@@ -28,9 +28,9 @@ local merge 実行、merge 後検証、completed 移動、merge 結果 commit �
 
 ## 作業前に読む正本
 
-- エージェント実行定義と実行境界は [conflict_resolver.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/agents/conflict_resolver.md) に従う。
+- エージェント実行定義と実行境界は [conflict_resolver.md](.claude/agents/conflict_resolver.md) に従う。
 - 作業計画の判断資料は `docs/exec-plans/active/<task-id>/design.md` とする。
-- 許可済みコマンドは [settings.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/settings.json) の permissions に従う。
+- 許可済みコマンドは [settings.json](.claude/settings.json) の permissions に従う。
 - 外部成果物が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 担当役割が判断してよい範囲

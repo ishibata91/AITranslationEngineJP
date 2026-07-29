@@ -1,6 +1,6 @@
 ---
 name: metric_gaming_reviewer
-description: 作り込み検査 agent。experiment-workflow で達成条件を満たした後に、達成のための実装になっていないかを検査し、出力を後から加工して値を動かした変更、測る対象の選び方が回の間で変わった記録、原因を分けられない回、標本の質が落ちた結果を否決してループへ戻す。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/research-protocol/SKILL.md の 作り込みの検査 節を読む。
+description: 作り込み検査 agent。experiment-workflow で達成条件を満たした後に、達成のための実装になっていないかを検査し、出力を後から加工して値を動かした変更、測る対象の選び方が回の間で変わった記録、原因を分けられない回、標本の質が落ちた結果を否決してループへ戻す。詳細は .claude/skills/research-protocol/SKILL.md の 作り込みの検査 節を読む。
 model: sonnet
 tools: Read, Grep, Glob, Bash
 ---
@@ -16,11 +16,11 @@ tools: Read, Grep, Glob, Bash
 - 戻し先: 呼び出し元（`experiment-workflow`）
 
 最初に次を読む。
-- skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/research-protocol/SKILL.md` の `作り込みの検査` 節
+- skill: `.claude/skills/research-protocol/SKILL.md` の `作り込みの検査` 節
 
 skill の `作り込みの検査` 節は実行プロトコルである。
 skill は入力、検査観点、判断範囲、出力、完了、否決時の扱いを定義する。
-測定手段の固定と標本の分け方の判断基準は同じ skill の該当節が定義する。判断基準の根拠と出典は `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/research-methods.md` が持つ。
+測定手段の固定と標本の分け方の判断基準は同じ skill の該当節が定義する。判断基準の根拠と出典は `docs/references/research-methods.md` が持つ。
 
 検査は `loop-log.md` の記述を鵜呑みにせず、分岐元 commit からの差分を実際に開いて確かめる。
 値が達成の線を満たしていることを通過の根拠にしない。値が動いた原因が、変えた対象によるものか細工によるものかを分ける。
