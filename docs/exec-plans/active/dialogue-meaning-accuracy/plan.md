@@ -74,7 +74,7 @@
 
 - 作業 branch: `claude/dialogue-meaning-accuracy`
 - 統合先 branch: `master`
-- 分岐元 commit: `ca4b6ba3`
+- 分岐元 commit: `7843da27`（`claude/experiment-criteria-authority` の先端。`master` の `54602b83` に対し `.claude` 配下の skill と agent 定義 9 file と作業計画の雛形 3 file だけが違い、プロダクトコードの差は無い。この実験は達成の線を Claude 本体が決める新しい手順で回すので、その手順を持つ版から切る判断を 2026-07-29 に人間が下した）
 
 ## やらないこと
 
