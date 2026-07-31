@@ -32,6 +32,24 @@ export const PROVIDER_FIELDS: ReadonlyArray<FormFieldDescriptor> = [
   }
 ]
 
+// OpenAI（batch）選択時の接続情報欄。公式 endpoint と OpenAI API キーを使うことを明示する。
+const OPENAI_PROVIDER_FIELDS: ReadonlyArray<FormFieldDescriptor> = [
+  {
+    field: "endpoint",
+    label: "エンドポイント",
+    hint: "OpenAI の公式 API の接続先 URL を使います。",
+    placeholder: "https://api.openai.com/v1",
+    secret: false
+  },
+  {
+    field: "apiKey",
+    label: "OpenAI API キー",
+    hint: "この画面では保存せず、送信・状態確認・取り込みのたびに使います。",
+    placeholder: "sk-...",
+    secret: true
+  }
+]
+
 // xAI（batch）選択時の接続情報欄。エンドポイントは xAI 用に読み替える。API キー欄は同期と同じ。
 const XAI_PROVIDER_FIELDS: ReadonlyArray<FormFieldDescriptor> = [
   {
@@ -50,36 +68,45 @@ const XAI_PROVIDER_FIELDS: ReadonlyArray<FormFieldDescriptor> = [
   }
 ]
 
-// 配送方式ごとの接続情報欄。sync は既定、xai は xAI 用の読み替え欄を返す。
+// 配送方式ごとの接続情報欄。batch は提供元に対応する接続情報欄を返す。
 export function providerFields(
   provider: TranslationProvider
 ): ReadonlyArray<FormFieldDescriptor> {
-  return provider === "xai" ? XAI_PROVIDER_FIELDS : PROVIDER_FIELDS
+  if (provider === "openai") return OPENAI_PROVIDER_FIELDS
+  if (provider === "xai") return XAI_PROVIDER_FIELDS
+  return PROVIDER_FIELDS
 }
 
 // 配送方式の選択肢と、その表示ラベル。翻訳実行画面の先頭で切り替える。
-export const PROVIDER_OPTIONS: ReadonlyArray<TranslationProvider> = ["sync", "xai"]
+export const PROVIDER_OPTIONS: ReadonlyArray<TranslationProvider> = [
+  "sync",
+  "openai",
+  "xai"
+]
 
 export const PROVIDER_LABEL: Record<TranslationProvider, string> = {
-  sync: "同期",
+  sync: "OpenAI 互換 API",
+  openai: "OpenAI（batch）",
   xai: "xAI（batch）"
 }
 
 // モデル取得ボタンの補足。配送方式で取得先が変わるため、文言を出し分ける。
 export const MODEL_HINT: Record<TranslationProvider, string> = {
   sync: "エンドポイントと API キーを入れてから取得します。",
+  openai:
+    "OpenAI の batch 対応モデルを取得します。API キーを入れてから取得します。",
   xai: "xAI の batch 対応モデルを取得します。API キーを入れてから取得します。"
 }
 
-// xAI の送信直後に出す案内。反映で結果を取りにいく運用を伝える。
+// batch の送信直後に出す案内。反映で結果を取りにいく運用を伝える。
 export const SUBMIT_NOTICE =
   "batch を送信しました。しばらく後に「反映」で結果を取得します（最大約 24 時間）。"
 
-// xAI batch の操作の補足。状態確認で進行状況を最新化し、完了段があれば主アクションで取り込んで次へ進む。
+// batch 操作の補足。状態確認で進行状況を最新化し、完了段があれば主アクションで取り込んで次へ進む。
 export const BATCH_ACTION_HINT =
   "「状態確認」で進行状況を最新化します。完了した段があれば、右のボタンで取り込んで次へ進みます。"
 
-// xAI batch の進行段の表示ラベル。進行状況ステッパーの各段に使う。
+// batch の進行段の表示ラベル。進行状況ステッパーの各段に使う。
 export const BATCH_STAGE_LABEL: Record<BatchStage, string> = {
   proper: "固有名",
   body: "本文",
@@ -87,7 +114,11 @@ export const BATCH_STAGE_LABEL: Record<BatchStage, string> = {
 }
 
 // 進行状況ステッパーの段の並び。固有名 → 本文 → 完了 の 2 段構成（＋完了）を常に見せる。
-export const BATCH_STAGE_STEPS: ReadonlyArray<BatchStage> = ["proper", "body", "done"]
+export const BATCH_STAGE_STEPS: ReadonlyArray<BatchStage> = [
+  "proper",
+  "body",
+  "done"
+]
 
 // ステッパー 1 段の表示値。cls は daisyUI steps の色クラス、content は marker の上書き（完了段は ✓）。
 export interface BatchStepView {
@@ -105,7 +136,8 @@ export function batchStepViews(progress?: BatchProgressView): BatchStepView[] {
   return BATCH_STAGE_STEPS.map((stage, i) => {
     const label = BATCH_STAGE_LABEL[stage]
     if (!progress) return { stage, label, cls: "" }
-    if (progress.stage === "done") return { stage, label, cls: "step-success", content: "✓" }
+    if (progress.stage === "done")
+      return { stage, label, cls: "step-success", content: "✓" }
     if (i < current) return { stage, label, cls: "step-success", content: "✓" }
     if (i === current) return { stage, label, cls: "step-primary" }
     return { stage, label, cls: "" }
@@ -138,9 +170,17 @@ export function batchMainAction(
     return { kind: "send", label: BATCH_SEND_LABEL, enabled: canSubmit }
   }
   if (progress.stage === "proper") {
-    return { kind: "apply", label: BATCH_APPLY_PROPER_LABEL, enabled: progress.canApply }
+    return {
+      kind: "apply",
+      label: BATCH_APPLY_PROPER_LABEL,
+      enabled: progress.canApply
+    }
   }
-  return { kind: "apply", label: BATCH_APPLY_BODY_LABEL, enabled: progress.canApply }
+  return {
+    kind: "apply",
+    label: BATCH_APPLY_BODY_LABEL,
+    enabled: progress.canApply
+  }
 }
 
 // 現段 batch の件数ラベル。進行状況パネルで内訳を出す。
@@ -153,12 +193,15 @@ export const BATCH_COUNT_LABEL = {
 
 // 進行状況パネル下部の補足。状態未確認・処理中・完了段あり・全完了で出し分ける。
 export const BATCH_UNCHECKED_HINT = "「状態確認」で進行状況を取得します。"
-export const BATCH_WAITING_HINT = "処理待ちが残っています。完了までお待ちください。"
-export const BATCH_APPLYABLE_HINT = "現段が完了しました。「取り込み」で結果を取り込めます。"
+export const BATCH_WAITING_HINT =
+  "処理待ちが残っています。完了までお待ちください。"
+export const BATCH_APPLYABLE_HINT =
+  "現段が完了しました。「取り込み」で結果を取り込めます。"
 export const BATCH_DONE_HINT = "すべての翻訳が完了しました。"
 
 // 取り込みの結果として出す案内（Container が完了段に応じて選ぶ）。
-export const APPLIED_PROPER_NOTICE = "固有名を取り込み、本文の翻訳を送信しました。"
+export const APPLIED_PROPER_NOTICE =
+  "固有名を取り込み、本文の翻訳を送信しました。"
 export const APPLIED_BODY_NOTICE = "本文を取り込みました。翻訳が完了しました。"
 export const APPLY_NOTHING_NOTICE = "取り込める完了段はまだありません。"
 

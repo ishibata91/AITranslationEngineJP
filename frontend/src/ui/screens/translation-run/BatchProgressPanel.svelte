@@ -1,5 +1,5 @@
 <script lang="ts">
-  // xAI batch の進行状況表示。固有名 → 本文 → 完了 のステッパーで現在地を見せ、現段 batch の件数を出す。
+  // OpenAI と xAI に共通する batch の進行状況表示。固有名 → 本文 → 完了 のステッパーで現在地を見せ、現段 batch の件数を出す。
   // 全体で 2 段（固有名・本文）あることが常に見えるため、取り込みが固有名取り込み＋本文送信の二重動作である
   // ことを操作前に読み取れる。表示専用。値は props で受け取り、event 購読や state・API はここに持たない。
   import {
@@ -30,7 +30,9 @@
 <div class="card bg-base-200/40 border border-base-300/60 u-edge-top">
   <div class="card-body gap-4 py-5">
     <div class="flex items-center justify-between gap-3">
-      <h2 class="u-display text-sm tracking-widest uppercase text-base-content/60">
+      <h2
+        class="u-display text-sm tracking-widest uppercase text-base-content/60"
+      >
         進行状況
       </h2>
       {#if !progress}
@@ -40,19 +42,25 @@
 
     <ul class="steps steps-horizontal w-full text-xs">
       {#each steps as step (step.stage)}
-        <li class="step {step.cls}" data-content={step.content ?? undefined}>{step.label}</li>
+        <li class="step {step.cls}" data-content={step.content ?? undefined}>
+          {step.label}
+        </li>
       {/each}
     </ul>
 
     {#if progress}
-      <div class="flex flex-wrap gap-x-6 gap-y-1 u-mono text-xs text-base-content/70">
+      <div
+        class="flex flex-wrap gap-x-6 gap-y-1 u-mono text-xs text-base-content/70"
+      >
         <span>{BATCH_COUNT_LABEL.total} {progress.total}</span>
         <span class:text-warning={progress.pending > 0}>
-          {BATCH_COUNT_LABEL.pending} {progress.pending}
+          {BATCH_COUNT_LABEL.pending}
+          {progress.pending}
         </span>
         <span>{BATCH_COUNT_LABEL.succeeded} {progress.succeeded}</span>
         <span class:text-error={progress.failed > 0}>
-          {BATCH_COUNT_LABEL.failed} {progress.failed}
+          {BATCH_COUNT_LABEL.failed}
+          {progress.failed}
         </span>
       </div>
     {/if}

@@ -54,25 +54,27 @@
     onExportXml?: () => void
     // 書き出し中フラグ。true の間は書き出しボタンを無効化する。
     exporting?: boolean
-    // 翻訳の配送方式。sync=同期（既定）、xai=xAI の batch。未指定なら同期で従来表示。
+    // 翻訳の配送方式。sync=同期（既定）、openai=OpenAI の batch、xai=xAI の batch。
     provider?: TranslationProvider
     // 配送方式の切り替え操作。
     onProviderChange?: (provider: TranslationProvider) => void
-    // xAI の batch 送信操作（plugin 単位）。
+    // OpenAI または xAI の batch 送信操作（plugin 単位）。
     onSubmit?: () => void
     // 送信の可否。接続情報とモデルが揃ったら true。
     canSubmit?: boolean
+    // batch 操作全体の可否。API キーが空の場合は false にし、送信・状態確認・取り込みを無効にする。
+    canOperateBatch?: boolean
     // 送信中フラグ。true の間は送信ボタンを無効化しスピナーを出す。
     submitting?: boolean
     // 実行の完了、送信、取り込みの結果として出す案内。空なら出さない。配送方式で出し分けない。
     notice?: string
-    // xAI batch の進行状況（状態確認で取得）。未指定なら未確認としてパネルを控えめに出す。
+    // batch の進行状況（状態確認で取得）。未指定なら未確認としてパネルを控えめに出す。
     batchProgress?: BatchProgressView
-    // xAI の状態確認操作（副作用なし。進行状況を最新化する）。
+    // batch の状態確認操作（副作用なし。進行状況を最新化する）。
     onCheckStatus?: () => void
     // 状態確認中フラグ。true の間は状態確認ボタンにスピナーを出す。
     checking?: boolean
-    // xAI の取り込み操作（完了段を dest へ取り込み、次段 batch を送る）。
+    // batch の取り込み操作（完了段を dest へ取り込み、次段 batch を送る）。
     onApply?: () => void
     // 取り込み中フラグ。true の間は取り込みボタンにスピナーを出す。
     applying?: boolean
@@ -100,6 +102,7 @@
     onProviderChange = () => {},
     onSubmit = () => {},
     canSubmit = false,
+    canOperateBatch = false,
     submitting = false,
     notice = "",
     batchProgress = undefined,
@@ -109,14 +112,18 @@
     applying = false
   }: Props = $props()
 
-  // 配送方式に応じた接続情報欄（sync は既定、xai は xAI 用の読み替え欄）。
+  // 配送方式に応じた接続情報欄。
   const fields = $derived(providerFields(provider))
 
-  // xAI の主アクション（送信と取り込みを 1 ボタンに束ねた表示）。進行状況で種別・ラベル・活性が変わる。
+  // batch の主アクション（送信と取り込みを 1 ボタンに束ねた表示）。進行状況で種別・ラベル・活性が変わる。
   const mainAction = $derived(batchMainAction(batchProgress, canSubmit))
   // 主アクションの実行中フラグ（送信中 / 取り込み中）。busy の間はスピナーを出し無効化する。
-  const mainActionBusy = $derived(mainAction.kind === "send" ? submitting : applying)
-  const mainActionDisabled = $derived(!mainAction.enabled || mainActionBusy)
+  const mainActionBusy = $derived(
+    mainAction.kind === "send" ? submitting : applying
+  )
+  const mainActionDisabled = $derived(
+    !canOperateBatch || !mainAction.enabled || mainActionBusy
+  )
 
   // 翻訳対象のプラグイン名（フルパスの末尾）。選択は翻訳対象プラグイン画面で行い、ここは表示専用。
   const pluginName = $derived.by(() => {
@@ -126,41 +133,58 @@
 </script>
 
 <div class="min-h-screen w-full px-6 py-12 flex justify-center">
-  <section class="w-full max-w-4xl flex flex-col gap-8" aria-labelledby="screen-title">
+  <section
+    class="w-full max-w-4xl flex flex-col gap-8"
+    aria-labelledby="screen-title"
+  >
     <header class="flex flex-col gap-3">
       <span class="u-mono text-xs tracking-[0.32em] text-accent">
         翻訳の実行
       </span>
-      <h1 id="screen-title" class="u-display text-4xl font-semibold text-base-content">
+      <h1
+        id="screen-title"
+        class="u-display text-4xl font-semibold text-base-content"
+      >
         翻訳実行
       </h1>
       <p class="max-w-2xl text-base-content/70 leading-relaxed">
-        選んだプラグインを AI 翻訳し、原文と訳文を 1 つの画面で確かめます。翻訳対象は翻訳対象プラグイン画面で選びます。
+        選んだプラグインを AI 翻訳し、原文と訳文を 1
+        つの画面で確かめます。翻訳対象は翻訳対象プラグイン画面で選びます。
       </p>
       <div
         class="h-px w-full bg-gradient-to-r from-transparent via-primary/50 to-transparent"
       ></div>
     </header>
 
-    <div class="card bg-base-200/55 border border-base-300/70 shadow-xl u-edge-top">
+    <div
+      class="card bg-base-200/55 border border-base-300/70 shadow-xl u-edge-top"
+    >
       <div class="card-body gap-6">
         <div class="flex flex-col gap-3">
-          <h2 class="u-display text-sm tracking-widest uppercase text-base-content/60">
+          <h2
+            class="u-display text-sm tracking-widest uppercase text-base-content/60"
+          >
             翻訳対象
           </h2>
           {#if form.pluginPath.length > 0}
             <div class="flex flex-col gap-1">
               <span class="u-mono text-sm text-base-content">{pluginName}</span>
-              <span class="u-mono text-xs text-base-content/45 truncate">{form.pluginPath}</span>
+              <span class="u-mono text-xs text-base-content/45 truncate"
+                >{form.pluginPath}</span
+              >
             </div>
           {:else}
-            <span class="text-base-content/45">翻訳対象プラグインが選ばれていません。</span>
+            <span class="text-base-content/45"
+              >翻訳対象プラグインが選ばれていません。</span
+            >
           {/if}
           <MissingStringsWarning presence={stringsPresence} />
         </div>
 
         <div class="flex flex-col gap-4">
-          <h2 class="u-display text-sm tracking-widest uppercase text-base-content/60">
+          <h2
+            class="u-display text-sm tracking-widest uppercase text-base-content/60"
+          >
             AI サービス
           </h2>
           <div class="join self-start" role="group" aria-label="配送方式">
@@ -185,7 +209,8 @@
                 placeholder={descriptor.placeholder}
                 hint={descriptor.hint}
                 secret={descriptor.secret}
-                oninput={(value: string) => onFieldInput(descriptor.field, value)}
+                oninput={(value: string) =>
+                  onFieldInput(descriptor.field, value)}
               />
             {/each}
             <SelectField
@@ -226,7 +251,7 @@
           </div>
         {/if}
 
-        {#if provider === "xai"}
+        {#if provider !== "sync"}
           <BatchProgressPanel progress={batchProgress} />
           <p class="text-xs text-base-content/50">{BATCH_ACTION_HINT}</p>
         {/if}
@@ -250,7 +275,7 @@
             <button
               class="btn btn-outline btn-primary px-6"
               type="button"
-              disabled={checking}
+              disabled={!canOperateBatch || checking}
               onclick={onCheckStatus}
             >
               {#if checking}

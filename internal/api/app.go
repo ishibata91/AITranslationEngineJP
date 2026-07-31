@@ -117,14 +117,14 @@ func (d *DotnetExtractor) run(ctx context.Context, args []string) error {
 type App struct {
 	store     Store
 	engine    *engine.Engine
-	batch     *engine.BatchRunner // xAI batch 翻訳の送信・反映。batch を使わない配線では nil。
+	batch     *engine.BatchRunner // OpenAI / xAI batch 翻訳の送信・反映。batch を使わない配線では nil。
 	provider  provider.Translator
 	extractor Extractor
 	ctx       context.Context
 }
 
 // New は App を生成する。extractor は抽出子の注入点（本番は DotnetExtractor。抽出に要するパスは extractor が保持する）。
-// batch は xAI batch 翻訳のオーケストレーション。batch を使わない配線（テスト用 harness など）では nil を渡してよい。
+// batch は OpenAI / xAI batch 翻訳のオーケストレーション。batch を使わない配線（テスト用 harness など）では nil を渡してよい。
 func New(store Store, eng *engine.Engine, batch *engine.BatchRunner, p provider.Translator, extractor Extractor) *App {
 	if extractor == nil {
 		// 抽出子は必須の注入物。nil interface（リテラル nil や未設定の interface 変数）を渡す配線ミスを起動時に弾く。
@@ -159,6 +159,7 @@ type RunRequest struct {
 	Endpoint   string `json:"endpoint"`
 	APIKey     string `json:"apiKey"`
 	Model      string `json:"model"`
+	Provider   string `json:"provider"`
 }
 
 // BatchPluginRequest は plugin 単位の batch 操作（状態確認・取り込み）の要求。
@@ -167,9 +168,10 @@ type BatchPluginRequest struct {
 	Plugin   string `json:"plugin"`
 	Endpoint string `json:"endpoint"`
 	APIKey   string `json:"apiKey"`
+	Provider string `json:"provider"`
 }
 
-// BatchProgressView は xAI batch の進行状況（状態確認の応答）。Present=false は進行なし。
+// BatchProgressView は OpenAI または xAI の batch 進行状況（状態確認の応答）。Present=false は進行なし。
 // Stage は "proper" / "body" / "done"。件数は現段 batch 由来。CanApply は取り込める完了段があるか。
 type BatchProgressView struct {
 	Present   bool   `json:"present"`
@@ -551,7 +553,7 @@ func (a *App) prepareForTranslation(ctx context.Context, pluginPath string) erro
 	return nil
 }
 
-// SubmitBatchTranslation は対象 plugin を抽出・取込した上で、未訳の固有名を xAI batch として送信する。
+// SubmitBatchTranslation は対象 plugin を抽出・取込した上で、未訳の固有名を選択した batch provider へ送信する。
 // 同期翻訳と同じ翻訳前区間を通した後、engine.Run の代わりに batch 送信を行う。結果は後日 RefreshBatchTranslations で反映する。
 // 送信後は固有名 batch の反映待ちで、この呼び出しでは dest を確定しない。接続情報は都度受ける（永続化しない）。
 func (a *App) SubmitBatchTranslation(req RunRequest) error {
@@ -559,17 +561,23 @@ func (a *App) SubmitBatchTranslation(req RunRequest) error {
 	if a.batch == nil {
 		return fmt.Errorf("batch 翻訳が未配線")
 	}
+	if req.Provider != provider.BatchProviderOpenAI && req.Provider != provider.BatchProviderXAI {
+		return fmt.Errorf("batch provider が不正: %s", req.Provider)
+	}
+	if req.Provider == provider.BatchProviderOpenAI && strings.TrimSpace(req.APIKey) == "" {
+		return fmt.Errorf("OpenAI API キーが空")
+	}
 	if err := a.prepareForTranslation(ctx, req.PluginPath); err != nil {
 		return err
 	}
 	conn := provider.Connection{Endpoint: req.Endpoint, APIKey: req.APIKey}
-	if err := a.batch.SubmitBatch(ctx, conn, req.Model, filepath.Base(req.PluginPath)); err != nil {
+	if err := a.batch.SubmitBatch(ctx, req.Provider, conn, req.Model, filepath.Base(req.PluginPath)); err != nil {
 		return fmt.Errorf("batch 送信に失敗: %w", err)
 	}
 	return nil
 }
 
-// GetBatchProgress は対象 plugin の xAI batch 進行状況を副作用なしで返す（状態確認）。
+// GetBatchProgress は対象 plugin の batch 進行状況を副作用なしで返す（状態確認）。
 // dest 更新・batch 送信・段更新を一切せず、現段 batch の状態を確認するだけ。進行が無ければ Present=false。
 // 接続情報は都度受ける（永続化しない）。取り込みの前に押して進行段・件数・取り込み可否を得るために使う。
 func (a *App) GetBatchProgress(req BatchPluginRequest) (BatchProgressView, error) {
@@ -578,7 +586,7 @@ func (a *App) GetBatchProgress(req BatchPluginRequest) (BatchProgressView, error
 		return BatchProgressView{}, fmt.Errorf("batch 翻訳が未配線")
 	}
 	conn := provider.Connection{Endpoint: req.Endpoint, APIKey: req.APIKey}
-	prog, ok, err := a.batch.ProgressStatus(ctx, conn, req.Plugin)
+	prog, ok, err := a.batch.ProgressStatus(ctx, req.Provider, conn, req.Plugin)
 	if err != nil {
 		return BatchProgressView{}, fmt.Errorf("batch 状態確認に失敗: %w", err)
 	}
@@ -605,7 +613,7 @@ func (a *App) RefreshBatchTranslations(req BatchPluginRequest) error {
 		return fmt.Errorf("batch 翻訳が未配線")
 	}
 	conn := provider.Connection{Endpoint: req.Endpoint, APIKey: req.APIKey}
-	if err := a.batch.RefreshPlugin(ctx, conn, req.Plugin); err != nil {
+	if err := a.batch.RefreshPlugin(ctx, req.Provider, conn, req.Plugin); err != nil {
 		return fmt.Errorf("batch 取り込みに失敗: %w", err)
 	}
 	return nil

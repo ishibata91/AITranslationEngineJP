@@ -12,10 +12,10 @@ import (
 )
 
 // StartBatchProgression は対象 plugin の batch 進行を開始（または reset）し、進行本体の id を返す。
-// 同一 plugin に進行が既にある場合は同じ行を使い回し、model を更新し、stage を固有名段へ戻し、
+// 同一 plugin に進行が既にある場合は同じ行を使い回し、provider と model を更新し、stage を固有名段へ戻し、
 // 外部 batch ID を空へ戻す。前回の送信行対応（batch_request）も消して、まっさらな進行にする。
 // 進行は plugin と 1 対 1（UNIQUE(plugin)）。1 トランザクションで reset と子の掃除を原子的に行う。
-func (s *Store) StartBatchProgression(ctx context.Context, plugin, model string) (int64, error) {
+func (s *Store) StartBatchProgression(ctx context.Context, plugin, provider, model string) (int64, error) {
 	tx, err := s.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return 0, fmt.Errorf("batch 進行開始のトランザクション: %w", err)
@@ -23,12 +23,12 @@ func (s *Store) StartBatchProgression(ctx context.Context, plugin, model string)
 	defer tx.Rollback() //nolint:errcheck // commit 済みなら no-op。失敗時の後始末用。
 
 	if _, err := tx.ExecContext(ctx,
-		`INSERT INTO batch_translation (plugin, model, stage, proper_batch_id, body_batch_id)
-		 VALUES (?, ?, ?, '', '')
+		`INSERT INTO batch_translation (plugin, provider, model, stage, proper_batch_id, body_batch_id)
+		 VALUES (?, ?, ?, ?, '', '')
 		 ON CONFLICT(plugin) DO UPDATE SET
-		   model = excluded.model, stage = excluded.stage,
+		   provider = excluded.provider, model = excluded.model, stage = excluded.stage,
 		   proper_batch_id = '', body_batch_id = ''`,
-		plugin, model, batchStageProperNoun); err != nil {
+		plugin, provider, model, batchStageProperNoun); err != nil {
 		return 0, fmt.Errorf("batch 進行の upsert: %w", err)
 	}
 	var id int64
@@ -88,7 +88,7 @@ func (s *Store) AdvanceBatchStage(ctx context.Context, batchID int64, stage stri
 func (s *Store) GetBatchProgression(ctx context.Context, plugin string) (model.BatchTranslation, bool, error) {
 	var row model.BatchTranslation
 	err := s.db.GetContext(ctx, &row,
-		`SELECT id, plugin, model, stage, proper_batch_id, body_batch_id, created_at
+		`SELECT id, plugin, provider, model, stage, proper_batch_id, body_batch_id, created_at
 		 FROM batch_translation WHERE plugin = ?`, plugin)
 	if errors.Is(err, sql.ErrNoRows) {
 		return model.BatchTranslation{}, false, nil
@@ -104,7 +104,7 @@ func (s *Store) GetBatchProgression(ctx context.Context, plugin string) (model.B
 func (s *Store) ListActiveBatchProgressions(ctx context.Context) ([]model.BatchTranslation, error) {
 	var rows []model.BatchTranslation
 	if err := s.db.SelectContext(ctx, &rows,
-		`SELECT id, plugin, model, stage, proper_batch_id, body_batch_id, created_at
+		`SELECT id, plugin, provider, model, stage, proper_batch_id, body_batch_id, created_at
 		 FROM batch_translation WHERE stage != ? ORDER BY created_at DESC, plugin`,
 		model.BatchStageDone); err != nil {
 		return nil, fmt.Errorf("反映待ち batch 進行の一覧: %w", err)

@@ -1,6 +1,18 @@
 package provider
 
-import "context"
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+)
+
+// batch provider の保存値。batch_translation.provider と frontend の選択値で共有する。
+const (
+	BatchProviderOpenAI = "openai"
+	BatchProviderXAI    = "xai"
+)
 
 // BatchRequest は非同期 batch 翻訳の 1 件の要求。
 // CustomID は結果対応の一意キー（engine 側の「種別:id」複合キー）。Prompt は engine が組んだ完成プロンプト。
@@ -40,4 +52,39 @@ type BatchTranslator interface {
 	PollBatch(ctx context.Context, conn Connection, externalBatchID string) (BatchStatus, error)
 	// FetchResults は外部 batch の全結果を返す（ページングを最後までたどる）。custom_id ごとの訳文または失敗種別。
 	FetchResults(ctx context.Context, conn Connection, externalBatchID string) ([]BatchResult, error)
+}
+
+// buildBatchJSONL は OpenAI と xAI が共通で受ける Chat Completions の JSONL を組む。
+// 各行は custom_id / method / url / body を持ち、body は同期経路と同じ構造化出力指定を使う。
+func buildBatchJSONL(model string, requests []BatchRequest) ([]byte, error) {
+	var buf bytes.Buffer
+	for _, r := range requests {
+		line := batchJSONLLine{
+			CustomID: r.CustomID,
+			Method:   http.MethodPost,
+			URL:      "/v1/chat/completions",
+			Body: chatRequest{
+				Model: model,
+				Messages: []chatMessage{
+					{Role: "system", Content: r.Prompt.System},
+					{Role: "user", Content: r.Prompt.User},
+				},
+				ResponseFormat: translationResponseFormat(),
+			},
+		}
+		encoded, err := json.Marshal(line)
+		if err != nil {
+			return nil, fmt.Errorf("batch JSONL 行の生成: %w", err)
+		}
+		buf.Write(encoded)
+		buf.WriteByte('\n')
+	}
+	return buf.Bytes(), nil
+}
+
+type batchJSONLLine struct {
+	CustomID string      `json:"custom_id"`
+	Method   string      `json:"method"`
+	URL      string      `json:"url"`
+	Body     chatRequest `json:"body"`
 }

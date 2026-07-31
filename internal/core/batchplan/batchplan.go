@@ -19,7 +19,7 @@ import (
 )
 
 // EncodeCustomID は行種別と行 id を batch の custom_id「種別:id」へ組む。
-// 叙述文・台詞は id がテーブルごと独立採番で衝突するため、種別接頭で名前空間化する（xAI の一意制約も満たす）。
+// 叙述文・台詞は id がテーブルごと独立採番で衝突するため、種別接頭で名前空間化する（外部 batch の一意制約も満たす）。
 func EncodeCustomID(kind string, id int64) string {
 	return kind + ":" + strconv.FormatInt(id, 10)
 }
@@ -139,7 +139,7 @@ const (
 )
 
 // BlocksResubmit は進行中の batch への再送信を拒否すべきかを決める純粋関数。
-// 拒否するのは、現在の進行段の外部 batch ID が非空（本当に xAI へ投げ済みで、反映で回収・前進できる）場合だけ。
+// 拒否するのは、現在の進行段の外部 batch ID が非空（外部へ送信済みで、反映で回収・前進できる）場合だけ。
 // 現段の外部 ID が空の進行（送信 HTTP 失敗などで途中で終わった半端な進行）は、再送信で作り直せるよう拒否しない。
 // 完了段（done）その他も拒否しない。これで送信失敗の詰まりを削除なしに復旧できる。
 func BlocksResubmit(stage, properBatchID, bodyBatchID string) bool {
