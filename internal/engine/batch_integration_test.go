@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -11,12 +12,13 @@ import (
 
 // --- fakeStore の BatchStore 実装（batch 結合テスト専用。1 plugin 1 進行を想定） ---
 
-func (f *fakeStore) StartBatchProgression(_ context.Context, plugin, modelName string) (int64, error) {
+func (f *fakeStore) StartBatchProgression(_ context.Context, plugin, providerName, modelName string) (int64, error) {
 	if f.batchProg == nil {
 		f.nextBatchID++
-		f.batchProg = &model.BatchTranslation{ID: f.nextBatchID, Plugin: plugin, Model: modelName, Stage: model.BatchStageProperNoun}
+		f.batchProg = &model.BatchTranslation{ID: f.nextBatchID, Plugin: plugin, Provider: providerName, Model: modelName, Stage: model.BatchStageProperNoun}
 	} else {
 		// reset: 同じ行を使い回し、進行を固有名段へ戻し、外部 ID と送信行対応を空へ戻す（実 store と同じ）。
+		f.batchProg.Provider = providerName
 		f.batchProg.Model = modelName
 		f.batchProg.Stage = model.BatchStageProperNoun
 		f.batchProg.ProperBatchID = ""
@@ -74,6 +76,8 @@ type fakeBatchProvider struct {
 	batches      map[string][]provider.BatchRequest
 	nextID       int
 	submits      int // SubmitBatch の呼び出し回数（固有名段・本文段の 2 回になることの観測）
+	polls        int
+	fetches      int
 	failSubmitsN int // 先頭から何回の SubmitBatch を失敗させるか（送信 HTTP 失敗の再現。0 なら常に成功）
 }
 
@@ -93,11 +97,13 @@ func (f *fakeBatchProvider) SubmitBatch(_ context.Context, _ provider.Connection
 }
 
 func (f *fakeBatchProvider) PollBatch(_ context.Context, _ provider.Connection, externalBatchID string) (provider.BatchStatus, error) {
+	f.polls++
 	reqs := f.batches[externalBatchID]
 	return provider.BatchStatus{Total: len(reqs), Succeeded: len(reqs), Done: true}, nil
 }
 
 func (f *fakeBatchProvider) FetchResults(_ context.Context, _ provider.Connection, externalBatchID string) ([]provider.BatchResult, error) {
+	f.fetches++
 	var out []provider.BatchResult
 	for _, r := range f.batches[externalBatchID] {
 		res := provider.BatchResult{CustomID: r.CustomID}
@@ -109,6 +115,88 @@ func (f *fakeBatchProvider) FetchResults(_ context.Context, _ provider.Connectio
 		out = append(out, res)
 	}
 	return out, nil
+}
+
+// R-1-5: 保存済み OpenAI 進行を xAI として状態確認または取り込みできず、外部 API と進行を変更しないこと。
+func Test進行中のOpenAIBatchをXAIとして状態確認または取り込みできない(t *testing.T) {
+	ctx := context.Background()
+	conn := provider.Connection{Endpoint: "http://x", APIKey: "key"}
+	const plugin = "provider-boundary.esp"
+	store := seedFor(plugin)
+	fb := &fakeBatchProvider{out: translationOut()}
+	runner := NewBatchRunner(New(store, &fakeTranslator{out: translationOut()}, fakeLexicon{}, nil, nil), map[string]provider.BatchTranslator{
+		provider.BatchProviderOpenAI: fb,
+		provider.BatchProviderXAI:    fb,
+	}, store)
+	if err := runner.SubmitBatch(ctx, provider.BatchProviderOpenAI, conn, "gpt-5.6-luna", plugin); err != nil {
+		t.Fatalf("OpenAI batch 送信: %v", err)
+	}
+	before := *store.batchProg
+	fb.polls, fb.fetches = 0, 0
+	if _, _, err := runner.ProgressStatus(ctx, provider.BatchProviderXAI, conn, plugin); !errors.Is(err, errBatchProviderMismatch) {
+		t.Fatalf("状態確認 error = %v", err)
+	}
+	if err := runner.RefreshPlugin(ctx, provider.BatchProviderXAI, conn, plugin); !errors.Is(err, errBatchProviderMismatch) {
+		t.Fatalf("取り込み error = %v", err)
+	}
+	if fb.polls != 0 || fb.fetches != 0 {
+		t.Errorf("不一致で外部 API を呼んだ: polls=%d fetches=%d", fb.polls, fb.fetches)
+	}
+	if *store.batchProg != before {
+		t.Errorf("不一致で進行を変更した: before=%+v after=%+v", before, *store.batchProg)
+	}
+}
+
+// R-1-6: OpenAI API キーが空なら送信、状態確認、取り込みのいずれも開始しないこと。
+func TestOpenAIAPIキーが空ならBatch操作を開始しない(t *testing.T) {
+	ctx := context.Background()
+	const plugin = "no-key.esp"
+	store := seedFor(plugin)
+	fb := &fakeBatchProvider{out: translationOut()}
+	runner := NewBatchRunner(New(store, &fakeTranslator{out: translationOut()}, fakeLexicon{}, nil, nil), map[string]provider.BatchTranslator{
+		provider.BatchProviderOpenAI: fb,
+	}, store)
+	if err := runner.SubmitBatch(ctx, provider.BatchProviderOpenAI, provider.Connection{}, "gpt-5.6-luna", plugin); err == nil {
+		t.Fatalf("API キーなしの送信が成功した")
+	}
+	if store.batchProg != nil || fb.submits != 0 {
+		t.Errorf("API キーなしで送信状態を変更した: progression=%+v submits=%d", store.batchProg, fb.submits)
+	}
+	store.batchProg = &model.BatchTranslation{ID: 1, Plugin: plugin, Provider: provider.BatchProviderOpenAI, Model: "gpt-5.6-luna", Stage: model.BatchStageBody, BodyBatchID: "ext"}
+	if _, _, err := runner.ProgressStatus(ctx, provider.BatchProviderOpenAI, provider.Connection{}, plugin); err == nil {
+		t.Fatalf("API キーなしの状態確認が成功した")
+	}
+	if err := runner.RefreshPlugin(ctx, provider.BatchProviderOpenAI, provider.Connection{}, plugin); err == nil {
+		t.Fatalf("API キーなしの取り込みが成功した")
+	}
+	if fb.polls != 0 || fb.fetches != 0 {
+		t.Errorf("API キーなしで外部 API を呼んだ: polls=%d fetches=%d", fb.polls, fb.fetches)
+	}
+}
+
+// R-1-7: 全行が失敗して成功訳が無くても進行を完了し、未訳だけを再送信できること。
+func TestOpenAIBatchが全件失敗しても未訳を再送信できる(t *testing.T) {
+	ctx := context.Background()
+	conn := provider.Connection{APIKey: "key"}
+	const plugin = "all-failed.esp"
+	store := &fakeStore{lines: []model.Line{{ID: 1, Plugin: plugin, Rec: "INFO", Field: "NAM1", Source: "fail."}}}
+	fb := &fakeBatchProvider{errByUser: map[string]error{"fail.": fmt.Errorf("%w: failed", provider.ErrServerTransient)}}
+	runner := NewBatchRunner(New(store, &fakeTranslator{}, fakeLexicon{}, nil, nil), map[string]provider.BatchTranslator{provider.BatchProviderOpenAI: fb}, store)
+	if err := runner.SubmitBatch(ctx, provider.BatchProviderOpenAI, conn, "gpt-5.6-luna", plugin); err != nil {
+		t.Fatalf("初回送信: %v", err)
+	}
+	if err := runner.RefreshPlugin(ctx, provider.BatchProviderOpenAI, conn, plugin); err != nil {
+		t.Fatalf("全件失敗の取り込み: %v", err)
+	}
+	if store.batchProg.Stage != model.BatchStageDone || len(store.lineUpdates) != 0 {
+		t.Fatalf("全件失敗後 = progression=%+v updates=%v", store.batchProg, store.lineUpdates)
+	}
+	if err := runner.SubmitBatch(ctx, provider.BatchProviderOpenAI, conn, "gpt-5.6-luna", plugin); err != nil {
+		t.Fatalf("未訳の再送信: %v", err)
+	}
+	if fb.submits != 2 {
+		t.Errorf("送信回数 = %d, want 2", fb.submits)
+	}
 }
 
 // updatesByID は書き戻しログを id→update の map へ畳む（順序に依存せず集合として照合する）。
@@ -168,10 +256,10 @@ func TestBatchMatchesSyncEndToEnd(t *testing.T) {
 	// --- batch 経路 ---
 	batchStore := seedFor(plugin)
 	fb := &fakeBatchProvider{out: out}
-	runner := NewBatchRunner(New(batchStore, &fakeTranslator{out: out}, fakeLexicon{}, nil, nil), fb, batchStore)
+	runner := NewBatchRunner(New(batchStore, &fakeTranslator{out: out}, fakeLexicon{}, nil, nil), map[string]provider.BatchTranslator{provider.BatchProviderXAI: fb}, batchStore)
 
 	// 送信: 固有名 batch を送るが、dest はまだ確定しない（2 時点の遅延）。
-	if err := runner.SubmitBatch(ctx, conn, "grok", plugin); err != nil {
+	if err := runner.SubmitBatch(ctx, provider.BatchProviderXAI, conn, "grok", plugin); err != nil {
 		t.Fatalf("batch 送信: %v", err)
 	}
 	if len(batchStore.properUpdates) != 0 || len(batchStore.updates) != 0 || len(batchStore.lineUpdates) != 0 {
@@ -183,7 +271,7 @@ func TestBatchMatchesSyncEndToEnd(t *testing.T) {
 	}
 
 	// 反映①: 固有名 batch が完了 → 固有名を確定し、本文 batch を送る（進行段=本文）。
-	if err := runner.RefreshPlugin(ctx, conn, plugin); err != nil {
+	if err := runner.RefreshPlugin(ctx, provider.BatchProviderXAI, conn, plugin); err != nil {
 		t.Fatalf("batch 反映①: %v", err)
 	}
 	if batchStore.batchProg.Stage != model.BatchStageBody || batchStore.batchProg.BodyBatchID == "" {
@@ -195,8 +283,8 @@ func TestBatchMatchesSyncEndToEnd(t *testing.T) {
 
 	// 反映②: アプリ再起動相当（永続から続ける）。新しい engine・runner を組み直しても反映が続く。
 	restartEng := New(batchStore, &fakeTranslator{out: out}, fakeLexicon{}, nil, nil)
-	restartRunner := NewBatchRunner(restartEng, fb, batchStore)
-	if err := restartRunner.RefreshPlugin(ctx, conn, plugin); err != nil {
+	restartRunner := NewBatchRunner(restartEng, map[string]provider.BatchTranslator{provider.BatchProviderXAI: fb}, batchStore)
+	if err := restartRunner.RefreshPlugin(ctx, provider.BatchProviderXAI, conn, plugin); err != nil {
 		t.Fatalf("batch 反映②（再起動相当）: %v", err)
 	}
 	if batchStore.batchProg.Stage != model.BatchStageDone {
@@ -252,11 +340,11 @@ func TestBatchLeavesUntranslatedOnFailureLikeSync(t *testing.T) {
 	// batch（固有名なしのため submit で本文 batch まで進み、反映 1 回で確定）。
 	batchStore := seed()
 	fb := &fakeBatchProvider{out: out, errByUser: failErr}
-	runner := NewBatchRunner(New(batchStore, &fakeTranslator{out: out}, fakeLexicon{}, nil, nil), fb, batchStore)
-	if err := runner.SubmitBatch(ctx, conn, "grok", plugin); err != nil {
+	runner := NewBatchRunner(New(batchStore, &fakeTranslator{out: out}, fakeLexicon{}, nil, nil), map[string]provider.BatchTranslator{provider.BatchProviderXAI: fb}, batchStore)
+	if err := runner.SubmitBatch(ctx, provider.BatchProviderXAI, conn, "grok", plugin); err != nil {
 		t.Fatalf("batch 送信: %v", err)
 	}
-	if err := runner.RefreshPlugin(ctx, conn, plugin); err != nil {
+	if err := runner.RefreshPlugin(ctx, provider.BatchProviderXAI, conn, plugin); err != nil {
 		t.Fatalf("batch 反映: %v", err)
 	}
 
@@ -281,10 +369,10 @@ func TestBatchResubmitRecoversFromSubmitFailure(t *testing.T) {
 
 	batchStore := seedFor(plugin)
 	fb := &fakeBatchProvider{out: out, failSubmitsN: 1} // 最初の固有名送信を失敗させる。
-	runner := NewBatchRunner(New(batchStore, &fakeTranslator{out: out}, fakeLexicon{}, nil, nil), fb, batchStore)
+	runner := NewBatchRunner(New(batchStore, &fakeTranslator{out: out}, fakeLexicon{}, nil, nil), map[string]provider.BatchTranslator{provider.BatchProviderXAI: fb}, batchStore)
 
 	// 送信①: 固有名 batch の送信が失敗する。進行は固有名段のまま外部 ID が空で残る（半端な進行）。
-	if err := runner.SubmitBatch(ctx, conn, "grok", plugin); err == nil {
+	if err := runner.SubmitBatch(ctx, provider.BatchProviderXAI, conn, "grok", plugin); err == nil {
 		t.Fatalf("送信失敗を模したが SubmitBatch が成功した")
 	}
 	if batchStore.batchProg == nil || batchStore.batchProg.Stage != model.BatchStageProperNoun || batchStore.batchProg.ProperBatchID != "" {
@@ -297,7 +385,7 @@ func TestBatchResubmitRecoversFromSubmitFailure(t *testing.T) {
 	}
 
 	// 送信②: 半端な進行は拒否されず reset されて成功する（BlocksResubmit が外部 ID 空を許すため）。
-	if err := runner.SubmitBatch(ctx, conn, "grok", plugin); err != nil {
+	if err := runner.SubmitBatch(ctx, provider.BatchProviderXAI, conn, "grok", plugin); err != nil {
 		t.Fatalf("再送信が拒否・失敗した（回復できるべき）: %v", err)
 	}
 	if batchStore.batchProg.Stage != model.BatchStageProperNoun || batchStore.batchProg.ProperBatchID == "" {
@@ -305,10 +393,10 @@ func TestBatchResubmitRecoversFromSubmitFailure(t *testing.T) {
 	}
 
 	// 反映で通常どおり 2 段連鎖して完了し、dest が確定すること。
-	if err := runner.RefreshPlugin(ctx, conn, plugin); err != nil {
+	if err := runner.RefreshPlugin(ctx, provider.BatchProviderXAI, conn, plugin); err != nil {
 		t.Fatalf("batch 反映①: %v", err)
 	}
-	if err := runner.RefreshPlugin(ctx, conn, plugin); err != nil {
+	if err := runner.RefreshPlugin(ctx, provider.BatchProviderXAI, conn, plugin); err != nil {
 		t.Fatalf("batch 反映②: %v", err)
 	}
 	if batchStore.batchProg.Stage != model.BatchStageDone {

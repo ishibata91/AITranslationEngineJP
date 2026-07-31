@@ -12,6 +12,23 @@ import (
 // itoa は int64 の id を count クエリへ差し込むための短い整数→文字列変換。
 func itoa(id int64) string { return strconv.FormatInt(id, 10) }
 
+// R-1-4: migration 前からある batch 進行と同じ形で provider を省略した行は xAI として読めること。
+func Test既存Batch進行のProviderはXAIになる(t *testing.T) {
+	s, err := Open(filepath.Join(t.TempDir(), "central.sqlite3"))
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer func() { _ = s.Close() }()
+	ctx := context.Background()
+	if _, err := s.db.ExecContext(ctx, `INSERT INTO batch_translation (plugin, model, stage) VALUES ('legacy.esp', 'grok-4', 'proper_noun')`); err != nil {
+		t.Fatalf("旧形式相当の行を追加: %v", err)
+	}
+	prog, ok, err := s.GetBatchProgression(ctx, "legacy.esp")
+	if err != nil || !ok || prog.Provider != "xai" {
+		t.Errorf("既存進行 = %+v, ok=%v err=%v", prog, ok, err)
+	}
+}
+
 // StartBatchProgression が対象 plugin の進行を開始し、固有名段で id を返すこと。
 // 同一 plugin の再開始（reset）で行を使い回し、stage を固有名へ戻し、外部 ID を空へ戻し、
 // 前回の送信行対応（batch_request）を消すこと。進行は plugin と 1 対 1。
@@ -24,7 +41,7 @@ func TestStartBatchProgressionResets(t *testing.T) {
 	defer func() { _ = s.Close() }()
 	ctx := context.Background()
 
-	id, err := s.StartBatchProgression(ctx, "A.esp", "grok-4")
+	id, err := s.StartBatchProgression(ctx, "A.esp", "xai", "grok-4")
 	if err != nil {
 		t.Fatalf("1 回目の開始: %v", err)
 	}
@@ -42,7 +59,7 @@ func TestStartBatchProgressionResets(t *testing.T) {
 	}
 
 	// 再開始（reset）。同じ plugin なので id は同一で、stage・外部 ID は初期化、batch_request は消える。
-	id2, err := s.StartBatchProgression(ctx, "A.esp", "grok-4-fast")
+	id2, err := s.StartBatchProgression(ctx, "A.esp", "openai", "grok-4-fast")
 	if err != nil {
 		t.Fatalf("再開始: %v", err)
 	}
@@ -62,6 +79,9 @@ func TestStartBatchProgressionResets(t *testing.T) {
 	if prog.Model != "grok-4-fast" {
 		t.Errorf("reset 後 model = %q, want grok-4-fast", prog.Model)
 	}
+	if prog.Provider != "openai" {
+		t.Errorf("reset 後 provider = %q, want openai", prog.Provider)
+	}
 	if n := countRows(t, dbPath, `SELECT COUNT(*) FROM batch_request WHERE batch_id = `+itoa(id)); n != 0 {
 		t.Errorf("reset 後 batch_request が残った（%d 件）", n)
 	}
@@ -80,7 +100,7 @@ func TestRecordBatchExternalIDByStage(t *testing.T) {
 	defer func() { _ = s.Close() }()
 	ctx := context.Background()
 
-	id, _ := s.StartBatchProgression(ctx, "A.esp", "grok-4")
+	id, _ := s.StartBatchProgression(ctx, "A.esp", "xai", "grok-4")
 	if err = s.RecordBatchExternalID(ctx, id, model.BatchStageProperNoun, "ext-p"); err != nil {
 		t.Fatalf("固有名 外部 ID: %v", err)
 	}
@@ -107,8 +127,8 @@ func TestListActiveBatchProgressionsExcludesDone(t *testing.T) {
 	defer func() { _ = s.Close() }()
 	ctx := context.Background()
 
-	idA, _ := s.StartBatchProgression(ctx, "A.esp", "grok-4")
-	idB, _ := s.StartBatchProgression(ctx, "B.esp", "grok-4")
+	idA, _ := s.StartBatchProgression(ctx, "A.esp", "xai", "grok-4")
+	idB, _ := s.StartBatchProgression(ctx, "B.esp", "openai", "gpt-5.6-luna")
 	// A は完了、B は本文段（反映待ち）。
 	if err = s.AdvanceBatchStage(ctx, idA, model.BatchStageDone); err != nil {
 		t.Fatalf("A 完了: %v", err)
@@ -135,7 +155,7 @@ func TestInsertAndListBatchRequests(t *testing.T) {
 	defer func() { _ = s.Close() }()
 	ctx := context.Background()
 
-	id, _ := s.StartBatchProgression(ctx, "A.esp", "grok-4")
+	id, _ := s.StartBatchProgression(ctx, "A.esp", "xai", "grok-4")
 	rows := []model.BatchRequest{
 		{BatchID: id, ExternalBatchID: "ext-b", CustomID: "n:10", Kind: model.BatchKindNarration, RowID: 10},
 		{BatchID: id, ExternalBatchID: "ext-b", CustomID: "l:20", Kind: model.BatchKindLine, RowID: 20},
@@ -180,8 +200,8 @@ func TestDeleteTargetPluginRemovesBatch(t *testing.T) {
 	if err = s.UpsertTargetPlugin(ctx, "B.esp", "/data/B.esp"); err != nil {
 		t.Fatalf("B 登録: %v", err)
 	}
-	idA, _ := s.StartBatchProgression(ctx, "A.esp", "grok-4")
-	idB, _ := s.StartBatchProgression(ctx, "B.esp", "grok-4")
+	idA, _ := s.StartBatchProgression(ctx, "A.esp", "xai", "grok-4")
+	idB, _ := s.StartBatchProgression(ctx, "B.esp", "openai", "gpt-5.6-luna")
 	if _, err = s.InsertBatchRequests(ctx, []model.BatchRequest{
 		{BatchID: idA, ExternalBatchID: "ext-a", CustomID: "n:1", Kind: model.BatchKindNarration, RowID: 1},
 		{BatchID: idB, ExternalBatchID: "ext-b", CustomID: "n:2", Kind: model.BatchKindNarration, RowID: 2},

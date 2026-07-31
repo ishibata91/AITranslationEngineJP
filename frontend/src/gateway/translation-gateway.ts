@@ -27,7 +27,10 @@ export interface RunInput {
   endpoint: string
   apiKey: string
   model: string
+  provider: "sync" | BatchProvider
 }
+
+export type BatchProvider = "openai" | "xai"
 
 // 結果行の機械置換内訳 1 件（原語 → 確定訳語）。取得時に原文へ辞書を当て直して再構成した値。
 export interface TermRow {
@@ -151,7 +154,9 @@ export async function fetchModels(conn: Connection): Promise<string[]> {
 }
 
 // plugin を抽出し未訳を翻訳して、翻訳件数と残った未訳件数の要約を返す。結果一覧は listResultsPage で取得する。
-export async function runExtractAndTranslate(input: RunInput): Promise<RunOutcome> {
+export async function runExtractAndTranslate(
+  input: RunInput
+): Promise<RunOutcome> {
   const result = await RunExtractAndTranslate(api.RunRequest.createFrom(input))
   return {
     translatedCount: result.translatedCount,
@@ -174,13 +179,13 @@ export async function fetchXaiModels(conn: Connection): Promise<string[]> {
   return GetXAIModels(api.ConnRequest.createFrom(conn))
 }
 
-// xAI の batch 翻訳を送信する（plugin 単位）。送信だけを行い、結果は後の反映で取り込む。
+// OpenAI または xAI の batch 翻訳を送信する（plugin 単位）。送信だけを行い、結果は後の反映で取り込む。
 // 外部 batch ID の永続まで backend が行うため、ここは送信の完了、または失敗時の throw だけを返す。
 export async function submitBatchTranslation(input: RunInput): Promise<void> {
   await SubmitBatchTranslation(api.RunRequest.createFrom(input))
 }
 
-// xAI batch の進行状況（状態確認）。副作用なしで現段 batch の段・件数・取り込み可否を返す。
+// OpenAI / xAI batch の進行状況（状態確認）。副作用なしで現段 batch の段・件数・取り込み可否を返す。
 // 進行が無い（進行行なし・batch 未送信）plugin は undefined を返す。接続情報は都度渡す（永続化しない）。
 export interface BatchProgress {
   stage: "proper" | "body" | "done"
@@ -194,13 +199,15 @@ export interface BatchProgress {
 // 対象 plugin の batch 進行状況を取得する（状態確認）。dest 取り込みも送信もしない観測操作。
 export async function getBatchProgress(
   plugin: string,
+  provider: BatchProvider,
   conn: Connection
 ): Promise<BatchProgress | undefined> {
   const view = await GetBatchProgress(
     api.BatchPluginRequest.createFrom({
       plugin,
       endpoint: conn.endpoint,
-      apiKey: conn.apiKey
+      apiKey: conn.apiKey,
+      provider
     })
   )
   if (!view.present) return undefined
@@ -218,13 +225,15 @@ export async function getBatchProgress(
 // plugin 単位の操作で、接続情報は取り込みのたびに渡す（永続化しない）。
 export async function refreshBatchTranslations(
   plugin: string,
+  provider: BatchProvider,
   conn: Connection
 ): Promise<void> {
   await RefreshBatchTranslations(
     api.BatchPluginRequest.createFrom({
       plugin,
       endpoint: conn.endpoint,
-      apiKey: conn.apiKey
+      apiKey: conn.apiKey,
+      provider
     })
   )
 }
@@ -247,7 +256,9 @@ export async function listResultsPage(
 }
 
 // 本文翻訳の進捗 event を購読する。返り値の関数を呼ぶと購読を解除する。
-export function onRunProgress(handler: (progress: RunProgress) => void): () => void {
+export function onRunProgress(
+  handler: (progress: RunProgress) => void
+): () => void {
   return EventsOn(PROGRESS_EVENT, (ev: RunProgress) => handler(ev))
 }
 

@@ -96,10 +96,14 @@ func NewApp() (*api.App, *store.Store, error) {
 	}
 
 	eng := engine.New(s, p, lex, roles, stop)
-	// xAI batch 翻訳のクライアントと、送信・反映のオーケストレーションを配線する。
+	// OpenAI と xAI の batch クライアントを提供元に対応付け、送信・反映のオーケストレーションへ配線する。
 	// batch は同じ長め timeout の HTTP client を使う（file upload・結果取得も時間がかかりうる）。
+	openAIBatch := provider.NewOpenAIBatch(client)
 	xaiBatch := provider.NewXAIBatch(client)
-	batchRunner := engine.NewBatchRunner(eng, xaiBatch, s)
+	batchRunner := engine.NewBatchRunner(eng, map[string]provider.BatchTranslator{
+		provider.BatchProviderOpenAI: openAIBatch,
+		provider.BatchProviderXAI:    xaiBatch,
+	}, s)
 	ext := api.ExtractorConfig{
 		DLLPath:   extractorDLL,
 		SchemaDir: migrationsDir,

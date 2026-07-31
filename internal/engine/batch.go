@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"aitranslationenginejp/internal/core/batchplan"
 	"aitranslationenginejp/internal/core/dictionary"
@@ -17,10 +18,13 @@ import (
 // errNoBatchProvider は batch provider が未配線のときに送信・反映が返すエラー。
 var errNoBatchProvider = errors.New("batch provider が未配線")
 
+// errBatchProviderMismatch は保存済み進行と画面の提供元が違う場合に、外部 API と DB を触る前に返す。
+var errBatchProviderMismatch = errors.New("batch provider が保存済み進行と一致しない")
+
 // BatchStore は batch 進行の永続に使う中心データアクセス（使う分だけ宣言する）。
 // 行の読み書き（未訳一覧・dest 更新）や辞書・テンプレートは Engine が持つ store を通すため、ここには batch 固有だけを置く。
 type BatchStore interface {
-	StartBatchProgression(ctx context.Context, plugin, model string) (int64, error)
+	StartBatchProgression(ctx context.Context, plugin, provider, model string) (int64, error)
 	RecordBatchExternalID(ctx context.Context, batchID int64, stage, externalID string) error
 	AdvanceBatchStage(ctx context.Context, batchID int64, stage string) error
 	GetBatchProgression(ctx context.Context, plugin string) (model.BatchTranslation, bool, error)
@@ -28,35 +32,61 @@ type BatchStore interface {
 	ListBatchRequests(ctx context.Context, externalBatchID string) ([]model.BatchRequest, error)
 }
 
-// BatchRunner は xAI batch 翻訳のオーケストレーション（薄いシェル）。
+// BatchRunner は OpenAI と xAI の batch 翻訳のオーケストレーション（薄いシェル）。
 // 純粋核 batchplan の判断を、Engine の読み書き部品・provider batch port・batch 永続へ束ねるだけにする。
 // 送信（SubmitBatch）で固有名 batch を作り、状態確認（ProgressStatus・副作用なし）で進行を観測し、
 // 取り込み（RefreshPlugin）で結果反映・本文 batch 送信を進める。
 // 固有名 → 本文 の 2 段を逐次でたどり、外から見て同期経路と結果が変わらないようにする。
 type BatchRunner struct {
-	e     *Engine
-	batch provider.BatchTranslator
-	store BatchStore
+	e       *Engine
+	batches map[string]provider.BatchTranslator
+	store   BatchStore
 }
 
 // NewBatchRunner は BatchRunner を生成する。bootstrap が唯一の生成点。
-// batch が nil の場合、送信・反映は明示エラーを返す（batch を使わない配線でも安全に落とす）。
-func NewBatchRunner(e *Engine, batch provider.BatchTranslator, store BatchStore) *BatchRunner {
-	return &BatchRunner{e: e, batch: batch, store: store}
+// provider に対応する実装が無い場合、送信・反映は明示エラーを返す。
+func NewBatchRunner(e *Engine, batches map[string]provider.BatchTranslator, store BatchStore) *BatchRunner {
+	return &BatchRunner{e: e, batches: batches, store: store}
+}
+
+func (r *BatchRunner) batchFor(providerName string, conn provider.Connection) (provider.BatchTranslator, error) {
+	if providerName == provider.BatchProviderOpenAI && strings.TrimSpace(conn.APIKey) == "" {
+		return nil, fmt.Errorf("OpenAI API キーが空")
+	}
+	batch := r.batches[providerName]
+	if batch == nil {
+		return nil, fmt.Errorf("%w: %s", errNoBatchProvider, providerName)
+	}
+	return batch, nil
+}
+
+func (r *BatchRunner) batchForProgress(ctx context.Context, providerName string, conn provider.Connection, prog model.BatchTranslation) (provider.BatchTranslator, error) {
+	if providerName != prog.Provider {
+		slog.WarnContext(ctx, "batch provider の不一致を拒否した",
+			slog.String("event", "batch_provider_mismatch"),
+			slog.String("where", "engine.batch"),
+			slog.String("result", "rejected"),
+			slog.String("id", prog.Plugin),
+			slog.String("reason", "provider_mismatch"),
+		)
+		return nil, fmt.Errorf("%w: 保存済み=%s 選択中=%s", errBatchProviderMismatch, prog.Provider, providerName)
+	}
+	return r.batchFor(providerName, conn)
 }
 
 // SubmitBatch は対象 plugin の未訳固有名を固有名 batch として送信し、進行を開始する。
 // 既訳ありの固有名（権威訳）は AI を呼ばず即確定し、既訳なしだけを batch へ載せる（同期の固有名フェーズと同じ選別）。
 // 固有名 batch の対象が無い場合は固有名段を飛ばして本文 batch を送る。
 // 進行中の batch がある plugin への再送信は拒否する（反映で完了させてから送り直す）。
-func (r *BatchRunner) SubmitBatch(ctx context.Context, conn provider.Connection, modelName, plugin string) error {
-	if r.batch == nil {
-		return errNoBatchProvider
+func (r *BatchRunner) SubmitBatch(ctx context.Context, providerName string, conn provider.Connection, modelName, plugin string) error {
+	batch, err := r.batchFor(providerName, conn)
+	if err != nil {
+		return err
 	}
 	if err := r.ensureNoActiveProgression(ctx, plugin); err != nil {
 		return err
 	}
-	batchID, err := r.store.StartBatchProgression(ctx, plugin, modelName)
+	batchID, err := r.store.StartBatchProgression(ctx, plugin, providerName, modelName)
 	if err != nil {
 		return fmt.Errorf("batch 進行の開始: %w", err)
 	}
@@ -66,12 +96,12 @@ func (r *BatchRunner) SubmitBatch(ctx context.Context, conn provider.Connection,
 	}
 	if len(planned) == 0 {
 		// 固有名の AI 訳が無い（全て既訳流用 or 固有名なし）。固有名 batch を挟まず本文 batch を送る。
-		return r.submitBodyBatch(ctx, conn, modelName, plugin, batchID)
+		return r.submitBodyBatch(ctx, batch, conn, modelName, plugin, batchID)
 	}
-	return r.sendStage(ctx, conn, modelName, batchID, model.BatchStageProperNoun, planned)
+	return r.sendStage(ctx, batch, conn, modelName, batchID, model.BatchStageProperNoun, planned)
 }
 
-// ensureNoActiveProgression は xAI へ送信済みで待機中の batch がある plugin への再送信を拒否する。
+// ensureNoActiveProgression は外部へ送信済みで待機中の batch がある plugin への再送信を拒否する。
 // 拒否は「現段の外部 batch ID が非空」の進行に限る（反映で回収・前進できるため）。
 // 現段の外部 ID が空の半端な進行（送信 HTTP 失敗などで途中で終わった進行）は、再送信で reset して作り直せるよう拒否しない。
 func (r *BatchRunner) ensureNoActiveProgression(ctx context.Context, plugin string) error {
@@ -80,7 +110,7 @@ func (r *BatchRunner) ensureNoActiveProgression(ctx context.Context, plugin stri
 		return fmt.Errorf("batch 進行の確認: %w", err)
 	}
 	if ok && batchplan.BlocksResubmit(prog.Stage, prog.ProperBatchID, prog.BodyBatchID) {
-		return fmt.Errorf("対象 plugin に xAI へ送信済みで待機中の batch がある。反映で完了させてから再送信する: %s", plugin)
+		return fmt.Errorf("対象 plugin に送信済みで待機中の batch がある。反映で完了させてから再送信する: %s", plugin)
 	}
 	return nil
 }
@@ -127,7 +157,7 @@ func (r *BatchRunner) planProperRequests(ctx context.Context, plugin string) ([]
 // submitBodyBatch は確定した固有名で本文の機械置換辞書を組み、未訳の叙述文・台詞を本文 batch として送る。
 // 既存訳と完全一致する本文は AI を呼ばず即確定し、batch へ載せない（同期の本文フェーズと同じ）。
 // 本文の未訳が無い場合は本文 batch を挟まず進行を完了にする。送信後は進行段を本文へ進める。
-func (r *BatchRunner) submitBodyBatch(ctx context.Context, conn provider.Connection, modelName, plugin string, batchID int64) error {
+func (r *BatchRunner) submitBodyBatch(ctx context.Context, batch provider.BatchTranslator, conn provider.Connection, modelName, plugin string, batchID int64) error {
 	planned, err := r.planBodyRequests(ctx, plugin)
 	if err != nil {
 		return err
@@ -139,7 +169,7 @@ func (r *BatchRunner) submitBodyBatch(ctx context.Context, conn provider.Connect
 		}
 		return nil
 	}
-	if err := r.sendStage(ctx, conn, modelName, batchID, model.BatchStageBody, planned); err != nil {
+	if err := r.sendStage(ctx, batch, conn, modelName, batchID, model.BatchStageBody, planned); err != nil {
 		return err
 	}
 	if err := r.store.AdvanceBatchStage(ctx, batchID, model.BatchStageBody); err != nil {
@@ -240,8 +270,8 @@ func (r *BatchRunner) planLines(ctx context.Context, lines []model.Line, refInde
 }
 
 // sendStage は計画を外部 batch として送り、外部 ID を記録し、送信行対応を永続する（固有名段・本文段で共通）。
-func (r *BatchRunner) sendStage(ctx context.Context, conn provider.Connection, modelName string, batchID int64, stage string, planned []batchplan.PlannedRequest) error {
-	externalID, err := r.batch.SubmitBatch(ctx, conn, modelName, batchplan.BuildBatchRequests(planned))
+func (r *BatchRunner) sendStage(ctx context.Context, batch provider.BatchTranslator, conn provider.Connection, modelName string, batchID int64, stage string, planned []batchplan.PlannedRequest) error {
+	externalID, err := batch.SubmitBatch(ctx, conn, modelName, batchplan.BuildBatchRequests(planned))
 	if err != nil {
 		return fmt.Errorf("%s batch の送信: %w", stage, err)
 	}
@@ -254,16 +284,17 @@ func (r *BatchRunner) sendStage(ctx context.Context, conn provider.Connection, m
 // ProgressStatus は対象 plugin の進行状況を副作用なしで返す（状態確認）。
 // 現段の外部 batch を PollBatch するだけで、dest 更新・batch 送信・段更新・DB 書き込みを一切しない。
 // 現段の外部 ID が空の半端な進行と完了段は PollBatch もしない。進行が無い plugin は ok=false を返す。
-func (r *BatchRunner) ProgressStatus(ctx context.Context, conn provider.Connection, plugin string) (batchplan.BatchProgress, bool, error) {
-	if r.batch == nil {
-		return batchplan.BatchProgress{}, false, errNoBatchProvider
-	}
+func (r *BatchRunner) ProgressStatus(ctx context.Context, providerName string, conn provider.Connection, plugin string) (batchplan.BatchProgress, bool, error) {
 	prog, ok, err := r.store.GetBatchProgression(ctx, plugin)
 	if err != nil {
 		return batchplan.BatchProgress{}, false, fmt.Errorf("batch 進行の確認: %w", err)
 	}
 	if !ok {
 		return batchplan.BatchProgress{}, false, nil
+	}
+	batch, err := r.batchForProgress(ctx, providerName, conn, prog)
+	if err != nil {
+		return batchplan.BatchProgress{}, false, err
 	}
 	externalID := prog.ProperBatchID
 	if prog.Stage == model.BatchStageBody {
@@ -272,7 +303,7 @@ func (r *BatchRunner) ProgressStatus(ctx context.Context, conn provider.Connecti
 	hasCurrent := prog.Stage != model.BatchStageDone && externalID != ""
 	var status provider.BatchStatus
 	if hasCurrent {
-		status, err = r.batch.PollBatch(ctx, conn, externalID)
+		status, err = batch.PollBatch(ctx, conn, externalID)
 		if err != nil {
 			return batchplan.BatchProgress{}, false, fmt.Errorf("batch 状態確認: %w", err)
 		}
@@ -283,10 +314,7 @@ func (r *BatchRunner) ProgressStatus(ctx context.Context, conn provider.Connecti
 // RefreshPlugin は対象 plugin の進行 1 件だけを反映する（前進）。
 // 現段が完了していれば結果を取り込み、固有名段なら本文 batch を送る（中身は refreshOne）。
 // 起動時・画面操作の時点だけ呼ぶ（常駐ポーリングはしない）。進行が無い plugin は何もしない。接続情報は都度渡す。
-func (r *BatchRunner) RefreshPlugin(ctx context.Context, conn provider.Connection, plugin string) error {
-	if r.batch == nil {
-		return errNoBatchProvider
-	}
+func (r *BatchRunner) RefreshPlugin(ctx context.Context, providerName string, conn provider.Connection, plugin string) error {
 	prog, ok, err := r.store.GetBatchProgression(ctx, plugin)
 	if err != nil {
 		return fmt.Errorf("batch 進行の確認: %w", err)
@@ -294,11 +322,15 @@ func (r *BatchRunner) RefreshPlugin(ctx context.Context, conn provider.Connectio
 	if !ok {
 		return nil
 	}
-	return r.refreshOne(ctx, conn, prog)
+	batch, err := r.batchForProgress(ctx, providerName, conn, prog)
+	if err != nil {
+		return err
+	}
+	return r.refreshOne(ctx, batch, conn, prog)
 }
 
 // refreshOne は 1 進行を反映する。現段の外部 batch を状態確認し、純粋核の判定で次行動を決める。
-func (r *BatchRunner) refreshOne(ctx context.Context, conn provider.Connection, prog model.BatchTranslation) error {
+func (r *BatchRunner) refreshOne(ctx context.Context, batch provider.BatchTranslator, conn provider.Connection, prog model.BatchTranslation) error {
 	externalID := prog.ProperBatchID
 	if prog.Stage == model.BatchStageBody {
 		externalID = prog.BodyBatchID
@@ -306,19 +338,19 @@ func (r *BatchRunner) refreshOne(ctx context.Context, conn provider.Connection, 
 	if externalID == "" {
 		return nil // 現段の外部 ID が空（異常系）。触らない。
 	}
-	status, err := r.batch.PollBatch(ctx, conn, externalID)
+	status, err := batch.PollBatch(ctx, conn, externalID)
 	if err != nil {
 		return fmt.Errorf("batch 状態確認: %w", err)
 	}
 	switch batchplan.DecideRefreshStep(prog.Stage, prog.ProperBatchID, prog.BodyBatchID, status.Done) {
 	case batchplan.StepApplyProperThenSubmitBody:
-		if err := r.applyResults(ctx, conn, prog.Plugin, prog.ProperBatchID); err != nil {
+		if err := r.applyResults(ctx, batch, conn, prog.Plugin, prog.ProperBatchID); err != nil {
 			return err
 		}
-		return r.submitBodyBatch(ctx, conn, prog.Model, prog.Plugin, prog.ID)
+		return r.submitBodyBatch(ctx, batch, conn, prog.Model, prog.Plugin, prog.ID)
 	case batchplan.StepApplyProperThenAdvance:
 		// 本文 batch は送信済み（クラッシュ復帰）。固有名を反映し、段だけ進める（本文を再送しない）。
-		if err := r.applyResults(ctx, conn, prog.Plugin, prog.ProperBatchID); err != nil {
+		if err := r.applyResults(ctx, batch, conn, prog.Plugin, prog.ProperBatchID); err != nil {
 			return err
 		}
 		if err := r.store.AdvanceBatchStage(ctx, prog.ID, model.BatchStageBody); err != nil {
@@ -326,7 +358,7 @@ func (r *BatchRunner) refreshOne(ctx context.Context, conn provider.Connection, 
 		}
 		return nil
 	case batchplan.StepApplyBodyThenComplete:
-		if err := r.applyResults(ctx, conn, prog.Plugin, prog.BodyBatchID); err != nil {
+		if err := r.applyResults(ctx, batch, conn, prog.Plugin, prog.BodyBatchID); err != nil {
 			return err
 		}
 		if err := r.store.AdvanceBatchStage(ctx, prog.ID, model.BatchStageDone); err != nil {
@@ -341,8 +373,8 @@ func (r *BatchRunner) refreshOne(ctx context.Context, conn provider.Connection, 
 // applyResults は外部 batch の全結果を取得し、custom_id で対応する行へ書き戻す。
 // 書き戻しの可否は同期と共有する純粋規則（DecideApply）で決める。据え置き（タグ欠落・失敗）は未訳のまま残す（再送信で回収）。
 // batch は個別失敗で全体を止めない（同期の abort とは違い、Fatal も据え置きにする）。
-func (r *BatchRunner) applyResults(ctx context.Context, conn provider.Connection, plugin, externalID string) error {
-	results, err := r.batch.FetchResults(ctx, conn, externalID)
+func (r *BatchRunner) applyResults(ctx context.Context, batch provider.BatchTranslator, conn provider.Connection, plugin, externalID string) error {
+	results, err := batch.FetchResults(ctx, conn, externalID)
 	if err != nil {
 		return fmt.Errorf("batch 結果取得: %w", err)
 	}

@@ -4,6 +4,23 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-08-01 OpenAI Batch API を xAI と共通の二段階基盤へ追加（add-openai-provider）
+
+### 変更
+
+- `provider.BatchTranslator` の実装へ `OpenAIBatch` を追加した。完成プロンプトの Chat Completions JSONL は xAI と共有し、OpenAI 固有処理は Files API、Batch API、成功・失敗 JSONL の取得と解釈へ閉じた。
+- `engine.BatchRunner` は provider ごとの `BatchTranslator` を選ぶ。`batch_translation.provider` を migration 0018 で追加し、既存の進行は `xai` として維持する。状態確認と取り込みでは画面の provider と保存済み provider の一致を外部 API 呼び出し前に確認する。
+- 翻訳実行画面へ OpenAI（batch）を追加した。公式 endpoint と `gpt-5.6-luna` を初期値にし、モデル取得後も他のモデルを残す。OpenAI API キーが空の場合は送信、状態確認、取り込みを無効にする。
+- OpenAI と xAI は固有名 batch → 本文 batch の二段階制御、成功分の結果適用、失敗分を未訳のまま残す再送信規則を共有する。同期の OpenAI 互換 API は変更しない。
+
+### 判断
+
+- OpenAI batch 専用の進行管理は作らない。xAI と同じ `BatchTranslator`、`BatchRunner`、`batch_translation`、`batch_request` を使い、送信先の差だけを provider 実装と保存列で識別する方針を人間が承認した。
+- 進行中の OpenAI batch と xAI batch の取り違えは、画面表示だけに頼らず backend で拒否する。拒否時は外部 API と DB を変更せず、API キーと応答本文をログへ残さない。
+- OpenAI の実 API は課金と資格情報を伴うため自動検証では呼ばない。fake HTTP server で Files、Batch、終端状態、成功・失敗 JSONL を検証し、実 app では provider 切替、初期値、操作可否を確認した。
+- `docs/architecture.md` は `BatchTranslator` の実装と provider 選択の恒久仕様を反映した。`docs/er.md` は今回の task に限る人間承認済みの例外として `batch_translation.provider` を反映した。
+- 根拠となる作業計画: `docs/exec-plans/completed/add-openai-provider/`。
+
 ## 2026-07-26 固有名 1 件の空応答で実行が止まるのを直す（empty-translation-halts-run）
 
 ### 変更

@@ -10,7 +10,10 @@ import type {
   ResultsPaging,
   StringsPresence
 } from "./translation-run-view"
-import { SUBMIT_NOTICE, untranslatedNotice } from "./translation-run-presentation"
+import {
+  SUBMIT_NOTICE,
+  untranslatedNotice
+} from "./translation-run-presentation"
 
 // 画面全体の表示状態。story の固定状態を組むための型。
 interface TranslationRunViewModel {
@@ -29,13 +32,15 @@ interface TranslationRunViewModel {
   stringsPresence?: StringsPresence
   // 配送方式。未指定なら同期で従来表示。
   provider?: TranslationProvider
-  // 送信の可否。xAI 選択時に意味を持つ。
+  // 送信の可否。OpenAI または xAI の batch 選択時に意味を持つ。
   canSubmit?: boolean
+  // batch 操作全体の可否。API キーが空の状態では false。
+  canOperateBatch?: boolean
   // 送信中フラグ。
   submitting?: boolean
   // 実行の完了、送信、取り込みの結果として出す案内。空なら出さない。
   notice?: string
-  // xAI batch の進行状況（状態確認で取得）。未確認は未指定。
+  // OpenAI または xAI の batch 進行状況（状態確認で取得）。未確認は未指定。
   batchProgress?: BatchProgressView
   // 状態確認中フラグ。
   checking?: boolean
@@ -57,6 +62,14 @@ const FILLED_FORM: TranslationRunForm = {
   model: "gpt-4o-mini"
 }
 
+// OpenAI（batch）選択時の入力済みフォーム。公式 endpoint と初期モデルを固定する。
+const OPENAI_FORM: TranslationRunForm = {
+  pluginPath: "/Users/me/Skyrim/Data/Dawnguard.esm",
+  endpoint: "https://api.openai.com/v1",
+  apiKey: "sk-demo-key",
+  model: "gpt-5.6-luna"
+}
+
 // xAI（batch）選択時の入力済みフォーム。エンドポイントとモデルを xAI 用にする。
 const XAI_FORM: TranslationRunForm = {
   pluginPath: "/Users/me/Skyrim/Data/Dawnguard.esm",
@@ -67,6 +80,9 @@ const XAI_FORM: TranslationRunForm = {
 
 // getModels で取得した一覧の表示用サンプル。
 const MODELS = ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "o4-mini"]
+
+// OpenAI のモデル一覧。初期選択する gpt-5.6-luna を先頭にし、他のモデルも残す。
+const OPENAI_MODELS = ["gpt-5.6-luna", "gpt-5.4", "gpt-4.1-mini"]
 
 // GetXAIModels で取得した batch 対応モデルの表示用サンプル（batch 非対応は除外済み）。
 const XAI_MODELS = ["grok-4", "grok-4-fast", "grok-3", "grok-3-mini"]
@@ -286,6 +302,68 @@ export const ERROR_STATE: TranslationRunViewModel = {
     "翻訳 API への接続に失敗しました。エンドポイントと API キーを確認して、もう一度実行してください。"
 }
 
+// OpenAI（batch）を選び、OpenAI API キーだけが空の状態。全ての batch 操作を無効にする。
+export const OPENAI_NO_API_KEY_STATE: TranslationRunViewModel = {
+  form: { ...OPENAI_FORM, apiKey: "" },
+  phase: "idle",
+  canRun: false,
+  models: OPENAI_MODELS,
+  modelsLoading: false,
+  results: [],
+  errorMessage: "",
+  provider: "openai",
+  canSubmit: false,
+  canOperateBatch: false,
+  notice: ""
+}
+
+// OpenAI（batch）で接続情報とモデルが揃い、gpt-5.6-luna を選んだ状態。
+export const OPENAI_READY_STATE: TranslationRunViewModel = {
+  form: OPENAI_FORM,
+  phase: "idle",
+  canRun: false,
+  models: OPENAI_MODELS,
+  modelsLoading: false,
+  results: [],
+  errorMessage: "",
+  provider: "openai",
+  canSubmit: true,
+  canOperateBatch: true,
+  notice: ""
+}
+
+// OpenAI（batch）を送信した直後。状態確認で進行状況を取得する案内を出す。
+export const OPENAI_SUBMITTED_STATE: TranslationRunViewModel = {
+  ...OPENAI_READY_STATE,
+  notice: SUBMIT_NOTICE
+}
+
+// OpenAI（batch）の本文段が処理中。固有名段は取り込み済みで、本文の処理待ちが残る。
+export const OPENAI_BODY_PROCESSING_STATE: TranslationRunViewModel = {
+  ...OPENAI_READY_STATE,
+  batchProgress: {
+    stage: "body",
+    total: 113,
+    pending: 34,
+    succeeded: 77,
+    failed: 2,
+    canApply: false
+  }
+}
+
+// OpenAI（batch）の本文段が完了。成功と失敗が混在し、成功分を取り込める。
+export const OPENAI_BODY_READY_STATE: TranslationRunViewModel = {
+  ...OPENAI_READY_STATE,
+  batchProgress: {
+    stage: "body",
+    total: 113,
+    pending: 0,
+    succeeded: 110,
+    failed: 3,
+    canApply: true
+  }
+}
+
 // xAI（batch）を選び、まだ接続情報もモデルも入れていない。送信できない。
 export const XAI_EMPTY_STATE: TranslationRunViewModel = {
   form: { ...EMPTY_FORM },
@@ -297,6 +375,7 @@ export const XAI_EMPTY_STATE: TranslationRunViewModel = {
   errorMessage: "",
   provider: "xai",
   canSubmit: false,
+  canOperateBatch: false,
   notice: ""
 }
 
@@ -311,6 +390,7 @@ export const XAI_READY_STATE: TranslationRunViewModel = {
   errorMessage: "",
   provider: "xai",
   canSubmit: true,
+  canOperateBatch: true,
   notice: ""
 }
 
@@ -329,25 +409,53 @@ export const XAI_CHECKING_STATE: TranslationRunViewModel = {
 // xAI（batch）で固有名段が処理中。ステッパー現在地=固有名、処理待ちが残り主アクションはグレーアウト。
 export const XAI_PROPER_PROCESSING_STATE: TranslationRunViewModel = {
   ...XAI_READY_STATE,
-  batchProgress: { stage: "proper", total: 12, pending: 5, succeeded: 7, failed: 0, canApply: false }
+  batchProgress: {
+    stage: "proper",
+    total: 12,
+    pending: 5,
+    succeeded: 7,
+    failed: 0,
+    canApply: false
+  }
 }
 
 // xAI（batch）で固有名段が完了。主アクションは「取り込んで本文を送信」。
 export const XAI_PROPER_READY_STATE: TranslationRunViewModel = {
   ...XAI_READY_STATE,
-  batchProgress: { stage: "proper", total: 12, pending: 0, succeeded: 12, failed: 0, canApply: true }
+  batchProgress: {
+    stage: "proper",
+    total: 12,
+    pending: 0,
+    succeeded: 12,
+    failed: 0,
+    canApply: true
+  }
 }
 
 // xAI（batch）で本文段が処理中。ステッパー現在地=本文、処理待ちが残り主アクションはグレーアウト。
 export const XAI_BODY_PROCESSING_STATE: TranslationRunViewModel = {
   ...XAI_READY_STATE,
-  batchProgress: { stage: "body", total: 113, pending: 2, succeeded: 111, failed: 0, canApply: false }
+  batchProgress: {
+    stage: "body",
+    total: 113,
+    pending: 2,
+    succeeded: 111,
+    failed: 0,
+    canApply: false
+  }
 }
 
 // xAI（batch）で本文段が完了。主アクションは「取り込んで完了」。
 export const XAI_BODY_READY_STATE: TranslationRunViewModel = {
   ...XAI_READY_STATE,
-  batchProgress: { stage: "body", total: 113, pending: 0, succeeded: 113, failed: 0, canApply: true }
+  batchProgress: {
+    stage: "body",
+    total: 113,
+    pending: 0,
+    succeeded: 113,
+    failed: 0,
+    canApply: true
+  }
 }
 
 // xAI（batch）で取り込みが終わり、結果が入った。段=完了で、主アクションは再送信の「送信して開始」。
@@ -362,8 +470,16 @@ export const XAI_DONE_STATE: TranslationRunViewModel = {
   errorMessage: "",
   provider: "xai",
   canSubmit: true,
+  canOperateBatch: true,
   notice: "",
-  batchProgress: { stage: "done", total: 113, pending: 0, succeeded: 113, failed: 0, canApply: false },
+  batchProgress: {
+    stage: "done",
+    total: 113,
+    pending: 0,
+    succeeded: 113,
+    failed: 0,
+    canApply: false
+  },
   paging: {
     total: RESULT_ROWS.length,
     pageNumber: 1,

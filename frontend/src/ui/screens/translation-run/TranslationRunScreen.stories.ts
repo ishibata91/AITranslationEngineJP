@@ -11,6 +11,11 @@ import {
   DONE_UNTRANSLATED_STATE,
   DONE_PERSONA_STATE,
   ERROR_STATE,
+  OPENAI_NO_API_KEY_STATE,
+  OPENAI_READY_STATE,
+  OPENAI_SUBMITTED_STATE,
+  OPENAI_BODY_PROCESSING_STATE,
+  OPENAI_BODY_READY_STATE,
   XAI_EMPTY_STATE,
   XAI_READY_STATE,
   XAI_SUBMITTED_STATE,
@@ -106,6 +111,36 @@ export const DonePersona: Story = {
 export const Errored: Story = {
   name: "エラー",
   args: { ...ERROR_STATE }
+}
+
+// OpenAI（batch）で API キーが空。送信、状態確認、取り込みを開始できない。
+export const OpenAiNoApiKey: Story = {
+  name: "OpenAI・API キーなし",
+  args: { ...OPENAI_NO_API_KEY_STATE }
+}
+
+// OpenAI（batch）で公式 endpoint、gpt-5.6-luna、API キーが揃った状態。
+export const OpenAiReady: Story = {
+  name: "OpenAI・送信可",
+  args: { ...OPENAI_READY_STATE }
+}
+
+// OpenAI（batch）を送信した直後。案内が出る。
+export const OpenAiSubmitted: Story = {
+  name: "OpenAI・送信後",
+  args: { ...OPENAI_SUBMITTED_STATE }
+}
+
+// OpenAI（batch）で本文段が処理中。成功、失敗、処理待ちの件数を表示する。
+export const OpenAiBodyProcessing: Story = {
+  name: "OpenAI・本文処理中",
+  args: { ...OPENAI_BODY_PROCESSING_STATE }
+}
+
+// OpenAI（batch）で本文段が完了。成功と失敗が混在しても成功分を取り込める。
+export const OpenAiBodyReady: Story = {
+  name: "OpenAI・本文取り込み可",
+  args: { ...OPENAI_BODY_READY_STATE }
 }
 
 // xAI（batch）を選び、未入力で送信できない。

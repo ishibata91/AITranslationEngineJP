@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/svelte-vite"
 import BatchProgressPanel from "./BatchProgressPanel.svelte"
 
-// xAI batch の進行状況パネル。固有名 → 本文 → 完了 のステッパーで現在地を見せ、現段 batch の件数を出す。
+// OpenAI と xAI に共通する batch の進行状況パネル。固有名 → 本文 → 完了 のステッパーで現在地を見せ、現段 batch の件数を出す。
 const meta = {
-  title: "Screens/翻訳実行/進行状況パネル",
+  title: "UI Components/進行状況パネル",
   component: BatchProgressPanel,
   parameters: {
     layout: "padded"
@@ -23,7 +23,14 @@ export const Unchecked: Story = {
 export const ProperProcessing: Story = {
   name: "固有名処理中",
   args: {
-    progress: { stage: "proper", total: 12, pending: 5, succeeded: 7, failed: 0, canApply: false }
+    progress: {
+      stage: "proper",
+      total: 12,
+      pending: 5,
+      succeeded: 7,
+      failed: 0,
+      canApply: false
+    }
   }
 }
 
@@ -31,7 +38,14 @@ export const ProperProcessing: Story = {
 export const ProperReady: Story = {
   name: "固有名完了",
   args: {
-    progress: { stage: "proper", total: 12, pending: 0, succeeded: 12, failed: 0, canApply: true }
+    progress: {
+      stage: "proper",
+      total: 12,
+      pending: 0,
+      succeeded: 12,
+      failed: 0,
+      canApply: true
+    }
   }
 }
 
@@ -39,7 +53,14 @@ export const ProperReady: Story = {
 export const BodyProcessing: Story = {
   name: "本文処理中",
   args: {
-    progress: { stage: "body", total: 113, pending: 2, succeeded: 111, failed: 0, canApply: false }
+    progress: {
+      stage: "body",
+      total: 113,
+      pending: 2,
+      succeeded: 111,
+      failed: 0,
+      canApply: false
+    }
   }
 }
 
@@ -47,7 +68,29 @@ export const BodyProcessing: Story = {
 export const BodyReady: Story = {
   name: "本文完了",
   args: {
-    progress: { stage: "body", total: 113, pending: 0, succeeded: 113, failed: 0, canApply: true }
+    progress: {
+      stage: "body",
+      total: 113,
+      pending: 0,
+      succeeded: 113,
+      failed: 0,
+      canApply: true
+    }
+  }
+}
+
+// 本文段が完了し、成功と失敗が混在する。成功分を取り込み、失敗分を未訳として残せる。
+export const BodyReadyWithFailures: Story = {
+  name: "本文完了（失敗あり）",
+  args: {
+    progress: {
+      stage: "body",
+      total: 113,
+      pending: 0,
+      succeeded: 110,
+      failed: 3,
+      canApply: true
+    }
   }
 }
 
@@ -55,6 +98,13 @@ export const BodyReady: Story = {
 export const AllDone: Story = {
   name: "全完了",
   args: {
-    progress: { stage: "done", total: 113, pending: 0, succeeded: 113, failed: 0, canApply: false }
+    progress: {
+      stage: "done",
+      total: 113,
+      pending: 0,
+      succeeded: 113,
+      failed: 0,
+      canApply: false
+    }
   }
 }

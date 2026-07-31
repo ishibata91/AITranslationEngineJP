@@ -32,15 +32,15 @@
     onRunProgress,
     exportXTranslatorXml
   } from "../../../gateway/translation-gateway"
+  import {
+    canOperateBatch as batchOperationAllowed,
+    orderProviderModels,
+    providerDefaults
+  } from "./translation-run-provider"
 
   // 状態確認して進行が無かった時に出す案内（表示 copy は presentation に集約するが、
   // 「進行なし」用の定数は表示層に無いため、状態確認の結果としてここで確定文言を持つ）。
   const NO_PROGRESS_NOTICE = "この plugin に進行中の batch はありません。"
-
-  // 配送方式ごとのエンドポイント既定値。sync はローカル OpenAI 互換サーバ、xai は xAI の接続先。
-  // 方式を切り替えた時、利用者が触っていない（もう片方の既定のまま）なら新方式の既定へ寄せる。
-  const SYNC_DEFAULT_ENDPOINT = "http://127.0.0.1:1234"
-  const XAI_DEFAULT_ENDPOINT = "https://api.x.ai"
 
   // 結果一覧は keyset cursor ページングで 1 ページずつ取得する。1 ページの件数。
   const PAGE_SIZE = 50
@@ -49,7 +49,7 @@
   let { pluginPath = "" }: { pluginPath?: string } = $props()
   // 結果一覧を絞る対象 plugin 名（フルパスの末尾）。backend の plugin 列（filepath.Base）と一致させる。
   const pluginName = $derived(pluginPath.split(/[\\/]/).pop() ?? "")
-  let endpoint = $state(SYNC_DEFAULT_ENDPOINT)
+  let endpoint = $state(providerDefaults("sync").endpoint)
   let apiKey = $state("")
   let model = $state("")
   let models = $state<string[]>([])
@@ -58,15 +58,15 @@
   let results = $state<NarrationResultRow[]>([])
   let progress = $state<RunProgress | undefined>(undefined)
   let errorMessage = $state("")
-  // 配送方式。sync=同期（既定）、xai=xAI の batch。取得先と起動操作（実行 / 状態確認・主アクション）を分ける。
+  // 配送方式。sync=同期（既定）、openai=OpenAI batch、xai=xAI batch。
   let provider = $state<TranslationProvider>("sync")
-  // xAI の送信中・状態確認中・取り込み中フラグ。ボタンの無効化とスピナー表示に使う。
+  // batch の送信中・状態確認中・取り込み中フラグ。ボタンの無効化とスピナー表示に使う。
   let submitting = $state(false)
   let checking = $state(false)
   let applying = $state(false)
-  // xAI batch の進行状況（状態確認で取得）。undefined は未確認。パネル表示と主アクションの活性に使う。
+  // batch の進行状況（状態確認で取得）。undefined は未確認。パネル表示と主アクションの活性に使う。
   let batchProgress = $state<BatchProgressView | undefined>(undefined)
-  // xAI の送信直後・状態確認・取り込みの結果として出す案内。方式切替・実行・エラーでクリアする。
+  // batch の送信直後・状態確認・取り込みの結果として出す案内。方式切替・実行・エラーでクリアする。
   let notice = $state("")
   // xTranslator 書き出し中フラグ。書き出しボタンの無効化とスピナー表示に使う。
   let exporting = $state(false)
@@ -79,13 +79,23 @@
   let nextCursor = $state("")
   let hasMore = $state(false)
 
-  const form: TranslationRunForm = $derived({ pluginPath, endpoint, apiKey, model })
+  const form: TranslationRunForm = $derived({
+    pluginPath,
+    endpoint,
+    apiKey,
+    model
+  })
   const canRun = $derived(
     pluginPath.length > 0 && endpoint.length > 0 && model.length > 0
   )
-  // xAI の送信可否。plugin とモデルが揃えば送れる（endpoint は空でも backend が xAI 既定を補う）。
+  // OpenAI は API キーを必須にし、送信・状態確認・取り込みの全操作を同じ条件で止める。
+  const canOperateBatch = $derived(batchOperationAllowed(provider, apiKey))
   const canSubmit = $derived(
-    provider === "xai" && pluginPath.length > 0 && model.length > 0 && !submitting
+    provider !== "sync" &&
+      canOperateBatch &&
+      pluginPath.length > 0 &&
+      model.length > 0 &&
+      !submitting
   )
   const paging: ResultsPaging = $derived({
     total,
@@ -145,12 +155,16 @@
     modelsLoading = true
     errorMessage = ""
     try {
-      // 取得先は配送方式で分ける。sync は OpenAI 互換、xai は xAI（batch 非対応モデルを除く）。
-      models =
-        provider === "xai"
-          ? await fetchXaiModels({ endpoint, apiKey })
-          : await fetchModels({ endpoint, apiKey })
-      if (model.length === 0 && models.length > 0) model = models[0]
+      // OpenAI は Luna が取得結果にあれば先頭へ置き、他モデルは残す。
+      if (provider === "xai") {
+        models = await fetchXaiModels({ endpoint, apiKey })
+      } else {
+        models = orderProviderModels(
+          provider,
+          await fetchModels({ endpoint, apiKey })
+        )
+      }
+      if (models.length > 0) model = models[0]
     } catch (error) {
       errorMessage = messageOf(error)
       phase = "error"
@@ -159,18 +173,14 @@
     }
   }
 
-  // 配送方式を切り替える。取得済みモデルは方式間で通用しないためクリアして取り直しを促す。
-  // エンドポイントが切替前の方式の既定のままなら、新方式の既定へ寄せる（利用者が触った値は残す）。
+  // 配送方式を切り替える。切替前のモデル一覧と進行表示は必ず消し、選択先の既定値へ替える。
   function onProviderChange(next: TranslationProvider) {
     if (next === provider) return
-    if (provider === "sync" && endpoint === SYNC_DEFAULT_ENDPOINT) {
-      endpoint = XAI_DEFAULT_ENDPOINT
-    } else if (provider === "xai" && endpoint === XAI_DEFAULT_ENDPOINT) {
-      endpoint = SYNC_DEFAULT_ENDPOINT
-    }
     provider = next
-    model = ""
-    models = []
+    const defaults = providerDefaults(next)
+    endpoint = defaults.endpoint
+    model = defaults.model
+    models = defaults.models
     notice = ""
     batchProgress = undefined
     errorMessage = ""
@@ -205,13 +215,20 @@
     }
   })
 
-  // xAI の batch を送信する（plugin 単位）。送信後は案内を出し、結果一覧は反映まで変えない。
+  // 選択中の batch provider へ送信する。送信後は案内を出し、結果一覧は反映まで変えない。
   async function onSubmit() {
+    if (provider === "sync" || !canOperateBatch) return
     submitting = true
     notice = ""
     errorMessage = ""
     try {
-      await submitBatchTranslation({ pluginPath, endpoint, apiKey, model })
+      await submitBatchTranslation({
+        pluginPath,
+        endpoint,
+        apiKey,
+        model,
+        provider
+      })
       notice = SUBMIT_NOTICE
       phase = "idle"
     } catch (error) {
@@ -225,11 +242,15 @@
   // 対象 plugin の進行状況を確認する（観測・副作用なし）。dest 取り込みも送信もしない。
   // 進行が無ければ案内を出す。得た進行状況でパネルと主アクション（送信 / 取り込み）の活性が決まる。
   async function onCheckStatus() {
+    if (provider === "sync" || !canOperateBatch) return
     checking = true
     notice = ""
     errorMessage = ""
     try {
-      batchProgress = await getBatchProgress(pluginName, { endpoint, apiKey })
+      batchProgress = await getBatchProgress(pluginName, provider, {
+        endpoint,
+        apiKey
+      })
       if (!batchProgress) notice = NO_PROGRESS_NOTICE
     } catch (error) {
       errorMessage = messageOf(error)
@@ -243,14 +264,18 @@
   // 取り込み後は結果一覧を読み直し、進行状況を取り直して次段（本文 / 完了）へ更新する。
   // 案内は取り込んだ段（取り込み前の段）で選ぶ。接続情報は都度使い、永続化しない。
   async function onApply() {
+    if (provider === "sync" || !canOperateBatch) return
     const appliedStage = batchProgress?.stage
     applying = true
     notice = ""
     errorMessage = ""
     try {
-      await refreshBatchTranslations(pluginName, { endpoint, apiKey })
+      await refreshBatchTranslations(pluginName, provider, { endpoint, apiKey })
       await resetToFirstPage()
-      batchProgress = await getBatchProgress(pluginName, { endpoint, apiKey })
+      batchProgress = await getBatchProgress(pluginName, provider, {
+        endpoint,
+        apiKey
+      })
       notice =
         appliedStage === "proper" ? APPLIED_PROPER_NOTICE : APPLIED_BODY_NOTICE
       phase = "done"
@@ -273,7 +298,8 @@
         pluginPath,
         endpoint,
         apiKey,
-        model
+        model,
+        provider
       })
       await resetToFirstPage()
       // 未訳のまま残った件数を案内として出す。0 件なら untranslatedNotice が空文字を返し、案内は出ない。
@@ -345,6 +371,7 @@
   {onProviderChange}
   {onSubmit}
   {canSubmit}
+  {canOperateBatch}
   {submitting}
   {batchProgress}
   {onCheckStatus}

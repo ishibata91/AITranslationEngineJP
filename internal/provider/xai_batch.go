@@ -51,42 +51,6 @@ func (c *XAIBatch) SubmitBatch(ctx context.Context, conn Connection, model strin
 	return c.createBatch(ctx, conn, fileID)
 }
 
-// buildBatchJSONL は要求群を xAI batch の JSONL（1 行 1 リクエスト）へ組む。
-// 各行は custom_id / method / url(/v1/chat/completions) / body。body は同期と同一の chat completions payload。
-func buildBatchJSONL(model string, requests []BatchRequest) ([]byte, error) {
-	var buf bytes.Buffer
-	for _, r := range requests {
-		line := xaiJSONLLine{
-			CustomID: r.CustomID,
-			Method:   http.MethodPost,
-			URL:      "/v1/chat/completions",
-			Body: chatRequest{
-				Model: model,
-				Messages: []chatMessage{
-					{Role: "system", Content: r.Prompt.System},
-					{Role: "user", Content: r.Prompt.User},
-				},
-				ResponseFormat: translationResponseFormat(),
-			},
-		}
-		encoded, err := json.Marshal(line)
-		if err != nil {
-			return nil, fmt.Errorf("batch JSONL 行の生成: %w", err)
-		}
-		buf.Write(encoded)
-		buf.WriteByte('\n')
-	}
-	return buf.Bytes(), nil
-}
-
-// xaiJSONLLine は JSONL の 1 行。body は同期と同一の chat completions payload（chatRequest）。
-type xaiJSONLLine struct {
-	CustomID string      `json:"custom_id"`
-	Method   string      `json:"method"`
-	URL      string      `json:"url"`
-	Body     chatRequest `json:"body"`
-}
-
 // uploadFile は JSONL を Files API（POST /v1/files）へ multipart upload し、file ID を返す。
 func (c *XAIBatch) uploadFile(ctx context.Context, conn Connection, jsonl []byte) (string, error) {
 	var body bytes.Buffer
