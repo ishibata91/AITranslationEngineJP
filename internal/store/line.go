@@ -22,11 +22,15 @@ func (s *Store) ListUntranslatedLines(ctx context.Context, plugin string) ([]mod
 // LinesAfter は id が afterID より大きい台詞を id 昇順で最大 limit 件返す（keyset ページング用）。
 // afterID=0 で先頭から、最後に読んだ id を次回 afterID に渡して次ページを得る。
 // plugin が空でなければその対象 plugin の行だけに絞る（空なら全 plugin）。
-func (s *Store) LinesAfter(ctx context.Context, plugin string, afterID int64, limit int) ([]model.Line, error) {
-	if plugin == "" {
-		return s.queryLines(ctx, `SELECT `+lineColumns+` FROM line WHERE id > ? ORDER BY id LIMIT ?`, afterID, limit)
+func (s *Store) LinesAfter(ctx context.Context, plugin string, afterID int64, limit int, untranslatedOnly bool) ([]model.Line, error) {
+	statusCondition := ""
+	if untranslatedOnly {
+		statusCondition = " AND status = 0"
 	}
-	return s.queryLines(ctx, `SELECT `+lineColumns+` FROM line WHERE plugin = ? AND id > ? ORDER BY id LIMIT ?`, plugin, afterID, limit)
+	if plugin == "" {
+		return s.queryLines(ctx, `SELECT `+lineColumns+` FROM line WHERE id > ?`+statusCondition+` ORDER BY id LIMIT ?`, afterID, limit)
+	}
+	return s.queryLines(ctx, `SELECT `+lineColumns+` FROM line WHERE plugin = ? AND id > ?`+statusCondition+` ORDER BY id LIMIT ?`, plugin, afterID, limit)
 }
 
 // CountLines は台詞の総件数を返す（ページャの総件数表示用）。plugin が空でなければその対象 plugin に絞る。

@@ -50,6 +50,12 @@
     // ページ送り操作。state は container が持つ。
     onPagePrev?: () => void
     onPageNext?: () => void
+    // 結果一覧を未訳だけに絞っているか。state は container が持つ。
+    untranslatedOnly?: boolean
+    // 未訳だけに絞る選択の変更操作。結果取得と state 更新は container が行う。
+    onUntranslatedOnlyChange?: (checked: boolean) => void
+    // 絞り込み前の結果が 1 件以上あるか。絞り込み結果が 0 件でも書き出し操作を保つために使う。
+    hasUnfilteredResults?: boolean
     // xTranslator XML への書き出し操作。結果一覧パネルの書き出しボタンから起動する。
     onExportXml?: () => void
     // 書き出し中フラグ。true の間は書き出しボタンを無効化する。
@@ -96,6 +102,9 @@
     onRun,
     onPagePrev = () => {},
     onPageNext = () => {},
+    untranslatedOnly = false,
+    onUntranslatedOnlyChange = () => {},
+    hasUnfilteredResults = results.length > 0,
     onExportXml = () => {},
     exporting = false,
     provider = "sync",
@@ -312,6 +321,9 @@
       canNext={paging?.canNext}
       onPrev={onPagePrev}
       onNext={onPageNext}
+      {untranslatedOnly}
+      {onUntranslatedOnlyChange}
+      {hasUnfilteredResults}
       onExport={onExportXml}
       {exporting}
     />

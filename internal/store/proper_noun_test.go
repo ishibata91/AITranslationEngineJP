@@ -136,7 +136,7 @@ func TestDerivedProperNounsAreNotTranslationTargets(t *testing.T) {
 	}
 
 	// 一覧のページにも部分形の行が出ない。
-	page, err := s.ProperNounsAfter(ctx, "Mod.esp", 0, 10)
+	page, err := s.ProperNounsAfter(ctx, "Mod.esp", 0, 10, false)
 	if err != nil {
 		t.Fatalf("ProperNounsAfter: %v", err)
 	}

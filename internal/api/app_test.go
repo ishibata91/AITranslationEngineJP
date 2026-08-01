@@ -7,7 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	"aitranslationenginejp/internal/engine"
 	"aitranslationenginejp/internal/model"
+	"aitranslationenginejp/internal/provider"
 )
 
 // 訳状態コードを画面表示ラベルへ写すこと（xTranslator の Status 値域に従う）。
@@ -86,27 +88,34 @@ type fakePageStore struct {
 	propers    []model.ProperNoun
 	// untranslated は CountUntranslated が返す未訳件数、untranslatedErr はその集計の失敗（既定は成功）。
 	// untranslatedCalls は CountUntranslated の呼び出し回数。
-	untranslated      int
-	untranslatedErr   error
-	untranslatedCalls int
-	syncRetryReady    bool
+	untranslated       int
+	untranslatedErr    error
+	untranslatedCalls  int
+	syncRetryReady     bool
+	countNarrationsErr error
 }
 
 // plugin フィルタは pageRows の cursor 境界ロジック確認には使わないため無視する（呼び出しは "" を渡す）。
 func (f *fakePageStore) CountNarrations(_ context.Context, _ string) (int, error) {
-	return len(f.narrations), nil
+	return len(f.narrations), f.countNarrationsErr
 }
 func (f *fakePageStore) CountLines(_ context.Context, _ string) (int, error) {
 	return len(f.lines), nil
 }
 func (f *fakePageStore) CountProperNouns(_ context.Context, _ string) (int, error) {
-	return len(f.propers), nil
+	count := 0
+	for _, p := range f.propers {
+		if p.Origin != model.OriginDerived {
+			count++
+		}
+	}
+	return count, nil
 }
 
-func (f *fakePageStore) NarrationsAfter(_ context.Context, _ string, afterID int64, limit int) ([]model.Narration, error) {
+func (f *fakePageStore) NarrationsAfter(_ context.Context, _ string, afterID int64, limit int, untranslatedOnly bool) ([]model.Narration, error) {
 	var out []model.Narration
 	for _, n := range f.narrations {
-		if n.ID > afterID {
+		if n.ID > afterID && (!untranslatedOnly || n.Status == 0) {
 			out = append(out, n)
 			if len(out) == limit {
 				break
@@ -116,10 +125,10 @@ func (f *fakePageStore) NarrationsAfter(_ context.Context, _ string, afterID int
 	return out, nil
 }
 
-func (f *fakePageStore) LinesAfter(_ context.Context, _ string, afterID int64, limit int) ([]model.Line, error) {
+func (f *fakePageStore) LinesAfter(_ context.Context, _ string, afterID int64, limit int, untranslatedOnly bool) ([]model.Line, error) {
 	var out []model.Line
 	for _, l := range f.lines {
-		if l.ID > afterID {
+		if l.ID > afterID && (!untranslatedOnly || l.Status == 0) {
 			out = append(out, l)
 			if len(out) == limit {
 				break
@@ -129,10 +138,10 @@ func (f *fakePageStore) LinesAfter(_ context.Context, _ string, afterID int64, l
 	return out, nil
 }
 
-func (f *fakePageStore) ProperNounsAfter(_ context.Context, _ string, afterID int64, limit int) ([]model.ProperNoun, error) {
+func (f *fakePageStore) ProperNounsAfter(_ context.Context, _ string, afterID int64, limit int, untranslatedOnly bool) ([]model.ProperNoun, error) {
 	var out []model.ProperNoun
 	for _, p := range f.propers {
-		if p.ID > afterID {
+		if p.ID > afterID && p.Origin != model.OriginDerived && (!untranslatedOnly || p.Status == 0) {
 			out = append(out, p)
 			if len(out) == limit {
 				break
@@ -223,7 +232,7 @@ func TestPageRowsWalk(t *testing.T) {
 	cursor := ""
 	pages := 0
 	for {
-		narrations, lines, _, total, next, hasMore, err := app.pageRows(context.Background(), "", cursor, 2)
+		narrations, lines, _, total, _, next, hasMore, err := app.pageRows(context.Background(), "", cursor, 2, false)
 		if err != nil {
 			t.Fatalf("pageRows: %v", err)
 		}
@@ -262,7 +271,7 @@ func TestPageRowsCrossBoundary(t *testing.T) {
 		lines:      linesWithIDs(1, 2, 3, 4, 5),
 	}}
 
-	narrations, lines, _, _, next, hasMore, err := app.pageRows(context.Background(), "", "n:2", 2)
+	narrations, lines, _, _, _, next, hasMore, err := app.pageRows(context.Background(), "", "n:2", 2, false)
 	if err != nil {
 		t.Fatalf("pageRows: %v", err)
 	}
@@ -287,7 +296,7 @@ func TestPageRowsNarrationsExactlyFill(t *testing.T) {
 		lines:      linesWithIDs(1, 2, 3),
 	}}
 
-	narrations, lines, _, total, next, hasMore, err := app.pageRows(context.Background(), "", "", 2)
+	narrations, lines, _, total, _, next, hasMore, err := app.pageRows(context.Background(), "", "", 2, false)
 	if err != nil {
 		t.Fatalf("pageRows: %v", err)
 	}
@@ -305,7 +314,7 @@ func TestPageRowsNarrationsExactlyFill(t *testing.T) {
 	}
 
 	// 続く l:0 から台詞先頭が取れること。
-	_, lines2, _, _, _, _, err := app.pageRows(context.Background(), "", next, 2)
+	_, lines2, _, _, _, _, _, err := app.pageRows(context.Background(), "", next, 2, false)
 	if err != nil {
 		t.Fatalf("pageRows(l:0): %v", err)
 	}
@@ -318,7 +327,7 @@ func TestPageRowsNarrationsExactlyFill(t *testing.T) {
 func TestPageRowsEmpty(t *testing.T) {
 	app := &App{store: &fakePageStore{}}
 
-	narrations, lines, propers, total, next, hasMore, err := app.pageRows(context.Background(), "", "", 2)
+	narrations, lines, propers, total, _, next, hasMore, err := app.pageRows(context.Background(), "", "", 2, false)
 	if err != nil {
 		t.Fatalf("pageRows: %v", err)
 	}
@@ -341,7 +350,7 @@ func TestPageRowsProperNounSection(t *testing.T) {
 	var got []string
 	cursor := ""
 	for pages := 0; ; pages++ {
-		narrations, lines, propers, total, next, hasMore, err := app.pageRows(context.Background(), "", cursor, 2)
+		narrations, lines, propers, total, _, next, hasMore, err := app.pageRows(context.Background(), "", cursor, 2, false)
 		if err != nil {
 			t.Fatalf("pageRows: %v", err)
 		}
@@ -373,6 +382,56 @@ func TestPageRowsProperNounSection(t *testing.T) {
 		if got[i] != want[i] {
 			t.Errorf("走査[%d] = %s, want %s", i, got[i], want[i])
 		}
+	}
+}
+
+// R-3-1, R-3-2, R-3-3: 未訳条件は現在ページだけでなく、叙述文・台詞・固有名の連結列全体へ適用する。
+// 機械派生した固有名は未訳でも結果一覧と件数へ含めない。
+func TestListResultsPageFiltersUntranslatedAcrossSections(t *testing.T) {
+	store := &fakePageStore{
+		narrations: []model.Narration{{ID: 1, Status: 3}, {ID: 2, Status: 0}},
+		lines:      []model.Line{{ID: 1, Status: 0}, {ID: 2, Status: 4}},
+		propers: []model.ProperNoun{
+			{ID: 1, Status: 0},
+			{ID: 2, Status: 0, Origin: model.OriginDerived},
+			{ID: 3, Status: 3},
+		},
+		untranslated: 3,
+	}
+	app := &App{store: store}
+
+	narrations, lines, propers, total, unfilteredTotal, next, hasMore, err := app.pageRows(context.Background(), "", "", 2, true)
+	if err != nil {
+		t.Fatalf("未訳ページの取得: %v", err)
+	}
+	if total != 3 || unfilteredTotal != 6 {
+		t.Fatalf("件数 = filtered:%d unfiltered:%d, want 3 / 6", total, unfilteredTotal)
+	}
+	if len(narrations) != 1 || narrations[0].ID != 2 || len(lines) != 1 || lines[0].ID != 1 || len(propers) != 0 {
+		t.Fatalf("先頭ページ = narrations:%v lines:%v propers:%v", narrations, lines, propers)
+	}
+	if !hasMore || next != "p:0" {
+		t.Fatalf("先頭ページの続き = next:%q hasMore:%v, want p:0 / true", next, hasMore)
+	}
+
+	narrations, lines, propers, total, unfilteredTotal, next, hasMore, err = app.pageRows(context.Background(), "", next, 2, true)
+	if err != nil {
+		t.Fatalf("未訳ページの続き: %v", err)
+	}
+	if len(narrations) != 0 || len(lines) != 0 || len(propers) != 1 || propers[0].ID != 1 || hasMore || next != "" {
+		t.Fatalf("末尾ページ = narrations:%v lines:%v propers:%v next:%q hasMore:%v", narrations, lines, propers, next, hasMore)
+	}
+	if total != 3 || unfilteredTotal != 6 {
+		t.Fatalf("末尾の件数 = filtered:%d unfiltered:%d, want 3 / 6", total, unfilteredTotal)
+	}
+}
+
+// R-3-5: 絞り込み前の総件数を取得できない場合は、部分的なページを返さず失敗する。
+func TestListResultsPageFailsWhenUnfilteredTotalCannotBeCounted(t *testing.T) {
+	app := &App{store: &fakePageStore{countNarrationsErr: errors.New("count failed")}}
+	_, _, _, _, _, _, _, err := app.pageRows(context.Background(), "", "", 20, true)
+	if err == nil || !strings.Contains(err.Error(), "叙述文の件数") {
+		t.Fatalf("pageRows error = %v", err)
 	}
 }
 
@@ -408,6 +467,95 @@ type failingExtractor struct{}
 func (failingExtractor) Extract(_ context.Context, _ string) error { return nil }
 func (failingExtractor) CollectReferences(_ context.Context, _ string) error {
 	return errors.New("既存訳の収集に失敗した")
+}
+
+type countingExtractor struct {
+	extractCalls int
+	collectCalls int
+}
+
+func (e *countingExtractor) Extract(_ context.Context, _ string) error {
+	e.extractCalls++
+	return nil
+}
+
+func (e *countingExtractor) CollectReferences(_ context.Context, _ string) error {
+	e.collectCalls++
+	return nil
+}
+
+type fakeBatchEngine struct {
+	submitOutcome engine.BatchSubmitOutcome
+	progress      engine.BatchProgress
+	present       bool
+}
+
+func (f *fakeBatchEngine) SubmitBatch(_ context.Context, _ string, _ provider.Connection, _, _ string) (engine.BatchSubmitOutcome, error) {
+	return f.submitOutcome, nil
+}
+
+func (f *fakeBatchEngine) ProgressStatus(_ context.Context, _ string, _ provider.Connection, _ string) (engine.BatchProgress, bool, error) {
+	return f.progress, f.present, nil
+}
+
+func (f *fakeBatchEngine) RefreshPlugin(_ context.Context, _ string, _ provider.Connection, _ string) error {
+	return nil
+}
+
+// R-1-1, R-1-2, R-1-3: 完了段は外部 batch の件数ではなく、中心 DB に残る未訳件数を返す。
+func TestGetBatchProgressCountsUntranslatedAfterCompletion(t *testing.T) {
+	store := &fakePageStore{untranslated: 2}
+	batch := &fakeBatchEngine{present: true, progress: engine.BatchProgress{Stage: model.BatchStageDone}}
+	app := New(store, nil, batch, nil, &countingExtractor{})
+
+	got, err := app.GetBatchProgress(BatchPluginRequest{Plugin: "A.esp", Provider: provider.BatchProviderXAI})
+	if err != nil {
+		t.Fatalf("GetBatchProgress: %v", err)
+	}
+	if !got.Present || got.Stage != "done" || got.UntranslatedCount != 2 {
+		t.Fatalf("完了状況 = %+v", got)
+	}
+	if store.untranslatedCalls != 1 {
+		t.Fatalf("未訳件数の取得回数 = %d, want 1", store.untranslatedCalls)
+	}
+}
+
+// R-1-4: 完了後の未訳集計失敗を 0 件へ変換しない。
+func TestGetBatchProgressFailsWhenUntranslatedCannotBeCounted(t *testing.T) {
+	store := &fakePageStore{untranslatedErr: errors.New("count failed")}
+	batch := &fakeBatchEngine{present: true, progress: engine.BatchProgress{Stage: model.BatchStageDone}}
+	app := New(store, nil, batch, nil, &countingExtractor{})
+
+	got, err := app.GetBatchProgress(BatchPluginRequest{Plugin: "A.esp", Provider: provider.BatchProviderXAI})
+	if err == nil || !strings.Contains(err.Error(), "未訳件数取得") {
+		t.Fatalf("GetBatchProgress = got:%+v err:%v", got, err)
+	}
+	if got.Present || got.UntranslatedCount != 0 {
+		t.Fatalf("集計失敗で完了状態を返した: %+v", got)
+	}
+}
+
+// R-2-1, R-2-2, R-2-4: 準備済みの batch 再送信は抽出と既訳収集を繰り返さず、送信結果を画面へ返す。
+func TestSubmitBatchTranslationReusesPreparedTarget(t *testing.T) {
+	store := &fakePageStore{syncRetryReady: true}
+	extractor := &countingExtractor{}
+	batch := &fakeBatchEngine{submitOutcome: engine.BatchSubmitOutcome{CompletedWithoutExternalBatch: true}}
+	app := New(store, nil, batch, nil, extractor)
+
+	got, err := app.SubmitBatchTranslation(RunRequest{
+		PluginPath: "/data/A.esp",
+		Provider:   provider.BatchProviderXAI,
+		Model:      "grok",
+	})
+	if err != nil {
+		t.Fatalf("SubmitBatchTranslation: %v", err)
+	}
+	if !got.ReusedPreparation || !got.CompletedWithoutExternalBatch {
+		t.Fatalf("送信結果 = %+v", got)
+	}
+	if extractor.extractCalls != 0 || extractor.collectCalls != 0 {
+		t.Fatalf("準備済みで抽出処理を呼んだ: extract=%d collect=%d", extractor.extractCalls, extractor.collectCalls)
+	}
 }
 
 // 仕様: 実行が失敗で終わったとき、件数を画面へ出さないこと。
