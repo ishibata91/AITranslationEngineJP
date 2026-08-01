@@ -21,7 +21,8 @@
 - `docs/architecture.md` は反映しない。既存の backend、Wails 境界、frontend の責務内で DTO と処理を拡張しており、層構成、依存方向、強い制約、Wails 境界の責務は変わらないためである。
 - backend 全検証、frontend 5 files・17 tests、TypeScript、ESLint、frontend 境界検証は通過した。実 app では既存 `inigo.esp` の未訳絞り込みが 8803 件から 8376 件へ更新され、OpenAI batch 画面でチェック状態と xTranslator 書き出し操作を維持し、browser console の error と warning が 0 件であることを確認した。
 - `wails build` は macOS SDK の link で `_OBJC_CLASS_$_UTType` を解決できず失敗した。開発アプリは `npm run dev:wails:run` で起動できた。`svelte-check` は Storybook 依存内の既存の型宣言不足 1 件だけが残った。
-- 根拠となる作業計画: `docs/exec-plans/active/batch-retry-untranslated-records/`。
+- `master` への local merge 後に `npm run test:backend` と `npm run test:frontend` を再実行し、両方の通過を確認した。merge conflict は発生しなかった。
+- 根拠となる作業計画: `docs/exec-plans/completed/batch-retry-untranslated-records/`。
 
 ## 2026-08-01 未訳だけを再実行し、完了済みの準備を省略（retry-untranslated-records）
 
