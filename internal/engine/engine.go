@@ -153,6 +153,15 @@ func (e *Engine) GeneratePersonas(ctx context.Context) (int, error) {
 // plugin が空でなければその対象 plugin の未訳行だけを翻訳する（空なら全 plugin）。抽出した plugin の
 // 実行が他 plugin の未訳を巻き込まないよう、固有名・叙述文・台詞の 3 段すべてを対象 plugin へ絞る。
 func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string, plugin string, onProgress func(done, total int)) (int, error) {
+	if _, err := e.GeneratePersonas(ctx); err != nil {
+		return 0, err
+	}
+	return e.TranslateUntranslated(ctx, conn, model, plugin, onProgress)
+}
+
+// TranslateUntranslated は保存済みの辞書と口調を使い、対象 plugin の未訳だけを翻訳する。
+// 口調の一括生成は行わないため、初回経路は GeneratePersonas の完了後に呼ぶ。
+func (e *Engine) TranslateUntranslated(ctx context.Context, conn provider.Connection, model string, plugin string, onProgress func(done, total int)) (int, error) {
 	propers, err := e.store.ListUntranslatedProperNouns(ctx, plugin)
 	if err != nil {
 		return 0, fmt.Errorf("未訳固有名の取得: %w", err)
@@ -182,10 +191,6 @@ func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string
 		return 0, err
 	}
 
-	// 口調ペルソナを一括生成して persona_character を最新化する。注入はこの生成結果を引く。
-	if _, err = e.GeneratePersonas(ctx); err != nil {
-		return 0, err
-	}
 	// 台詞ごとの口調指示をループ前に 1 度だけ一括で組む。口調 directive の指示文（{traits} を含む）へ性質を差し込む。
 	// 話者なし台詞（汎用・PC）は prompt_template 由来の自由記述口調へ感情と性別を重ねる。
 	personas, err := e.LinePersonas(ctx, lines, instructionByKey[directiveTone], ToneDefaults{

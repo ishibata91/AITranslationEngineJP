@@ -30,6 +30,7 @@ type BatchStore interface {
 	GetBatchProgression(ctx context.Context, plugin string) (model.BatchTranslation, bool, error)
 	InsertBatchRequests(ctx context.Context, rows []model.BatchRequest) (int, error)
 	ListBatchRequests(ctx context.Context, externalBatchID string) ([]model.BatchRequest, error)
+	MarkSyncRetryReady(ctx context.Context, plugin string) error
 }
 
 // BatchRunner は OpenAI と xAI の batch 翻訳のオーケストレーション（薄いシェル）。
@@ -160,6 +161,9 @@ func (r *BatchRunner) planProperRequests(ctx context.Context, plugin string) ([]
 func (r *BatchRunner) submitBodyBatch(ctx context.Context, batch provider.BatchTranslator, conn provider.Connection, modelName, plugin string, batchID int64) error {
 	planned, err := r.planBodyRequests(ctx, plugin)
 	if err != nil {
+		return err
+	}
+	if err := r.store.MarkSyncRetryReady(ctx, plugin); err != nil {
 		return err
 	}
 	if len(planned) == 0 {

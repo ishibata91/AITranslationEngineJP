@@ -51,6 +51,37 @@ func TestUpsertTargetPluginIdempotent(t *testing.T) {
 	}
 }
 
+// 準備完了は明示保存後だけ true になり、同じ plugin の再準備開始で false へ戻ること。
+func TestSyncRetryReadinessLifecycle(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "central.sqlite3")
+	s, err := Open(dbPath)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer func() { _ = s.Close() }()
+	ctx := context.Background()
+
+	ready, err := s.IsSyncRetryReady(ctx, "A.esp")
+	if err != nil || ready {
+		t.Fatalf("未登録 plugin の準備状態 = %v, err=%v, want false", ready, err)
+	}
+	if err := s.UpsertTargetPlugin(ctx, "A.esp", "/data/A.esp"); err != nil {
+		t.Fatalf("登録: %v", err)
+	}
+	if err := s.MarkSyncRetryReady(ctx, "A.esp"); err != nil {
+		t.Fatalf("準備完了の保存: %v", err)
+	}
+	if ready, err = s.IsSyncRetryReady(ctx, "A.esp"); err != nil || !ready {
+		t.Fatalf("保存後の準備状態 = %v, err=%v, want true", ready, err)
+	}
+	if err := s.UpsertTargetPlugin(ctx, "A.esp", "/new/A.esp"); err != nil {
+		t.Fatalf("再準備開始: %v", err)
+	}
+	if ready, err = s.IsSyncRetryReady(ctx, "A.esp"); err != nil || ready {
+		t.Fatalf("再準備開始後の準備状態 = %v, err=%v, want false", ready, err)
+	}
+}
+
 // DeleteTargetPlugin が対象 plugin の翻訳成果と連関だけを消し、別 plugin の成果と共有資産を残すこと。
 // 束ねと削除の核。FK cascade を使わず明示 DELETE で対象スコープを閉じることを保証する。
 func TestDeleteTargetPluginScope(t *testing.T) {

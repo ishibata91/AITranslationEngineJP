@@ -22,28 +22,29 @@ const (
 )
 
 type fakeStore struct {
-	untranslated   []model.Narration
-	lines          []model.Line
-	proper         []model.ProperNoun               // 固有名（ListProperNouns / 未訳は status=0 を ListUntranslatedProperNouns）
-	linePersonas   map[int64]model.LinePersonaInput // lineID → 生成済み基底口調（無ければ口調なし）
-	terms          []model.MasterTerm               // 固有名の機械置換辞書（無ければ置換なし）
-	tmpl           model.PromptTemplate             // プロンプトテンプレート（未設定ならテスト用既定値を返す）
-	directives     []model.Directive                // 指示文（nil ならテスト用既定: 口調=testPersonaTemplate）
-	recordTypes    []model.RecordType               // REC:FIELD 割り当て（既定は空。叙述文 directive テストで設定）
-	extracted      []model.ExtractedField           // 取込段の入力（既定は空）
-	genSources     []model.SpeakerLineSource        // 一括生成が読む入力（Run テストでは空で生成 no-op）
-	updates        []update
-	lineUpdates    []update
-	properUpdates  []update           // UpdateProperNounDest の記録（固有名フェーズの観測）
-	derivedPropers []model.ProperNoun // InsertDerivedProperNouns で投入された人名の部分形（派生段の観測）
-	insertedTerms  []model.MasterTerm // InsertDerivedTerms で投入された横断辞書の行（昇格しない不変境界の観測）
-	ingestedNarr   []model.Narration  // IngestNarrations で投入された行
-	ingestedPN     []model.ProperNoun // IngestProperNouns で投入された行
-	ingestedLine   []model.Line       // IngestLines で投入された行
-	linkCalled     bool               // LinkLineSpeakersFromStaging が呼ばれたか
-	condLinkCalled bool               // LinkLineConditionsFromStaging が呼ばれたか
-	emoLinkCalled  bool               // LinkLineEmotionsFromStaging が呼ばれたか
-	lineConditions map[int64]string   // LoadLineConditions が返す条件由来の性別（lineID→sex）
+	untranslated       []model.Narration
+	lines              []model.Line
+	proper             []model.ProperNoun               // 固有名（ListProperNouns / 未訳は status=0 を ListUntranslatedProperNouns）
+	linePersonas       map[int64]model.LinePersonaInput // lineID → 生成済み基底口調（無ければ口調なし）
+	terms              []model.MasterTerm               // 固有名の機械置換辞書（無ければ置換なし）
+	tmpl               model.PromptTemplate             // プロンプトテンプレート（未設定ならテスト用既定値を返す）
+	directives         []model.Directive                // 指示文（nil ならテスト用既定: 口調=testPersonaTemplate）
+	recordTypes        []model.RecordType               // REC:FIELD 割り当て（既定は空。叙述文 directive テストで設定）
+	extracted          []model.ExtractedField           // 取込段の入力（既定は空）
+	genSources         []model.SpeakerLineSource        // 一括生成が読む入力（Run テストでは空で生成 no-op）
+	generateInputCalls int
+	updates            []update
+	lineUpdates        []update
+	properUpdates      []update           // UpdateProperNounDest の記録（固有名フェーズの観測）
+	derivedPropers     []model.ProperNoun // InsertDerivedProperNouns で投入された人名の部分形（派生段の観測）
+	insertedTerms      []model.MasterTerm // InsertDerivedTerms で投入された横断辞書の行（昇格しない不変境界の観測）
+	ingestedNarr       []model.Narration  // IngestNarrations で投入された行
+	ingestedPN         []model.ProperNoun // IngestProperNouns で投入された行
+	ingestedLine       []model.Line       // IngestLines で投入された行
+	linkCalled         bool               // LinkLineSpeakersFromStaging が呼ばれたか
+	condLinkCalled     bool               // LinkLineConditionsFromStaging が呼ばれたか
+	emoLinkCalled      bool               // LinkLineEmotionsFromStaging が呼ばれたか
+	lineConditions     map[int64]string   // LoadLineConditions が返す条件由来の性別（lineID→sex）
 	// 言及段の観測。allNarrations / allLines は ListNarrations / ListLines が返す全行（nil なら空）。
 	allNarrations     []model.Narration
 	allLines          []model.Line
@@ -55,9 +56,10 @@ type fakeStore struct {
 	// refs は既存訳（参照訳）。ListReferenceTranslations が返す（既定は空＝流用なし）。
 	refs []model.ReferenceTranslation
 	// batch 進行の永続（BatchStore 実装用、batch 結合テストで使う）。1 plugin 1 進行を想定。
-	batchProg   *model.BatchTranslation
-	batchReqs   []model.BatchRequest
-	nextBatchID int64
+	batchProg      *model.BatchTranslation
+	batchReqs      []model.BatchRequest
+	nextBatchID    int64
+	syncRetryReady bool
 }
 
 // directivesOrDefault はテスト用の指示文集合を返す。未設定なら口調・固有名の最小集合を既定にする。
@@ -284,6 +286,7 @@ func (f *fakeStore) CountReferenceTranslations(_ context.Context) (int, error) {
 // --- PersonaStore（生成入力・キャッシュ・保存・注入） ---
 
 func (f *fakeStore) ListSpeakerLineSources(_ context.Context) ([]model.SpeakerLineSource, error) {
+	f.generateInputCalls++
 	return f.genSources, nil
 }
 
@@ -657,6 +660,57 @@ func TestRunReportsProgress(t *testing.T) {
 	for i := range want {
 		if seen[i] != want[i] {
 			t.Errorf("progress[%d] = %v, want %v", i, seen[i], want[i])
+		}
+	}
+}
+
+// R-2-1: 保存済みの準備結果を使う翻訳は口調を再集計せず、未訳だけを進捗総数にして処理すること。
+func TestTranslateUntranslatedUsesOnlyPendingRowsWithoutPersonaRegeneration(t *testing.T) {
+	store := &fakeStore{
+		untranslated: []model.Narration{{ID: 1, Plugin: "A.esp", Source: "pending"}},
+	}
+	eng := New(store, &fakeTranslator{out: map[string]string{"pending": "未訳の訳"}}, fakeLexicon{}, nil, nil)
+
+	var seen [][2]int
+	count, err := eng.TranslateUntranslated(context.Background(), provider.Connection{}, "m", "A.esp", func(done, total int) {
+		seen = append(seen, [2]int{done, total})
+	})
+	if err != nil {
+		t.Fatalf("TranslateUntranslated: %v", err)
+	}
+	if count != 1 || len(store.updates) != 1 || store.updates[0].id != 1 {
+		t.Fatalf("未訳の処理結果 = count:%d updates:%v", count, store.updates)
+	}
+	if store.generateInputCalls != 0 {
+		t.Errorf("再実行で口調集計を開始した: %d 回", store.generateInputCalls)
+	}
+	want := [][2]int{{0, 1}, {1, 1}}
+	if fmt.Sprint(seen) != fmt.Sprint(want) {
+		t.Errorf("進捗 = %v, want %v", seen, want)
+	}
+}
+
+// R-2-2: 全本文が未訳の場合も、その全件だけを進捗総数として処理すること。
+func TestTranslateUntranslatedReportsAllPendingRows(t *testing.T) {
+	store := &fakeStore{
+		untranslated: []model.Narration{{ID: 1, Plugin: "A.esp", Source: "a"}},
+		lines:        []model.Line{{ID: 2, Plugin: "A.esp", Source: "b"}},
+	}
+	eng := New(store, &fakeTranslator{out: map[string]string{"a": "あ", "b": "び"}}, fakeLexicon{}, nil, nil)
+
+	var totals []int
+	count, err := eng.TranslateUntranslated(context.Background(), provider.Connection{}, "m", "A.esp", func(_, total int) {
+		totals = append(totals, total)
+	})
+	if err != nil {
+		t.Fatalf("TranslateUntranslated: %v", err)
+	}
+	if count != 2 || len(totals) != 3 {
+		t.Fatalf("全未訳の処理結果 = count:%d totals:%v", count, totals)
+	}
+	for _, total := range totals {
+		if total != 2 {
+			t.Errorf("進捗総数 = %d, want 2", total)
 		}
 	}
 }

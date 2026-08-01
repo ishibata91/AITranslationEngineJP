@@ -292,7 +292,7 @@
     errorMessage = ""
     notice = ""
     results = []
-    progress = { stage: "extract", done: 0, total: 0 }
+    progress = undefined
     try {
       const outcome = await runExtractAndTranslate({
         pluginPath,
