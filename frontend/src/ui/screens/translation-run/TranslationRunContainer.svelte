@@ -39,12 +39,10 @@
     providerDefaults
   } from "./translation-run-provider"
 
-  // 状態確認して進行が無かった時に出す案内（表示 copy は presentation に集約するが、
-  // 「進行なし」用の定数は表示層に無いため、状態確認の結果としてここで確定文言を持つ）。
-  const NO_PROGRESS_NOTICE = "この plugin に進行中の batch はありません。"
-
   // 結果一覧は keyset cursor ページングで 1 ページずつ取得する。1 ページの件数。
   const PAGE_SIZE = 50
+  // 前の状態確認が完了してから次の状態確認を始めるまでの間隔。
+  const BATCH_POLL_INTERVAL_MS = 10_000
 
   // 翻訳対象のプラグインは翻訳対象プラグイン画面で選び、ルーティングで渡される。ここは受け取るだけ。
   let { pluginPath = "" }: { pluginPath?: string } = $props()
@@ -61,10 +59,8 @@
   let errorMessage = $state("")
   // 配送方式。sync=同期（既定）、openai=OpenAI batch、xai=xAI batch。
   let provider = $state<TranslationProvider>("sync")
-  // batch の送信中・状態確認中・取り込み中フラグ。ボタンの無効化とスピナー表示に使う。
-  let submitting = $state(false)
-  let checking = $state(false)
-  let applying = $state(false)
+  // batch の開始処理と自動状態確認を一つの実行として扱い、多重実行を防ぐ。
+  let batchRunning = $state(false)
   // batch の進行状況（状態確認で取得）。undefined は未確認。パネル表示と主アクションの活性に使う。
   let batchProgress = $state<BatchProgressView | undefined>(undefined)
   // batch の送信直後・状態確認・取り込みの結果として出す案内。方式切替・実行・エラーでクリアする。
@@ -98,7 +94,7 @@
       canOperateBatch &&
       pluginPath.length > 0 &&
       model.length > 0 &&
-      !submitting
+      !batchRunning
   )
   const paging: ResultsPaging = $derived({
     total,
@@ -109,10 +105,31 @@
   const hasUnfilteredResults = $derived(unfilteredTotal > 0)
 
   type LoadedPage = Awaited<ReturnType<typeof listResultsPage>>
+  type BatchProvider = Exclude<TranslationProvider, "sync">
+  interface BatchLoopContext {
+    generation: number
+    pluginPath: string
+    pluginName: string
+    provider: BatchProvider
+    endpoint: string
+    apiKey: string
+    model: string
+  }
+
+  let batchTimer: ReturnType<typeof setTimeout> | undefined
+  let batchGeneration = 0
 
   // 指定 cursor と条件のページを一時値へ取得する。呼び出し側が必要な取得を終えてから画面へ反映する。
   async function fetchPage(cursor: string, onlyUntranslated: boolean) {
     return listResultsPage(pluginName, cursor, PAGE_SIZE, onlyUntranslated)
+  }
+
+  async function fetchPageForPlugin(
+    targetPlugin: string,
+    cursor: string,
+    onlyUntranslated: boolean
+  ) {
+    return listResultsPage(targetPlugin, cursor, PAGE_SIZE, onlyUntranslated)
   }
 
   function applyPage(page: LoadedPage) {
@@ -209,9 +226,23 @@
     }
   }
 
-  // 配送方式を切り替える。切替前のモデル一覧と進行表示は必ず消し、選択先の既定値へ替える。
+  function invalidateBatchLoop() {
+    batchGeneration += 1
+    if (batchTimer !== undefined) {
+      clearTimeout(batchTimer)
+      batchTimer = undefined
+    }
+    batchRunning = false
+  }
+
+  function isCurrentBatchLoop(generation: number) {
+    return generation === batchGeneration
+  }
+
+  // 配送方式を切り替える。切替前の自動状態確認を止め、選択先の既定値へ替える。
   function onProviderChange(next: TranslationProvider) {
     if (next === provider) return
+    invalidateBatchLoop()
     provider = next
     const defaults = providerDefaults(next)
     endpoint = defaults.endpoint
@@ -244,6 +275,7 @@
   let lastPlugin = $state("")
   $effect(() => {
     if (pluginName !== lastPlugin) {
+      invalidateBatchLoop()
       lastPlugin = pluginName
       batchProgress = undefined
       notice = ""
@@ -251,118 +283,222 @@
     }
   })
 
-  // 選択中の batch provider へ送信する。送信後は案内を出し、結果一覧は反映まで変えない。
+  function finishBatchLoop(
+    context: BatchLoopContext,
+    progress: BatchProgressView,
+    completionNotice = ""
+  ) {
+    if (!isCurrentBatchLoop(context.generation)) return
+    if (batchTimer !== undefined) {
+      clearTimeout(batchTimer)
+      batchTimer = undefined
+    }
+    batchProgress = progress
+    batchRunning = false
+    phase = "done"
+    notice =
+      completionNotice || batchUntranslatedNotice(progress.untranslatedCount)
+  }
+
+  function failBatchLoop(context: BatchLoopContext, error: unknown) {
+    if (!isCurrentBatchLoop(context.generation)) return
+    if (batchTimer !== undefined) {
+      clearTimeout(batchTimer)
+      batchTimer = undefined
+    }
+    batchRunning = false
+    errorMessage = messageOf(error)
+    phase = "error"
+  }
+
+  function scheduleBatchPoll(context: BatchLoopContext) {
+    if (!isCurrentBatchLoop(context.generation)) return
+    if (batchTimer !== undefined) clearTimeout(batchTimer)
+    batchTimer = setTimeout(() => {
+      batchTimer = undefined
+      void pollBatch(context)
+    }, BATCH_POLL_INTERVAL_MS)
+  }
+
+  async function applyCompletedBatch(
+    context: BatchLoopContext,
+    progressBeforeApply: BatchProgressView
+  ) {
+    await refreshBatchTranslations(context.pluginName, context.provider, {
+      endpoint: context.endpoint,
+      apiKey: context.apiKey
+    })
+    if (!isCurrentBatchLoop(context.generation)) return
+
+    const [page, nextProgress] = await Promise.all([
+      fetchPageForPlugin(context.pluginName, "", untranslatedOnly),
+      getBatchProgress(context.pluginName, context.provider, {
+        endpoint: context.endpoint,
+        apiKey: context.apiKey
+      })
+    ])
+    if (!isCurrentBatchLoop(context.generation)) return
+    if (!nextProgress) {
+      throw new Error("取り込み後の batch 状態を取得できませんでした。")
+    }
+
+    applyPage(page)
+    cursorStack = [""]
+    pageIndex = 0
+    batchProgress = nextProgress
+    if (
+      progressBeforeApply.stage === "proper" &&
+      nextProgress.stage === "body"
+    ) {
+      notice = APPLIED_PROPER_NOTICE
+    } else if (nextProgress.stage === "done") {
+      notice =
+        batchUntranslatedNotice(nextProgress.untranslatedCount) ||
+        APPLIED_BODY_NOTICE
+    } else {
+      notice = ""
+    }
+
+    if (nextProgress.stage === "done") {
+      finishBatchLoop(context, nextProgress, notice)
+      return
+    }
+    scheduleBatchPoll(context)
+  }
+
+  async function continueBatchLoop(
+    context: BatchLoopContext,
+    progress: BatchProgressView
+  ) {
+    if (!isCurrentBatchLoop(context.generation)) return
+    batchProgress = progress
+    if (progress.stage === "done") {
+      finishBatchLoop(context, progress)
+      return
+    }
+    if (progress.canApply) {
+      await applyCompletedBatch(context, progress)
+      return
+    }
+    scheduleBatchPoll(context)
+  }
+
+  async function pollBatch(context: BatchLoopContext) {
+    if (!isCurrentBatchLoop(context.generation)) return
+    try {
+      const progress = await getBatchProgress(
+        context.pluginName,
+        context.provider,
+        { endpoint: context.endpoint, apiKey: context.apiKey }
+      )
+      if (!isCurrentBatchLoop(context.generation)) return
+      if (!progress) {
+        throw new Error("自動確認中の batch 状態を取得できませんでした。")
+      }
+      await continueBatchLoop(context, progress)
+    } catch (error) {
+      failBatchLoop(context, error)
+    }
+  }
+
+  // 一つの入口で、新規送信、保存済み進行の再開、完了後の未訳再送信を開始する。
   async function onSubmit() {
-    if (provider === "sync" || !canOperateBatch) return
-    submitting = true
+    if (provider === "sync" || !canOperateBatch || batchRunning) return
+
+    invalidateBatchLoop()
+    const context: BatchLoopContext = {
+      generation: batchGeneration,
+      pluginPath,
+      pluginName,
+      provider,
+      endpoint,
+      apiKey,
+      model
+    }
+    batchRunning = true
     notice = ""
     errorMessage = ""
+    phase = "idle"
     let submitted = false
+
     try {
+      const savedProgress = await getBatchProgress(
+        context.pluginName,
+        context.provider,
+        { endpoint: context.endpoint, apiKey: context.apiKey }
+      )
+      if (!isCurrentBatchLoop(context.generation)) return
+      batchProgress = savedProgress
+
+      if (savedProgress && savedProgress.stage !== "done") {
+        await continueBatchLoop(context, savedProgress)
+        return
+      }
+      if (
+        savedProgress?.stage === "done" &&
+        savedProgress.untranslatedCount === 0
+      ) {
+        finishBatchLoop(context, savedProgress)
+        return
+      }
+
       const outcome = await submitBatchTranslation({
-        pluginPath,
-        endpoint,
-        apiKey,
-        model,
-        provider
+        pluginPath: context.pluginPath,
+        endpoint: context.endpoint,
+        apiKey: context.apiKey,
+        model: context.model,
+        provider: context.provider
       })
       submitted = true
-      const reusedNotice = outcome.reusedPreparation
-        ? "保存済みの準備を使って未訳だけを処理しました。"
-        : ""
+      if (!isCurrentBatchLoop(context.generation)) return
+
+      const nextProgress = await getBatchProgress(
+        context.pluginName,
+        context.provider,
+        { endpoint: context.endpoint, apiKey: context.apiKey }
+      )
+      if (!isCurrentBatchLoop(context.generation)) return
+      if (!nextProgress) {
+        throw new Error("送信後の batch 状態を取得できませんでした。")
+      }
+
       if (outcome.completedWithoutExternalBatch) {
-        const [page, nextProgress] = await Promise.all([
-          fetchPage("", untranslatedOnly),
-          getBatchProgress(pluginName, provider, { endpoint, apiKey })
-        ])
-        if (!nextProgress) {
-          throw new Error("完了後の batch 状態を取得できませんでした。")
-        }
+        const page = await fetchPageForPlugin(
+          context.pluginName,
+          "",
+          untranslatedOnly
+        )
+        if (!isCurrentBatchLoop(context.generation)) return
         applyPage(page)
         cursorStack = [""]
         pageIndex = 0
-        batchProgress = nextProgress
+      }
+
+      batchProgress = nextProgress
+      const reusedNotice = outcome.reusedPreparation
+        ? "保存済みの準備を使って未訳だけを処理しました。"
+        : ""
+      notice = [reusedNotice, SUBMIT_NOTICE].filter(Boolean).join(" ")
+      if (nextProgress.stage === "done") {
         const completionNotice =
           batchUntranslatedNotice(nextProgress.untranslatedCount) ||
           APPLIED_BODY_NOTICE
-        notice = [reusedNotice, completionNotice].filter(Boolean).join(" ")
-        phase = "done"
-      } else {
-        notice = [reusedNotice, SUBMIT_NOTICE].filter(Boolean).join(" ")
-        phase = "idle"
+        finishBatchLoop(
+          context,
+          nextProgress,
+          [reusedNotice, completionNotice].filter(Boolean).join(" ")
+        )
+        return
       }
+      scheduleBatchPoll(context)
     } catch (error) {
-      errorMessage = submitted
-        ? `batch の処理は完了しましたが、画面の更新に失敗しました: ${messageOf(error)}`
-        : messageOf(error)
-      phase = "error"
-    } finally {
-      submitting = false
-    }
-  }
-
-  // 対象 plugin の進行状況を確認する（観測・副作用なし）。dest 取り込みも送信もしない。
-  // 進行が無ければ案内を出す。得た進行状況でパネルと主アクション（送信 / 取り込み）の活性が決まる。
-  async function onCheckStatus() {
-    if (provider === "sync" || !canOperateBatch) return
-    checking = true
-    notice = ""
-    errorMessage = ""
-    try {
-      const nextProgress = await getBatchProgress(pluginName, provider, {
-        endpoint,
-        apiKey
-      })
-      batchProgress = nextProgress
-      if (!nextProgress) notice = NO_PROGRESS_NOTICE
-      else if (nextProgress.stage === "done") {
-        notice = batchUntranslatedNotice(nextProgress.untranslatedCount)
-      }
-    } catch (error) {
-      errorMessage = messageOf(error)
-      phase = "error"
-    } finally {
-      checking = false
-    }
-  }
-
-  // 対象 plugin の完了段を取り込む（前進）。固有名段なら本文 batch も送られる。
-  // 取り込み後は結果一覧を読み直し、進行状況を取り直して次段（本文 / 完了）へ更新する。
-  // 案内は取り込んだ段（取り込み前の段）で選ぶ。接続情報は都度使い、永続化しない。
-  async function onApply() {
-    if (provider === "sync" || !canOperateBatch) return
-    const appliedStage = batchProgress?.stage
-    applying = true
-    notice = ""
-    errorMessage = ""
-    let applied = false
-    try {
-      await refreshBatchTranslations(pluginName, provider, { endpoint, apiKey })
-      applied = true
-      const [page, nextProgress] = await Promise.all([
-        fetchPage("", untranslatedOnly),
-        getBatchProgress(pluginName, provider, { endpoint, apiKey })
-      ])
-      if (!nextProgress) {
-        throw new Error("取り込み後の batch 状態を取得できませんでした。")
-      }
-      applyPage(page)
-      cursorStack = [""]
-      pageIndex = 0
-      batchProgress = nextProgress
-      notice =
-        appliedStage === "proper"
-          ? APPLIED_PROPER_NOTICE
-          : batchUntranslatedNotice(nextProgress.untranslatedCount) ||
-            APPLIED_BODY_NOTICE
-      phase = "done"
-    } catch (error) {
-      errorMessage = applied
-        ? `batch の取り込みは完了しましたが、画面の更新に失敗しました: ${messageOf(error)}`
-        : messageOf(error)
-      phase = "error"
-    } finally {
-      applying = false
+      if (!isCurrentBatchLoop(context.generation)) return
+      const failure = submitted
+        ? new Error(
+            `batch の送信は完了しましたが、画面の更新に失敗しました: ${messageOf(error)}`
+          )
+        : error
+      failBatchLoop(context, failure)
     }
   }
 
@@ -425,7 +561,10 @@
       progress = p
     })
     void loadPrevious()
-    return unsubscribe
+    return () => {
+      invalidateBatchLoop()
+      unsubscribe()
+    }
   })
 </script>
 
@@ -454,12 +593,8 @@
   {onSubmit}
   {canSubmit}
   {canOperateBatch}
-  {submitting}
   {batchProgress}
-  {onCheckStatus}
-  {checking}
-  {onApply}
-  {applying}
+  {batchRunning}
   {notice}
   {stringsPresence}
 />

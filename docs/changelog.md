@@ -4,6 +4,25 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-08-02 batch 実行後の状態確認と次チャンクへの進行を自動化（batch-auto-polling）
+
+### 変更
+
+- 変更前は、OpenAI と xAI の batch 翻訳で利用者が `状態確認` を押し、取り込み可能になった後に主操作を押す必要があった。各チャンクと固有名段から本文段への移行も同じ操作を繰り返す必要があった。
+- 変更後は、利用者が `バッチ実行` を押すと、翻訳実行画面が開いている間だけ frontend が10秒間隔の直列状態確認を始める。取り込み可能な外部 batch は backend の既存処理を1回進め、同じ進行段の次チャンク、固有名段から本文段、完了まで自動で進む。
+- 画面を閉じると状態確認を止める。再表示しただけでは再開せず、`バッチ実行` を押した時に保存済みの進行を確認する。進行中なら新しい外部 batch を送らずに状態確認を再開する。
+- OpenAI と xAI の batch 画面から `状態確認` と手動取り込みのボタンを削除した。開始、実行中、再開、未訳だけの再送信、完了は進行状況と1個の主操作で表示する。
+- Storybook の翻訳実行画面と進行状況パネルへ、各 story の前提条件と期待値を `parameters.docs.description.story` として追加した。`@storybook/addon-docs` を追加し、Docs 画面から確認できる形にした。
+
+### 判断
+
+- background の定期実行は追加しない。状態確認に必要な API キーと endpoint を永続化せず、画面表示中の接続だけに使うためである。
+- 状態確認は前の呼び出しが終わってから10秒後に次を予約し、同時実行を1件に制限する。画面終了、対象 plugin の変更、provider の変更、完了、エラーでは次回予約を止める。
+- `docs/architecture.md` へ、frontend が画面表示中の状態確認を持つ責務、10秒間隔の直列実行、画面終了時の停止、利用者操作による保存済み進行の再開を反映した。人間が恒久仕様として承認した。
+- frontend の unit test は5 files・29 tests、ESLint、TypeScript、未使用 export、frontend 境界検証、Storybook build が通過した。実 app では OpenAI（batch）画面に主操作が1個だけ表示され、承認済みの案内文が表示されることと、browser console の error と warning が0件であることを確認した。外部 API への送信は行っていない。
+- `npm install` の監査結果には moderate 4件と high 4件が残る。今回の変更では自動修正を行っていない。
+- 根拠となる作業計画: `docs/exec-plans/completed/batch-auto-polling/`。
+
 ## 2026-08-02 batch を最大1000件ずつ送り failed の取り込みを止める（fix-batch-failure-handling）
 
 ### 変更

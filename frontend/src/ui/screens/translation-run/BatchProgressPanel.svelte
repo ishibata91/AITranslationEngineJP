@@ -5,23 +5,36 @@
   import {
     BATCH_COUNT_LABEL,
     BATCH_UNCHECKED_HINT,
+    BATCH_STARTING_HINT,
     BATCH_WAITING_HINT,
     BATCH_APPLYABLE_HINT,
+    BATCH_PAUSED_HINT,
     BATCH_DONE_HINT,
     batchStepViews
   } from "./translation-run-presentation"
   import type { BatchProgressView } from "./translation-run-view"
 
-  // 進行状況。状態確認前（未確認）は undefined。
-  let { progress }: { progress?: BatchProgressView } = $props()
+  // 進行状況と、自動状態確認を継続しているかを表示用 props として受け取る。
+  let {
+    progress,
+    running = false
+  }: { progress?: BatchProgressView; running?: boolean } = $props()
 
   // ステッパー各段の表示状態（過去段は ✓、現在段は primary、未確認は中立）。
   const steps = $derived(batchStepViews(progress))
 
-  // パネル下部の補足。未確認・全完了・完了段あり・処理待ちで出し分ける。
+  // パネル右上の状態。人の操作が必要な再開待ちと、自動処理中を区別する。
+  const statusLabel = $derived.by(() => {
+    if (progress?.stage === "done") return "完了"
+    if (running) return progress ? "処理中" : "開始中"
+    return progress ? "再開待ち" : "未開始"
+  })
+
+  // パネル下部の補足。開始、自動処理、再開待ち、完了で出し分ける。
   const hint = $derived.by(() => {
-    if (!progress) return BATCH_UNCHECKED_HINT
+    if (!progress) return running ? BATCH_STARTING_HINT : BATCH_UNCHECKED_HINT
     if (progress.stage === "done") return BATCH_DONE_HINT
+    if (!running) return BATCH_PAUSED_HINT
     if (progress.canApply) return BATCH_APPLYABLE_HINT
     return BATCH_WAITING_HINT
   })
@@ -35,9 +48,7 @@
       >
         進行状況
       </h2>
-      {#if !progress}
-        <span class="u-mono text-xs text-base-content/45">未確認</span>
-      {/if}
+      <span class="u-mono text-xs text-base-content/45">{statusLabel}</span>
     </div>
 
     <ul class="steps steps-horizontal w-full text-xs">

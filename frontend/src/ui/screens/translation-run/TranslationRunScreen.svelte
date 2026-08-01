@@ -68,21 +68,17 @@
     onSubmit?: () => void
     // 送信の可否。接続情報とモデルが揃ったら true。
     canSubmit?: boolean
-    // batch 操作全体の可否。API キーが空の場合は false にし、送信・状態確認・取り込みを無効にする。
+    // batch 操作全体の可否。API キーが空の場合は false にし、開始と再開を無効にする。
     canOperateBatch?: boolean
-    // 送信中フラグ。true の間は送信ボタンを無効化しスピナーを出す。
+    // 送信中フラグ。後続の自動状態確認実装へ移行する間の互換用。
     submitting?: boolean
     // 実行の完了、送信、取り込みの結果として出す案内。空なら出さない。配送方式で出し分けない。
     notice?: string
-    // batch の進行状況（状態確認で取得）。未指定なら未確認としてパネルを控えめに出す。
+    // batch の進行状況。未指定なら未開始としてパネルを控えめに出す。
     batchProgress?: BatchProgressView
-    // batch の状態確認操作（副作用なし。進行状況を最新化する）。
-    onCheckStatus?: () => void
-    // 状態確認中フラグ。true の間は状態確認ボタンにスピナーを出す。
+    // 開始処理または自動状態確認を継続している間は true。主操作を実行中表示にする。
+    batchRunning?: boolean
     checking?: boolean
-    // batch の取り込み操作（完了段を dest へ取り込み、次段 batch を送る）。
-    onApply?: () => void
-    // 取り込み中フラグ。true の間は取り込みボタンにスピナーを出す。
     applying?: boolean
   }
 
@@ -115,20 +111,21 @@
     submitting = false,
     notice = "",
     batchProgress = undefined,
-    onCheckStatus = () => {},
+    batchRunning = false,
     checking = false,
-    onApply = () => {},
     applying = false
   }: Props = $props()
 
   // 配送方式に応じた接続情報欄。
   const fields = $derived(providerFields(provider))
 
-  // batch の主アクション（送信と取り込みを 1 ボタンに束ねた表示）。進行状況で種別・ラベル・活性が変わる。
-  const mainAction = $derived(batchMainAction(batchProgress, canSubmit))
-  // 主アクションの実行中フラグ（送信中 / 取り込み中）。busy の間はスピナーを出し無効化する。
+  // 後続の Container 変更までは既存の処理中フラグも実行中表示へまとめる。
   const mainActionBusy = $derived(
-    mainAction.kind === "send" ? submitting : applying
+    batchRunning || submitting || checking || applying
+  )
+  // batch の主操作。開始、再開、未訳の再送信、完了のいずれか一つだけを表示する。
+  const mainAction = $derived(
+    batchMainAction(batchProgress, canSubmit, mainActionBusy)
   )
   const mainActionDisabled = $derived(
     !canOperateBatch || !mainAction.enabled || mainActionBusy
@@ -261,7 +258,10 @@
         {/if}
 
         {#if provider !== "sync"}
-          <BatchProgressPanel progress={batchProgress} />
+          <BatchProgressPanel
+            progress={batchProgress}
+            running={mainActionBusy}
+          />
           <p class="text-xs text-base-content/50">{BATCH_ACTION_HINT}</p>
         {/if}
 
@@ -282,21 +282,10 @@
             </button>
           {:else}
             <button
-              class="btn btn-outline btn-primary px-6"
-              type="button"
-              disabled={!canOperateBatch || checking}
-              onclick={onCheckStatus}
-            >
-              {#if checking}
-                <span class="loading loading-spinner loading-xs"></span>
-              {/if}
-              状態確認
-            </button>
-            <button
               class="btn btn-primary px-8"
               type="button"
               disabled={mainActionDisabled}
-              onclick={mainAction.kind === "send" ? onSubmit : onApply}
+              onclick={onSubmit}
             >
               {#if mainActionBusy}
                 <span class="loading loading-spinner loading-xs"></span>

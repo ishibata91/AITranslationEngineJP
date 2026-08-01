@@ -4,7 +4,7 @@ import { fileURLToPath, URL } from "node:url"
 
 const config: StorybookConfig = {
   stories: ["../src/ui/**/*.stories.@(ts|svelte)"],
-  addons: [],
+  addons: ["@storybook/addon-docs"],
   framework: {
     name: "@storybook/svelte-vite",
     options: {}

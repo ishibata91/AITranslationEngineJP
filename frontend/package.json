@@ -24,6 +24,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.51.0",
+    "@storybook/addon-docs": "^10.5.5",
     "@storybook/svelte-vite": "^10.4.0",
     "@sveltejs/vite-plugin-svelte": "^4.0.4",
     "@tailwindcss/vite": "^4.3.1",

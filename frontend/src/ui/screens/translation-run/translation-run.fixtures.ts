@@ -42,9 +42,11 @@ interface TranslationRunViewModel {
   submitting?: boolean
   // 実行の完了、送信、取り込みの結果として出す案内。空なら出さない。
   notice?: string
-  // OpenAI または xAI の batch 進行状況（状態確認で取得）。未確認は未指定。
+  // OpenAI または xAI の batch 進行状況。未開始または再表示直後は未指定。
   batchProgress?: BatchProgressView
-  // 状態確認中フラグ。
+  // 開始処理または自動状態確認を継続している間は true。
+  batchRunning?: boolean
+  // 後続の Container 変更までの互換用処理中フラグ。
   checking?: boolean
   // 取り込み中フラグ。
   applying?: boolean
@@ -336,6 +338,44 @@ export const OPENAI_READY_STATE: TranslationRunViewModel = {
   canSubmit: true,
   canOperateBatch: true,
   notice: ""
+}
+
+// OpenAI（batch）を開始し、固有名段を自動で状態確認している。
+export const OPENAI_RUNNING_STATE: TranslationRunViewModel = {
+  ...OPENAI_READY_STATE,
+  phase: "running",
+  batchRunning: true,
+  batchProgress: {
+    stage: "proper",
+    total: 1000,
+    pending: 742,
+    succeeded: 258,
+    failed: 0,
+    canApply: false,
+    untranslatedCount: 0
+  }
+}
+
+// 画面を閉じた後などで自動状態確認が止まり、保存済みの本文段から再開できる。
+export const OPENAI_PAUSED_STATE: TranslationRunViewModel = {
+  ...OPENAI_READY_STATE,
+  batchProgress: {
+    stage: "body",
+    total: 1000,
+    pending: 412,
+    succeeded: 586,
+    failed: 2,
+    canApply: false,
+    untranslatedCount: 0
+  }
+}
+
+// OpenAI の外部 batch が失敗し、理由を残したまま再開操作を表示する。
+export const OPENAI_FAILED_STATE: TranslationRunViewModel = {
+  ...OPENAI_PAUSED_STATE,
+  phase: "error",
+  errorMessage:
+    "OpenAI batch batch_01JTEST failed: token_limit_exceeded: 2,000,000 enqueued tokens を超えました。"
 }
 
 // OpenAI（batch）を送信した直後。状態確認で進行状況を取得する案内を出す。
