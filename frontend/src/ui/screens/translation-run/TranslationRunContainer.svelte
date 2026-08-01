@@ -1,7 +1,7 @@
 <script lang="ts">
   // 翻訳実行画面の container。画面状態（$state）を保持し、gateway 経由で backend を呼ぶ。
   // 表示は TranslationRunScreen に委ね、本 component は state と配線だけを持つ。
-  import { onMount } from "svelte"
+  import { onMount, tick } from "svelte"
   import TranslationRunScreen from "./TranslationRunScreen.svelte"
   import type {
     TranslationRunForm,
@@ -18,6 +18,7 @@
     SUBMIT_NOTICE,
     APPLIED_PROPER_NOTICE,
     APPLIED_BODY_NOTICE,
+    batchUntranslatedNotice,
     untranslatedNotice
   } from "./translation-run-presentation"
   import {
@@ -74,6 +75,8 @@
   // keyset ページング state。cursorStack[i] はページ i を取得した cursor（"" 始まり）。
   // 順次送りのため、次へで nextCursor を積み、前へで履歴を 1 つ戻して再取得する。
   let total = $state(0)
+  let unfilteredTotal = $state(0)
+  let untranslatedOnly = $state(false)
   let cursorStack = $state<string[]>([""])
   let pageIndex = $state(0)
   let nextCursor = $state("")
@@ -103,31 +106,42 @@
     canPrev: pageIndex > 0,
     canNext: hasMore
   })
+  const hasUnfilteredResults = $derived(unfilteredTotal > 0)
 
-  // 指定 cursor のページを取得して現在ページへ反映する。結果は選択中の plugin に絞る。
-  async function loadPage(cursor: string) {
-    const page = await listResultsPage(pluginName, cursor, PAGE_SIZE)
+  type LoadedPage = Awaited<ReturnType<typeof listResultsPage>>
+
+  // 指定 cursor と条件のページを一時値へ取得する。呼び出し側が必要な取得を終えてから画面へ反映する。
+  async function fetchPage(cursor: string, onlyUntranslated: boolean) {
+    return listResultsPage(pluginName, cursor, PAGE_SIZE, onlyUntranslated)
+  }
+
+  function applyPage(page: LoadedPage) {
     results = page.results
     total = page.total
+    unfilteredTotal = page.unfilteredTotal
     nextCursor = page.nextCursor
     hasMore = page.hasMore
   }
 
   // 先頭ページから読み直す（起動時・実行完了後）。
-  async function resetToFirstPage() {
+  async function resetToFirstPage(onlyUntranslated = untranslatedOnly) {
+    const page = await fetchPage("", onlyUntranslated)
+    applyPage(page)
     cursorStack = [""]
     pageIndex = 0
-    await loadPage("")
   }
 
   async function onPageNext() {
     if (!hasMore) return
-    if (pageIndex === cursorStack.length - 1) {
-      cursorStack = [...cursorStack, nextCursor]
-    }
-    pageIndex += 1
+    const targetIndex = pageIndex + 1
+    const targetCursor = cursorStack[targetIndex] ?? nextCursor
     try {
-      await loadPage(cursorStack[pageIndex])
+      const page = await fetchPage(targetCursor, untranslatedOnly)
+      applyPage(page)
+      if (targetIndex === cursorStack.length) {
+        cursorStack = [...cursorStack, targetCursor]
+      }
+      pageIndex = targetIndex
     } catch (error) {
       errorMessage = messageOf(error)
       phase = "error"
@@ -136,10 +150,32 @@
 
   async function onPagePrev() {
     if (pageIndex === 0) return
-    pageIndex -= 1
+    const targetIndex = pageIndex - 1
     try {
-      await loadPage(cursorStack[pageIndex])
+      const page = await fetchPage(cursorStack[targetIndex], untranslatedOnly)
+      applyPage(page)
+      pageIndex = targetIndex
     } catch (error) {
+      errorMessage = messageOf(error)
+      phase = "error"
+    }
+  }
+
+  // 未訳条件の先頭ページを取得できた場合だけ、条件・一覧・cursor・ページ番号をまとめて切り替える。
+  async function onUntranslatedOnlyChange(checked: boolean) {
+    if (checked === untranslatedOnly) return
+    errorMessage = ""
+    try {
+      const page = await fetchPage("", checked)
+      applyPage(page)
+      untranslatedOnly = checked
+      cursorStack = [""]
+      pageIndex = 0
+    } catch (error) {
+      // checkbox 自身が先に切り替えた DOM を、保持した state の値へ戻すために 1 度差分を作る。
+      untranslatedOnly = checked
+      await tick()
+      untranslatedOnly = !checked
       errorMessage = messageOf(error)
       phase = "error"
     }
@@ -221,18 +257,44 @@
     submitting = true
     notice = ""
     errorMessage = ""
+    let submitted = false
     try {
-      await submitBatchTranslation({
+      const outcome = await submitBatchTranslation({
         pluginPath,
         endpoint,
         apiKey,
         model,
         provider
       })
-      notice = SUBMIT_NOTICE
-      phase = "idle"
+      submitted = true
+      const reusedNotice = outcome.reusedPreparation
+        ? "保存済みの準備を使って未訳だけを処理しました。"
+        : ""
+      if (outcome.completedWithoutExternalBatch) {
+        const [page, nextProgress] = await Promise.all([
+          fetchPage("", untranslatedOnly),
+          getBatchProgress(pluginName, provider, { endpoint, apiKey })
+        ])
+        if (!nextProgress) {
+          throw new Error("完了後の batch 状態を取得できませんでした。")
+        }
+        applyPage(page)
+        cursorStack = [""]
+        pageIndex = 0
+        batchProgress = nextProgress
+        const completionNotice =
+          batchUntranslatedNotice(nextProgress.untranslatedCount) ||
+          APPLIED_BODY_NOTICE
+        notice = [reusedNotice, completionNotice].filter(Boolean).join(" ")
+        phase = "done"
+      } else {
+        notice = [reusedNotice, SUBMIT_NOTICE].filter(Boolean).join(" ")
+        phase = "idle"
+      }
     } catch (error) {
-      errorMessage = messageOf(error)
+      errorMessage = submitted
+        ? `batch の処理は完了しましたが、画面の更新に失敗しました: ${messageOf(error)}`
+        : messageOf(error)
       phase = "error"
     } finally {
       submitting = false
@@ -247,11 +309,15 @@
     notice = ""
     errorMessage = ""
     try {
-      batchProgress = await getBatchProgress(pluginName, provider, {
+      const nextProgress = await getBatchProgress(pluginName, provider, {
         endpoint,
         apiKey
       })
-      if (!batchProgress) notice = NO_PROGRESS_NOTICE
+      batchProgress = nextProgress
+      if (!nextProgress) notice = NO_PROGRESS_NOTICE
+      else if (nextProgress.stage === "done") {
+        notice = batchUntranslatedNotice(nextProgress.untranslatedCount)
+      }
     } catch (error) {
       errorMessage = messageOf(error)
       phase = "error"
@@ -269,18 +335,31 @@
     applying = true
     notice = ""
     errorMessage = ""
+    let applied = false
     try {
       await refreshBatchTranslations(pluginName, provider, { endpoint, apiKey })
-      await resetToFirstPage()
-      batchProgress = await getBatchProgress(pluginName, provider, {
-        endpoint,
-        apiKey
-      })
+      applied = true
+      const [page, nextProgress] = await Promise.all([
+        fetchPage("", untranslatedOnly),
+        getBatchProgress(pluginName, provider, { endpoint, apiKey })
+      ])
+      if (!nextProgress) {
+        throw new Error("取り込み後の batch 状態を取得できませんでした。")
+      }
+      applyPage(page)
+      cursorStack = [""]
+      pageIndex = 0
+      batchProgress = nextProgress
       notice =
-        appliedStage === "proper" ? APPLIED_PROPER_NOTICE : APPLIED_BODY_NOTICE
+        appliedStage === "proper"
+          ? APPLIED_PROPER_NOTICE
+          : batchUntranslatedNotice(nextProgress.untranslatedCount) ||
+            APPLIED_BODY_NOTICE
       phase = "done"
     } catch (error) {
-      errorMessage = messageOf(error)
+      errorMessage = applied
+        ? `batch の取り込みは完了しましたが、画面の更新に失敗しました: ${messageOf(error)}`
+        : messageOf(error)
       phase = "error"
     } finally {
       applying = false
@@ -365,6 +444,9 @@
   {onRun}
   {onPagePrev}
   {onPageNext}
+  {untranslatedOnly}
+  {onUntranslatedOnlyChange}
+  {hasUnfilteredResults}
   {exporting}
   {onExportXml}
   {provider}

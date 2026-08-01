@@ -146,6 +146,7 @@ export function batchStepViews(progress?: BatchProgressView): BatchStepView[] {
 
 // 主アクションの表示文言。送信（新規 / 再送信）と、固有名・本文それぞれの取り込みを分ける。
 export const BATCH_SEND_LABEL = "送信して開始"
+export const BATCH_RETRY_UNTRANSLATED_LABEL = "未訳だけを再送信"
 export const BATCH_APPLY_PROPER_LABEL = "取り込んで本文を送信"
 export const BATCH_APPLY_BODY_LABEL = "取り込んで完了"
 
@@ -166,6 +167,13 @@ export function batchMainAction(
   progress: BatchProgressView | undefined,
   canSubmit: boolean
 ): BatchMainAction {
+  if (progress?.stage === "done" && progress.untranslatedCount > 0) {
+    return {
+      kind: "send",
+      label: BATCH_RETRY_UNTRANSLATED_LABEL,
+      enabled: canSubmit
+    }
+  }
   if (!progress || progress.stage === "done") {
     return { kind: "send", label: BATCH_SEND_LABEL, enabled: canSubmit }
   }
@@ -204,6 +212,12 @@ export const APPLIED_PROPER_NOTICE =
   "固有名を取り込み、本文の翻訳を送信しました。"
 export const APPLIED_BODY_NOTICE = "本文を取り込みました。翻訳が完了しました。"
 export const APPLY_NOTHING_NOTICE = "取り込める完了段はまだありません。"
+
+// batch の取り込み後に未訳が残った場合の案内。主操作と同じ「未訳だけを再送信」を使う。
+export function batchUntranslatedNotice(untranslatedCount: number): string {
+  if (untranslatedCount <= 0) return ""
+  return `${untranslatedCount} 件が未訳のまま残りました。未訳だけを再送信できます。`
+}
 
 // 実行の完了時に、未訳のまま残った件数を伝える案内文を組む。
 // 0 件なら空文字を返し、案内を出さない（残りが無い完了は状態表示だけで足りる）。

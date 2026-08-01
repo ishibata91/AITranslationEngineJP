@@ -93,6 +93,7 @@ export interface RunOutcome {
 // 結果一覧の keyset cursor ページ。total は総件数、nextCursor は次ページ取得用、hasMore は次ページの有無。
 export interface ResultPage {
   total: number
+  unfilteredTotal: number
   results: ResultRow[]
   nextCursor: string
   hasMore: boolean
@@ -181,8 +182,19 @@ export async function fetchXaiModels(conn: Connection): Promise<string[]> {
 
 // OpenAI または xAI の batch 翻訳を送信する（plugin 単位）。送信だけを行い、結果は後の反映で取り込む。
 // 外部 batch ID の永続まで backend が行うため、ここは送信の完了、または失敗時の throw だけを返す。
-export async function submitBatchTranslation(input: RunInput): Promise<void> {
-  await SubmitBatchTranslation(api.RunRequest.createFrom(input))
+export interface BatchSubmitOutcome {
+  reusedPreparation: boolean
+  completedWithoutExternalBatch: boolean
+}
+
+export async function submitBatchTranslation(
+  input: RunInput
+): Promise<BatchSubmitOutcome> {
+  const result = await SubmitBatchTranslation(api.RunRequest.createFrom(input))
+  return {
+    reusedPreparation: result.reusedPreparation,
+    completedWithoutExternalBatch: result.completedWithoutExternalBatch
+  }
 }
 
 // OpenAI / xAI batch の進行状況（状態確認）。副作用なしで現段 batch の段・件数・取り込み可否を返す。
@@ -194,6 +206,7 @@ export interface BatchProgress {
   succeeded: number
   failed: number
   canApply: boolean
+  untranslatedCount: number
 }
 
 // 対象 plugin の batch 進行状況を取得する（状態確認）。dest 取り込みも送信もしない観測操作。
@@ -217,7 +230,8 @@ export async function getBatchProgress(
     pending: view.pending,
     succeeded: view.succeeded,
     failed: view.failed,
-    canApply: view.canApply
+    canApply: view.canApply,
+    untranslatedCount: view.untranslatedCount
   }
 }
 
@@ -244,11 +258,13 @@ export async function refreshBatchTranslations(
 export async function listResultsPage(
   plugin: string,
   cursor: string,
-  limit: number
+  limit: number,
+  untranslatedOnly: boolean
 ): Promise<ResultPage> {
-  const page = await ListResultsPage(plugin, cursor, limit)
+  const page = await ListResultsPage(plugin, cursor, limit, untranslatedOnly)
   return {
     total: page.total,
+    unfilteredTotal: page.unfilteredTotal,
     results: page.results.map(toResultRow),
     nextCursor: page.nextCursor,
     hasMore: page.hasMore

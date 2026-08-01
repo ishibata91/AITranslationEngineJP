@@ -18,6 +18,12 @@
     canNext?: boolean
     onPrev?: () => void
     onNext?: () => void
+    // 対象 plugin の結果全体を未訳だけに絞っているか。state は上位が持つ。
+    untranslatedOnly?: boolean
+    // 未訳だけに絞る選択の変更操作。取得と state 更新は上位が行う。
+    onUntranslatedOnlyChange?: (checked: boolean) => void
+    // 絞り込み前の結果が 1 件以上あるか。絞り込み結果が 0 件でも書き出し操作を保つために使う。
+    hasUnfilteredResults?: boolean
     // xTranslator XML への書き出し操作。結果があるときだけ押せる。実処理は callback で上へ返す。
     onExport?: () => void
     // 書き出し中フラグ。true の間はボタンを無効化しスピナーを出す。
@@ -33,6 +39,9 @@
     canNext = false,
     onPrev = () => {},
     onNext = () => {},
+    untranslatedOnly = false,
+    onUntranslatedOnlyChange = () => {},
+    hasUnfilteredResults = results.length > 0,
     onExport = () => {},
     exporting = false
   }: Props = $props()
@@ -40,15 +49,29 @@
 
 <div class="card bg-base-200/40 border border-base-300/60">
   <div class="card-body gap-5">
-    <div class="flex items-center justify-between gap-3">
-      <h2 class="u-display text-sm tracking-widest uppercase text-base-content/60">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <h2
+        class="u-display text-sm tracking-widest uppercase text-base-content/60"
+      >
         結果一覧
       </h2>
-      <div class="flex items-center gap-3">
-        {#if total > 0}
+      <div class="flex flex-wrap items-center justify-end gap-3">
+        {#if hasUnfilteredResults}
+          <label class="label cursor-pointer gap-2 py-0">
+            <input
+              type="checkbox"
+              class="checkbox checkbox-primary checkbox-sm"
+              checked={untranslatedOnly}
+              onchange={(event) =>
+                onUntranslatedOnlyChange(event.currentTarget.checked)}
+            />
+            <span class="label-text whitespace-nowrap">未訳のみ</span>
+          </label>
+        {/if}
+        {#if total > 0 || (untranslatedOnly && hasUnfilteredResults)}
           <span class="badge badge-outline badge-sm u-mono">{total} 件</span>
         {/if}
-        {#if results.length > 0}
+        {#if hasUnfilteredResults}
           <button
             type="button"
             class="btn btn-sm btn-outline btn-primary"
@@ -65,13 +88,21 @@
     </div>
 
     {#if results.length === 0}
-      <div class="flex flex-col items-center gap-3 py-12 text-center text-base-content/50">
-        {#if phase === "running"}
+      <div
+        class="flex flex-col items-center gap-3 py-12 text-center text-base-content/50"
+      >
+        {#if untranslatedOnly && hasUnfilteredResults}
+          <span class="u-display text-3xl text-success/50">✓</span>
+          <p>未訳はありません。</p>
+        {:else if phase === "running"}
           <span class="loading loading-ring loading-lg text-primary"></span>
           <p>抽出と翻訳を実行しています。完了すると原文と訳文が並びます。</p>
         {:else}
           <span class="u-display text-3xl text-base-content/25">ᚱ</span>
-          <p>まだ結果はありません。plugin を選び、AI サービスを入力して実行してください。</p>
+          <p>
+            まだ結果はありません。plugin を選び、AI
+            サービスを入力して実行してください。
+          </p>
         {/if}
       </div>
     {:else}

@@ -24,6 +24,8 @@ export interface BatchProgressView {
   failed: number
   // 取り込める完了段があるか。処理待ち 0 の段があるとき true。取り込みボタンの活性根拠にそろえる。
   canApply: boolean
+  // 対象 plugin に残る未訳件数。完了段で再送信操作と案内の表示判断に使う。
+  untranslatedCount: number
 }
 
 // 翻訳対象 plugin の Data フォルダにある Strings の言語別有無。

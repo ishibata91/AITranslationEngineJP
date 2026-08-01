@@ -34,9 +34,9 @@ type Store interface {
 	CountNarrations(ctx context.Context, plugin string) (int, error)
 	CountLines(ctx context.Context, plugin string) (int, error)
 	CountProperNouns(ctx context.Context, plugin string) (int, error)
-	NarrationsAfter(ctx context.Context, plugin string, afterID int64, limit int) ([]model.Narration, error)
-	LinesAfter(ctx context.Context, plugin string, afterID int64, limit int) ([]model.Line, error)
-	ProperNounsAfter(ctx context.Context, plugin string, afterID int64, limit int) ([]model.ProperNoun, error)
+	NarrationsAfter(ctx context.Context, plugin string, afterID int64, limit int, untranslatedOnly bool) ([]model.Narration, error)
+	LinesAfter(ctx context.Context, plugin string, afterID int64, limit int, untranslatedOnly bool) ([]model.Line, error)
+	ProperNounsAfter(ctx context.Context, plugin string, afterID int64, limit int, untranslatedOnly bool) ([]model.ProperNoun, error)
 	GetPromptTemplate(ctx context.Context) (model.PromptTemplate, error)
 	SavePromptTemplate(ctx context.Context, t model.PromptTemplate) error
 	LoadLineSpeakers(ctx context.Context, lineIDs []int64) (map[int64]model.LineSpeaker, error)
@@ -72,6 +72,14 @@ type Extractor interface {
 	// CollectReferences は dataFolder にある全 plugin を走査し、英日対を既訳（reference_translation）へ書き込む。
 	// 対象 plugin 単体でなくフォルダ全体を見るため、日本語 Strings を持たない mod でも既訳が立つ。
 	CollectReferences(ctx context.Context, dataFolder string) error
+}
+
+// BatchEngine は api が batch 送信、状態確認、取り込みに使う consumer 側 interface。
+// 本番は engine.BatchRunner を渡し、api の境界テストでは外部 batch を起動しない fake を渡す。
+type BatchEngine interface {
+	SubmitBatch(ctx context.Context, providerName string, conn provider.Connection, modelName, plugin string) (engine.BatchSubmitOutcome, error)
+	ProgressStatus(ctx context.Context, providerName string, conn provider.Connection, plugin string) (engine.BatchProgress, bool, error)
+	RefreshPlugin(ctx context.Context, providerName string, conn provider.Connection, plugin string) error
 }
 
 // DotnetExtractor は C# 抽出器（Mutagen）を publish 済み DLL の dotnet 直実行で起動する本番 Extractor。
@@ -119,7 +127,7 @@ func (d *DotnetExtractor) run(ctx context.Context, args []string) error {
 type App struct {
 	store     Store
 	engine    *engine.Engine
-	batch     *engine.BatchRunner // OpenAI / xAI batch 翻訳の送信・反映。batch を使わない配線では nil。
+	batch     BatchEngine // OpenAI / xAI batch 翻訳の送信・反映。batch を使わない配線では nil。
 	provider  provider.Translator
 	extractor Extractor
 	ctx       context.Context
@@ -127,7 +135,7 @@ type App struct {
 
 // New は App を生成する。extractor は抽出子の注入点（本番は DotnetExtractor。抽出に要するパスは extractor が保持する）。
 // batch は OpenAI / xAI batch 翻訳のオーケストレーション。batch を使わない配線（テスト用 harness など）では nil を渡してよい。
-func New(store Store, eng *engine.Engine, batch *engine.BatchRunner, p provider.Translator, extractor Extractor) *App {
+func New(store Store, eng *engine.Engine, batch BatchEngine, p provider.Translator, extractor Extractor) *App {
 	if extractor == nil {
 		// 抽出子は必須の注入物。nil interface（リテラル nil や未設定の interface 変数）を渡す配線ミスを起動時に弾く。
 		// なお typed-nil（nil の concrete ポインタを interface に入れた値）は Go の制約で検出できないが、
@@ -176,13 +184,21 @@ type BatchPluginRequest struct {
 // BatchProgressView は OpenAI または xAI の batch 進行状況（状態確認の応答）。Present=false は進行なし。
 // Stage は "proper" / "body" / "done"。件数は現段 batch 由来。CanApply は取り込める完了段があるか。
 type BatchProgressView struct {
-	Present   bool   `json:"present"`
-	Stage     string `json:"stage"`
-	Total     int    `json:"total"`
-	Pending   int    `json:"pending"`
-	Succeeded int    `json:"succeeded"`
-	Failed    int    `json:"failed"`
-	CanApply  bool   `json:"canApply"`
+	Present           bool   `json:"present"`
+	Stage             string `json:"stage"`
+	Total             int    `json:"total"`
+	Pending           int    `json:"pending"`
+	Succeeded         int    `json:"succeeded"`
+	Failed            int    `json:"failed"`
+	CanApply          bool   `json:"canApply"`
+	UntranslatedCount int    `json:"untranslatedCount"`
+}
+
+// BatchSubmitResult は batch 送信の実行結果を画面へ返す。
+// ReusedPreparation は保存済みの準備を使ったこと、CompletedWithoutExternalBatch は既訳だけで即時完了したことを表す。
+type BatchSubmitResult struct {
+	ReusedPreparation             bool `json:"reusedPreparation"`
+	CompletedWithoutExternalBatch bool `json:"completedWithoutExternalBatch"`
 }
 
 // TermView は結果行の機械置換内訳 1 件（原語 → 確定訳語）。
@@ -254,10 +270,11 @@ type RunResult struct {
 // ResultPage は結果一覧の keyset cursor ページ。Total は叙述文＋台詞の総件数。
 // NextCursor は次ページ取得用の cursor、HasMore は次ページの有無。
 type ResultPage struct {
-	Total      int          `json:"total"`
-	Results    []ResultView `json:"results"`
-	NextCursor string       `json:"nextCursor"`
-	HasMore    bool         `json:"hasMore"`
+	Total           int          `json:"total"`
+	UnfilteredTotal int          `json:"unfilteredTotal"`
+	Results         []ResultView `json:"results"`
+	NextCursor      string       `json:"nextCursor"`
+	HasMore         bool         `json:"hasMore"`
 }
 
 // ProgressEvent は本文翻訳の進捗 payload。Stage は "extract"（翻訳前区間、不定）と "translate"（本文翻訳）。
@@ -296,11 +313,11 @@ func (a *App) SelectPluginFile() (string, error) {
 // ListResultsPage は中心 DB の叙述文と台詞を keyset cursor ページで返す（起動時・ページ送り・実行後の取得を統一）。
 // plugin が空でなければその対象 plugin（plugin ファイル名）の結果だけに絞る。空なら全 plugin。
 // cursor は ""（先頭）/ "n:<id>"（叙述文区間）/ "l:<id>"（台詞区間）。limit が 0 以下なら既定件数を使う。
-func (a *App) ListResultsPage(plugin, cursor string, limit int) (ResultPage, error) {
+func (a *App) ListResultsPage(plugin, cursor string, limit int, untranslatedOnly bool) (ResultPage, error) {
 	if limit <= 0 {
 		limit = defaultPageLimit
 	}
-	return a.buildResultsPage(a.baseCtx(), plugin, cursor, limit)
+	return a.buildResultsPage(a.baseCtx(), plugin, cursor, limit, untranslatedOnly)
 }
 
 // TargetPluginView は翻訳対象プラグイン一覧の 1 行の表示用 DTO。
@@ -577,25 +594,42 @@ func (a *App) prepareForTranslation(ctx context.Context, pluginPath string) erro
 // SubmitBatchTranslation は対象 plugin を抽出・取込した上で、未訳の固有名を選択した batch provider へ送信する。
 // 同期翻訳と同じ翻訳前区間を通した後、engine.Run の代わりに batch 送信を行う。結果は後日 RefreshBatchTranslations で反映する。
 // 送信後は固有名 batch の反映待ちで、この呼び出しでは dest を確定しない。接続情報は都度受ける（永続化しない）。
-func (a *App) SubmitBatchTranslation(req RunRequest) error {
+func (a *App) SubmitBatchTranslation(req RunRequest) (BatchSubmitResult, error) {
 	ctx := a.baseCtx()
 	if a.batch == nil {
-		return fmt.Errorf("batch 翻訳が未配線")
+		return BatchSubmitResult{}, fmt.Errorf("batch 翻訳が未配線")
 	}
 	if req.Provider != provider.BatchProviderOpenAI && req.Provider != provider.BatchProviderXAI {
-		return fmt.Errorf("batch provider が不正: %s", req.Provider)
+		return BatchSubmitResult{}, fmt.Errorf("batch provider が不正: %s", req.Provider)
 	}
 	if req.Provider == provider.BatchProviderOpenAI && strings.TrimSpace(req.APIKey) == "" {
-		return fmt.Errorf("OpenAI API キーが空")
+		return BatchSubmitResult{}, fmt.Errorf("OpenAI API キーが空")
 	}
-	if err := a.prepareForTranslation(ctx, req.PluginPath); err != nil {
-		return err
+	plugin := filepath.Base(req.PluginPath)
+	reusedPreparation, err := a.store.IsSyncRetryReady(ctx, plugin)
+	if err != nil {
+		return BatchSubmitResult{}, err
+	}
+	if !reusedPreparation {
+		if err := a.prepareForTranslation(ctx, req.PluginPath); err != nil {
+			return BatchSubmitResult{}, err
+		}
 	}
 	conn := provider.Connection{Endpoint: req.Endpoint, APIKey: req.APIKey}
-	if err := a.batch.SubmitBatch(ctx, req.Provider, conn, req.Model, filepath.Base(req.PluginPath)); err != nil {
-		return fmt.Errorf("batch 送信に失敗: %w", err)
+	outcome, err := a.batch.SubmitBatch(ctx, req.Provider, conn, req.Model, plugin)
+	if err != nil {
+		return BatchSubmitResult{}, fmt.Errorf("batch 送信に失敗: %w", err)
 	}
-	return nil
+	slog.InfoContext(ctx, "batch 翻訳の準備経路を決定した",
+		slog.String("event", "batch_translation_preparation_selected"),
+		slog.String("where", "api.SubmitBatchTranslation"),
+		slog.String("result", map[bool]string{true: "reused", false: "prepared"}[reusedPreparation]),
+		slog.String("id", plugin),
+	)
+	return BatchSubmitResult{
+		ReusedPreparation:             reusedPreparation,
+		CompletedWithoutExternalBatch: outcome.CompletedWithoutExternalBatch,
+	}, nil
 }
 
 // GetBatchProgress は対象 plugin の batch 進行状況を副作用なしで返す（状態確認）。
@@ -614,14 +648,22 @@ func (a *App) GetBatchProgress(req BatchPluginRequest) (BatchProgressView, error
 	if !ok {
 		return BatchProgressView{Present: false}, nil
 	}
+	untranslatedCount := 0
+	if prog.Stage == model.BatchStageDone {
+		untranslatedCount, err = a.store.CountUntranslated(ctx, req.Plugin)
+		if err != nil {
+			return BatchProgressView{}, fmt.Errorf("batch 完了後の未訳件数取得に失敗: %w", err)
+		}
+	}
 	return BatchProgressView{
-		Present:   true,
-		Stage:     batchStageToken(prog.Stage),
-		Total:     prog.Total,
-		Pending:   prog.Pending,
-		Succeeded: prog.Succeeded,
-		Failed:    prog.Failed,
-		CanApply:  prog.CanApply,
+		Present:           true,
+		Stage:             batchStageToken(prog.Stage),
+		Total:             prog.Total,
+		Pending:           prog.Pending,
+		Succeeded:         prog.Succeeded,
+		Failed:            prog.Failed,
+		CanApply:          prog.CanApply,
+		UntranslatedCount: untranslatedCount,
 	}, nil
 }
 
@@ -722,8 +764,8 @@ func makeCursor(section string, id int64) string {
 // buildResultsPage は cursor の指すページの叙述文・台詞・固有名を取り、台詞へ口調を一括で付けて ResultPage を返す。
 // plugin が空でなければその対象 plugin の結果だけに絞る。
 // 各行の原文へ機械置換辞書を当て直し、置換内訳（terms）と元レコード種別バッジ（recordType）を再構成して供給する。
-func (a *App) buildResultsPage(ctx context.Context, plugin, cursor string, limit int) (ResultPage, error) {
-	narrations, lines, propers, total, nextCursor, hasMore, err := a.pageRows(ctx, plugin, cursor, limit)
+func (a *App) buildResultsPage(ctx context.Context, plugin, cursor string, limit int, untranslatedOnly bool) (ResultPage, error) {
+	narrations, lines, propers, total, unfilteredTotal, nextCursor, hasMore, err := a.pageRows(ctx, plugin, cursor, limit, untranslatedOnly)
 	if err != nil {
 		return ResultPage{}, err
 	}
@@ -832,7 +874,7 @@ func (a *App) buildResultsPage(ctx context.Context, plugin, cursor string, limit
 		}
 		views = append(views, view)
 	}
-	return ResultPage{Total: total, Results: views, NextCursor: nextCursor, HasMore: hasMore}, nil
+	return ResultPage{Total: total, UnfilteredTotal: unfilteredTotal, Results: views, NextCursor: nextCursor, HasMore: hasMore}, nil
 }
 
 // RecordKey は record_type_master の引きキー (rec, field)。結果行の種別バッジ・directive 再構成に使う。
@@ -883,32 +925,46 @@ func termViews(used []dictionary.Term) []TermView {
 // pageRows は keyset cursor から当該ページの叙述文・台詞・固有名、総件数、次 cursor、続きの有無を決める。
 // 区間は叙述文 → 台詞 → 固有名 の順に連結し、ある区間がページに満たなければ次区間の先頭から補充する。
 // 口調・種別バッジは付けない（呼び出し側が付ける）。
-func (a *App) pageRows(ctx context.Context, plugin, cursor string, limit int) (
+func (a *App) pageRows(ctx context.Context, plugin, cursor string, limit int, untranslatedOnly bool) (
 	narrations []model.Narration, lines []model.Line, propers []model.ProperNoun,
-	total int, nextCursor string, hasMore bool, err error) {
-	total, err = a.countAll(ctx, plugin)
+	total int, unfilteredTotal int, nextCursor string, hasMore bool, err error) {
+	unfilteredTotal, err = a.countAll(ctx, plugin, false)
 	if err != nil {
-		return nil, nil, nil, 0, "", false, err
+		return nil, nil, nil, 0, 0, "", false, err
+	}
+	total = unfilteredTotal
+	if untranslatedOnly {
+		total, err = a.countAll(ctx, plugin, true)
+		if err != nil {
+			return nil, nil, nil, 0, 0, "", false, err
+		}
 	}
 
 	section, afterID := parseCursor(cursor)
-	pb := &pageBuilder{remaining: limit, afterID: afterID, cur: section, plugin: plugin}
+	pb := &pageBuilder{remaining: limit, afterID: afterID, cur: section, plugin: plugin, untranslatedOnly: untranslatedOnly}
 	// 叙述文 → 台詞 → 固有名 の順に区間を埋める。ある区間でページが確定（done）したらそこで打ち切る。
 	for _, fill := range []sectionFiller{a.fillNarrations, a.fillLines, a.fillPropers} {
 		var done bool
 		done, err = fill(ctx, pb)
 		if err != nil {
-			return nil, nil, nil, 0, "", false, err
+			return nil, nil, nil, 0, 0, "", false, err
 		}
 		if done {
 			break
 		}
 	}
-	return pb.narrations, pb.lines, pb.propers, total, pb.nextCursor, pb.hasMore, nil
+	return pb.narrations, pb.lines, pb.propers, total, unfilteredTotal, pb.nextCursor, pb.hasMore, nil
 }
 
 // countAll は叙述文・台詞・固有名の総件数を合算して返す。ページングの total に使う。plugin が空でなければその対象 plugin に絞る。
-func (a *App) countAll(ctx context.Context, plugin string) (int, error) {
+func (a *App) countAll(ctx context.Context, plugin string, untranslatedOnly bool) (int, error) {
+	if untranslatedOnly {
+		count, err := a.store.CountUntranslated(ctx, plugin)
+		if err != nil {
+			return 0, fmt.Errorf("未訳件数: %w", err)
+		}
+		return count, nil
+	}
 	nTotal, err := a.store.CountNarrations(ctx, plugin)
 	if err != nil {
 		return 0, fmt.Errorf("叙述文の件数: %w", err)
@@ -928,15 +984,16 @@ func (a *App) countAll(ctx context.Context, plugin string) (int, error) {
 // remaining は残り取得枠、afterID は現区間の keyset カーソル位置、cur は現在の区間種別。
 // nextCursor / hasMore はページ確定時に各 fill メソッドがセットする。
 type pageBuilder struct {
-	narrations []model.Narration
-	lines      []model.Line
-	propers    []model.ProperNoun
-	remaining  int
-	afterID    int64
-	cur        string
-	plugin     string // 空でなければ絞り込む対象 plugin（plugin ファイル名）。各 fill が store 問い合わせへ渡す。
-	nextCursor string
-	hasMore    bool
+	narrations       []model.Narration
+	lines            []model.Line
+	propers          []model.ProperNoun
+	remaining        int
+	afterID          int64
+	cur              string
+	plugin           string // 空でなければ絞り込む対象 plugin（plugin ファイル名）。各 fill が store 問い合わせへ渡す。
+	untranslatedOnly bool
+	nextCursor       string
+	hasMore          bool
 }
 
 // sectionFiller は 1 区間を埋める関数の型。ページが確定したら done=true を返し、pageRows はそこで打ち切る。
@@ -947,7 +1004,7 @@ func (a *App) fillNarrations(ctx context.Context, pb *pageBuilder) (bool, error)
 	if pb.cur != cursorNarration {
 		return false, nil
 	}
-	rows, err := a.store.NarrationsAfter(ctx, pb.plugin, pb.afterID, pb.remaining+1)
+	rows, err := a.store.NarrationsAfter(ctx, pb.plugin, pb.afterID, pb.remaining+1, pb.untranslatedOnly)
 	if err != nil {
 		return false, fmt.Errorf("叙述文ページの取得: %w", err)
 	}
@@ -968,7 +1025,7 @@ func (a *App) fillLines(ctx context.Context, pb *pageBuilder) (bool, error) {
 	if pb.cur != cursorLine {
 		return false, nil
 	}
-	rows, err := a.store.LinesAfter(ctx, pb.plugin, pb.afterID, pb.remaining+1)
+	rows, err := a.store.LinesAfter(ctx, pb.plugin, pb.afterID, pb.remaining+1, pb.untranslatedOnly)
 	if err != nil {
 		return false, fmt.Errorf("台詞ページの取得: %w", err)
 	}
@@ -997,7 +1054,7 @@ func (a *App) fillPropers(ctx context.Context, pb *pageBuilder) (bool, error) {
 	if pb.cur != cursorProper {
 		return false, nil
 	}
-	rows, err := a.store.ProperNounsAfter(ctx, pb.plugin, pb.afterID, pb.remaining+1)
+	rows, err := a.store.ProperNounsAfter(ctx, pb.plugin, pb.afterID, pb.remaining+1, pb.untranslatedOnly)
 	if err != nil {
 		return false, fmt.Errorf("固有名ページの取得: %w", err)
 	}

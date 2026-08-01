@@ -29,7 +29,8 @@ export const ProperProcessing: Story = {
       pending: 5,
       succeeded: 7,
       failed: 0,
-      canApply: false
+      canApply: false,
+      untranslatedCount: 0
     }
   }
 }
@@ -44,7 +45,8 @@ export const ProperReady: Story = {
       pending: 0,
       succeeded: 12,
       failed: 0,
-      canApply: true
+      canApply: true,
+      untranslatedCount: 0
     }
   }
 }
@@ -59,7 +61,8 @@ export const BodyProcessing: Story = {
       pending: 2,
       succeeded: 111,
       failed: 0,
-      canApply: false
+      canApply: false,
+      untranslatedCount: 0
     }
   }
 }
@@ -74,7 +77,8 @@ export const BodyReady: Story = {
       pending: 0,
       succeeded: 113,
       failed: 0,
-      canApply: true
+      canApply: true,
+      untranslatedCount: 0
     }
   }
 }
@@ -89,7 +93,8 @@ export const BodyReadyWithFailures: Story = {
       pending: 0,
       succeeded: 110,
       failed: 3,
-      canApply: true
+      canApply: true,
+      untranslatedCount: 0
     }
   }
 }
@@ -104,7 +109,8 @@ export const AllDone: Story = {
       pending: 0,
       succeeded: 113,
       failed: 0,
-      canApply: false
+      canApply: false,
+      untranslatedCount: 0
     }
   }
 }

@@ -32,7 +32,8 @@ const PAGE_ROWS: NarrationResultRow[] = [
   },
   {
     edid: "GrelodTheKindScold",
-    source: "You are all here to serve and honor your matron. Now off to bed, the lot of you!",
+    source:
+      "You are all here to serve and honor your matron. Now off to bed, the lot of you!",
     dest: "お前たちは院母に仕え、敬うためにここにいるんだよ。さあ、とっとと寝な、お前たち全員！",
     statusLabel: "仮訳",
     personaLabel: "声質: しわがれた老女の声",
@@ -51,7 +52,12 @@ const meta = {
   title: "UI Components/ResultsPanel",
   component: ResultsPanel,
   parameters: { layout: "padded" },
-  args: { onPrev: () => {}, onNext: () => {}, onExport: () => {} }
+  args: {
+    onPrev: () => {},
+    onNext: () => {},
+    onUntranslatedOnlyChange: () => {},
+    onExport: () => {}
+  }
 } satisfies Meta<typeof ResultsPanel>
 
 export default meta
@@ -70,6 +76,30 @@ export const EmptyRunning: Story = {
 export const WithResults: Story = {
   name: "結果あり（書き出し可能）",
   args: { phase: "done", results: ROWS }
+}
+
+// 対象 plugin 全体から未訳だけを取得した状態。一覧、件数、チェック状態が同じ条件になる。
+export const UntranslatedOnly: Story = {
+  name: "未訳のみ",
+  args: {
+    phase: "done",
+    results: ROWS.filter((row) => row.statusLabel === "未訳"),
+    total: 1,
+    untranslatedOnly: true,
+    hasUnfilteredResults: true
+  }
+}
+
+// 絞り込み前には訳のある結果が存在するが、未訳は 0 件。書き出し操作は残す。
+export const NoUntranslatedResults: Story = {
+  name: "未訳なし（書き出し可能）",
+  args: {
+    phase: "done",
+    results: [],
+    total: 0,
+    untranslatedOnly: true,
+    hasUnfilteredResults: true
+  }
 }
 
 // 書き出し実行中。ボタンは無効化され、スピナーと「書き出し中…」を出す。

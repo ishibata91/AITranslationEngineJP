@@ -16,6 +16,8 @@ import {
   OPENAI_SUBMITTED_STATE,
   OPENAI_BODY_PROCESSING_STATE,
   OPENAI_BODY_READY_STATE,
+  OPENAI_BATCH_UNTRANSLATED_STATE,
+  OPENAI_NO_UNTRANSLATED_STATE,
   XAI_EMPTY_STATE,
   XAI_READY_STATE,
   XAI_SUBMITTED_STATE,
@@ -24,7 +26,9 @@ import {
   XAI_PROPER_READY_STATE,
   XAI_BODY_PROCESSING_STATE,
   XAI_BODY_READY_STATE,
-  XAI_DONE_STATE
+  XAI_DONE_STATE,
+  XAI_BATCH_UNTRANSLATED_STATE,
+  XAI_UNTRANSLATED_ONLY_STATE
 } from "./translation-run.fixtures"
 
 // プラグイン選択を外し、翻訳対象プラグイン画面へ移した実行・結果画面。翻訳対象は読み取り専用表示。
@@ -41,6 +45,7 @@ const meta = {
     onRun: () => {},
     onPagePrev: () => {},
     onPageNext: () => {},
+    onUntranslatedOnlyChange: () => {},
     onProviderChange: () => {},
     onSubmit: () => {},
     onCheckStatus: () => {},
@@ -143,6 +148,18 @@ export const OpenAiBodyReady: Story = {
   args: { ...OPENAI_BODY_READY_STATE }
 }
 
+// OpenAI（batch）の本文取り込み後に未訳が残る。件数、案内、未訳だけの再送信操作を表示する。
+export const OpenAiBatchUntranslated: Story = {
+  name: "OpenAI・未訳が残る",
+  args: { ...OPENAI_BATCH_UNTRANSLATED_STATE }
+}
+
+// OpenAI（batch）の本文取り込み後に未訳がない。「未訳のみ」でも書き出し操作を維持する。
+export const OpenAiNoUntranslated: Story = {
+  name: "OpenAI・未訳なし",
+  args: { ...OPENAI_NO_UNTRANSLATED_STATE }
+}
+
 // xAI（batch）を選び、未入力で送信できない。
 export const XaiEmpty: Story = {
   name: "xAI・未入力",
@@ -195,4 +212,16 @@ export const XaiBodyReady: Story = {
 export const XaiDone: Story = {
   name: "xAI・取り込み済み",
   args: { ...XAI_DONE_STATE }
+}
+
+// xAI（batch）の本文取り込み後に未訳が 1 件残る。件数と未訳だけの再送信操作を表示する。
+export const XaiBatchUntranslated: Story = {
+  name: "xAI・未訳が残る",
+  args: { ...XAI_BATCH_UNTRANSLATED_STATE }
+}
+
+// xAI（batch）の結果一覧を未訳だけに絞った状態。チェック状態、件数、未訳行を表示する。
+export const XaiUntranslatedOnly: Story = {
+  name: "xAI・未訳のみ",
+  args: { ...XAI_UNTRANSLATED_ONLY_STATE }
 }

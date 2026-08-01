@@ -30,8 +30,18 @@ type BatchStore interface {
 	GetBatchProgression(ctx context.Context, plugin string) (model.BatchTranslation, bool, error)
 	InsertBatchRequests(ctx context.Context, rows []model.BatchRequest) (int, error)
 	ListBatchRequests(ctx context.Context, externalBatchID string) ([]model.BatchRequest, error)
+	IsSyncRetryReady(ctx context.Context, plugin string) (bool, error)
 	MarkSyncRetryReady(ctx context.Context, plugin string) error
 }
+
+// BatchSubmitOutcome は batch 送信の結果を呼び出し側へ返す。
+// CompletedWithoutExternalBatch は保存済みの辞書または既訳だけで全未訳を処理し、外部 batch を作らず完了したことを表す。
+type BatchSubmitOutcome struct {
+	CompletedWithoutExternalBatch bool
+}
+
+// BatchProgress は batch の表示用進行状況。api が純粋核へ直接依存せず BatchRunner の境界を扱えるよう公開する。
+type BatchProgress = batchplan.BatchProgress
 
 // BatchRunner は OpenAI と xAI の batch 翻訳のオーケストレーション（薄いシェル）。
 // 純粋核 batchplan の判断を、Engine の読み書き部品・provider batch port・batch 永続へ束ねるだけにする。
@@ -79,27 +89,34 @@ func (r *BatchRunner) batchForProgress(ctx context.Context, providerName string,
 // 既訳ありの固有名（権威訳）は AI を呼ばず即確定し、既訳なしだけを batch へ載せる（同期の固有名フェーズと同じ選別）。
 // 固有名 batch の対象が無い場合は固有名段を飛ばして本文 batch を送る。
 // 進行中の batch がある plugin への再送信は拒否する（反映で完了させてから送り直す）。
-func (r *BatchRunner) SubmitBatch(ctx context.Context, providerName string, conn provider.Connection, modelName, plugin string) error {
+func (r *BatchRunner) SubmitBatch(ctx context.Context, providerName string, conn provider.Connection, modelName, plugin string) (BatchSubmitOutcome, error) {
 	batch, err := r.batchFor(providerName, conn)
 	if err != nil {
-		return err
+		return BatchSubmitOutcome{}, err
 	}
 	if err := r.ensureNoActiveProgression(ctx, plugin); err != nil {
-		return err
+		return BatchSubmitOutcome{}, err
+	}
+	reusePrepared, err := r.store.IsSyncRetryReady(ctx, plugin)
+	if err != nil {
+		return BatchSubmitOutcome{}, fmt.Errorf("同期再実行準備状態の取得: %w", err)
 	}
 	batchID, err := r.store.StartBatchProgression(ctx, plugin, providerName, modelName)
 	if err != nil {
-		return fmt.Errorf("batch 進行の開始: %w", err)
+		return BatchSubmitOutcome{}, fmt.Errorf("batch 進行の開始: %w", err)
 	}
 	planned, err := r.planProperRequests(ctx, plugin)
 	if err != nil {
-		return err
+		return BatchSubmitOutcome{}, err
 	}
 	if len(planned) == 0 {
 		// 固有名の AI 訳が無い（全て既訳流用 or 固有名なし）。固有名 batch を挟まず本文 batch を送る。
-		return r.submitBodyBatch(ctx, batch, conn, modelName, plugin, batchID)
+		return r.submitBodyBatch(ctx, batch, conn, modelName, plugin, batchID, reusePrepared)
 	}
-	return r.sendStage(ctx, batch, conn, modelName, batchID, model.BatchStageProperNoun, planned)
+	if err := r.sendStage(ctx, batch, conn, modelName, batchID, model.BatchStageProperNoun, planned); err != nil {
+		return BatchSubmitOutcome{}, err
+	}
+	return BatchSubmitOutcome{}, nil
 }
 
 // ensureNoActiveProgression は外部へ送信済みで待機中の batch がある plugin への再送信を拒否する。
@@ -158,32 +175,34 @@ func (r *BatchRunner) planProperRequests(ctx context.Context, plugin string) ([]
 // submitBodyBatch は確定した固有名で本文の機械置換辞書を組み、未訳の叙述文・台詞を本文 batch として送る。
 // 既存訳と完全一致する本文は AI を呼ばず即確定し、batch へ載せない（同期の本文フェーズと同じ）。
 // 本文の未訳が無い場合は本文 batch を挟まず進行を完了にする。送信後は進行段を本文へ進める。
-func (r *BatchRunner) submitBodyBatch(ctx context.Context, batch provider.BatchTranslator, conn provider.Connection, modelName, plugin string, batchID int64) error {
-	planned, err := r.planBodyRequests(ctx, plugin)
+func (r *BatchRunner) submitBodyBatch(ctx context.Context, batch provider.BatchTranslator, conn provider.Connection, modelName, plugin string, batchID int64, reusePrepared bool) (BatchSubmitOutcome, error) {
+	planned, err := r.planBodyRequests(ctx, plugin, reusePrepared)
 	if err != nil {
-		return err
+		return BatchSubmitOutcome{}, err
 	}
-	if err := r.store.MarkSyncRetryReady(ctx, plugin); err != nil {
-		return err
+	if !reusePrepared {
+		if err := r.store.MarkSyncRetryReady(ctx, plugin); err != nil {
+			return BatchSubmitOutcome{}, err
+		}
 	}
 	if len(planned) == 0 {
 		// 本文の未訳が無い（全て既訳流用 or 空）。本文 batch を挟まず完了にする。
 		if err := r.store.AdvanceBatchStage(ctx, batchID, model.BatchStageDone); err != nil {
-			return fmt.Errorf("進行段の更新（完了）: %w", err)
+			return BatchSubmitOutcome{}, fmt.Errorf("進行段の更新（完了）: %w", err)
 		}
-		return nil
+		return BatchSubmitOutcome{CompletedWithoutExternalBatch: true}, nil
 	}
 	if err := r.sendStage(ctx, batch, conn, modelName, batchID, model.BatchStageBody, planned); err != nil {
-		return err
+		return BatchSubmitOutcome{}, err
 	}
 	if err := r.store.AdvanceBatchStage(ctx, batchID, model.BatchStageBody); err != nil {
-		return fmt.Errorf("進行段の更新（本文）: %w", err)
+		return BatchSubmitOutcome{}, fmt.Errorf("進行段の更新（本文）: %w", err)
 	}
-	return nil
+	return BatchSubmitOutcome{}, nil
 }
 
 // planBodyRequests は確定固有名で辞書を組み、未訳の叙述文・台詞を送信計画へ積んで返す。既存訳一致は即確定し載せない。
-func (r *BatchRunner) planBodyRequests(ctx context.Context, plugin string) ([]batchplan.PlannedRequest, error) {
+func (r *BatchRunner) planBodyRequests(ctx context.Context, plugin string, reusePrepared bool) ([]batchplan.PlannedRequest, error) {
 	// 確定した NPC 名から人名の部分形を派生し、対象 plugin の proper_noun へ足す（同期 Run と同じ位置＝辞書を組む前）。
 	// 固有名 batch を反映した後に本文を組むこの経路でも、部分形が機械置換辞書へ載るようにする。
 	if _, err := r.e.deriveRunProperNouns(ctx, plugin); err != nil {
@@ -214,9 +233,11 @@ func (r *BatchRunner) planBodyRequests(ctx context.Context, plugin string) ([]ba
 	if err != nil {
 		return nil, fmt.Errorf("未訳台詞の取得: %w", err)
 	}
-	// 口調ペルソナを最新化し、台詞ごとの口調指示を一括で組む（同期 Run と同じ）。
-	if _, genErr := r.e.GeneratePersonas(ctx); genErr != nil {
-		return nil, genErr
+	// 初回だけ口調ペルソナを最新化する。準備済みの再送信は保存済みの口調を読む。
+	if !reusePrepared {
+		if _, genErr := r.e.GeneratePersonas(ctx); genErr != nil {
+			return nil, genErr
+		}
 	}
 	personas, err := r.e.LinePersonas(ctx, lines, instructionByKey[directiveTone], ToneDefaults{
 		Generic: tmpl.GenericToneText,
@@ -288,7 +309,7 @@ func (r *BatchRunner) sendStage(ctx context.Context, batch provider.BatchTransla
 // ProgressStatus は対象 plugin の進行状況を副作用なしで返す（状態確認）。
 // 現段の外部 batch を PollBatch するだけで、dest 更新・batch 送信・段更新・DB 書き込みを一切しない。
 // 現段の外部 ID が空の半端な進行と完了段は PollBatch もしない。進行が無い plugin は ok=false を返す。
-func (r *BatchRunner) ProgressStatus(ctx context.Context, providerName string, conn provider.Connection, plugin string) (batchplan.BatchProgress, bool, error) {
+func (r *BatchRunner) ProgressStatus(ctx context.Context, providerName string, conn provider.Connection, plugin string) (BatchProgress, bool, error) {
 	prog, ok, err := r.store.GetBatchProgression(ctx, plugin)
 	if err != nil {
 		return batchplan.BatchProgress{}, false, fmt.Errorf("batch 進行の確認: %w", err)
@@ -351,7 +372,12 @@ func (r *BatchRunner) refreshOne(ctx context.Context, batch provider.BatchTransl
 		if err := r.applyResults(ctx, batch, conn, prog.Plugin, prog.ProperBatchID); err != nil {
 			return err
 		}
-		return r.submitBodyBatch(ctx, batch, conn, prog.Model, prog.Plugin, prog.ID)
+		reusePrepared, readyErr := r.store.IsSyncRetryReady(ctx, prog.Plugin)
+		if readyErr != nil {
+			return fmt.Errorf("同期再実行準備状態の取得: %w", readyErr)
+		}
+		_, err = r.submitBodyBatch(ctx, batch, conn, prog.Model, prog.Plugin, prog.ID, reusePrepared)
+		return err
 	case batchplan.StepApplyProperThenAdvance:
 		// 本文 batch は送信済み（クラッシュ復帰）。固有名を反映し、段だけ進める（本文を再送しない）。
 		if err := r.applyResults(ctx, batch, conn, prog.Plugin, prog.ProperBatchID); err != nil {

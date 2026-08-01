@@ -4,6 +4,25 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-08-01 batch の未訳だけを再送信し、結果一覧を未訳だけに絞る（batch-retry-untranslated-records）
+
+### 変更
+
+- OpenAI と xAI の batch は、保存済みの `sync_retry_ready` を利用できる場合に既訳の収集、抽出、横断辞書の派生、取込、全話者の口調集計を省略する。中心 DB の未訳だけへ横断辞書と既訳を適用し、解決できない行だけを外部 batch へ送る。
+- 横断辞書または既訳だけで未訳を解消できた場合は、外部 batch を作らず完了する。送信結果は準備の再利用と外部 batch なしの完了を画面へ返す。
+- batch 完了時の状態へ実際の未訳件数を追加した。未訳件数を取得できない場合は 0 件として扱わず、状態取得をエラーにする。
+- 結果一覧へ「未訳のみ」を追加した。選択時は対象 plugin 全体を `status = 0` で絞り、先頭ページと絞り込み後件数を取得する。取得失敗時は選択前の一覧、ページ、チェック状態を維持する。
+- 絞り込み後が 0 件でも、絞り込み前に結果があれば xTranslator への書き出し操作を維持する。書き出し対象は変更しない。
+
+### 判断
+
+- batch の再送信も同期再実行と同じ準備完了状態を使う。再送信のたびに plugin 全体の準備を繰り返さない。
+- 未訳件数と絞り込み前件数を別に返す。絞り込み後のページングと、全結果を対象とする書き出し操作を同時に成立させるためである。
+- `docs/architecture.md` は反映しない。既存の backend、Wails 境界、frontend の責務内で DTO と処理を拡張しており、層構成、依存方向、強い制約、Wails 境界の責務は変わらないためである。
+- backend 全検証、frontend 5 files・17 tests、TypeScript、ESLint、frontend 境界検証は通過した。実 app では既存 `inigo.esp` の未訳絞り込みが 8803 件から 8376 件へ更新され、OpenAI batch 画面でチェック状態と xTranslator 書き出し操作を維持し、browser console の error と warning が 0 件であることを確認した。
+- `wails build` は macOS SDK の link で `_OBJC_CLASS_$_UTType` を解決できず失敗した。開発アプリは `npm run dev:wails:run` で起動できた。`svelte-check` は Storybook 依存内の既存の型宣言不足 1 件だけが残った。
+- 根拠となる作業計画: `docs/exec-plans/active/batch-retry-untranslated-records/`。
+
 ## 2026-08-01 未訳だけを再実行し、完了済みの準備を省略（retry-untranslated-records）
 
 ### 変更

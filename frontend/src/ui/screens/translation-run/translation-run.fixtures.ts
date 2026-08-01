@@ -11,7 +11,9 @@ import type {
   StringsPresence
 } from "./translation-run-view"
 import {
+  APPLIED_BODY_NOTICE,
   SUBMIT_NOTICE,
+  batchUntranslatedNotice,
   untranslatedNotice
 } from "./translation-run-presentation"
 
@@ -46,6 +48,10 @@ interface TranslationRunViewModel {
   checking?: boolean
   // 取り込み中フラグ。
   applying?: boolean
+  // 結果一覧を未訳だけに絞っているか。
+  untranslatedOnly?: boolean
+  // 絞り込み前の結果が 1 件以上あるか。
+  hasUnfilteredResults?: boolean
 }
 
 const EMPTY_FORM: TranslationRunForm = {
@@ -347,7 +353,8 @@ export const OPENAI_BODY_PROCESSING_STATE: TranslationRunViewModel = {
     pending: 34,
     succeeded: 77,
     failed: 2,
-    canApply: false
+    canApply: false,
+    untranslatedCount: 0
   }
 }
 
@@ -360,7 +367,8 @@ export const OPENAI_BODY_READY_STATE: TranslationRunViewModel = {
     pending: 0,
     succeeded: 110,
     failed: 3,
-    canApply: true
+    canApply: true,
+    untranslatedCount: 0
   }
 }
 
@@ -415,7 +423,8 @@ export const XAI_PROPER_PROCESSING_STATE: TranslationRunViewModel = {
     pending: 5,
     succeeded: 7,
     failed: 0,
-    canApply: false
+    canApply: false,
+    untranslatedCount: 0
   }
 }
 
@@ -428,7 +437,8 @@ export const XAI_PROPER_READY_STATE: TranslationRunViewModel = {
     pending: 0,
     succeeded: 12,
     failed: 0,
-    canApply: true
+    canApply: true,
+    untranslatedCount: 0
   }
 }
 
@@ -441,7 +451,8 @@ export const XAI_BODY_PROCESSING_STATE: TranslationRunViewModel = {
     pending: 2,
     succeeded: 111,
     failed: 0,
-    canApply: false
+    canApply: false,
+    untranslatedCount: 0
   }
 }
 
@@ -454,7 +465,8 @@ export const XAI_BODY_READY_STATE: TranslationRunViewModel = {
     pending: 0,
     succeeded: 113,
     failed: 0,
-    canApply: true
+    canApply: true,
+    untranslatedCount: 0
   }
 }
 
@@ -478,7 +490,8 @@ export const XAI_DONE_STATE: TranslationRunViewModel = {
     pending: 0,
     succeeded: 113,
     failed: 0,
-    canApply: false
+    canApply: false,
+    untranslatedCount: 0
   },
   paging: {
     total: RESULT_ROWS.length,
@@ -486,4 +499,77 @@ export const XAI_DONE_STATE: TranslationRunViewModel = {
     canPrev: false,
     canNext: false
   }
+}
+
+// OpenAI（batch）の本文取り込み後に未訳が 3 件残った状態。主操作は未訳だけの再送信になる。
+export const OPENAI_BATCH_UNTRANSLATED_STATE: TranslationRunViewModel = {
+  ...OPENAI_READY_STATE,
+  phase: "done",
+  results: RESULT_ROWS,
+  notice: batchUntranslatedNotice(3),
+  batchProgress: {
+    stage: "done",
+    total: 113,
+    pending: 0,
+    succeeded: 110,
+    failed: 3,
+    canApply: false,
+    untranslatedCount: 3
+  },
+  paging: {
+    total: RESULT_ROWS.length,
+    pageNumber: 1,
+    canPrev: false,
+    canNext: false
+  },
+  hasUnfilteredResults: true
+}
+
+// xAI（batch）の本文取り込み後に未訳が 1 件残った状態。1 件の境界と再送信操作を示す。
+export const XAI_BATCH_UNTRANSLATED_STATE: TranslationRunViewModel = {
+  ...XAI_DONE_STATE,
+  notice: batchUntranslatedNotice(1),
+  batchProgress: {
+    ...XAI_DONE_STATE.batchProgress!,
+    untranslatedCount: 1
+  },
+  hasUnfilteredResults: true
+}
+
+// xAI（batch）の未訳だけを取得した先頭ページ。一覧と件数は未訳だけになる。
+export const XAI_UNTRANSLATED_ONLY_STATE: TranslationRunViewModel = {
+  ...XAI_BATCH_UNTRANSLATED_STATE,
+  results: RESULT_ROWS.filter((row) => row.statusLabel === "未訳"),
+  paging: {
+    total: 1,
+    pageNumber: 1,
+    canPrev: false,
+    canNext: false
+  },
+  untranslatedOnly: true
+}
+
+// OpenAI（batch）の取り込み後に未訳がない状態。絞り込み前の結果があるため書き出し操作は残る。
+export const OPENAI_NO_UNTRANSLATED_STATE: TranslationRunViewModel = {
+  ...OPENAI_READY_STATE,
+  phase: "done",
+  results: [],
+  notice: APPLIED_BODY_NOTICE,
+  batchProgress: {
+    stage: "done",
+    total: 113,
+    pending: 0,
+    succeeded: 113,
+    failed: 0,
+    canApply: false,
+    untranslatedCount: 0
+  },
+  paging: {
+    total: 0,
+    pageNumber: 1,
+    canPrev: false,
+    canNext: false
+  },
+  untranslatedOnly: true,
+  hasUnfilteredResults: true
 }
