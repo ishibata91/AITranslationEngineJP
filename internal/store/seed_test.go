@@ -367,8 +367,9 @@ func TestPromptTemplateToneDefaultsRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetPromptTemplate: %v", err)
 	}
-	if !strings.Contains(got.GenericToneText, "衛兵") {
-		t.Errorf("汎用口調の seed が想定外: %q", got.GenericToneText)
+	const acceptedGenericTone = "話者を特定できない汎用的な台詞。特定の職業や立場を仮定せず、原文に合う自然な口調で訳す。"
+	if got.GenericToneText != acceptedGenericTone {
+		t.Errorf("汎用口調の seed = %q, want %q", got.GenericToneText, acceptedGenericTone)
 	}
 	if !strings.Contains(got.PcToneText, "プレイヤー") {
 		t.Errorf("PC 口調の seed が想定外: %q", got.PcToneText)
@@ -392,5 +393,82 @@ func TestPromptTemplateToneDefaultsRoundTrip(t *testing.T) {
 	}
 	if after.BaseDirective != got.BaseDirective {
 		t.Errorf("base 指示が変わった: %q != %q", after.BaseDirective, got.BaseDirective)
+	}
+}
+
+// R-3-2: migration 0021 は旧既定指示と完全一致する保存値だけを新しい既定指示へ更新する。
+func TestMigration21UpdatesUneditedGenericToneDefault(t *testing.T) {
+	const oldTone = "衛兵などの不特定多数が話す汎用的な台詞。職務的で簡潔な口調で訳す。"
+	const newTone = "話者を特定できない汎用的な台詞。特定の職業や立場を仮定せず、原文に合う自然な口調で訳す。"
+	dbPath := filepath.Join(t.TempDir(), "migration21-unedited.sqlite3")
+	conn := openVersion20Database(t, dbPath)
+	assertGenericToneDefault(t, conn, oldTone)
+	closeDatabase(t, conn)
+
+	s, err := Open(dbPath)
+	if err != nil {
+		t.Fatalf("migration 21 を適用する Open: %v", err)
+	}
+	defer func() { _ = s.Close() }()
+	assertGenericToneDefault(t, s.db, newTone)
+}
+
+// R-3-3: migration 0021 は利用者が編集した汎用台詞の保存値を変更しない。
+func TestMigration21PreservesEditedGenericToneDefault(t *testing.T) {
+	for _, edited := range []string{"利用者が編集した汎用台詞の口調", ""} {
+		t.Run(edited, func(t *testing.T) {
+			dbPath := filepath.Join(t.TempDir(), "migration21-edited.sqlite3")
+			conn := openVersion20Database(t, dbPath)
+			if _, err := conn.ExecContext(context.Background(), `UPDATE tone_default SET generic_tone_text = ? WHERE id = 1`, edited); err != nil {
+				t.Fatalf("編集済み保存値の準備: %v", err)
+			}
+			closeDatabase(t, conn)
+
+			s, err := Open(dbPath)
+			if err != nil {
+				t.Fatalf("migration 21 を適用する Open: %v", err)
+			}
+			defer func() { _ = s.Close() }()
+			assertGenericToneDefault(t, s.db, edited)
+		})
+	}
+}
+
+func openVersion20Database(t *testing.T, dbPath string) *sqlx.DB {
+	t.Helper()
+	conn, err := sqlx.Connect("sqlite", dbPath)
+	if err != nil {
+		t.Fatalf("version 20 DB を開く: %v", err)
+	}
+	migrations, err := db.Migrations()
+	if err != nil {
+		closeDatabase(t, conn)
+		t.Fatalf("migration 一覧の取得: %v", err)
+	}
+	if len(migrations) < 21 {
+		closeDatabase(t, conn)
+		t.Fatalf("migration 数 = %d, want 21 以上", len(migrations))
+	}
+	for _, migration := range migrations[:20] {
+		if _, err := conn.ExecContext(context.Background(), migration.SQL); err != nil {
+			closeDatabase(t, conn)
+			t.Fatalf("version 20 DB の準備で migration %s を適用: %v", migration.Name, err)
+		}
+	}
+	if _, err := conn.ExecContext(context.Background(), "PRAGMA user_version = 20"); err != nil {
+		closeDatabase(t, conn)
+		t.Fatalf("version 20 の記録: %v", err)
+	}
+	return conn
+}
+
+func assertGenericToneDefault(t *testing.T, conn *sqlx.DB, want string) {
+	t.Helper()
+	var got string
+	if err := conn.Get(&got, `SELECT generic_tone_text FROM tone_default WHERE id = 1`); err != nil {
+		t.Fatalf("汎用台詞の保存値取得: %v", err)
+	}
+	if got != want {
+		t.Errorf("汎用台詞の保存値 = %q, want %q", got, want)
 	}
 }

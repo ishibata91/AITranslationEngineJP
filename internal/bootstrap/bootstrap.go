@@ -68,8 +68,7 @@ func NewApp() (*api.App, *store.Store, error) {
 		return nil, nil, fmt.Errorf("役割語テンプレートの読み込み: %w", err)
 	}
 
-	// 口調の例文を読み、同じ Table へ束ねる。役割語とキーが同じで値だけが違うため、
-	// 1 行が長くならないよう表を分けて置き、composition root で 1 つに組む。
+	// 6列の口調例文を読み、役割語とは独立した4キーの行集合として同じ Table へ束ねる。
 	exampleFile, err := os.Open(roleSpeechExamplePath)
 	if err != nil {
 		_ = s.Close()

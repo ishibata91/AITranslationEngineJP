@@ -759,6 +759,13 @@ func TestLinePersonasGenericAndPC(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ParseRoleSpeech: %v", err)
 	}
+	roles, err = rolespeech.ParseRoleSpeechExamples(roles, strings.NewReader(
+		"adult\tdefault\tfemale\t*\tF1\t女性F1\n"+
+			"adult\tdefault\tfemale\t*\tF2\t女性F2\n"+
+			"adult\tdefault\tfemale\t*\tF3\t女性F3\n"))
+	if err != nil {
+		t.Fatalf("ParseRoleSpeechExamples: %v", err)
+	}
 	eng := New(store, &fakeTranslator{}, fakeLexicon{}, roles, nil)
 	defaults := ToneDefaults{Generic: "衛兵の汎用台詞。", PC: "PCの選択肢。", PcSex: "Male"}
 	lines := []model.Line{
@@ -783,6 +790,9 @@ func TestLinePersonasGenericAndPC(t *testing.T) {
 	if !strings.Contains(g.Directive, "衛兵の汎用台詞") || !strings.Contains(g.Directive, "わたし") {
 		t.Errorf("汎用の directive が想定外: %q", g.Directive)
 	}
+	if strings.Count(g.Directive, "- 例:") != 3 || !strings.Contains(g.Directive, "女性F3") {
+		t.Errorf("汎用の性別別3例が想定外: %q", g.Directive)
+	}
 
 	// PC（DIAL:FULL）: 決定経路=PC、利用者選択の男性。男性は役割語テンプレートに当たらず一人称なし。
 	p, ok := personas[20]
@@ -794,6 +804,9 @@ func TestLinePersonasGenericAndPC(t *testing.T) {
 	}
 	if !strings.Contains(p.Directive, "PCの選択肢") {
 		t.Errorf("PC の directive が想定外: %q", p.Directive)
+	}
+	if strings.Contains(p.Directive, "- 例:") {
+		t.Errorf("PC の directive に例文が入った: %q", p.Directive)
 	}
 
 	// PC（INFO:RNAM・話者なし）も PC 経路へ振り分けること。
