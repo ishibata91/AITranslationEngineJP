@@ -8,34 +8,37 @@ agent には 2 種類ある。`fresh`（コンテキスト引き継ぎなしの 
 
 ## コード調査の手段（codex のみ）
 
-go、typescript、C# のコードを調べる時は、grep で入口を 1 点見つけ、そこから先の関係の追跡は LSP tool で行う。Read でファイルを丸ごと読んで関係を推測しない。
+go、typescript、svelte、C# のコードを調べる時は、シンボル名が不明な場合だけ grep で入口を 1 点見つける。シンボル名と位置が分かった後は `codex-lsp` が提供する LSP の道具で関係を追跡する。Read でファイルを丸ごと読み、関係を推測しない。
 
 LSP tool を使う場面を次に固定する。
 
-- 参照元を数える、洗い出す: `findReferences` を使う。grep は同名の別シンボル、コメント、テストの文字列まで拾い、偽陽性が出るため使わない。
-- interface の実装先を辿る: `goToImplementation` を使う。実装側の型に interface 名が現れないので、grep では原理的に見つからない。
-- 呼び出し関係を辿る: `incomingCalls`（誰がこの関数を呼ぶか）、`outgoingCalls`（この関数が何を呼ぶか）を使う。
-- ファイルの構造を把握する: `documentSymbol` を使う。関数と型の一覧が行番号つきで返るので、長い file を全文 Read しなくて済む。
-- 型と定義を確かめる: `hover`、`goToDefinition` を使う。
+- 言語サーバーの利用可否を確かめる: `lsp_status` を使う。
+- ファイルの問題を確かめる: `lsp_diagnostics` を使う。
+- 定義を辿る: `lsp_goto_definition` を使う。
+- 参照元を数える、洗い出す: `lsp_find_references` を使う。grep は同名の別シンボル、コメント、テストの文字列まで拾うため、参照元の全件確認には使わない。
+- ファイルの構造を把握する: `lsp_symbols` の `document` を使う。
+- 作業領域内のシンボルを探す: `lsp_symbols` の `workspace` を使う。
+- 名前変更の可否を確かめる: `lsp_prepare_rename` を使う。実際に名前を変更する場合だけ `lsp_rename` を使う。
+
+`codex-lsp` は `interface` 実装先の列挙、呼び出し階層、型情報の表示を専用の道具として提供しない。`interface` 実装先と呼び出し関係を調べる場合は、対象の定義と参照元を `lsp_goto_definition` と `lsp_find_references` で辿る。専用の道具がないため、結果が全件である保証はないと報告する。
 
 grep を使う場面は次に限る。
 
-- 調べたいシンボル名がまだ分かっていない段階の探索。LSP tool は file と行・列の指定が要るので、起点がない状態では呼べない。
-- 文字列リテラル、md、json、設定 file の検索。LSP tool の対象外。
+- 調べたいシンボル名がまだ分かっていない段階の探索。定義と参照元を辿る LSP の道具はファイルと行・列の指定が要るため、起点がない状態では呼べない。
+- 文字列リテラル、md、json、設定ファイルの検索。LSP の道具の対象外。
 
-LSP tool を呼べるのは本体セッションと `fork` に限る。`fresh`（Explore agent を含む）では tool 一覧に LSP が現れず、`ToolSearch` でも取得できない（2026-07-25 に実測）。この差から、委譲先を次のように分ける。
+Codex 本体、`fork`、`fresh` は、各 agent の道具一覧に `lsp_status` がある場合だけ LSP の道具を使う。道具一覧に `lsp_status` がない agent は、LSP が必要な調査結果を確定せず、Codex 本体へ返す。
 
-- 参照元の列挙、interface 実装先の特定、呼び出し関係の追跡は、本体セッションか `fork` で行う。
-- `fresh` へ渡すのは、grep とファイル読解だけで完結する探索に限る。LSP が要る調査を `fresh` へ渡すと、grep で代替した不正確な結果が返る。
+LSP の道具は `codex-lsp` を読み込んだ新しい Codex セッションで有効になる。LSP の道具が見つからない場合は、Codex を再起動して新しいセッションを開始する。
 
-本体セッションと `fork` でも LSP は最初から見えていない。遅延 tool なので、使う前に `ToolSearch` を query `select:LSP` で呼んで schema を読み込む。
+言語サーバーの実行 command は `~/.codex/lsp-client.json` を正本とする。調査前に `lsp_status` で対象言語が `installed` であることを確かめる。
 
-対応している言語は次のとおり（2026-07-25 に実測）。未対応の file に対しては LSP tool がエラーを返すので、grep へ落としたうえで、結果が全件である保証は無いと明示する。
+対応する言語と言語サーバーは次のとおりとする。
 
-- go: 使える。language server は gopls。
-- typescript: `.ts` などの拡張子だけ使える。language server は typescript-language-server（brew で導入、root の `package.json` の typescript を参照する）。
-- svelte: 使えない。`.svelte` を解釈する language server が無い。frontend で `findReferences` を使う場合、`.svelte` 側からの参照が結果に出ないため、全件にならない。gateway や store の関数を変える時は grep で `.svelte` 側を補う。
-- C#: 使えない。language server が導入されていない。
+- go: `gopls` を使う。
+- typescript: `typescript-language-server` を使う。
+- svelte: `svelteserver` を使う。
+- C#: `csharp-ls` を使う。
 
 ## 実画面確認
 
