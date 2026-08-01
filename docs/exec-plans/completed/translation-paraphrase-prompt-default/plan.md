@@ -17,3 +17,12 @@
 - 翻訳処理のプロンプト合成方法、画面、外部APIとの接続方法は変更しない。
 - 今回採用した指示文の再評価は行わない。
 - migration 17以前で止まっている既存DBの編集内容を保持する移行は扱わない。
+
+## finalization-module 結果
+
+- 正本化判断: `docs/architecture.md` は反映しない。層構成、依存方向、Wails 境界を変更しないためである。人間は2026-08-01に承認した。
+- 作業 commit: `776eea7891f86b17b7b090d18509729d221d6931`。
+- local merge: `master` へ `git merge --no-ff codex/translation-paraphrase-prompt-default` を実行した。conflict はない。merge commit は `6294ba67f2332f49b29533ef016af047803fd4ec`。
+- merge 後検証: `env GOCACHE=/private/tmp/aitranslationenginejp-go-build npm run verify:backend` は通過した。Go試験、architecture検査、境界検査が通過した。
+- 実アプリ確認: 未実施。現在のmacOS環境でWailsのlinkが`UTType`を解決できず、アプリ本体を起動できなかった。backendのmigration検証は通過している。
+- 残留リスク: 実アプリのdirective編集画面で採用文面が表示されることは未確認である。
