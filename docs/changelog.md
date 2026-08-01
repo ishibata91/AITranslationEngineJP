@@ -4,6 +4,22 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-08-01 台詞の口調指示へ意訳指示と安全指示を追加（translation-paraphrase-prompt-default）
+
+### 変更
+
+- migration 0019 は、key `口調` の `instruction` が migration 17 の既定値と完全一致する場合だけ、人間が採用した意訳指示と安全指示を含む文面へ更新する。
+- version 18 までに利用者が編集した `instruction` は、空文字を含めて保持する。key `口調` 以外の指示と `prompt_template.base_directive` は変更しない。
+- 新しい DB、version 18 の未編集 DB、独自編集済み DB、空文字へ編集済みの DB に対する migration 試験を追加した。
+
+### 判断
+
+- 意訳の対象を修辞疑問、定型的な丁寧表現、一般的な日本語表現が明確な比喩と否定構文、内容が重複する複数の節として具体化した。行為者、対象、発話の働き、態度、肯定と否定、条件、理由、情報量を保つ安全指示も加えた。
+- 利用者が編集した値を migration で上書きしない。未編集かどうかは migration 17 の既定値との完全一致で判定する。
+- `docs/architecture.md` は反映しない。層構成、依存方向、Wails 境界のいずれも変わらないためである。
+- backend の試験と検証は通過した。実アプリ確認は、現在の macOS 環境で Wails の link が `UTType` を解決できず、アプリ本体を起動できないため未実施である。
+- 根拠となる作業計画: `docs/exec-plans/completed/translation-paraphrase-prompt-default/`。
+
 ## 2026-08-01 OpenAI Batch API を xAI と共通の二段階基盤へ追加（add-openai-provider）
 
 ### 変更
