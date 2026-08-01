@@ -20,6 +20,7 @@
 - 既存 DB は、訳のある翻訳対象があり、固有名段の batch が進行中でない対象 plugin だけを再実行可能として移行する。完了を証明できない既存行は、一度だけ初回経路を通す。
 - `docs/architecture.md` は反映しない。層構成、依存方向、強い制約、Wails 境界のいずれも変わらないためである。
 - backend、frontend、C# 抽出器の自動検証は通過した。実アプリは既存結果の描画と browser console error 0 件を確認した。モデル未取得のため、実データの同期再実行は行わず、SQLite 結合テストで抽出省略、未訳だけの更新、訳のある行の不変を確認した。
+- `master` への local merge 後に `npm run test:backend` と `npm run test:frontend` を再実行し、両方の通過を確認した。merge conflict は発生しなかった。
 - 根拠となる作業計画: `docs/exec-plans/completed/retry-untranslated-records/`。
 
 ## 2026-08-01 台詞の口調指示へ意訳指示と安全指示を追加（translation-paraphrase-prompt-default）
