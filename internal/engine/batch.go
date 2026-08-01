@@ -30,9 +30,12 @@ type BatchStore interface {
 	GetBatchProgression(ctx context.Context, plugin string) (model.BatchTranslation, bool, error)
 	InsertBatchRequests(ctx context.Context, rows []model.BatchRequest) (int, error)
 	ListBatchRequests(ctx context.Context, externalBatchID string) ([]model.BatchRequest, error)
+	ListBatchRequestsByStage(ctx context.Context, batchID int64, stage string) ([]model.BatchRequest, error)
 	IsSyncRetryReady(ctx context.Context, plugin string) (bool, error)
 	MarkSyncRetryReady(ctx context.Context, plugin string) error
 }
+
+const maxBatchRequestCount = 1000
 
 // BatchSubmitOutcome は batch 送信の結果を呼び出し側へ返す。
 // CompletedWithoutExternalBatch は保存済みの辞書または既訳だけで全未訳を処理し、外部 batch を作らず完了したことを表す。
@@ -113,7 +116,7 @@ func (r *BatchRunner) SubmitBatch(ctx context.Context, providerName string, conn
 		// 固有名の AI 訳が無い（全て既訳流用 or 固有名なし）。固有名 batch を挟まず本文 batch を送る。
 		return r.submitBodyBatch(ctx, batch, conn, modelName, plugin, batchID, reusePrepared)
 	}
-	if err := r.sendStage(ctx, batch, conn, modelName, batchID, model.BatchStageProperNoun, planned); err != nil {
+	if _, err := r.sendStage(ctx, batch, conn, modelName, batchID, model.BatchStageProperNoun, planned); err != nil {
 		return BatchSubmitOutcome{}, err
 	}
 	return BatchSubmitOutcome{}, nil
@@ -192,7 +195,7 @@ func (r *BatchRunner) submitBodyBatch(ctx context.Context, batch provider.BatchT
 		}
 		return BatchSubmitOutcome{CompletedWithoutExternalBatch: true}, nil
 	}
-	if err := r.sendStage(ctx, batch, conn, modelName, batchID, model.BatchStageBody, planned); err != nil {
+	if _, err := r.sendStage(ctx, batch, conn, modelName, batchID, model.BatchStageBody, planned); err != nil {
 		return BatchSubmitOutcome{}, err
 	}
 	if err := r.store.AdvanceBatchStage(ctx, batchID, model.BatchStageBody); err != nil {
@@ -294,16 +297,50 @@ func (r *BatchRunner) planLines(ctx context.Context, lines []model.Line, refInde
 	return planned, nil
 }
 
-// sendStage は計画を外部 batch として送り、外部 ID を記録し、送信行対応を永続する（固有名段・本文段で共通）。
-func (r *BatchRunner) sendStage(ctx context.Context, batch provider.BatchTranslator, conn provider.Connection, modelName string, batchID int64, stage string, planned []batchplan.PlannedRequest) error {
-	externalID, err := batch.SubmitBatch(ctx, conn, modelName, batchplan.BuildBatchRequests(planned))
+// sendStage は同じ段で未送信の計画を最大1000件だけ外部 batch として送り、外部 ID と送信行対応を永続する。
+// 未送信の計画が無い場合は外部 batch を作らず sent=false を返す。
+func (r *BatchRunner) sendStage(ctx context.Context, batch provider.BatchTranslator, conn provider.Connection, modelName string, batchID int64, stage string, planned []batchplan.PlannedRequest) (sent bool, err error) {
+	next, err := r.nextStageRequests(ctx, batchID, stage, planned)
 	if err != nil {
-		return fmt.Errorf("%s batch の送信: %w", stage, err)
+		return false, err
+	}
+	if len(next) == 0 {
+		return false, nil
+	}
+	externalID, err := batch.SubmitBatch(ctx, conn, modelName, batchplan.BuildBatchRequests(next))
+	if err != nil {
+		return false, fmt.Errorf("%s batch の送信: %w", stage, err)
 	}
 	if err := r.store.RecordBatchExternalID(ctx, batchID, stage, externalID); err != nil {
-		return fmt.Errorf("外部 batch ID の記録: %w", err)
+		return false, fmt.Errorf("外部 batch ID の記録: %w", err)
 	}
-	return r.persistRequests(ctx, batchID, externalID, planned)
+	if err := r.persistRequests(ctx, batchID, externalID, next); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// nextStageRequests は送信済み custom_id を除き、次に送る最大1000件を元の計画順で返す。
+func (r *BatchRunner) nextStageRequests(ctx context.Context, batchID int64, stage string, planned []batchplan.PlannedRequest) ([]batchplan.PlannedRequest, error) {
+	sent, err := r.store.ListBatchRequestsByStage(ctx, batchID, stage)
+	if err != nil {
+		return nil, fmt.Errorf("送信済み batch 要求の取得: %w", err)
+	}
+	sentIDs := make(map[string]struct{}, len(sent))
+	for _, row := range sent {
+		sentIDs[row.CustomID] = struct{}{}
+	}
+	next := make([]batchplan.PlannedRequest, 0, min(len(planned), maxBatchRequestCount))
+	for _, request := range planned {
+		if _, ok := sentIDs[batchplan.EncodeCustomID(request.Kind, request.RowID)]; ok {
+			continue
+		}
+		next = append(next, request)
+		if len(next) == maxBatchRequestCount {
+			break
+		}
+	}
+	return next, nil
 }
 
 // ProgressStatus は対象 plugin の進行状況を副作用なしで返す（状態確認）。
@@ -372,6 +409,17 @@ func (r *BatchRunner) refreshOne(ctx context.Context, batch provider.BatchTransl
 		if err := r.applyResults(ctx, batch, conn, prog.Plugin, prog.ProperBatchID); err != nil {
 			return err
 		}
+		planned, planErr := r.planProperRequests(ctx, prog.Plugin)
+		if planErr != nil {
+			return planErr
+		}
+		sent, sendErr := r.sendStage(ctx, batch, conn, prog.Model, prog.ID, model.BatchStageProperNoun, planned)
+		if sendErr != nil {
+			return sendErr
+		}
+		if sent {
+			return nil
+		}
 		reusePrepared, readyErr := r.store.IsSyncRetryReady(ctx, prog.Plugin)
 		if readyErr != nil {
 			return fmt.Errorf("同期再実行準備状態の取得: %w", readyErr)
@@ -390,6 +438,17 @@ func (r *BatchRunner) refreshOne(ctx context.Context, batch provider.BatchTransl
 	case batchplan.StepApplyBodyThenComplete:
 		if err := r.applyResults(ctx, batch, conn, prog.Plugin, prog.BodyBatchID); err != nil {
 			return err
+		}
+		planned, planErr := r.planBodyRequests(ctx, prog.Plugin, true)
+		if planErr != nil {
+			return planErr
+		}
+		sent, sendErr := r.sendStage(ctx, batch, conn, prog.Model, prog.ID, model.BatchStageBody, planned)
+		if sendErr != nil {
+			return sendErr
+		}
+		if sent {
+			return nil
 		}
 		if err := r.store.AdvanceBatchStage(ctx, prog.ID, model.BatchStageDone); err != nil {
 			return fmt.Errorf("進行段の更新（完了）: %w", err)

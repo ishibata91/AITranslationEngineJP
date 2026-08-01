@@ -17,7 +17,7 @@ const (
 )
 
 // BatchTranslation は対象 plugin 1 つの batch 進行の本体（batch_translation テーブル）。plugin と 1 対 1。
-// Stage は進行段（proper_noun / body / done）。ProperBatchID / BodyBatchID は各段の外部 batch ID（未送信は空）。
+// Stage は進行段（proper_noun / body / done）。ProperBatchID / BodyBatchID は各段で現在処理している外部 batch ID（未送信は空）。
 // Provider は外部 batch ID を発行した提供元。Model は送信に使う翻訳モデル名。CreatedAt は進行開始時刻の文字列。
 type BatchTranslation struct {
 	ID            int64  `db:"id"`

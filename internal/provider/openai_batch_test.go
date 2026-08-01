@@ -82,6 +82,18 @@ func TestOpenAIBatch状態確認は終端状態だけDoneにする(t *testing.T)
 	}
 }
 
+// R-2-1: failed は外部 batch ID と OpenAI の code・message を含むエラーにする。
+func TestOpenAIBatch状態確認はFailed理由を返す(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = io.WriteString(w, `{"id":"batch-1","status":"failed","errors":{"data":[{"code":"token_limit_exceeded","message":"queued token limit"}]}}`)
+	}))
+	defer srv.Close()
+	_, err := NewOpenAIBatch(http.DefaultClient).PollBatch(context.Background(), Connection{Endpoint: srv.URL}, "batch-1")
+	if err == nil || !strings.Contains(err.Error(), "batch-1") || !strings.Contains(err.Error(), "token_limit_exceeded") || !strings.Contains(err.Error(), "queued token limit") {
+		t.Fatalf("failed error = %v", err)
+	}
+}
+
 // R-1-2: 成功行と失敗行が混在しても、成功訳と失敗種別を custom_id ごとに返すこと。
 func TestOpenAIBatch成功と失敗の結果を同時に取得する(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -110,14 +122,14 @@ func TestOpenAIBatch成功と失敗の結果を同時に取得する(t *testing.
 	}
 }
 
-// R-1-7: 終端 batch に結果 file が無い場合も空結果として取り込みを続行できること。
-func TestOpenAIBatch結果Fileなしは空結果を返す(t *testing.T) {
+// R-2-2: failed に理由が無い場合も、外部 batch ID と failed を含むエラーにする。
+func TestOpenAIBatch結果取得は理由なしFailedを空結果にしない(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = io.WriteString(w, `{"status":"failed","output_file_id":null,"error_file_id":null}`)
+		_, _ = io.WriteString(w, `{"id":"batch-1","status":"failed","output_file_id":null,"error_file_id":null}`)
 	}))
 	defer srv.Close()
 	got, err := NewOpenAIBatch(http.DefaultClient).FetchResults(context.Background(), Connection{Endpoint: srv.URL}, "batch-1")
-	if err != nil || len(got) != 0 {
-		t.Errorf("空結果 = %+v, err=%v", got, err)
+	if err == nil || got != nil || !strings.Contains(err.Error(), "batch-1") || !strings.Contains(err.Error(), "failed") {
+		t.Errorf("結果 = %+v, err=%v", got, err)
 	}
 }

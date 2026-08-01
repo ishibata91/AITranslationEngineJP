@@ -102,6 +102,9 @@ func (c *OpenAIBatch) PollBatch(ctx context.Context, conn Connection, externalBa
 	if err != nil {
 		return BatchStatus{}, err
 	}
+	if obj.Status == "failed" {
+		return BatchStatus{}, openAIBatchFailedError(obj, externalBatchID)
+	}
 	pending := obj.RequestCounts.Total - obj.RequestCounts.Completed - obj.RequestCounts.Failed
 	if pending < 0 {
 		pending = 0
@@ -117,18 +120,22 @@ func (c *OpenAIBatch) PollBatch(ctx context.Context, conn Connection, externalBa
 
 func openAIBatchTerminal(status string) bool {
 	switch status {
-	case "completed", "failed", "expired", "cancelled":
+	case "completed", "expired", "cancelled":
 		return true
 	default:
 		return false
 	}
 }
 
-// FetchResults は成功と失敗の JSONL を読み、成功行だけ訳文を返す。結果 file が無い終端は空結果とする。
+// FetchResults は成功と失敗の JSONL を読み、成功行だけ訳文を返す。
+// batch 自体が failed の場合は結果 file の有無にかかわらず失敗理由を返す。
 func (c *OpenAIBatch) FetchResults(ctx context.Context, conn Connection, externalBatchID string) ([]BatchResult, error) {
 	obj, err := c.getBatch(ctx, conn, externalBatchID)
 	if err != nil {
 		return nil, err
+	}
+	if obj.Status == "failed" {
+		return nil, openAIBatchFailedError(obj, externalBatchID)
 	}
 	var out []BatchResult
 	for _, fileID := range []string{obj.OutputFileID, obj.ErrorFileID} {
@@ -145,15 +152,47 @@ func (c *OpenAIBatch) FetchResults(ctx context.Context, conn Connection, externa
 }
 
 type openAIBatchObject struct {
-	ID            string `json:"id"`
-	Status        string `json:"status"`
-	OutputFileID  string `json:"output_file_id"`
-	ErrorFileID   string `json:"error_file_id"`
+	ID           string `json:"id"`
+	Status       string `json:"status"`
+	OutputFileID string `json:"output_file_id"`
+	ErrorFileID  string `json:"error_file_id"`
+	Errors       *struct {
+		Data []struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		} `json:"data"`
+	} `json:"errors"`
 	RequestCounts struct {
 		Total     int `json:"total"`
 		Completed int `json:"completed"`
 		Failed    int `json:"failed"`
 	} `json:"request_counts"`
+}
+
+func openAIBatchFailedError(obj openAIBatchObject, requestedID string) error {
+	id := strings.TrimSpace(obj.ID)
+	if id == "" {
+		id = requestedID
+	}
+	var reasons []string
+	if obj.Errors != nil {
+		for _, item := range obj.Errors.Data {
+			code := strings.TrimSpace(item.Code)
+			message := strings.TrimSpace(item.Message)
+			switch {
+			case code != "" && message != "":
+				reasons = append(reasons, code+": "+message)
+			case code != "":
+				reasons = append(reasons, code)
+			case message != "":
+				reasons = append(reasons, message)
+			}
+		}
+	}
+	if len(reasons) == 0 {
+		return fmt.Errorf("OpenAI batch %s failed", id)
+	}
+	return fmt.Errorf("OpenAI batch %s failed: %s", id, strings.Join(reasons, "; "))
 }
 
 func (c *OpenAIBatch) getBatch(ctx context.Context, conn Connection, externalBatchID string) (openAIBatchObject, error) {

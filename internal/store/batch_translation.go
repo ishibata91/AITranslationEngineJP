@@ -47,8 +47,8 @@ func (s *Store) StartBatchProgression(ctx context.Context, plugin, provider, mod
 
 const batchStageProperNoun = model.BatchStageProperNoun
 
-// RecordBatchExternalID は進行本体へ外部 batch ID を記録する。stage が固有名段なら proper_batch_id、
-// 本文段なら body_batch_id を更新する。二重送信の判定（外部 ID の有無）はこの列を見る。
+// RecordBatchExternalID は進行本体へ現在処理している外部 batch ID を記録する。
+// stage が固有名段なら proper_batch_id、本文段なら body_batch_id を更新する。
 func (s *Store) RecordBatchExternalID(ctx context.Context, batchID int64, stage, externalID string) error {
 	col, err := batchExternalIDColumn(stage)
 	if err != nil {
@@ -135,6 +135,33 @@ func (s *Store) ListBatchRequests(ctx context.Context, externalBatchID string) (
 		`SELECT id, batch_id, external_batch_id, custom_id, kind, row_id
 		 FROM batch_request WHERE external_batch_id = ? ORDER BY id`, externalBatchID); err != nil {
 		return nil, fmt.Errorf("送信行対応の取得: %w", err)
+	}
+	return rows, nil
+}
+
+// ListBatchRequestsByStage は同じ進行段ですでに外部 batch へ送った要求を返す。
+// 固有名段は kind='p'、本文段は kind IN ('n','l') で区別する。
+func (s *Store) ListBatchRequestsByStage(ctx context.Context, batchID int64, stage string) ([]model.BatchRequest, error) {
+	var query string
+	switch stage {
+	case model.BatchStageProperNoun:
+		query = `SELECT id, batch_id, external_batch_id, custom_id, kind, row_id
+		 FROM batch_request WHERE batch_id = ? AND kind = ? ORDER BY id`
+	case model.BatchStageBody:
+		query = `SELECT id, batch_id, external_batch_id, custom_id, kind, row_id
+		 FROM batch_request WHERE batch_id = ? AND kind IN (?, ?) ORDER BY id`
+	default:
+		return nil, fmt.Errorf("送信要求を持たない進行段: %q", stage)
+	}
+	var rows []model.BatchRequest
+	var err error
+	if stage == model.BatchStageProperNoun {
+		err = s.db.SelectContext(ctx, &rows, query, batchID, model.BatchKindProper)
+	} else {
+		err = s.db.SelectContext(ctx, &rows, query, batchID, model.BatchKindNarration, model.BatchKindLine)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("進行段の送信行対応の取得: %w", err)
 	}
 	return rows, nil
 }

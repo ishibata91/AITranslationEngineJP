@@ -4,6 +4,22 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-08-02 batch を最大1000件ずつ送り failed の取り込みを止める（fix-batch-failure-handling）
+
+### 変更
+
+- OpenAI と xAI の固有名段・本文段は、送信対象を最大1000件の外部 batch に分ける。現在の外部 batch が完了した後、`batch_request` に記録済みの `custom_id` を除き、同じ進行段の次の最大1000件を送る。
+- `batch_translation.proper_batch_id` と `body_batch_id` は、各進行段で現在処理中の外部 batch ID を持つ。画面の総数、処理待ち、成功、失敗は現在処理中の外部 batch の件数を表示する。
+- OpenAI が `status=failed` を返した場合は、外部 batch ID と `errors.data` の `code`・`message` を既存の画面エラー経路へ返す。結果取得、次の送信、進行段更新、翻訳結果の書き戻しは行わない。
+
+### 判断
+
+- queued prompt tokens を同じ実行の複数 batch で同時に積み増さないため、最大1000件の外部 batch を一つずつ送る。1000件は prompt tokens の上限を保証しないため、1つの外部 batch 自体が `failed` になった場合は停止して理由を返す。
+- `failed` になった進行の自動再送信と破棄導線は今回の仕様に含めない。`completed`、`expired`、`cancelled` の既存動作は変えない。
+- `docs/architecture.md` へ、最大1000件の逐次送信、送信済み対象の識別、現在処理中の外部 batch ID、OpenAI の `failed` を結果取得前に止める責務を反映した。人間が恒久仕様として承認した。
+- `npm run test:backend` と `npm run verify:backend` は通過した。実 OpenAI・xAI への課金を伴う送信と実画面確認は行っていない。
+- 根拠となる作業計画: `docs/exec-plans/completed/fix-batch-failure-handling/`。
+
 ## 2026-08-02 ペルソナ・性別・年齢・種族別の few-shot を口調指示へ適用（persona-tone-effectiveness-application）
 
 ### 変更
