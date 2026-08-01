@@ -15,7 +15,7 @@ import type {
 } from "./translation-run-view"
 
 // plugin はファイル選択、model は取得した一覧からの選択で扱うため、テキスト入力欄は接続情報の 2 つだけ。
-export const PROVIDER_FIELDS: ReadonlyArray<FormFieldDescriptor> = [
+const PROVIDER_FIELDS: ReadonlyArray<FormFieldDescriptor> = [
   {
     field: "endpoint",
     label: "エンドポイント",
@@ -44,7 +44,7 @@ const OPENAI_PROVIDER_FIELDS: ReadonlyArray<FormFieldDescriptor> = [
   {
     field: "apiKey",
     label: "OpenAI API キー",
-    hint: "この画面では保存せず、送信・状態確認・取り込みのたびに使います。",
+    hint: "この画面では保存せず、バッチ実行中の接続に使います。",
     placeholder: "sk-...",
     secret: true
   }
@@ -62,7 +62,7 @@ const XAI_PROVIDER_FIELDS: ReadonlyArray<FormFieldDescriptor> = [
   {
     field: "apiKey",
     label: "API キー",
-    hint: "この画面では保存せず、送信・反映のたびに使います。",
+    hint: "この画面では保存せず、バッチ実行中の接続に使います。",
     placeholder: "xai-...",
     secret: true
   }
@@ -98,23 +98,23 @@ export const MODEL_HINT: Record<TranslationProvider, string> = {
   xai: "xAI の batch 対応モデルを取得します。API キーを入れてから取得します。"
 }
 
-// batch の送信直後に出す案内。反映で結果を取りにいく運用を伝える。
+// batch の送信直後に出す案内。画面を開いている間は自動で進むことを伝える。
 export const SUBMIT_NOTICE =
-  "batch を送信しました。しばらく後に「反映」で結果を取得します（最大約 24 時間）。"
+  "batch を送信しました。固有名から本文の完了まで処理を進めます（最大約 24 時間）。"
 
-// batch 操作の補足。状態確認で進行状況を最新化し、完了段があれば主アクションで取り込んで次へ進む。
+// batch 操作の補足。一度の開始操作で固有名から本文まで自動で進むことを伝える。
 export const BATCH_ACTION_HINT =
-  "「状態確認」で進行状況を最新化します。完了した段があれば、右のボタンで取り込んで次へ進みます。"
+  "バッチ実行後は、固有名から本文の完了まで自動で進みます。"
 
 // batch の進行段の表示ラベル。進行状況ステッパーの各段に使う。
-export const BATCH_STAGE_LABEL: Record<BatchStage, string> = {
+const BATCH_STAGE_LABEL: Record<BatchStage, string> = {
   proper: "固有名",
   body: "本文",
   done: "完了"
 }
 
 // 進行状況ステッパーの段の並び。固有名 → 本文 → 完了 の 2 段構成（＋完了）を常に見せる。
-export const BATCH_STAGE_STEPS: ReadonlyArray<BatchStage> = [
+const BATCH_STAGE_STEPS: ReadonlyArray<BatchStage> = [
   "proper",
   "body",
   "done"
@@ -144,14 +144,16 @@ export function batchStepViews(progress?: BatchProgressView): BatchStepView[] {
   })
 }
 
-// 主アクションの表示文言。送信（新規 / 再送信）と、固有名・本文それぞれの取り込みを分ける。
-export const BATCH_SEND_LABEL = "送信して開始"
+// batch の主操作に表示する文言。開始、実行中、再開、完了後を区別する。
+const BATCH_SEND_LABEL = "バッチ実行"
+const BATCH_RUNNING_LABEL = "実行中…"
+const BATCH_RESUME_LABEL = "バッチ実行を再開"
+/** 表示用純関数テストでも文言を固定する公開値。 @public */
 export const BATCH_RETRY_UNTRANSLATED_LABEL = "未訳だけを再送信"
-export const BATCH_APPLY_PROPER_LABEL = "取り込んで本文を送信"
-export const BATCH_APPLY_BODY_LABEL = "取り込んで完了"
+const BATCH_COMPLETE_LABEL = "完了"
 
-// 主アクションの種別。send=送信（onSubmit）、apply=取り込み（onApply）。進行状況で排他に切り替わる。
-export type BatchMainActionKind = "send" | "apply"
+// 主アクションの種別。submit は開始・再開・未訳再送信、complete は操作のない完了表示。
+export type BatchMainActionKind = "submit" | "complete"
 
 // 主アクションの表示値。kind で押下時の動作、label で文言、enabled で活性（処理中・busy は呼び出し側で重ねる）。
 export interface BatchMainAction {
@@ -160,35 +162,42 @@ export interface BatchMainAction {
   enabled: boolean
 }
 
-// 進行状況から主アクションの種別・ラベル・活性を導く純関数。
-// 未確認・全完了は「送信して開始」（新規 / 未訳の残りを再送信）。
-// 固有名段が完了なら「取り込んで本文を送信」、本文段が完了なら「取り込んで完了」。処理待ちが残る間は非活性。
+// 進行状況と自動状態確認の継続状態から、主操作の文言と活性を導く。
+// 進行途中で自動状態確認が止まっていれば再開を表示する。取り込み操作は画面へ出さない。
 export function batchMainAction(
   progress: BatchProgressView | undefined,
-  canSubmit: boolean
+  canSubmit: boolean,
+  running = false
 ): BatchMainAction {
+  if (running) {
+    return {
+      kind: "submit",
+      label: BATCH_RUNNING_LABEL,
+      enabled: false
+    }
+  }
   if (progress?.stage === "done" && progress.untranslatedCount > 0) {
     return {
-      kind: "send",
+      kind: "submit",
       label: BATCH_RETRY_UNTRANSLATED_LABEL,
       enabled: canSubmit
     }
   }
-  if (!progress || progress.stage === "done") {
-    return { kind: "send", label: BATCH_SEND_LABEL, enabled: canSubmit }
-  }
-  if (progress.stage === "proper") {
+  if (progress?.stage === "done") {
     return {
-      kind: "apply",
-      label: BATCH_APPLY_PROPER_LABEL,
-      enabled: progress.canApply
+      kind: "complete",
+      label: BATCH_COMPLETE_LABEL,
+      enabled: false
     }
   }
-  return {
-    kind: "apply",
-    label: BATCH_APPLY_BODY_LABEL,
-    enabled: progress.canApply
+  if (progress) {
+    return {
+      kind: "submit",
+      label: BATCH_RESUME_LABEL,
+      enabled: canSubmit
+    }
   }
+  return { kind: "submit", label: BATCH_SEND_LABEL, enabled: canSubmit }
 }
 
 // 現段 batch の件数ラベル。進行状況パネルで内訳を出す。
@@ -199,19 +208,22 @@ export const BATCH_COUNT_LABEL = {
   failed: "失敗"
 } as const
 
-// 進行状況パネル下部の補足。状態未確認・処理中・完了段あり・全完了で出し分ける。
-export const BATCH_UNCHECKED_HINT = "「状態確認」で進行状況を取得します。"
+// 進行状況パネル下部の補足。開始、自動処理、再開待ち、完了を説明する。
+export const BATCH_UNCHECKED_HINT = "「バッチ実行」を押すと処理を開始します。"
+export const BATCH_STARTING_HINT =
+  "バッチ実行を開始しています。開始すると固有名の処理へ進みます。"
 export const BATCH_WAITING_HINT =
-  "処理待ちが残っています。完了までお待ちください。"
+  "処理中です。完了すると次の処理へ自動で進みます。"
 export const BATCH_APPLYABLE_HINT =
-  "現段が完了しました。「取り込み」で結果を取り込めます。"
+  "現段が完了しました。結果を取り込み、次の処理へ自動で進みます。"
+export const BATCH_PAUSED_HINT =
+  "処理は停止しています。「バッチ実行を再開」で続けます。"
 export const BATCH_DONE_HINT = "すべての翻訳が完了しました。"
 
 // 取り込みの結果として出す案内（Container が完了段に応じて選ぶ）。
 export const APPLIED_PROPER_NOTICE =
   "固有名を取り込み、本文の翻訳を送信しました。"
 export const APPLIED_BODY_NOTICE = "本文を取り込みました。翻訳が完了しました。"
-export const APPLY_NOTHING_NOTICE = "取り込める完了段はまだありません。"
 
 // batch の取り込み後に未訳が残った場合の案内。主操作と同じ「未訳だけを再送信」を使う。
 export function batchUntranslatedNotice(untranslatedCount: number): string {
