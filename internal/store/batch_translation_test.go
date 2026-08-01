@@ -183,6 +183,37 @@ func TestInsertAndListBatchRequests(t *testing.T) {
 	}
 }
 
+// ListBatchRequestsByStage が同じ進行の送信済み要求を固有名段と本文段に分けて返すこと。
+func TestListBatchRequestsByStage(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "central.sqlite3")
+	s, err := Open(dbPath)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer func() { _ = s.Close() }()
+	ctx := context.Background()
+
+	id, _ := s.StartBatchProgression(ctx, "A.esp", "openai", "gpt")
+	otherID, _ := s.StartBatchProgression(ctx, "B.esp", "xai", "grok")
+	if _, err = s.InsertBatchRequests(ctx, []model.BatchRequest{
+		{BatchID: id, ExternalBatchID: "proper-1", CustomID: "p:1", Kind: model.BatchKindProper, RowID: 1},
+		{BatchID: id, ExternalBatchID: "body-1", CustomID: "n:2", Kind: model.BatchKindNarration, RowID: 2},
+		{BatchID: id, ExternalBatchID: "body-2", CustomID: "l:3", Kind: model.BatchKindLine, RowID: 3},
+		{BatchID: otherID, ExternalBatchID: "other", CustomID: "p:4", Kind: model.BatchKindProper, RowID: 4},
+	}); err != nil {
+		t.Fatalf("送信行対応の挿入: %v", err)
+	}
+
+	proper, err := s.ListBatchRequestsByStage(ctx, id, model.BatchStageProperNoun)
+	if err != nil || len(proper) != 1 || proper[0].CustomID != "p:1" {
+		t.Fatalf("固有名段 = %+v, err=%v", proper, err)
+	}
+	body, err := s.ListBatchRequestsByStage(ctx, id, model.BatchStageBody)
+	if err != nil || len(body) != 2 || body[0].CustomID != "n:2" || body[1].CustomID != "l:3" {
+		t.Fatalf("本文段 = %+v, err=%v", body, err)
+	}
+}
+
 // DeleteTargetPlugin が対象 plugin の batch 進行と送信行対応を消し、別 plugin の分を残すこと。
 // 手続き削除リストへ batch テーブルを子→親順で追記した効果を保証する。
 func TestDeleteTargetPluginRemovesBatch(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	"aitranslationenginejp/internal/model"
@@ -67,6 +68,22 @@ func (f *fakeStore) ListBatchRequests(_ context.Context, externalBatchID string)
 	return out, nil
 }
 
+func (f *fakeStore) ListBatchRequestsByStage(_ context.Context, batchID int64, stage string) ([]model.BatchRequest, error) {
+	var out []model.BatchRequest
+	for _, row := range f.batchReqs {
+		if row.BatchID != batchID {
+			continue
+		}
+		if stage == model.BatchStageProperNoun && row.Kind == model.BatchKindProper {
+			out = append(out, row)
+		}
+		if stage == model.BatchStageBody && (row.Kind == model.BatchKindNarration || row.Kind == model.BatchKindLine) {
+			out = append(out, row)
+		}
+	}
+	return out, nil
+}
+
 func (f *fakeStore) MarkSyncRetryReady(_ context.Context, _ string) error {
 	f.syncRetryReady = true
 	return nil
@@ -88,6 +105,7 @@ type fakeBatchProvider struct {
 	polls        int
 	fetches      int
 	failSubmitsN int // 先頭から何回の SubmitBatch を失敗させるか（送信 HTTP 失敗の再現。0 なら常に成功）
+	pollErr      error
 }
 
 func (f *fakeBatchProvider) SubmitBatch(_ context.Context, _ provider.Connection, _ string, requests []provider.BatchRequest) (string, error) {
@@ -107,8 +125,107 @@ func (f *fakeBatchProvider) SubmitBatch(_ context.Context, _ provider.Connection
 
 func (f *fakeBatchProvider) PollBatch(_ context.Context, _ provider.Connection, externalBatchID string) (provider.BatchStatus, error) {
 	f.polls++
+	if f.pollErr != nil {
+		return provider.BatchStatus{}, f.pollErr
+	}
 	reqs := f.batches[externalBatchID]
 	return provider.BatchStatus{Total: len(reqs), Succeeded: len(reqs), Done: true}, nil
+}
+
+// R-1-1, R-1-4: 1001件は1000件と1件へ分かれ、現在の外部 batch が完了するまで次を送らない。
+func TestBatchは1001件を最大1000件ずつ順番に送る(t *testing.T) {
+	ctx := context.Background()
+	const plugin = "chunked.esp"
+	store := &fakeStore{}
+	out := make(map[string]string, 1001)
+	for i := 1; i <= 1001; i++ {
+		source := fmt.Sprintf("line-%04d", i)
+		store.lines = append(store.lines, model.Line{ID: int64(i), Plugin: plugin, Rec: "INFO", Field: "NAM1", Source: source})
+		out[source] = fmt.Sprintf("訳-%04d", i)
+	}
+	fb := &fakeBatchProvider{out: out}
+	runner := NewBatchRunner(New(store, &fakeTranslator{}, fakeLexicon{}, nil, nil), map[string]provider.BatchTranslator{provider.BatchProviderXAI: fb}, store)
+
+	if _, err := runner.SubmitBatch(ctx, provider.BatchProviderXAI, provider.Connection{}, "grok", plugin); err != nil {
+		t.Fatalf("初回送信: %v", err)
+	}
+	if fb.submits != 1 || len(fb.batches["ext-batch-1"]) != 1000 {
+		t.Fatalf("初回外部 batch = submits:%d requests:%d", fb.submits, len(fb.batches["ext-batch-1"]))
+	}
+	progress, ok, err := runner.ProgressStatus(ctx, provider.BatchProviderXAI, provider.Connection{}, plugin)
+	if err != nil || !ok || progress.Total != 1000 {
+		t.Fatalf("初回進行 = %+v ok:%t err:%v", progress, ok, err)
+	}
+	if err := runner.RefreshPlugin(ctx, provider.BatchProviderXAI, provider.Connection{}, plugin); err != nil {
+		t.Fatalf("1回目の反映: %v", err)
+	}
+	if fb.submits != 2 || len(fb.batches["ext-batch-2"]) != 1 || store.batchProg.Stage != model.BatchStageBody {
+		t.Fatalf("次の外部 batch = submits:%d requests:%d progression:%+v", fb.submits, len(fb.batches["ext-batch-2"]), store.batchProg)
+	}
+	progress, ok, err = runner.ProgressStatus(ctx, provider.BatchProviderXAI, provider.Connection{}, plugin)
+	if err != nil || !ok || progress.Total != 1 {
+		t.Fatalf("2回目進行 = %+v ok:%t err:%v", progress, ok, err)
+	}
+	if err := runner.RefreshPlugin(ctx, provider.BatchProviderXAI, provider.Connection{}, plugin); err != nil {
+		t.Fatalf("2回目の反映: %v", err)
+	}
+	if store.batchProg.Stage != model.BatchStageDone || len(store.lineUpdates) != 1001 {
+		t.Fatalf("完了状態 = progression:%+v updates:%d", store.batchProg, len(store.lineUpdates))
+	}
+}
+
+// R-1-2: ちょうど1000件は一つの外部 batch として送る。
+func TestBatchは1000件を一つの外部Batchとして送る(t *testing.T) {
+	ctx := context.Background()
+	const plugin = "boundary-1000.esp"
+	store := &fakeStore{}
+	for i := 1; i <= 1000; i++ {
+		store.lines = append(store.lines, model.Line{ID: int64(i), Plugin: plugin, Rec: "INFO", Field: "NAM1", Source: fmt.Sprintf("line-%04d", i)})
+	}
+	fb := &fakeBatchProvider{}
+	runner := NewBatchRunner(New(store, &fakeTranslator{}, fakeLexicon{}, nil, nil), map[string]provider.BatchTranslator{provider.BatchProviderXAI: fb}, store)
+	if _, err := runner.SubmitBatch(ctx, provider.BatchProviderXAI, provider.Connection{}, "grok", plugin); err != nil {
+		t.Fatalf("送信: %v", err)
+	}
+	if fb.submits != 1 || len(fb.batches["ext-batch-1"]) != 1000 {
+		t.Fatalf("外部 batch = submits:%d requests:%d", fb.submits, len(fb.batches["ext-batch-1"]))
+	}
+}
+
+// R-1-3: 対象が0件なら外部 batch を作らず完了する。
+func TestBatchは対象0件なら外部Batchを作らない(t *testing.T) {
+	ctx := context.Background()
+	const plugin = "empty.esp"
+	store := &fakeStore{}
+	fb := &fakeBatchProvider{}
+	runner := NewBatchRunner(New(store, &fakeTranslator{}, fakeLexicon{}, nil, nil), map[string]provider.BatchTranslator{provider.BatchProviderXAI: fb}, store)
+	outcome, err := runner.SubmitBatch(ctx, provider.BatchProviderXAI, provider.Connection{}, "grok", plugin)
+	if err != nil {
+		t.Fatalf("送信: %v", err)
+	}
+	if !outcome.CompletedWithoutExternalBatch || fb.submits != 0 || store.batchProg.Stage != model.BatchStageDone {
+		t.Fatalf("完了状態 = outcome:%+v submits:%d progression:%+v", outcome, fb.submits, store.batchProg)
+	}
+}
+
+// R-2-1, R-2-2: 状態確認が failed を返した場合は結果取得、次の送信、進行段更新を行わない。
+func TestBatch状態確認失敗は取り込みと進行を止める(t *testing.T) {
+	ctx := context.Background()
+	const plugin = "failed-batch.esp"
+	store := &fakeStore{lines: []model.Line{{ID: 1, Plugin: plugin, Rec: "INFO", Field: "NAM1", Source: "line"}}}
+	fb := &fakeBatchProvider{pollErr: errors.New("OpenAI batch batch-failed failed: token_limit_exceeded: queued token limit")}
+	runner := NewBatchRunner(New(store, &fakeTranslator{}, fakeLexicon{}, nil, nil), map[string]provider.BatchTranslator{provider.BatchProviderOpenAI: fb}, store)
+	conn := provider.Connection{APIKey: "key"}
+	if _, err := runner.SubmitBatch(ctx, provider.BatchProviderOpenAI, conn, "gpt", plugin); err != nil {
+		t.Fatalf("送信: %v", err)
+	}
+	before := *store.batchProg
+	if err := runner.RefreshPlugin(ctx, provider.BatchProviderOpenAI, conn, plugin); err == nil || !strings.Contains(err.Error(), "batch-failed") {
+		t.Fatalf("取り込み error = %v", err)
+	}
+	if fb.fetches != 0 || fb.submits != 1 || *store.batchProg != before || len(store.lineUpdates) != 0 {
+		t.Fatalf("失敗後に処理を進めた: fetches:%d submits:%d progression:%+v updates:%v", fb.fetches, fb.submits, store.batchProg, store.lineUpdates)
+	}
 }
 
 func (f *fakeBatchProvider) FetchResults(_ context.Context, _ provider.Connection, externalBatchID string) ([]provider.BatchResult, error) {
