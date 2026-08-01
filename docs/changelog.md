@@ -20,6 +20,7 @@
 - 状態確認は前の呼び出しが終わってから10秒後に次を予約し、同時実行を1件に制限する。画面終了、対象 plugin の変更、provider の変更、完了、エラーでは次回予約を止める。
 - `docs/architecture.md` へ、frontend が画面表示中の状態確認を持つ責務、10秒間隔の直列実行、画面終了時の停止、利用者操作による保存済み進行の再開を反映した。人間が恒久仕様として承認した。
 - frontend の unit test は5 files・29 tests、ESLint、TypeScript、未使用 export、frontend 境界検証、Storybook build が通過した。実 app では OpenAI（batch）画面に主操作が1個だけ表示され、承認済みの案内文が表示されることと、browser console の error と warning が0件であることを確認した。外部 API への送信は行っていない。
+- `master` への local merge は競合なしで完了した。merge 後に `npm run test:frontend` と `npm run lint:frontend` を再実行し、5 files・29 tests、ESLint、TypeScript、未使用 export、frontend 境界検証の通過を確認した。backend は変更していないため、backend test は再実行していない。
 - `npm install` の監査結果には moderate 4件と high 4件が残る。今回の変更では自動修正を行っていない。
 - 根拠となる作業計画: `docs/exec-plans/completed/batch-auto-polling/`。
 
