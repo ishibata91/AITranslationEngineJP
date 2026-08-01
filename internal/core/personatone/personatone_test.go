@@ -96,7 +96,7 @@ func TestBuildToneTraitsWithRoleSpeech(t *testing.T) {
 }
 
 // buildFreeToneTraits は自由記述の口調へ、感情段階の助言と性別の一人称・語尾を重ねる（汎用・PC 用）。
-func TestBuildFreeToneTraits(t *testing.T) {
+func TestBuildGenericToneTraits(t *testing.T) {
 	roles, err := rolespeech.ParseRoleSpeech(strings.NewReader(
 		"adult\tfemale\t*\tわたし\t女性らしいやわらかな言い回し。\n"))
 	if err != nil {
@@ -104,12 +104,12 @@ func TestBuildFreeToneTraits(t *testing.T) {
 	}
 
 	// 自由記述が空なら口調指示なし（空）。
-	if got := BuildFreeToneTraits("", tone.EmotionMid, "Female", roles, ""); got != nil {
+	if got := BuildGenericToneTraits("", tone.EmotionMid, "Female", roles, ""); got != nil {
 		t.Errorf("自由記述が空で traits = %v, want nil", got)
 	}
 
 	// 感情が中（1）は助言を出さない。女性は性別行と一人称・語尾が付く。口調 ＋ 性別 ＋ 人称 の 3 行。
-	mid := BuildFreeToneTraits("衛兵の汎用台詞。", tone.EmotionMid, "Female", roles, "")
+	mid := BuildGenericToneTraits("汎用台詞。", tone.EmotionMid, "Female", roles, "")
 	if len(mid) != 3 {
 		t.Fatalf("中・女性の口調指示行 = %d, want 3: %v", len(mid), mid)
 	}
@@ -118,7 +118,7 @@ func TestBuildFreeToneTraits(t *testing.T) {
 	}
 
 	// 感情が激情（2）は助言を出す。性別なしは一人称・語尾を付けない。口調 ＋ 感情 の 2 行。
-	intense := BuildFreeToneTraits("汎用台詞。", tone.EmotionIntense, "", roles, "")
+	intense := BuildGenericToneTraits("汎用台詞。", tone.EmotionIntense, "", roles, "")
 	if len(intense) != 2 {
 		t.Fatalf("激情・性別なしの口調指示行 = %d, want 2: %v", len(intense), intense)
 	}
@@ -127,13 +127,13 @@ func TestBuildFreeToneTraits(t *testing.T) {
 	}
 
 	// 抑制（0）＋ 男性 ＋ roles nil は口調 ＋ 性別 ＋ 感情 の 3 行（一人称・語尾なし）。
-	suppressed := BuildFreeToneTraits("PC の選択肢。", tone.EmotionSuppressed, "Male", nil, "")
+	suppressed := BuildPCToneTraits("PC の選択肢。", tone.EmotionSuppressed, "Male", nil, "")
 	if len(suppressed) != 3 {
 		t.Fatalf("抑制の口調指示行 = %d, want 3: %v", len(suppressed), suppressed)
 	}
 
 	// テンプレートに当たらない成人男（adult/male、行なし）は一人称・語尾を付けず、中なら口調 ＋ 性別 の 2 行。
-	maleMid := BuildFreeToneTraits("汎用台詞。", tone.EmotionMid, "Male", roles, "")
+	maleMid := BuildGenericToneTraits("汎用台詞。", tone.EmotionMid, "Male", roles, "")
 	if len(maleMid) != 2 {
 		t.Fatalf("中・成人男の口調指示行 = %d, want 2: %v", len(maleMid), maleMid)
 	}
@@ -186,11 +186,11 @@ func TestBuildToneTraitsLineEmotion(t *testing.T) {
 	}
 }
 
-// BuildFreeToneTraits は TRDT 種別があれば台詞感情行を出し、本文推定の強度助言を出さない（二重回避）。
+// BuildGenericToneTraits は TRDT 種別があれば台詞感情行を出し、本文推定の強度助言を出さない（二重回避）。
 // TRDT が無ければ従来の強度助言へ落ちる。
-func TestBuildFreeToneTraitsLineEmotion(t *testing.T) {
+func TestBuildGenericToneTraitsLineEmotion(t *testing.T) {
 	// 本文は激情だが TRDT=悲しみ → TRDT 種別を出し、強度助言（「高ぶった」）は出さない。
-	got := BuildFreeToneTraits("汎用台詞。", tone.EmotionIntense, "", nil, tone.LineEmotionSad)
+	got := BuildGenericToneTraits("汎用台詞。", tone.EmotionIntense, "", nil, tone.LineEmotionSad)
 	if len(got) != 2 {
 		t.Fatalf("口調 ＋ 感情の 2 行を期待: %v", got)
 	}
@@ -199,7 +199,7 @@ func TestBuildFreeToneTraitsLineEmotion(t *testing.T) {
 	}
 
 	// TRDT 無し（空）＋ 激情 → 従来の強度助言へ落ちる。
-	fallback := BuildFreeToneTraits("汎用台詞。", tone.EmotionIntense, "", nil, "")
+	fallback := BuildGenericToneTraits("汎用台詞。", tone.EmotionIntense, "", nil, "")
 	if len(fallback) != 2 || !strings.Contains(fallback[1], "高ぶった") {
 		t.Errorf("TRDT 無しで強度助言に落ちない: %v", fallback)
 	}
@@ -208,15 +208,15 @@ func TestBuildFreeToneTraitsLineEmotion(t *testing.T) {
 // freeRoleSpeechLines（formatRoleSpeech）は一人称のみ・言い回しのみ・両方空を出し分ける。
 func TestFreeRoleSpeechFormatting(t *testing.T) {
 	firstOnly, _ := rolespeech.ParseRoleSpeech(strings.NewReader("adult\tmale\t*\t俺\t\n"))
-	if got := freeRoleSpeechLines("Male", firstOnly); len(got) != 1 || got[0] != "- 人称と言い回し: 一人称は「俺」。" {
+	if got := freeRoleSpeechLines("Male", firstOnly, false); len(got) != 1 || got[0] != "- 人称と言い回し: 一人称は「俺」。" {
 		t.Errorf("一人称のみ = %v", got)
 	}
 	registerOnly, _ := rolespeech.ParseRoleSpeech(strings.NewReader("adult\tmale\t*\t\t男性らしい言い回し。\n"))
-	if got := freeRoleSpeechLines("Male", registerOnly); len(got) != 1 || got[0] != "- 言い回し: 男性らしい言い回し。" {
+	if got := freeRoleSpeechLines("Male", registerOnly, false); len(got) != 1 || got[0] != "- 言い回し: 男性らしい言い回し。" {
 		t.Errorf("言い回しのみ = %v", got)
 	}
 	bothEmpty, _ := rolespeech.ParseRoleSpeech(strings.NewReader("adult\tmale\t*\t\t\n"))
-	if got := freeRoleSpeechLines("Male", bothEmpty); len(got) != 0 {
+	if got := freeRoleSpeechLines("Male", bothEmpty, false); len(got) != 0 {
 		t.Errorf("一人称も言い回しも空で = %v, want 行なし", got)
 	}
 }
@@ -229,12 +229,12 @@ func TestFreeRoleSpeechUnknownSexFallsBackToWildcard(t *testing.T) {
 	if err != nil {
 		t.Fatalf("役割語表の解析: %v", err)
 	}
-	got := freeRoleSpeechLines("", roles)
+	got := freeRoleSpeechLines("", roles, true)
 	if len(got) != 1 || !strings.Contains(got[0], "「私」") {
 		t.Fatalf("性別不明でワイルドカード行へ落ちない: %v", got)
 	}
 	// 口調指示の組み立てまで通ること（PC 発話・汎用台詞の経路）。
-	traits := BuildFreeToneTraits("汎用台詞。", tone.EmotionMid, "", roles, "")
+	traits := BuildGenericToneTraits("汎用台詞。", tone.EmotionMid, "", roles, "")
 	if len(traits) != 2 || !strings.Contains(traits[1], "「私」") {
 		t.Fatalf("性別不明の口調指示に一人称が乗らない: %v", traits)
 	}
@@ -248,7 +248,7 @@ func TestBuildToneTraitsIncludesExample(t *testing.T) {
 	}
 	cell := tone.CellName(tone.AttitudeArrogant, tone.EmotionMid)
 	roles, err = rolespeech.ParseRoleSpeechExamples(roles,
-		strings.NewReader("adult\tmale\t"+cell+"\tMove.\tどけ。俺の邪魔だ。\n"))
+		strings.NewReader("adult\tdefault\tmale\t"+cell+"\tMove.\tどけ。俺の邪魔だ。\n"))
 	if err != nil {
 		t.Fatalf("例文表の解析: %v", err)
 	}
@@ -273,16 +273,83 @@ func TestRoleSpeechExampleLine(t *testing.T) {
 		t.Fatalf("役割語表の解析: %v", err)
 	}
 	roles, err = rolespeech.ParseRoleSpeechExamples(roles,
-		strings.NewReader("adult\tmale\t*\tI got it!\tやったぞ、俺がやった。\n"))
+		strings.NewReader("adult\tdefault\tmale\t*\tI got it!\tやったぞ、俺がやった。\n"))
 	if err != nil {
 		t.Fatalf("例文表の解析: %v", err)
 	}
-	got := freeRoleSpeechLines("Male", roles)
+	got := freeRoleSpeechLines("Male", roles, true)
 	if len(got) != 2 {
 		t.Fatalf("人称と例文の 2 行を期待: %v", got)
 	}
 	if got[1] != "- 例: I got it! → やったぞ、俺がやった。" {
 		t.Errorf("例文行 = %q", got[1])
+	}
+}
+
+// R-1-1・R-1-2・R-1-4: 名指しKhajiitには組み合わせ別3例と使い方の指示が入力順で入る。
+func TestBuildToneTraitsIncludesKhajiitExamplesAndUsageInstruction(t *testing.T) {
+	roles, err := rolespeech.ParseRoleSpeech(strings.NewReader("adult\tfemale\t*\t\t落ち着いて。\n"))
+	if err != nil {
+		t.Fatalf("役割語表の解析: %v", err)
+	}
+	cell := tone.CellName(tone.AttitudeNeutral, tone.EmotionMid)
+	data := strings.Join([]string{
+		"adult\tkhajiit\tfemale\t" + cell + "\tF1\tこの者はF1",
+		"adult\tkhajiit\tfemale\t" + cell + "\tF2\tF2には種族表現なし",
+		"adult\tkhajiit\tfemale\t" + cell + "\tF3\tこの者にF3",
+	}, "\n") + "\n"
+	roles, err = rolespeech.ParseRoleSpeechExamples(roles, strings.NewReader(data))
+	if err != nil {
+		t.Fatalf("例文表の解析: %v", err)
+	}
+	got := BuildToneTraits(model.LinePersonaInput{
+		AttitudeBand: tone.AttitudeNeutral, EmotionBand: tone.EmotionMid,
+		Sex: "Female", RaceEDID: "KhajiitRace",
+	}, roles)
+	joined := strings.Join(got, "\n")
+	if strings.Index(joined, "F1 →") >= strings.Index(joined, "F2 →") || strings.Index(joined, "F2 →") >= strings.Index(joined, "F3 →") {
+		t.Errorf("3例が入力順でない: %v", got)
+	}
+	exampleText := strings.Join(got[3:6], "\n")
+	if strings.Count(exampleText, "この者") != 2 || strings.Contains(got[4], "この者") {
+		t.Errorf("Khajiit例の種族表現が想定外: %v", got)
+	}
+	if got[6] != exampleUsageInstruction {
+		t.Errorf("3例直後の使い方指示 = %q", got[6])
+	}
+}
+
+// R-2-1〜R-2-3: 汎用台詞だけが性別別3例を持ち、PC発話と性別不明の汎用台詞は例を持たない。
+func TestGenericAndPCToneTraitsSeparateExamples(t *testing.T) {
+	roles, err := rolespeech.ParseRoleSpeech(strings.NewReader("adult\t*\t*\t\t自然に。\n"))
+	if err != nil {
+		t.Fatalf("役割語表の解析: %v", err)
+	}
+	var rows []string
+	for _, sex := range []string{"male", "female"} {
+		for i := 1; i <= 3; i++ {
+			rows = append(rows, "adult\tdefault\t"+sex+"\t*\tF"+string(rune('0'+i))+"\t"+sex+"-F"+string(rune('0'+i)))
+		}
+	}
+	roles, err = rolespeech.ParseRoleSpeechExamples(roles, strings.NewReader(strings.Join(rows, "\n")+"\n"))
+	if err != nil {
+		t.Fatalf("例文表の解析: %v", err)
+	}
+	male := strings.Join(BuildGenericToneTraits("汎用台詞。", tone.EmotionMid, "Male", roles, ""), "\n")
+	female := strings.Join(BuildGenericToneTraits("汎用台詞。", tone.EmotionMid, "Female", roles, ""), "\n")
+	if strings.Count(male, "- 例:") != 3 || !strings.Contains(male, "male-F1") || strings.Contains(male, "female-F1") {
+		t.Errorf("男性の汎用例が想定外: %q", male)
+	}
+	if strings.Count(female, "- 例:") != 3 || !strings.Contains(female, "→ female-F1") || strings.Contains(female, "→ male-F1") {
+		t.Errorf("女性の汎用例が想定外: %q", female)
+	}
+	unknown := strings.Join(BuildGenericToneTraits("汎用台詞。", tone.EmotionMid, "", roles, ""), "\n")
+	pc := strings.Join(BuildPCToneTraits("PC発話。", tone.EmotionMid, "Female", roles, tone.LineEmotionHappy), "\n")
+	if strings.Contains(unknown, "- 例:") {
+		t.Errorf("性別不明の汎用台詞に例がある: %q", unknown)
+	}
+	if strings.Contains(pc, "- 例:") || !strings.Contains(pc, "- 性別: 女性") || !strings.Contains(pc, "喜び") || !strings.Contains(pc, "自然に") {
+		t.Errorf("PC発話の属性維持または例除外が想定外: %q", pc)
 	}
 }
 
@@ -341,7 +408,7 @@ func TestBuildToneTraitsHasSexLine(t *testing.T) {
 
 // R-4-2: 話者を解決できない汎用台詞とプレイヤーの選択肢についても、性別が取れる時は
 // 名指し話者と同じ形の行が出ること。
-func TestBuildFreeToneTraitsHasSameSexLine(t *testing.T) {
+func TestBuildGenericToneTraitsHasSameSexLine(t *testing.T) {
 	roles, err := rolespeech.ParseRoleSpeech(strings.NewReader("adult\t*\t*\t私\t\n"))
 	if err != nil {
 		t.Fatalf("役割語表の解析: %v", err)
@@ -351,7 +418,7 @@ func TestBuildFreeToneTraitsHasSameSexLine(t *testing.T) {
 			AttitudeBand: tone.AttitudeNeutral, EmotionBand: tone.EmotionMid,
 			Sex: sex, RaceEDID: "NordRace",
 		}, roles)
-		free := BuildFreeToneTraits("汎用台詞。", tone.EmotionMid, sex, roles, "")
+		free := BuildGenericToneTraits("汎用台詞。", tone.EmotionMid, sex, roles, "")
 		want := sexTrait(sex)
 		if !hasLine(named, want) || !hasLine(free, want) {
 			t.Errorf("性別 %q で名指し話者と汎用台詞の性別の行が揃わない:\n  名指し=%v\n  汎用=%v", sex, named, free)
@@ -371,7 +438,7 @@ func TestSexLineAbsentWhenSexUnknown(t *testing.T) {
 			AttitudeBand: tone.AttitudeNeutral, EmotionBand: tone.EmotionMid,
 			Sex: sex, RaceEDID: "NordRace",
 		}, roles)
-		free := BuildFreeToneTraits("汎用台詞。", tone.EmotionMid, sex, roles, "")
+		free := BuildGenericToneTraits("汎用台詞。", tone.EmotionMid, sex, roles, "")
 		if hasPrefix(named, "- 性別: ") {
 			t.Errorf("性別 %q（取れない）の名指し話者に性別の行が出た: %v", sex, named)
 		}

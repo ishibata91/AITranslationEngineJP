@@ -15,7 +15,7 @@ const traitsToken = "{traits}"
 
 // toneTraits は基底口調セル（[感情段階][対人段階]）の性質文。翻訳プロンプトの口調指示へ入れる。
 // implementation-scope.md のとおり v1 はコード定数で持つ。
-// 一人称・語尾を確定する例文は assets/role-speech-examples.tsv が持ち、役割語と同じキーで引いて口調指示へ足す。
+// 一人称・語尾を確定する例文は assets/role-speech-examples.tsv が持ち、役割語と独立した4キーで引いて口調指示へ足す。
 //
 // 対人段階が丁寧の 3 セルから、敬語を求める語を外してある（2026-07-28）。
 // 変える前は「敬語を保ち」「柔らかく丁寧な口調」「感情を込めた丁寧な口調」と書いていた。
@@ -26,21 +26,21 @@ const traitsToken = "{traits}"
 var toneTraits = [3][3]string{
 	// 抑制（感情を抑える）
 	{
-		"相手を見下す冷たい口調。感情を抑え、丁寧さを欠いた突き放した言い方にする。", // 尊大
-		"感情を交えない事務的な口調。敬語にも砕けにも寄らず淡々と述べる。",      // 中立
-		"言葉を選んで落ち着いて述べる。感情を抑える。文末は「〜だ」「〜だな」「〜だろう」のように言い切り、です・ます体は使わない。",      // 丁寧
+		"相手を見下す冷たい口調。感情を抑え、丁寧さを欠いた突き放した言い方にする。",                         // 尊大
+		"感情を交えない事務的な口調。敬語にも砕けにも寄らず淡々と述べる。",                              // 中立
+		"言葉を選んで落ち着いて述べる。感情を抑える。文末は「〜だ」「〜だな」「〜だろう」のように言い切り、です・ます体は使わない。", // 丁寧
 	},
 	// 中
 	{
-		"ぶっきらぼうで乱暴な口調。命令的に言い、相手を立てない。", // 尊大
-		"飾らない率直な口調。過度な敬語も乱暴さもなく話す。",    // 中立
-		"穏やかに話す。文末は「〜だよ」「〜だね」「〜かい」のようにくだけた形で言い切り、です・ます体は使わない。",     // 丁寧
+		"ぶっきらぼうで乱暴な口調。命令的に言い、相手を立てない。",                         // 尊大
+		"飾らない率直な口調。過度な敬語も乱暴さもなく話す。",                            // 中立
+		"穏やかに話す。文末は「〜だよ」「〜だね」「〜かい」のようにくだけた形で言い切り、です・ます体は使わない。", // 丁寧
 	},
 	// 激情
 	{
-		"激しく威圧する口調。感情を露わにし、相手を罵り見下す。", // 尊大
-		"感情を高ぶらせた率直な口調。勢いよく言い切る。",     // 中立
-		"相手へ熱意を持って訴える。文末は「〜てくれ」「〜だ」のように言い切り、です・ます体は使わない。",      // 丁寧
+		"激しく威圧する口調。感情を露わにし、相手を罵り見下す。",                     // 尊大
+		"感情を高ぶらせた率直な口調。勢いよく言い切る。",                         // 中立
+		"相手へ熱意を持って訴える。文末は「〜てくれ」「〜だ」のように言い切り、です・ます体は使わない。", // 丁寧
 	},
 }
 
@@ -112,17 +112,22 @@ func BuildToneTraits(in model.LinePersonaInput, roles *rolespeech.Table) []strin
 // 一致が無い、または一人称・言い回し・例文がすべて空なら行を返さない（役割語マーカーなし）。
 func roleSpeechLines(in model.LinePersonaInput, roles *rolespeech.Table) []string {
 	cell := tone.CellName(in.AttitudeBand, in.EmotionBand)
-	tmpl, ok := roles.Lookup(rolespeech.RoleClassOfRace(in.RaceEDID), strings.ToLower(in.Sex), cell)
+	role := rolespeech.RoleClassOfRace(in.RaceEDID)
+	sex := strings.ToLower(in.Sex)
+	tmpl, ok := roles.Lookup(role, sex, cell)
 	if !ok {
 		return nil
 	}
-	return formatRoleSpeech(tmpl)
+	examples := roles.LookupExamples(role, rolespeech.SpeciesClassOfRace(in.RaceEDID), sex, cell)
+	return formatRoleSpeech(tmpl, examples)
 }
 
-// formatRoleSpeech は役割語テンプレート（一人称・言い回し・例文）を口調指示の行へ整える。
+const exampleUsageInstruction = "- 例の使い方: 例は語句を写す型ではない。同じ自称、終助詞、命令形を一つの台詞で反復せず、性別や年齢を示すためだけに「来い」「ぞ」「おらん」「おくれ」を選ばない。"
+
+// formatRoleSpeech は役割語テンプレートと例文を口調指示の行へ整える。
 // 例文は説明文だけでは揺れる一人称・語尾を訳例で固定するために置く。
 // 一人称も言い回しも例文も空なら行を返さない。名指し話者と汎用・PC で共通の整形。
-func formatRoleSpeech(tmpl rolespeech.Template) []string {
+func formatRoleSpeech(tmpl rolespeech.Template, examples []rolespeech.Example) []string {
 	var lines []string
 	switch {
 	case tmpl.FirstPerson != "" && tmpl.Register != "":
@@ -132,8 +137,13 @@ func formatRoleSpeech(tmpl rolespeech.Template) []string {
 	case tmpl.Register != "":
 		lines = append(lines, "- 言い回し: "+tmpl.Register)
 	}
-	if !tmpl.Example.IsZero() {
-		lines = append(lines, "- 例: "+tmpl.Example.Source+" → "+tmpl.Example.Dest)
+	for _, example := range examples {
+		if !example.IsZero() {
+			lines = append(lines, "- 例: "+example.Source+" → "+example.Dest)
+		}
+	}
+	if len(examples) == 3 {
+		lines = append(lines, exampleUsageInstruction)
 	}
 	return lines
 }
@@ -173,25 +183,28 @@ func lineEmotionLine(emotionType string) string {
 	return "- 感情: この台詞は" + word + "を込めた口調で話す。"
 }
 
-// freeRoleSpeechLines は性別だけから一人称・語尾・例文の行を引く（汎用・PC 用）。
-// 汎用・PC は対人段階・セルを持たないため、年齢区分は成人、セルはワイルドカードで照合する。
-// 性別が空でも引く。空文字は性別列のワイルドカード行に一致し、性別を取れない話者の既定行へ落ちる。
-// 一致が無いなら行を返さない（一人称・語尾の指定なし）。
-func freeRoleSpeechLines(sex string, roles *rolespeech.Table) []string {
-	tmpl, ok := roles.Lookup(rolespeech.RoleClassOfRace(""), strings.ToLower(strings.TrimSpace(sex)), "")
+// freeRoleSpeechLines は性別だけから一人称・語尾の行を引く。
+func freeRoleSpeechLines(sex string, roles *rolespeech.Table, includeExamples bool) []string {
+	role := rolespeech.RoleClassOfRace("")
+	normalizedSex := strings.ToLower(strings.TrimSpace(sex))
+	tmpl, ok := roles.Lookup(role, normalizedSex, "")
 	if !ok {
 		return nil
 	}
-	return formatRoleSpeech(tmpl)
+	var examples []rolespeech.Example
+	if includeExamples && normalizedSex != "" {
+		examples = roles.LookupExamples(role, "default", normalizedSex, "")
+	}
+	return formatRoleSpeech(tmpl, examples)
 }
 
-// BuildFreeToneTraits は汎用台詞・PC 発話の口調指示の箇条書きを組む。
+// buildFreeToneTraits は汎用台詞・PC 発話で共有する口調指示の箇条書きを組む。
 // 自由記述の口調（baseText）→ 性別 → 台詞の感情（TRDT 種別、無ければ本文 1 行の感情段階の助言）
-// → 性別の一人称・語尾・例文 の順に並べる。
+// → 性別の一人称・語尾の順に並べ、呼び出し側の指定に応じて汎用台詞の例文を加える。
 // 性別の行は名指し話者（BuildToneTraits）と同じ形にする。性別を取れない話者と PC 性別の未設定は行を出さない。
-// 性別が空でも役割語は引く（性別列のワイルドカード行へ落ちる）。
+// 性別が空でも役割語は引くが、性別別の例文は引かない。
 // baseText が空なら空（口調指示なし）。対人段階・セルは持たず、台詞の感情と性別だけを重ねる。
-func BuildFreeToneTraits(baseText string, emotionBand int, sex string, roles *rolespeech.Table, emotionType string) []string {
+func buildFreeToneTraits(baseText string, emotionBand int, sex string, roles *rolespeech.Table, emotionType string, includeExamples bool) []string {
 	base := strings.TrimSpace(baseText)
 	if base == "" {
 		return nil
@@ -206,8 +219,18 @@ func BuildFreeToneTraits(baseText string, emotionBand int, sex string, roles *ro
 	} else if adv := emotionAdvice(emotionBand); adv != "" {
 		traits = append(traits, "- 感情: "+adv)
 	}
-	traits = append(traits, freeRoleSpeechLines(sex, roles)...)
+	traits = append(traits, freeRoleSpeechLines(sex, roles, includeExamples)...)
 	return traits
+}
+
+// BuildGenericToneTraits は汎用台詞へ性別ごとの例文を加える。性別不明なら例文を加えない。
+func BuildGenericToneTraits(baseText string, emotionBand int, sex string, roles *rolespeech.Table, emotionType string) []string {
+	return buildFreeToneTraits(baseText, emotionBand, sex, roles, emotionType, true)
+}
+
+// BuildPCToneTraits はPC発話の性別・感情・言い回しを組み、例文は加えない。
+func BuildPCToneTraits(baseText string, emotionBand int, sex string, roles *rolespeech.Table, emotionType string) []string {
+	return buildFreeToneTraits(baseText, emotionBand, sex, roles, emotionType, false)
 }
 
 // BuildToneDirective は口調指示テンプレートの {traits} へ口調指示の箇条書きを差し込む。

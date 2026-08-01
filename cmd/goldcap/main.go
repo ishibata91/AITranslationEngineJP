@@ -87,6 +87,7 @@ func run() error {
 		return fmt.Errorf("口調例文テンプレートを開けない (%s): %w", o.roleExamplePath, err)
 	}
 	defer exampleFile.Close() //nolint:errcheck // 読み取り後の後始末。
+	// 例文表は役割区分・種族区分・性別・セル・英語原文・日本語訳文の6列で読む。
 	roles, err = rolespeech.ParseRoleSpeechExamples(roles, exampleFile)
 	if err != nil {
 		return fmt.Errorf("口調例文テンプレートの読み込み: %w", err)

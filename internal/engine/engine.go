@@ -707,16 +707,19 @@ func (e *Engine) namedPersona(in model.LinePersonaInput, personaTemplate string)
 // 台詞の 3 種以外、または自由記述が空なら built=false。
 func (e *Engine) freeTonePersona(l model.Line, f tone.Features, condSex, personaTemplate string, defaults ToneDefaults) (Persona, bool) {
 	var label, path, sex, baseText string
+	var traits []string
+	emotion := e.classifier.EmotionBandOfLine(f)
 	switch {
 	case isPCRecord(l.Rec, l.Field):
 		label, path, sex, baseText = "口調: PC発話", tone.PathPC, defaults.PcSex, defaults.PC
+		traits = personatone.BuildPCToneTraits(baseText, emotion, sex, e.roleSpeech, l.EmotionType)
 	case l.Rec == recInfo && l.Field == fieldNam1:
 		label, path, sex, baseText = "口調: 汎用台詞", tone.PathGeneric, condSex, defaults.Generic
+		traits = personatone.BuildGenericToneTraits(baseText, emotion, sex, e.roleSpeech, l.EmotionType)
 	default:
 		return Persona{}, false // 台詞の 3 種以外は来ない想定。来ても口調なし。
 	}
-	emotion := e.classifier.EmotionBandOfLine(f)
-	directive := personatone.BuildToneDirective(personaTemplate, personatone.BuildFreeToneTraits(baseText, emotion, sex, e.roleSpeech, l.EmotionType))
+	directive := personatone.BuildToneDirective(personaTemplate, traits)
 	if directive == "" {
 		return Persona{}, false // 自由記述が空 → 口調なし。
 	}

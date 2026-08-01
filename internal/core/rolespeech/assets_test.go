@@ -44,7 +44,7 @@ var allCells = []string{
 	"居丈高・罵倒", "率直・興奮", "情に厚い懇願", // 激情 × 尊大/中立/丁寧
 }
 
-// 名指し話者の全区分（役割区分 3 × 性別 2 × セル 9 の 54 通り）が、役割語と例文の両方で一致を返すこと。
+// 名指し話者の全区分（役割区分 3 × 性別 2 × セル 9 の 54 通り）が、役割語で一致を返すこと。
 // 名指し話者の性別は NPC の Female flag から決まり空にならないため、この 54 通りで全て覆う。
 func TestRealTableCoversAllNamedSpeakerKeys(t *testing.T) {
 	tbl := realTable(t)
@@ -59,19 +59,25 @@ func TestRealTableCoversAllNamedSpeakerKeys(t *testing.T) {
 				if tmpl.FirstPerson == "" && tmpl.Register == "" {
 					t.Errorf("%s/%s/%s: 一人称も言い回しも空（役割語が付かない）", race, sex, cell)
 				}
-				if tmpl.Example.IsZero() {
-					t.Errorf("%s/%s/%s: 例文が無い", race, sex, cell)
+				for _, species := range []string{"default", "khajiit"} {
+					examples := tbl.LookupExamples(race, species, sex, cell)
+					want := 1
+					if cell == "平明" || cell == "ぞんざい" || cell == "物腰やわ" {
+						want = 3
+					}
+					if len(examples) != want {
+						t.Errorf("%s/%s/%s/%s: 例文数 = %d, want %d", race, species, sex, cell, len(examples), want)
+					}
 				}
 			}
 		}
 	}
 }
 
-// 性別を取れない話者（汎用台詞、PC 性別が未設定の PC 発話）の経路。
-// personatone.freeRoleSpeechLines が Lookup("adult", sex, "") を呼ぶため、セル列のワイルドカード行で受ける。
+// 汎用台詞は成人・default・性別ごとの平明3例を持ち、性別不明は例文を持たない。
 func TestRealTableCoversFreeLinePath(t *testing.T) {
 	tbl := realTable(t)
-	for _, sex := range []string{"male", "female", ""} {
+	for _, sex := range []string{"male", "female"} {
 		tmpl, ok := tbl.Lookup("adult", sex, "")
 		if !ok {
 			t.Errorf("汎用経路 adult/%q/（セルなし）: 一致する行が無い", sex)
@@ -80,9 +86,12 @@ func TestRealTableCoversFreeLinePath(t *testing.T) {
 		if tmpl.FirstPerson == "" && tmpl.Register == "" {
 			t.Errorf("汎用経路 adult/%q: 一人称も言い回しも空（役割語が付かない）", sex)
 		}
-		if tmpl.Example.IsZero() {
-			t.Errorf("汎用経路 adult/%q: 例文が無い", sex)
+		if examples := tbl.LookupExamples("adult", "default", sex, ""); len(examples) != 3 {
+			t.Errorf("汎用経路 adult/default/%q: 例文数 = %d, want 3", sex, len(examples))
 		}
+	}
+	if examples := tbl.LookupExamples("adult", "default", "", ""); len(examples) != 0 {
+		t.Errorf("性別不明の汎用経路に例文がある: %v", examples)
 	}
 }
 

@@ -72,8 +72,8 @@ var goOracles = map[string]func(t *testing.T, p probe){
 	},
 
 	// 話者結線: 話者が結ばれた台詞のプロンプトへ、その話者の人物像・口調が乗る（話者→ペルソナ→プロンプト）。
-	// 人物像には役割語（一人称）と口調の例文も含む。役割語表と例文表は別 asset だが同じキーで引き、
-	// 1 つの口調指示へ束ねる。ここは合成表（syntheticRoleSpeech・syntheticRoleSpeechExamples）で配線だけを守る。
+	// 人物像には役割語（一人称）と口調の例文も含む。役割語は3キー、例文は4キーで別々に引き、
+	// 1つの口調指示へ束ねる。ここは合成表で配線だけを守る。
 	"speaker-tone-injected": func(t *testing.T, p probe) {
 		pr := promptContainingUser(t, p, "trouble in town")
 		if !strings.Contains(pr.System, "人物像") {

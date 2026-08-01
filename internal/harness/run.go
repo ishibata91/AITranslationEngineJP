@@ -92,10 +92,10 @@ func SyntheticRun(dbPath string) (Capture, error) {
 // 実 assets/role-speech.tsv の内容変化から harness を切り離し、口調注入が決定的に通ることだけを保証する。
 var syntheticRoleSpeech = strings.Join([]string{"*", "*", "*", "わたし", "落ち着いた言い回しにする。"}, "\t") + "\n"
 
-// syntheticRoleSpeechExamples は合成入力用の最小例文表（タブ区切り 5 列、全ワイルドカード 1 行）。
+// syntheticRoleSpeechExamples は合成入力用の最小例文表（タブ区切り 6 列、全ワイルドカード 1 行）。
 // 実 assets/role-speech-examples.tsv の内容変化から harness を切り離し、
-// 例文が役割語と同じキーで引かれて口調指示へ乗ることだけを保証する。
-var syntheticRoleSpeechExamples = strings.Join([]string{"*", "*", "*", "I will go.", "わたしが行きます。"}, "\t") + "\n"
+// 例文が4キーで引かれて口調指示へ乗ることだけを保証する。
+var syntheticRoleSpeechExamples = strings.Join([]string{"*", "*", "*", "*", "I will go.", "わたしが行きます。"}, "\t") + "\n"
 
 // syntheticStopwords は合成入力用の最小一般語リスト。実 assets/stopwords-en.txt の内容変化から
 // harness を切り離し、fixture の管理用文字列（Yes・No）が置換も言及もされないことだけを golden で凍結する。

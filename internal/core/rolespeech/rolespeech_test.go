@@ -102,3 +102,70 @@ func TestRoleSpeechLookup(t *testing.T) {
 		t.Error("nil テーブルで ok=true")
 	}
 }
+
+// ParseRoleSpeechExamples は6列を読み、LookupExamples は最高具体度の全例だけを入力順で返す。
+func TestLookupExamplesReturnsAllMostSpecificRowsInInputOrder(t *testing.T) {
+	const data = "adult\tkhajiit\tmale\t平明\tFirst.\tこの者の一。\n" +
+		"adult\t*\tmale\t平明\tFallback.\t既定。\n" +
+		"adult\tkhajiit\tmale\t平明\tSecond.\tこの者の二。\n"
+	tbl, err := ParseRoleSpeechExamples(nil, strings.NewReader(data))
+	if err != nil {
+		t.Fatalf("ParseRoleSpeechExamples: %v", err)
+	}
+	got := tbl.LookupExamples("adult", "khajiit", "male", "平明")
+	want := []Example{{Source: "First.", Dest: "この者の一。"}, {Source: "Second.", Dest: "この者の二。"}}
+	if len(got) != len(want) {
+		t.Fatalf("例文数 = %d, want %d: %v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("例文[%d] = %+v, want %+v", i, got[i], want[i])
+		}
+	}
+	if got := tbl.LookupExamples("adult", "default", "male", "平明"); len(got) != 1 || got[0].Source != "Fallback." {
+		t.Errorf("default のフォールバック = %v", got)
+	}
+	if got := tbl.LookupExamples("child", "khajiit", "male", "平明"); got != nil {
+		t.Errorf("不一致で例文 = %v, want nil", got)
+	}
+	var nilTable *Table
+	if got := nilTable.LookupExamples("adult", "khajiit", "male", "平明"); got != nil {
+		t.Errorf("nil tableで例文 = %v, want nil", got)
+	}
+}
+
+// ParseRoleSpeechExamples は6列未満を受け付けない。
+func TestParseRoleSpeechExamplesTooFewColumns(t *testing.T) {
+	_, err := ParseRoleSpeechExamples(nil, strings.NewReader("adult\tdefault\tmale\t平明\tSource only\n"))
+	if err == nil {
+		t.Fatal("列不足でエラーを期待")
+	}
+}
+
+// ParseRoleSpeechExamples は読み取りエラーを返し、原文か訳文が空の行は検索結果へ加えない。
+func TestParseRoleSpeechExamplesReadErrorAndZeroExample(t *testing.T) {
+	if _, err := ParseRoleSpeechExamples(nil, iotest.ErrReader(errors.New("読み取り失敗"))); err == nil {
+		t.Fatal("読み取りエラーを期待")
+	}
+	tbl, err := ParseRoleSpeechExamples(nil, strings.NewReader("adult\tdefault\tmale\t平明\tSource only\t\n"))
+	if err != nil {
+		t.Fatalf("片側だけの例文の解析: %v", err)
+	}
+	if got := tbl.LookupExamples("adult", "default", "male", "平明"); got != nil {
+		t.Errorf("片側だけの例文 = %v, want nil", got)
+	}
+}
+
+// 種族区分はKhajiitだけを専用区分へ分け、大文字小文字を問わない。
+func TestSpeciesClassOfRace(t *testing.T) {
+	for _, race := range []string{"KhajiitRace", "KhajiitRaceVampire", "khajiit"} {
+		if got := SpeciesClassOfRace(race); got != "khajiit" {
+			t.Errorf("SpeciesClassOfRace(%q) = %q, want khajiit", race, got)
+		}
+	}
+	for _, race := range []string{"NordRace", "ElderRace", ""} {
+		if got := SpeciesClassOfRace(race); got != "default" {
+			t.Errorf("SpeciesClassOfRace(%q) = %q, want default", race, got)
+		}
+	}
+}

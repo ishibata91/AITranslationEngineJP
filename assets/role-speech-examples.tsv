@@ -1,87 +1,156 @@
-# 口調の例文テンプレート。話者の（役割区分・性別・基底口調セル）ごとに、英語原文と日本語訳文の 1 対を持つ。
-# 翻訳プロンプトの口調指示へ「- 例:」の 1 行として差し込み、説明文だけでは揺れる一人称・語尾を実例で固定する。
+# 口調の例文テンプレート。役割区分・種族区分・性別・基底口調セルごとに、英語原文と日本語訳文を持つ。
+# 列（タブ区切り、6 列）: role	species	sex	cell	英語原文	日本語訳文
+# role: child / adult / elder。species: khajiit / default / *。各列の * は任意一致し、汎用台詞はcellを空にする。
+# 同じ具体度の行は入力順ですべて使う。平明・ぞんざい・物腰やわは実験で採用した F1・F2・F3 の3例を持つ。
+# 他の6セルは既存の1例を維持する。Khajiit以外は default を使う。
 #
-# 列（タブ区切り、5 列）: race	sex	cell	英語原文	日本語訳文
-#   race・sex・cell : assets/role-speech.tsv と同じキーで、照合規則（"*" ＝ 任意一致、具体的な行を優先）も同じ。
-#   英語原文       : 本文が届く形に合わせた短い台詞。1 行に収める。
-#   日本語訳文     : そのセル・性別・年齢区分で期待する訳。一人称と語尾が 1 行で伝わるようにする。
-#
-# 行は 57 行。名指し話者は性別が NPC の Female flag から決まり空にならないため、
-# race 3 × sex 2 × cell 9 の具体行 54 で全て一致する。残る 3 行は cell を持たない経路
-# （汎用台詞・PC 発話。Lookup(adult, sex, "") で引く）を受けるワイルドカード行。
-#
-# 一人称は assets/role-speech.tsv と矛盾させない。成人男性は尊大 3 セルと率直・興奮が「俺」、他は「私」。
-# 値は現実的にする。フィクションの老人語（わし・〜じゃ）や戯画的な女性語（〜だわ・〜のよ）は使わない。
-#
-# 訳例が英語の主語をそのまま写さない形にしてある（2026-07-28）。原文の I や you を主語として
-# 書くのは、誰の話かが場面から取れない行に限る。57 行のうち一人称を書くのは 6 行で、
-# いずれも "Do you know who I am?" の「私が誰だか」のように、主語そのものが台詞の要点になる行。
-# 敬体を使うのも 4 行に限る（慇懃・端正と情に厚い懇願の女性 2 区分）。
-# 割合を公式日本語訳の水準（一人称 15.6%、敬体 6.9%）へ寄せた。
-# 変更前は 57 行すべてが一人称を書き、13 行が敬体だった。
-#
-# race	sex	cell	英語原文	日本語訳文
-# child male
-child	male	冷然・見下し	I have nothing to say to you.	話すことないよ。
-child	male	淡々・実務	I close the gate at sundown.	日が暮れたら閉めるんだ。
-child	male	慇懃・端正	I would be grateful for your help.	手を貸してほしい。
-child	male	ぞんざい	I said move. You are in my way.	どいて。邪魔だ。
-child	male	平明	I work the forge here.	鍛冶をしてる。
-child	male	物腰やわ	I hope you travel safely.	気をつけてね。
-child	male	居丈高・罵倒	Do you know who I am? Watch your tongue.	誰に言ってるの。口を慎んで。
-child	male	率直・興奮	I got it! The beast is down!	やった、倒した。
-child	male	情に厚い懇願	Please, I beg you, save my family.	家族を助けて。
-# child female
-child	female	冷然・見下し	I have nothing to say to you.	話すことない。
-child	female	淡々・実務	I close the gate at sundown.	日が暮れたら閉めるよ。
-child	female	慇懃・端正	I would be grateful for your help.	手を貸してほしい。
-child	female	ぞんざい	I said move. You are in my way.	どいて。邪魔だよ。
-child	female	平明	I work the forge here.	鍛冶をしてる。
-child	female	物腰やわ	I hope you travel safely.	気をつけてね。
-child	female	居丈高・罵倒	Do you know who I am? Watch your tongue.	誰に言ってるの。口を慎んで。
-child	female	率直・興奮	I got it! The beast is down!	やった、倒した。
-child	female	情に厚い懇願	Please, I beg you, save my family.	家族を助けて。
-# adult male
-adult	male	冷然・見下し	I have nothing to say to you.	話すことなど無い。
-adult	male	淡々・実務	I close the gate at sundown.	日が暮れたら門を閉める。
-adult	male	慇懃・端正	I would be grateful for your help.	手を貸してほしい。
-adult	male	ぞんざい	I said move. You are in my way.	どけ。邪魔だ。
-adult	male	平明	I work the forge here.	鍛冶をしている。
-adult	male	物腰やわ	I hope you travel safely.	気をつけてくれ。
-adult	male	居丈高・罵倒	Do you know who I am? Watch your tongue.	誰に言っている。口を慎め。
-adult	male	率直・興奮	I got it! The beast is down!	やったぞ、仕留めた。
-adult	male	情に厚い懇願	Please, I beg you, save my family.	頼む、助けてくれ。
-# adult female
-adult	female	冷然・見下し	I have nothing to say to you.	話すことなど無い。
-adult	female	淡々・実務	I close the gate at sundown.	日が暮れたら門を閉める。
-adult	female	慇懃・端正	I would be grateful for your help.	手を貸してほしい。
-adult	female	ぞんざい	I said move. You are in my way.	どいて。邪魔だよ。
-adult	female	平明	I work the forge here.	鍛冶をしてる。
-adult	female	物腰やわ	I hope you travel safely.	気をつけてね。
-adult	female	居丈高・罵倒	Do you know who I am? Watch your tongue.	誰に言ってるの。口を慎みなさい。
-adult	female	率直・興奮	I got it! The beast is down!	やった、仕留めたよ。
-adult	female	情に厚い懇願	Please, I beg you, save my family.	家族を助けて。
-# elder male
-elder	male	冷然・見下し	I have nothing to say to you.	話すことなど無い。
-elder	male	淡々・実務	I close the gate at sundown.	日が暮れれば門を閉める。
-elder	male	慇懃・端正	I would be grateful for your help.	手を貸してほしい。
-elder	male	ぞんざい	I said move. You are in my way.	どいてくれ。邪魔だ。
-elder	male	平明	I work the forge here.	長く鍛冶をしている。
-elder	male	物腰やわ	I hope you travel safely.	気をつけてくれ。
-elder	male	居丈高・罵倒	Do you know who I am? Watch your tongue.	誰に言っている。口を慎め。
-elder	male	率直・興奮	I got it! The beast is down!	やった、仕留めたぞ。
-elder	male	情に厚い懇願	Please, I beg you, save my family.	頼む、助けてくれ。
-# elder female
-elder	female	冷然・見下し	I have nothing to say to you.	話すつもりは無い。
-elder	female	淡々・実務	I close the gate at sundown.	日が暮れれば門を閉める。
-elder	female	慇懃・端正	I would be grateful for your help.	手を貸してほしい。
-elder	female	ぞんざい	I said move. You are in my way.	どいて。邪魔だから。
-elder	female	平明	I work the forge here.	長く鍛冶をしてる。
-elder	female	物腰やわ	I hope you travel safely.	気をつけてね。
-elder	female	居丈高・罵倒	Do you know who I am? Watch your tongue.	誰に言っている。口を慎みなさい。
-elder	female	率直・興奮	I got it! The beast is down!	やった、仕留めたよ。
-elder	female	情に厚い懇願	Please, I beg you, save my family.	頼む、助けて。
-# cell を持たない経路（汎用台詞・PC 発話）の既定。Lookup(adult, sex, "") が当たる。
-adult	male	*	I have work to do here.	ここで仕事がある。
-adult	female	*	I have work to do here.	ここで仕事がある。
-adult	*	*	I have work to do here.	ここで仕事がある。
+child	default	male	平明	I promised to return these books before sunset. Hold the door while I carry them inside.	僕は日が沈むまでにこれらの本を返すって約束した　中へ運ぶ間、扉を押さえてて
+child	default	male	平明	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音、気づいた？　廊下が静かになるまで壁のそばにいて
+child	default	male	平明	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けて　封をした手紙は僕に持ってきて　届ける場所は分かってる
+child	khajiit	male	平明	I promised to return these books before sunset. Hold the door while I carry them inside.	この者は日が沈むまでにこれらの本を返すって約束した　中へ運ぶ間、扉を押さえてて
+child	khajiit	male	平明	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音、気づいた？　廊下が静かになるまで壁のそばにいて
+child	khajiit	male	平明	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けて　封をした手紙はこの者に持ってきて　届ける場所は分かってる
+adult	default	male	平明	I promised to return these books before sunset. Hold the door while I carry them inside.	僕は日没までにこれらの本を返すと約束した　中へ運ぶ間、扉を押さえておいてくれ
+adult	default	male	平明	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいたか？　廊下が静かになるまで壁のそばにいて
+adult	default	male	平明	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱は彼に預けて　封をした手紙は僕に持ってきてくれ　届け先は分かっている
+adult	khajiit	male	平明	I promised to return these books before sunset. Hold the door while I carry them inside.	この者は日没までにこれらの本を返すと約束した　中へ運ぶ間、扉を押さえておいてくれ
+adult	khajiit	male	平明	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいたか？　廊下が静かになるまで壁のそばにいて
+adult	khajiit	male	平明	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱は彼に預けて　封をした手紙はこの者に持ってきてくれ　届け先は分かっている
+elder	default	male	平明	I promised to return these books before sunset. Hold the door while I carry them inside.	私は日暮れまでにこれらの本を返すと約束している　中へ運ぶ間、扉を押さえておいてくれ
+elder	default	male	平明	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいたか？　廊下が静まるまで壁のそばで待っていて
+elder	default	male	平明	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けて　封をした手紙は私に持ってきてくれ　届ける先は承知している
+elder	khajiit	male	平明	I promised to return these books before sunset. Hold the door while I carry them inside.	この者は日暮れまでにこれらの本を返すと約束している　中へ運ぶ間、扉を押さえておいてくれ
+elder	khajiit	male	平明	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいたか？　廊下が静まるまで壁のそばで待っていて
+elder	khajiit	male	平明	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けて　封をした手紙はこの者に持ってきてくれ　届ける先は承知している
+child	default	female	平明	I promised to return these books before sunset. Hold the door while I carry them inside.	わたしは日が沈むまでにこれらの本を返すって約束したよ　中へ運ぶ間、扉を押さえていて
+child	default	female	平明	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいた？　廊下が静かになるまで壁際で待っていて
+child	default	female	平明	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けて　封をした手紙はわたしに持ってきて　どこへ届けるかは分かってる
+child	khajiit	female	平明	I promised to return these books before sunset. Hold the door while I carry them inside.	この者は日が沈むまでにこれらの本を返すって約束したよ　中へ運ぶ間、扉を押さえていて
+child	khajiit	female	平明	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいた？　廊下が静かになるまで壁際で待っていて
+child	khajiit	female	平明	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けて　封をした手紙はこの者に持ってきて　どこへ届けるかは分かってる
+adult	default	female	平明	I promised to return these books before sunset. Hold the door while I carry them inside.	私は日没までにこれらの本を返すと約束した　中へ運ぶ間、扉を押さえておいて
+adult	default	female	平明	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいた？　廊下が静かになるまで壁のそばにいて
+adult	default	female	平明	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱は彼に預けて　封をした手紙は私に持ってきて　届け先は分かっている
+adult	khajiit	female	平明	I promised to return these books before sunset. Hold the door while I carry them inside.	この者は日没までにこれらの本を返すと約束した　中へ運ぶ間、扉を押さえておいて
+adult	khajiit	female	平明	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいた？　廊下が静かになるまで壁のそばにいて
+adult	khajiit	female	平明	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱は彼に預けて　封をした手紙はこの者に持ってきて　届け先は分かっている
+elder	default	female	平明	I promised to return these books before sunset. Hold the door while I carry them inside.	私は日暮れまでにこれらの本を返すと約束している　中へ運ぶ間、扉を押さえておいて
+elder	default	female	平明	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいた？　廊下が静まるまで壁のそばで待っていて
+elder	default	female	平明	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けておいて　封をした手紙は私に持ってきて　届ける先は承知している
+elder	khajiit	female	平明	I promised to return these books before sunset. Hold the door while I carry them inside.	この者は日暮れまでにこれらの本を返すと約束している　中へ運ぶ間、扉を押さえておいて
+elder	khajiit	female	平明	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいた？　廊下が静まるまで壁のそばで待っていて
+elder	khajiit	female	平明	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けておいて　封をした手紙はこの者に持ってきて　届ける先は承知している
+child	default	male	ぞんざい	I promised to return these books before sunset. Hold the door while I carry them inside.	僕、日が沈むまでにこれらの本を返すって約束した　中へ運んでる間、扉、押さえてて
+child	default	male	ぞんざい	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音、気づいた？　廊下が静かになるまで壁際にいて
+child	default	male	ぞんざい	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けて　封をした手紙は僕に持ってきて　届ける場所は分かってる
+child	khajiit	male	ぞんざい	I promised to return these books before sunset. Hold the door while I carry them inside.	この者、日が沈むまでにこれらの本を返すって約束した　中へ運んでる間、扉、押さえてて
+child	khajiit	male	ぞんざい	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音、気づいた？　廊下が静かになるまで壁際にいて
+child	khajiit	male	ぞんざい	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けて　封をした手紙はこの者に持ってきて　届ける場所は分かってる
+adult	default	male	ぞんざい	I promised to return these books before sunset. Hold the door while I carry them inside.	俺は日没までにこれらの本を返すと約束した　中へ運ぶ間、扉を押さえといて
+adult	default	male	ぞんざい	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいたか？　廊下が静かになるまで壁際にいてくれ
+adult	default	male	ぞんざい	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けといて　封をした手紙は俺に持ってきて　届け先は分かってる
+adult	khajiit	male	ぞんざい	I promised to return these books before sunset. Hold the door while I carry them inside.	この者は日没までにこれらの本を返すと約束した　中へ運ぶ間、扉を押さえといて
+adult	khajiit	male	ぞんざい	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいたか？　廊下が静かになるまで壁際にいてくれ
+adult	khajiit	male	ぞんざい	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けといて　封をした手紙はこの者に持ってきて　届け先は分かってる
+elder	default	male	ぞんざい	I promised to return these books before sunset. Hold the door while I carry them inside.	私は日暮れまでにこれらの本を返すと約束した　中へ運ぶ間、扉を押さえといてくれ
+elder	default	male	ぞんざい	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいたか？　廊下が静まるまで壁のそばにいてくれ
+elder	default	male	ぞんざい	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けといて　封をした手紙は私に持ってきて　届ける先は分かってる
+elder	khajiit	male	ぞんざい	I promised to return these books before sunset. Hold the door while I carry them inside.	この者は日暮れまでにこれらの本を返すと約束した　中へ運ぶ間、扉を押さえといてくれ
+elder	khajiit	male	ぞんざい	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいたか？　廊下が静まるまで壁のそばにいてくれ
+elder	khajiit	male	ぞんざい	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けといて　封をした手紙はこの者に持ってきて　届ける先は分かってる
+child	default	female	ぞんざい	I promised to return these books before sunset. Hold the door while I carry them inside.	私、日が沈むまでにこれらの本を返すって約束した　中へ運んでる間、扉を押さえてて
+child	default	female	ぞんざい	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいた？　廊下が静かになるまで壁際で待ってて
+child	default	female	ぞんざい	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けといて　封をした手紙は私に持ってきて　届ける場所は分かってる
+child	khajiit	female	ぞんざい	I promised to return these books before sunset. Hold the door while I carry them inside.	この者、日が沈むまでにこれらの本を返すって約束した　中へ運んでる間、扉を押さえてて
+child	khajiit	female	ぞんざい	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいた？　廊下が静かになるまで壁際で待ってて
+child	khajiit	female	ぞんざい	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けといて　封をした手紙はこの者に持ってきて　届ける場所は分かってる
+adult	default	female	ぞんざい	I promised to return these books before sunset. Hold the door while I carry them inside.	私は日没までにこれらの本を返すって約束した　中へ運ぶ間、扉を押さえといて
+adult	default	female	ぞんざい	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいた？　廊下が静かになるまで壁際にいて
+adult	default	female	ぞんざい	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けといて　封をした手紙は私に持ってきて　届け先は分かってる
+adult	khajiit	female	ぞんざい	I promised to return these books before sunset. Hold the door while I carry them inside.	この者は日没までにこれらの本を返すって約束した　中へ運ぶ間、扉を押さえといて
+adult	khajiit	female	ぞんざい	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいた？　廊下が静かになるまで壁際にいて
+adult	khajiit	female	ぞんざい	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けといて　封をした手紙はこの者に持ってきて　届け先は分かってる
+elder	default	female	ぞんざい	I promised to return these books before sunset. Hold the door while I carry them inside.	私は日暮れまでにこれらの本を返すって約束した　中へ運ぶ間、扉を押さえといて
+elder	default	female	ぞんざい	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいた？　廊下が静まるまで壁のそばにいて
+elder	default	female	ぞんざい	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けといて　封をした手紙は私に持ってきて　届ける先は分かってる
+elder	khajiit	female	ぞんざい	I promised to return these books before sunset. Hold the door while I carry them inside.	この者は日暮れまでにこれらの本を返すって約束した　中へ運ぶ間、扉を押さえといて
+elder	khajiit	female	ぞんざい	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいた？　廊下が静まるまで壁のそばにいて
+elder	khajiit	female	ぞんざい	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けといて　封をした手紙はこの者に持ってきて　届ける先は分かってる
+child	default	male	物腰やわ	I promised to return these books before sunset. Hold the door while I carry them inside.	僕、日が沈むまでにこれらの本を返すって約束したんだ　中へ運ぶ間、扉を押さえていてね
+child	default	male	物腰やわ	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音、気づいた？　廊下が静かになるまで壁のそばで待っていて
+child	default	male	物腰やわ	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けておいて　封をした手紙は僕に持ってきてね　どこへ届ければいいかは分かってる
+child	khajiit	male	物腰やわ	I promised to return these books before sunset. Hold the door while I carry them inside.	この者、日が沈むまでにこれらの本を返すって約束したんだ　中へ運ぶ間、扉を押さえていてね
+child	khajiit	male	物腰やわ	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音、気づいた？　廊下が静かになるまで壁のそばで待っていて
+child	khajiit	male	物腰やわ	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けておいて　封をした手紙はこの者に持ってきてね　どこへ届ければいいかは分かってる
+adult	default	male	物腰やわ	I promised to return these books before sunset. Hold the door while I carry them inside.	僕は日没までにこれらの本を返すと約束している　中へ運ぶ間、扉を押さえていてほしい
+adult	default	male	物腰やわ	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいたかな？　廊下が静かになるまで壁のそばで待っていてくれ
+adult	default	male	物腰やわ	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱は彼に預けておいて　封をした手紙は僕に持ってきてほしい　届け先は分かっている
+adult	khajiit	male	物腰やわ	I promised to return these books before sunset. Hold the door while I carry them inside.	この者は日没までにこれらの本を返すと約束している　中へ運ぶ間、扉を押さえていてほしい
+adult	khajiit	male	物腰やわ	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいたかな？　廊下が静かになるまで壁のそばで待っていてくれ
+adult	khajiit	male	物腰やわ	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱は彼に預けておいて　封をした手紙はこの者に持ってきてほしい　届け先は分かっている
+elder	default	male	物腰やわ	I promised to return these books before sunset. Hold the door while I carry them inside.	私は日暮れまでにこれらの本を返すと約束している　中へ運ぶ間、扉を押さえていてほしい
+elder	default	male	物腰やわ	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいたかな？　廊下が静まるまで壁のそばで待っていてくれ
+elder	default	male	物腰やわ	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けておいて　封をした手紙は私に持ってきてもらいたい　届ける先は承知している
+elder	khajiit	male	物腰やわ	I promised to return these books before sunset. Hold the door while I carry them inside.	この者は日暮れまでにこれらの本を返すと約束している　中へ運ぶ間、扉を押さえていてほしい
+elder	khajiit	male	物腰やわ	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいたかな？　廊下が静まるまで壁のそばで待っていてくれ
+elder	khajiit	male	物腰やわ	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けておいて　封をした手紙はこの者に持ってきてもらいたい　届ける先は承知している
+child	default	female	物腰やわ	I promised to return these books before sunset. Hold the door while I carry them inside.	わたし、日が沈むまでにこれらの本を返すって約束したよ　中へ運ぶ間、扉を押さえていてね
+child	default	female	物腰やわ	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいた？　廊下が静かになるまで壁のそばで待っていて
+child	default	female	物腰やわ	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けておいて　封をした手紙はわたしに持ってきてね　どこへ届けるかは分かってる
+child	khajiit	female	物腰やわ	I promised to return these books before sunset. Hold the door while I carry them inside.	この者、日が沈むまでにこれらの本を返すって約束したよ　中へ運ぶ間、扉を押さえていてね
+child	khajiit	female	物腰やわ	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいた？　廊下が静かになるまで壁のそばで待っていて
+child	khajiit	female	物腰やわ	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けておいて　封をした手紙はこの者に持ってきてね　どこへ届けるかは分かってる
+adult	default	female	物腰やわ	I promised to return these books before sunset. Hold the door while I carry them inside.	私は日没までにこれらの本を返すと約束している　中へ運ぶ間、扉を押さえていてね
+adult	default	female	物腰やわ	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいた？　廊下が静かになるまで壁のそばで待っていて
+adult	default	female	物腰やわ	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱は彼に預けて　封をした手紙は私に持ってきてね　届け先は分かっているよ
+adult	khajiit	female	物腰やわ	I promised to return these books before sunset. Hold the door while I carry them inside.	この者は日没までにこれらの本を返すと約束している　中へ運ぶ間、扉を押さえていてね
+adult	khajiit	female	物腰やわ	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいた？　廊下が静かになるまで壁のそばで待っていて
+adult	khajiit	female	物腰やわ	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱は彼に預けて　封をした手紙はこの者に持ってきてね　届け先は分かっている
+elder	default	female	物腰やわ	I promised to return these books before sunset. Hold the door while I carry them inside.	私は日暮れまでにこれらの本を返すと約束している　中へ運ぶ間、扉を押さえていてほしい
+elder	default	female	物腰やわ	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいた？　廊下が静まるまで壁のそばで待っていて
+elder	default	female	物腰やわ	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けておいて　封をした手紙は私に持ってきてね　届ける先は承知している
+elder	khajiit	female	物腰やわ	I promised to return these books before sunset. Hold the door while I carry them inside.	この者は日暮れまでにこれらの本を返すと約束している　中へ運ぶ間、扉を押さえていてほしい
+elder	khajiit	female	物腰やわ	Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいた？　廊下が静まるまで壁のそばで待っていて
+elder	khajiit	female	物腰やわ	Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱はあの人に預けておいて　封をした手紙はこの者に持ってきてね　届ける先は承知している
+child	*	male	冷然・見下し	I have nothing to say to you.	話すことないよ。
+child	*	male	淡々・実務	I close the gate at sundown.	日が暮れたら閉めるんだ。
+child	*	male	慇懃・端正	I would be grateful for your help.	手を貸してほしい。
+child	*	male	居丈高・罵倒	Do you know who I am? Watch your tongue.	誰に言ってるの。口を慎んで。
+child	*	male	率直・興奮	I got it! The beast is down!	やった、倒した。
+child	*	male	情に厚い懇願	Please, I beg you, save my family.	家族を助けて。
+child	*	female	冷然・見下し	I have nothing to say to you.	話すことない。
+child	*	female	淡々・実務	I close the gate at sundown.	日が暮れたら閉めるよ。
+child	*	female	慇懃・端正	I would be grateful for your help.	手を貸してほしい。
+child	*	female	居丈高・罵倒	Do you know who I am? Watch your tongue.	誰に言ってるの。口を慎んで。
+child	*	female	率直・興奮	I got it! The beast is down!	やった、倒した。
+child	*	female	情に厚い懇願	Please, I beg you, save my family.	家族を助けて。
+adult	*	male	冷然・見下し	I have nothing to say to you.	話すことなど無い。
+adult	*	male	淡々・実務	I close the gate at sundown.	日が暮れたら門を閉める。
+adult	*	male	慇懃・端正	I would be grateful for your help.	手を貸してほしい。
+adult	*	male	居丈高・罵倒	Do you know who I am? Watch your tongue.	誰に言っている。口を慎め。
+adult	*	male	率直・興奮	I got it! The beast is down!	やったぞ、仕留めた。
+adult	*	male	情に厚い懇願	Please, I beg you, save my family.	頼む、助けてくれ。
+adult	*	female	冷然・見下し	I have nothing to say to you.	話すことなど無い。
+adult	*	female	淡々・実務	I close the gate at sundown.	日が暮れたら門を閉める。
+adult	*	female	慇懃・端正	I would be grateful for your help.	手を貸してほしい。
+adult	*	female	居丈高・罵倒	Do you know who I am? Watch your tongue.	誰に言ってるの。口を慎みなさい。
+adult	*	female	率直・興奮	I got it! The beast is down!	やった、仕留めたよ。
+adult	*	female	情に厚い懇願	Please, I beg you, save my family.	家族を助けて。
+elder	*	male	冷然・見下し	I have nothing to say to you.	話すことなど無い。
+elder	*	male	淡々・実務	I close the gate at sundown.	日が暮れれば門を閉める。
+elder	*	male	慇懃・端正	I would be grateful for your help.	手を貸してほしい。
+elder	*	male	居丈高・罵倒	Do you know who I am? Watch your tongue.	誰に言っている。口を慎め。
+elder	*	male	率直・興奮	I got it! The beast is down!	やった、仕留めたぞ。
+elder	*	male	情に厚い懇願	Please, I beg you, save my family.	頼む、助けてくれ。
+elder	*	female	冷然・見下し	I have nothing to say to you.	話すつもりは無い。
+elder	*	female	淡々・実務	I close the gate at sundown.	日が暮れれば門を閉める。
+elder	*	female	慇懃・端正	I would be grateful for your help.	手を貸してほしい。
+elder	*	female	居丈高・罵倒	Do you know who I am? Watch your tongue.	誰に言っている。口を慎みなさい。
+elder	*	female	率直・興奮	I got it! The beast is down!	やった、仕留めたよ。
+elder	*	female	情に厚い懇願	Please, I beg you, save my family.	頼む、助けて。
+adult	default	male		I promised to return these books before sunset. Hold the door while I carry them inside.	僕は日没までにこれらの本を返すと約束した　中へ運ぶ間、扉を押さえておいてくれ
+adult	default	male		Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいたか？　廊下が静かになるまで壁のそばにいて
+adult	default	male		Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱は彼に預けて　封をした手紙は僕に持ってきてくれ　届け先は分かっている
+adult	default	female		I promised to return these books before sunset. Hold the door while I carry them inside.	私は日没までにこれらの本を返すと約束した　中へ運ぶ間、扉を押さえておいて
+adult	default	female		Did you notice footsteps upstairs? Stay beside the wall until the hall is quiet.	上の階の足音に気づいた？　廊下が静かになるまで壁のそばにいて
+adult	default	female		Leave the heavy box with him. Bring the sealed letter to me; I know where it must go.	重い箱は彼に預けて　封をした手紙は私に持ってきて　届け先は分かっている
