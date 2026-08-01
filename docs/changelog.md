@@ -17,7 +17,7 @@
 - queued prompt tokens を同じ実行の複数 batch で同時に積み増さないため、最大1000件の外部 batch を一つずつ送る。1000件は prompt tokens の上限を保証しないため、1つの外部 batch 自体が `failed` になった場合は停止して理由を返す。
 - `failed` になった進行の自動再送信と破棄導線は今回の仕様に含めない。`completed`、`expired`、`cancelled` の既存動作は変えない。
 - `docs/architecture.md` へ、最大1000件の逐次送信、送信済み対象の識別、現在処理中の外部 batch ID、OpenAI の `failed` を結果取得前に止める責務を反映した。人間が恒久仕様として承認した。
-- `npm run test:backend` と `npm run verify:backend` は通過した。実 OpenAI・xAI への課金を伴う送信と実画面確認は行っていない。
+- `master` への local merge 後に `npm run test:backend` と `npm run verify:backend` は通過した。競合は発生していない。実 OpenAI・xAI への課金を伴う送信と実画面確認は行っていない。
 - 根拠となる作業計画: `docs/exec-plans/completed/fix-batch-failure-handling/`。
 
 ## 2026-08-02 ペルソナ・性別・年齢・種族別の few-shot を口調指示へ適用（persona-tone-effectiveness-application）
