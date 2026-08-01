@@ -67,6 +67,11 @@ func (f *fakeStore) ListBatchRequests(_ context.Context, externalBatchID string)
 	return out, nil
 }
 
+func (f *fakeStore) MarkSyncRetryReady(_ context.Context, _ string) error {
+	f.syncRetryReady = true
+	return nil
+}
+
 // fakeBatchProvider は provider.BatchTranslator の in-memory 実装（実 xAI API に触れない・課金しない）。
 // 送信した要求を外部 ID ごとに保持し、状態確認は常に終端（即完了）を返す。結果は out（user メッセージ→訳文）から引く。
 // errByUser に載る user は失敗種別を返す（据え置きの再現）。fakeTranslator と同じ out を共有すれば、同期と同じ訳文を返す。
@@ -279,6 +284,9 @@ func TestBatchMatchesSyncEndToEnd(t *testing.T) {
 	}
 	if len(batchStore.properUpdates) != 1 {
 		t.Fatalf("固有名が確定していない: %v", batchStore.properUpdates)
+	}
+	if !batchStore.syncRetryReady {
+		t.Fatal("本文計画の完了後に同期再実行の準備完了が保存されていない")
 	}
 
 	// 反映②: アプリ再起動相当（永続から続ける）。新しい engine・runner を組み直しても反映が続く。

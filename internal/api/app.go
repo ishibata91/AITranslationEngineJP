@@ -47,6 +47,8 @@ type Store interface {
 	ListTargetPlugins(ctx context.Context) ([]model.TargetPlugin, error)
 	DeleteTargetPlugin(ctx context.Context, plugin string) error
 	CountUntranslated(ctx context.Context, plugin string) (int, error)
+	IsSyncRetryReady(ctx context.Context, plugin string) (bool, error)
+	MarkSyncRetryReady(ctx context.Context, plugin string) error
 }
 
 // ExtractorConfig は抽出子プロセス（C#）の起動設定。dotnet 起動に要するパスだけを持つ。
@@ -463,13 +465,32 @@ func assignmentViews(rows []model.RecordType) []RecordAssignmentView {
 // 抽出中は extract 進捗を、本文翻訳中は translate 進捗を runtime event で push する。
 func (a *App) RunExtractAndTranslate(req RunRequest) (RunResult, error) {
 	ctx := a.baseCtx()
+	plugin := filepath.Base(req.PluginPath)
 
-	if err := a.prepareForTranslation(ctx, req.PluginPath); err != nil {
+	ready, err := a.store.IsSyncRetryReady(ctx, plugin)
+	if err != nil {
 		return RunResult{}, err
 	}
+	if !ready {
+		if err := a.prepareForTranslation(ctx, req.PluginPath); err != nil {
+			return RunResult{}, err
+		}
+		if _, err := a.engine.GeneratePersonas(ctx); err != nil {
+			return RunResult{}, fmt.Errorf("口調の集計に失敗: %w", err)
+		}
+		if err := a.store.MarkSyncRetryReady(ctx, plugin); err != nil {
+			return RunResult{}, err
+		}
+	}
+	slog.InfoContext(ctx, "同期翻訳の準備経路を決定した",
+		slog.String("event", "sync_translation_preparation_selected"),
+		slog.String("where", "api.RunExtractAndTranslate"),
+		slog.String("result", map[bool]string{true: "reused", false: "prepared"}[ready]),
+		slog.String("id", plugin),
+	)
 
 	// 抽出した対象 plugin だけを翻訳する。plugin 列と同じ値（filepath.Base）で絞り、他 plugin の未訳を巻き込まない。
-	count, runErr := a.engine.Run(ctx, provider.Connection{Endpoint: req.Endpoint, APIKey: req.APIKey}, req.Model, filepath.Base(req.PluginPath),
+	count, runErr := a.engine.TranslateUntranslated(ctx, provider.Connection{Endpoint: req.Endpoint, APIKey: req.APIKey}, req.Model, plugin,
 		func(done, total int) {
 			a.emitProgress(ProgressEvent{Stage: "translate", Done: done, Total: total})
 		})
@@ -481,7 +502,7 @@ func (a *App) RunExtractAndTranslate(req RunRequest) (RunResult, error) {
 
 	// 実行後に残る未訳の件数を数える。実行は未訳の全件を対象に取るため、この件数がこの実行で未訳のまま
 	// 残した件数になる。数えられなかった場合も翻訳自体は成功しているため、件数なしで成功を返す。
-	remaining, countErr := a.store.CountUntranslated(ctx, filepath.Base(req.PluginPath))
+	remaining, countErr := a.store.CountUntranslated(ctx, plugin)
 	if countErr != nil {
 		slog.WarnContext(ctx, "未訳件数を数えられず画面へ出せなかった",
 			slog.String("event", "untranslated_count_failed"),

@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 	"time"
@@ -10,16 +11,46 @@ import (
 )
 
 // UpsertTargetPlugin は翻訳した対象 plugin を登録する。翻訳開始時（抽出の前）に 1 度呼ぶ。
-// 初回は plugin・source_path・created_at を書き、2 回目以降は source_path だけ更新して
-// created_at（初回登録時刻）を保つ。plugin ファイル名がキーで plugin と 1 対 1。冪等。
+// 初回は plugin・source_path・created_at を書き、2 回目以降は source_path を更新して
+// sync_retry_ready を解除する。created_at（初回登録時刻）は保つ。plugin ファイル名がキーで plugin と 1 対 1。
 func (s *Store) UpsertTargetPlugin(ctx context.Context, plugin, sourcePath string) error {
 	createdAt := time.Now().Format("2006-01-02 15:04:05")
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO target_plugin (plugin, source_path, created_at) VALUES (?, ?, ?)
-		 ON CONFLICT(plugin) DO UPDATE SET source_path = excluded.source_path`,
+		`INSERT INTO target_plugin (plugin, source_path, created_at, sync_retry_ready) VALUES (?, ?, ?, 0)
+		 ON CONFLICT(plugin) DO UPDATE SET source_path = excluded.source_path, sync_retry_ready = 0`,
 		plugin, sourcePath, createdAt)
 	if err != nil {
 		return fmt.Errorf("target_plugin の登録: %w", err)
+	}
+	return nil
+}
+
+// IsSyncRetryReady は保存済みの準備結果を使って未訳だけを同期翻訳できるかを返す。
+// 未登録の plugin は準備未完了として false を返す。
+func (s *Store) IsSyncRetryReady(ctx context.Context, plugin string) (bool, error) {
+	var ready int
+	err := s.db.GetContext(ctx, &ready, `SELECT sync_retry_ready FROM target_plugin WHERE plugin = ?`, plugin)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, fmt.Errorf("同期再実行準備状態の取得: %w", err)
+	}
+	return ready == 1, nil
+}
+
+// MarkSyncRetryReady は既訳収集、抽出、辞書派生、取込、口調集計が完了した状態を保存する。
+func (s *Store) MarkSyncRetryReady(ctx context.Context, plugin string) error {
+	result, err := s.db.ExecContext(ctx, `UPDATE target_plugin SET sync_retry_ready = 1 WHERE plugin = ?`, plugin)
+	if err != nil {
+		return fmt.Errorf("同期再実行準備状態の保存: %w", err)
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("同期再実行準備状態の更新件数取得: %w", err)
+	}
+	if changed != 1 {
+		return fmt.Errorf("同期再実行準備状態の保存: 対象 plugin が未登録: %s", plugin)
 	}
 	return nil
 }

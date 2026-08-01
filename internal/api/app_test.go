@@ -89,6 +89,7 @@ type fakePageStore struct {
 	untranslated      int
 	untranslatedErr   error
 	untranslatedCalls int
+	syncRetryReady    bool
 }
 
 // plugin フィルタは pageRows の cursor 境界ロジック確認には使わないため無視する（呼び出しは "" を渡す）。
@@ -153,6 +154,13 @@ func (f *fakePageStore) DeleteTargetPlugin(_ context.Context, _ string) error { 
 func (f *fakePageStore) CountUntranslated(_ context.Context, _ string) (int, error) {
 	f.untranslatedCalls++
 	return f.untranslated, f.untranslatedErr
+}
+func (f *fakePageStore) IsSyncRetryReady(_ context.Context, _ string) (bool, error) {
+	return f.syncRetryReady, nil
+}
+func (f *fakePageStore) MarkSyncRetryReady(_ context.Context, _ string) error {
+	f.syncRetryReady = true
+	return nil
 }
 
 // pageRows の cursor 境界ロジックだけを確かめる fake のため、テンプレート・directive CRUD は未使用のスタブにする。
