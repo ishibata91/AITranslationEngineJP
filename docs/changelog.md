@@ -20,6 +20,7 @@
 - `docs/architecture.md`は反映しない。画面の正本はStorybookであることが既に定義されており、層構成、依存方向、強い制約、Wails境界の責務は変わらないためである。
 - Storybookの人間レビューで、画面用Autodocsのprops表を表示しないことと、ダークテーマを使うことを承認した。
 - frontend全テストは9 files・80 tests、Storybook build、対象ファイルのESLint、`git diff --check`が通過した。`lint:types`は作業worktreeに既存生成物の`wailsjs`と`react-syntax-highlighter`の型がないため失敗したが、新規TypeScriptファイルのLSP診断にerrorはない。
+- `master`へのlocal mergeでは`docs/changelog.md`が競合した。target側のrevert後の内容を維持し、今回のentryだけを追加して解消した。merge後のfrontend全テスト9 files・80 testsとStorybook buildは通過した。
 - 根拠となる作業計画: `docs/exec-plans/completed/storybook-screen-spec-harness/`。
 
 ## 2026-08-02 batch 実行後の状態確認と次チャンクへの進行を自動化（batch-auto-polling）
