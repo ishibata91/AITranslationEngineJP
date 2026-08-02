@@ -72,13 +72,12 @@ func TestDetectRespectsWordBoundary(t *testing.T) {
 	}
 }
 
-// 大小だけが異なる表記も登録済みの固有名（Sword）の言及として返すこと。
-func TestDetectIsCaseInsensitive(t *testing.T) {
+// 大文字小文字を区別し、一般語の小文字出現（sword）を固有名（Sword）の言及にしないこと。
+func TestDetectIsCaseSensitive(t *testing.T) {
 	d := NewDetector([]Term{{Kind: "master_term", ID: 1, Source: "Sword"}})
 
-	got := d.Detect("a sword on the table")
-	if len(got) != 1 || got[0].ID != 1 || got[0].Source != "Sword" {
-		t.Errorf("Detect = %+v, want registered Sword", got)
+	if got := d.Detect("a sword on the table"); got != nil {
+		t.Errorf("Detect = %+v, want nil（大小区別）", got)
 	}
 }
 
@@ -145,93 +144,5 @@ func TestDetectMatchesNameWithApostrophe(t *testing.T) {
 
 	if len(got) != 1 || got[0].ID != 1 {
 		t.Errorf("Detect = %+v, want M'aiq", got)
-	}
-}
-
-// 言及検出も機械置換と同じ大小無視の規則で登録済みの固有名を返す。
-func TestDetectorCaseInsensitiveSpecifications(t *testing.T) {
-	tests := []struct {
-		name string
-		text string
-	}{
-		{
-			name: "本文から固有名を見つける時は大文字小文字を区別しないこと",
-			text: "I asked iNiGo to wait.",
-		},
-		{
-			name: "本文の固有名がすべて小文字の場合も見つけること",
-			text: "I asked inigo to wait.",
-		},
-		{
-			name: "本文の固有名がすべて大文字の場合も見つけること",
-			text: "I asked INIGO to wait.",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			d := NewDetector([]Term{{Kind: "proper_noun", ID: 1, Source: "Inigo"}})
-
-			got := d.Detect(tt.text)
-
-			if len(got) != 1 || got[0].ID != 1 || got[0].Source != "Inigo" {
-				t.Errorf("Detect = %+v, want registered Inigo", got)
-			}
-		})
-	}
-}
-
-// 大小だけが異なる複数の出現を登録済みの同じ固有名1件へまとめる。
-func TestDetectCollapsesCaseVariants(t *testing.T) {
-	d := NewDetector([]Term{{Kind: "proper_noun", ID: 1, Source: "Inigo"}})
-
-	got := d.Detect("Inigo met inigo and INIGO.")
-
-	if len(got) != 1 || got[0].ID != 1 || got[0].Source != "Inigo" {
-		t.Errorf("Detect = %+v, want registered Inigo 1 件", got)
-	}
-}
-
-// ToLower の key が同じでも EqualFold で異なる登録語は候補から失わない。
-func TestDetectorRetainsTermsWithSameLowerKeyButDifferentEqualFold(t *testing.T) {
-	d := NewDetector([]Term{{Kind: "proper_noun", ID: 1, Source: "İ"}, {Kind: "proper_noun", ID: 2, Source: "i"}})
-
-	got := d.Detect("i")
-
-	if len(got) != 1 || got[0].ID != 2 || got[0].Source != "i" {
-		t.Errorf("Detect = %+v, want ASCII i", got)
-	}
-}
-
-// ToLower の key が異なる SimpleFold 同値語も全登録語から取得する。
-func TestDetectorFallsBackWhenEqualFoldTermsHaveDifferentLowerKeys(t *testing.T) {
-	d := NewDetector([]Term{{Kind: "proper_noun", ID: 1, Source: "AΣA"}})
-
-	got := d.Detect("aςa")
-
-	if len(got) != 1 || got[0].ID != 1 || got[0].Source != "AΣA" {
-		t.Errorf("Detect = %+v, want registered AΣA", got)
-	}
-}
-
-// ToLower の key が異なる EqualFold 同値語にも語彙の先勝ちを適用する。
-func TestNewDetectorFirstTermWinsForEqualFoldTermsWithDifferentLowerKeys(t *testing.T) {
-	d := NewDetector([]Term{{Kind: "master_term", ID: 1, Source: "AΣA"}, {Kind: "proper_noun", ID: 9, Source: "AςA"}})
-
-	got := d.Detect("aςa")
-
-	if len(got) != 1 || got[0].Kind != "master_term" || got[0].ID != 1 || got[0].Source != "AΣA" {
-		t.Errorf("Detect = %+v, want first registered AΣA", got)
-	}
-}
-
-// 大小無視で短い語にも一致する場合は UTF-8 byte 数ではなく rune 数による最長一致を優先する。
-func TestDetectorPrefersLongestRuneCountWithCaseInsensitiveRegexp(t *testing.T) {
-	d := NewDetector([]Term{{Kind: "proper_noun", ID: 1, Source: "Kx"}, {Kind: "proper_noun", ID: 2, Source: "K"}})
-
-	got := d.Detect("kx")
-
-	if len(got) != 1 || got[0].ID != 1 || got[0].Source != "Kx" {
-		t.Errorf("Detect = %+v, want Kx（rune 数の最長一致）", got)
 	}
 }
