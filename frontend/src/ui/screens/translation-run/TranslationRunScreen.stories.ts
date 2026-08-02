@@ -1,22 +1,18 @@
 import type { Meta, StoryObj } from "@storybook/svelte-vite"
+import { themes } from "storybook/theming"
+import { ScreenDocsPage } from "../screen-docs"
+import { screenStateDescription } from "../screen-spec"
 import TranslationRunScreen from "./TranslationRunScreen.svelte"
-import {
-  OPENAI_READY_STATE,
-  OPENAI_RUNNING_STATE,
-  OPENAI_PAUSED_STATE,
-  OPENAI_NO_UNTRANSLATED_STATE,
-  OPENAI_BATCH_UNTRANSLATED_STATE,
-  OPENAI_FAILED_STATE
-} from "./translation-run.fixtures"
+import { translationRunScreenStates } from "./translation-run-screen-specs"
 
-// 状態確認と手動取り込みを削除し、一つの主操作で自動処理する batch 画面の代表状態。
-// Storybook 人間レビュー中は作業中分類に置く。承認後は Screens/翻訳実行へ戻す。
+// 状態確認と手動取り込みを削除し、一つの主操作で自動処理するbatch画面の代表状態。
 const meta = {
   title: "Screens/翻訳実行",
   component: TranslationRunScreen,
   tags: ["autodocs"],
   parameters: {
-    layout: "fullscreen"
+    layout: "fullscreen",
+    docs: { page: ScreenDocsPage, theme: themes.dark }
   },
   args: {
     onFieldInput: () => {},
@@ -33,129 +29,53 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-// 保存済みの進行がない初回表示。「バッチ実行」だけを表示する。
+const { notStarted, running, paused, done, doneWithUntranslated, failed } =
+  translationRunScreenStates
+
 export const NotStarted: Story = {
-  name: "未開始",
-  args: { ...OPENAI_READY_STATE },
+  name: notStarted.storyName,
+  args: { ...notStarted.args },
   parameters: {
-    docs: {
-      description: {
-        story: `### 前提条件
-
-- OpenAI の接続情報が揃い、保存済みの batch 進行がない。
-
-### 期待値
-
-- 主操作は「バッチ実行」で有効になる。
-- 状態確認ボタンと手動取り込みボタンは表示しない。
-- 進行状況パネルは「未開始」と、「バッチ実行」を押すと処理を開始する案内を表示する。`
-      }
-    }
+    docs: { description: { story: screenStateDescription(notStarted) } }
   }
 }
 
-// 開始処理または自動状態確認中。spinner 付き「実行中…」を無効表示する。
 export const Running: Story = {
-  name: "実行中",
-  args: { ...OPENAI_RUNNING_STATE },
+  name: running.storyName,
+  args: { ...running.args },
   parameters: {
-    docs: {
-      description: {
-        story: `### 前提条件
-
-- 固有名段の batch を処理している。
-
-### 期待値
-
-- 主操作は spinner 付き「実行中…」で無効になる。
-- 状態表示は「実行中」になる。
-- 状態確認ボタンと手動取り込みボタンは表示しない。
-- 進行状況パネルは「処理中」と、完了すると次の処理へ自動で進む案内を表示する。`
-      }
-    }
+    docs: { description: { story: screenStateDescription(running) } }
   }
 }
 
-// 画面を閉じた後などで処理が止まった状態。「バッチ実行を再開」を表示する。
 export const Paused: Story = {
-  name: "途中停止",
-  args: { ...OPENAI_PAUSED_STATE },
+  name: paused.storyName,
+  args: { ...paused.args },
   parameters: {
-    docs: {
-      description: {
-        story: `### 前提条件
-
-- 本文段の保存済み進行があり、処理が止まっている。
-
-### 期待値
-
-- 主操作は「バッチ実行を再開」で有効になる。
-- 状態確認ボタンと手動取り込みボタンは表示しない。
-- 進行状況パネルは「再開待ち」と、主操作で続ける案内を表示する。`
-      }
-    }
+    docs: { description: { story: screenStateDescription(paused) } }
   }
 }
 
-// 全件の翻訳が完了した状態。「完了」を無効表示する。
 export const Done: Story = {
-  name: "完了（未訳なし）",
-  args: { ...OPENAI_NO_UNTRANSLATED_STATE },
-  parameters: {
-    docs: {
-      description: {
-        story: `### 前提条件
-
-- 固有名段と本文段が完了し、未訳が残っていない。
-
-### 期待値
-
-- 主操作は「完了」で無効になる。
-- 状態確認ボタンと手動取り込みボタンは表示しない。
-- 進行状況パネルは「完了」と、すべての翻訳が完了した案内を表示する。`
-      }
-    }
-  }
+  name: done.storyName,
+  args: { ...done.args },
+  parameters: { docs: { description: { story: screenStateDescription(done) } } }
 }
 
-// 未訳が残った完了状態。「未訳だけを再送信」を表示する。
 export const DoneWithUntranslated: Story = {
-  name: "完了（未訳あり）",
-  args: { ...OPENAI_BATCH_UNTRANSLATED_STATE },
+  name: doneWithUntranslated.storyName,
+  args: { ...doneWithUntranslated.args },
   parameters: {
     docs: {
-      description: {
-        story: `### 前提条件
-
-- 固有名段と本文段が完了し、未訳が3件残っている。
-
-### 期待値
-
-- 主操作は「未訳だけを再送信」で有効になる。
-- 状態確認ボタンと手動取り込みボタンは表示しない。
-- 進行状況パネルは「完了」を表示し、画面は未訳件数を案内する。`
-      }
+      description: { story: screenStateDescription(doneWithUntranslated) }
     }
   }
 }
 
-// 外部 batch の失敗理由を表示し、保存済みの進行を再開できる状態。
 export const Failed: Story = {
-  name: "失敗表示",
-  args: { ...OPENAI_FAILED_STATE },
+  name: failed.storyName,
+  args: { ...failed.args },
   parameters: {
-    docs: {
-      description: {
-        story: `### 前提条件
-
-- 保存済みの本文段で外部 batch が失敗し、処理が止まっている。
-
-### 期待値
-
-- 主操作は「バッチ実行を再開」で有効になる。
-- 状態確認ボタンと手動取り込みボタンは表示しない。
-- 外部 batch ID と失敗理由を表示し、進行状況パネルは「再開待ち」を表示する。`
-      }
-    }
+    docs: { description: { story: screenStateDescription(failed) } }
   }
 }
