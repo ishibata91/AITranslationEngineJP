@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-// 貪欲最長一致で固有名を確定訳語へ置換すること。最長一致・語境界・大小区別・重複の畳みを確かめる。
+// 貪欲最長一致で固有名を確定訳語へ置換すること。最長一致・語境界・大小を区別しない照合・重複の畳みを確かめる。
 func TestDictionaryApply(t *testing.T) {
 	cases := []struct {
 		name     string
@@ -28,10 +28,10 @@ func TestDictionaryApply(t *testing.T) {
 			wantUsed: []string{"Sword"},
 		},
 		{
-			name:     "大小を区別し小文字の一般語は置換しない",
+			name:     "大小を区別せず同じ固有名を置換する",
 			terms:    []Term{{"Storm", "嵐"}},
 			source:   "Storm hit during the storm.",
-			want:     "嵐 hit during the storm.",
+			want:     "嵐 hit during the 嵐.",
 			wantUsed: []string{"Storm"},
 		},
 		{
@@ -69,7 +69,7 @@ func TestDictionaryApply(t *testing.T) {
 		},
 		{
 			// 同じ長さの別の原語が 2 つあると、並べ替えの同長分岐（辞書順）を通る。
-			// どちらも語境界・大小区別で独立に置換されることを確かめる。
+			// どちらも語境界を保って独立に置換されることを確かめる。
 			name:     "同長の別原語は辞書順で並べどちらも置換する",
 			terms:    []Term{{"Storm", "嵐"}, {"Frost", "霜"}},
 			source:   "Frost follows Storm.",
@@ -100,6 +100,106 @@ func TestDictionaryFirstWinsOnDuplicateSource(t *testing.T) {
 	got, _ := d.Apply("A Chest here.")
 	if got != "A 宝箱 here." {
 		t.Errorf("Apply = %q, want %q", got, "A 宝箱 here.")
+	}
+}
+
+// R-1 の大小無視、語境界、置換内訳の仕様を公開 entrypoint から検証する。
+func TestDictionaryApplyCaseInsensitiveSpecifications(t *testing.T) {
+	tests := []struct {
+		name     string
+		terms    []Term
+		source   string
+		want     string
+		wantUsed []string
+	}{
+		{
+			name:     "本文から固有名を見つける時は大文字小文字を区別せず機械置換辞書の同じ訳語へ置き換えること",
+			terms:    []Term{{Source: "Inigo", Dest: "イニーゴ"}},
+			source:   "I asked iNiGo to wait.",
+			want:     "I asked イニーゴ to wait.",
+			wantUsed: []string{"Inigo"},
+		},
+		{
+			name:     "本文の固有名がすべて小文字の場合とすべて大文字の場合も機械置換辞書の同じ訳語へ置き換えること",
+			terms:    []Term{{Source: "Inigo", Dest: "イニーゴ"}},
+			source:   "inigo met INIGO.",
+			want:     "イニーゴ met イニーゴ.",
+			wantUsed: []string{"Inigo"},
+		},
+		{
+			name:     "機械置換辞書にない固有名の内側で一致した部分の先頭または末尾に語境界がない場合は置き換えないこと",
+			terms:    []Term{{Source: "Inigo", Dest: "イニーゴ"}},
+			source:   "MiniGopher stayed.",
+			want:     "MiniGopher stayed.",
+			wantUsed: nil,
+		},
+		{
+			name:     "本文に大文字小文字が異なる同じ固有名が複数ある場合置換内訳には機械置換辞書の固有名と訳語を1件表示すること",
+			terms:    []Term{{Source: "Inigo", Dest: "イニーゴ"}},
+			source:   "Inigo met inigo and INIGO.",
+			want:     "イニーゴ met イニーゴ and イニーゴ.",
+			wantUsed: []string{"Inigo"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := NewDictionary(tt.terms)
+			gotText, gotUsed := d.Apply(tt.source)
+			if gotText != tt.want {
+				t.Errorf("Apply text = %q, want %q", gotText, tt.want)
+			}
+			if !sameSources(gotUsed, tt.wantUsed) {
+				t.Errorf("Apply used = %v, want %v", sources(gotUsed), tt.wantUsed)
+			}
+		})
+	}
+}
+
+// ToLower の key が同じでも EqualFold で異なる登録語は候補から失わない。
+func TestDictionaryRetainsTermsWithSameLowerKeyButDifferentEqualFold(t *testing.T) {
+	// İ と i は ToLower の key が同じでも EqualFold では異なるため、別の固有名として保持する。
+	d := NewDictionary([]Term{{Source: "İ", Dest: "点付き"}, {Source: "i", Dest: "ASCII"}})
+
+	got, used := d.Apply("i")
+
+	if got != "ASCII" || !sameSources(used, []string{"i"}) {
+		t.Errorf("Apply = %q, used = %v, want ASCII / [i]", got, sources(used))
+	}
+}
+
+// ToLower の key が異なる SimpleFold 同値語も全登録語から取得する。
+func TestDictionaryFallsBackWhenEqualFoldTermsHaveDifferentLowerKeys(t *testing.T) {
+	// Σ と ς は EqualFold で同じだが ToLower の key が異なるため、候補 bucket に無い時は全登録語から選ぶ。
+	d := NewDictionary([]Term{{Source: "AΣA", Dest: "シグマ"}})
+
+	got, used := d.Apply("aςa")
+
+	if got != "シグマ" || !sameSources(used, []string{"AΣA"}) {
+		t.Errorf("Apply = %q, used = %v, want シグマ / [AΣA]", got, sources(used))
+	}
+}
+
+// ToLower の key が異なる EqualFold 同値語にも辞書データの先勝ちを適用する。
+func TestDictionaryFirstWinsForEqualFoldTermsWithDifferentLowerKeys(t *testing.T) {
+	d := NewDictionary([]Term{{Source: "AΣA", Dest: "先の訳"}, {Source: "AςA", Dest: "後の訳"}})
+
+	got, used := d.Apply("aςa")
+
+	if got != "先の訳" || !sameSources(used, []string{"AΣA"}) {
+		t.Errorf("Apply = %q, used = %v, want 先の訳 / [AΣA]", got, sources(used))
+	}
+}
+
+// 大小無視で短い語にも一致する場合は UTF-8 byte 数ではなく rune 数による最長一致を優先する。
+func TestDictionaryPrefersLongestRuneCountWithCaseInsensitiveRegexp(t *testing.T) {
+	// K は K と EqualFold で同じだが UTF-8 byte 数が多い。rune 数が長い Kx を先に照合する。
+	d := NewDictionary([]Term{{Source: "Kx", Dest: "長い語"}, {Source: "K", Dest: "短い語"}})
+
+	got, used := d.Apply("kx")
+
+	if got != "長い語" || !sameSources(used, []string{"Kx"}) {
+		t.Errorf("Apply = %q, used = %v, want 長い語 / [Kx]", got, sources(used))
 	}
 }
 
