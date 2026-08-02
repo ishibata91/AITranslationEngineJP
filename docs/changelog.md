@@ -16,6 +16,7 @@
 
 - `docs/architecture.md` は反映しない。大小照合は固有名置換の仕様であり、層構成、依存方向、強い制約、Wails 境界の責務は変わらないためである。
 - backend 全検証と依存境界検査は通過した。実 app では `Inigo`、`inigo`、`INIGO` がすべて `イニーゴ` へ置換され、置換内訳が1件になることを確認した。
+- `master` への local merge では `docs/changelog.md` の並行追加と conflict したため、両方の履歴を保持して解消した。merge 後の `npm run test:backend` と `npm run verify:backend` は通過した。
 - 根拠となる作業計画: `docs/exec-plans/completed/proper-noun-case-insensitive-replacement/`。
 
 ## 2026-08-02 batch 実行後の状態確認と次チャンクへの進行を自動化（batch-auto-polling）
