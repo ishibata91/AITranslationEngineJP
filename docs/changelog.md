@@ -4,6 +4,24 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-08-02 screen の画面仕様を Storybook と単体テストで対応付け（storybook-screen-spec-harness）
+
+### 変更
+
+- 翻訳対象プラグイン、プロンプトテンプレート、翻訳実行の既存17画面状態から、表示、状態バッジ、ボタン文言、操作可否に関する43件の画面仕様を抽出した。
+- 各画面状態の前提条件、画面仕様ID、仕様文、既存fixtureを同じ定義に置き、三画面のStorybook Autodocsへ表示する。
+- 画面用のAutodocsはダークテーマを使い、画面のprops表を表示しない。Storybookの`play`は使わない。
+- frontendの単体テストは43件の画面仕様IDごとに検証関数を一件登録する。ハーネスは仕様IDの不足、余分、画面仕様側の重複、単体テスト側の重複を失敗にする。
+
+### 判断
+
+- 画面仕様の正本はStorybookのstoryと画面仕様定義とする。単体テストは同じ画面仕様IDを消費し、表示または操作可否を検証する。
+- backend、Wails境界、gateway、container、画面状態の遷移は画面仕様ハーネスの対象に含めない。
+- `docs/architecture.md`は反映しない。画面の正本はStorybookであることが既に定義されており、層構成、依存方向、強い制約、Wails境界の責務は変わらないためである。
+- Storybookの人間レビューで、画面用Autodocsのprops表を表示しないことと、ダークテーマを使うことを承認した。
+- frontend全テストは9 files・80 tests、Storybook build、対象ファイルのESLint、`git diff --check`が通過した。`lint:types`は作業worktreeに既存生成物の`wailsjs`と`react-syntax-highlighter`の型がないため失敗したが、新規TypeScriptファイルのLSP診断にerrorはない。
+- 根拠となる作業計画: `docs/exec-plans/completed/storybook-screen-spec-harness/`。
+
 ## 2026-08-02 固有名を大文字小文字にかかわらず同じ訳語へ置換（proper-noun-case-insensitive-replacement）
 
 ### 変更
