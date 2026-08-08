@@ -89,10 +89,10 @@ flowchart LR
 次の変更である。
 
 - `internal/store/prebuilt_dictionary.go` を追加する。`OpenPrebuiltDictionary` にSQLite接続と `PRAGMA schema_version` の実行を置き、指定pathのDBを起動時に開いて読めることを確認する。全 `dictionary_term`、`dictionary_sense`、`dictionary_occurrence` から、原語、訳語、品詞、意味、Skyrimのカテゴリを読む。readerは原語、訳語、品詞、意味、Skyrimのカテゴリが全て同じ候補だけを重複除去し、異なる意味またはカテゴリを保持する。Closeを置く。`dictionary/` は `package main` の独立commandであり、翻訳Engineは `dictionary/store.go` をimportしない。
-- 事前作成済み翻訳辞書DBを `dictionary/dictionary.sqlite3` から `db/dictionary.sqlite3` へ移動する。中心DBの `db/aitranslation.dev.sqlite3` は移動元でも移動対象でもない。移動後に `PRAGMA integrity_check` を実行する。
-- `dictionary/main.go` と `dictionary/run-mcp.sh` を変更する。MCP起動に使う既定DB pathを `db/dictionary.sqlite3` へ揃える。翻訳アプリのreaderは読み取り専用で開く。MCPは今後の辞書DBメンテナンス手段として既存の読書き機能を保つ。本taskのMCP接続先検証は検索だけを実行し、辞書項目、レビュー、変更履歴を更新するtoolを呼ばない。dictionary viewerをMCPの代替として移植しない。
-- `dictionary/viewer/` を削除する。dictionary viewerは退役し、MCPだけを今後の辞書DBメンテナンス手段にする。
-- `package.json` を変更する。`dictionary/viewer/server.mjs` を直接参照する `dictionary-viewer` scriptを削除する。
+- 事前作成済み翻訳辞書DBを `dictionary/dictionary.sqlite3` から `db/dictionary.sqlite3` へ移動する。`dictionary/dictionary.pre-r4.sqlite3` は過去のbackup SQLiteとして削除する。中心DBの `db/aitranslation.dev.sqlite3` は移動元でも移動対象でもない。移動後に `PRAGMA integrity_check` を実行する。
+- `dictionary/main.go` と `dictionary/run-mcp.sh` を変更する。`main.go` はMCP起動だけをdispatchし、MCP起動に使う既定DB pathを `db/dictionary.sqlite3` へ揃える。standaloneのimport command、classify command、`runImport`、`runClassify` は削除する。翻訳アプリのreaderは読み取り専用で開く。MCPは今後の辞書DBメンテナンス手段として既存の読書きtoolを保つ。本taskのMCP接続先検証は検索だけを実行する。書込みを行う `dictionary_classify` を含むtoolは登録だけを確認し、呼ばない。classifyの書込み動作は、DB backupまたはrollbackを明示した将来の辞書メンテナンスで確認する。
+- `dictionary/import.go`、`dictionary/dictionary-mcp`、`dictionary/reference/wnjpn.db.gz` を削除する。MCPから呼ばれないimport commandと `main.go` のimport command dispatchを削除する。MCPの `dictionary_classify` が使う `classify.go`、MCPのschema、store、search、match queue、review、history、migration、helper、展開済みWordNet参照SQLite `dictionary/reference/wnjpn.db`、WordNetのLICENSEとREADMEは残す。`dictionary/reference/README.md` は、削除するgzipの取得元、展開、gzip checksum、保持方針を削除し、MCP実行時に残す `wnjpn.db` の用途、path、上流出どころ、SQLite整合性確認、保持方針を記録する。`dictionary/dictionary_test.go` はMCPに残る動作だけを検証する形へ整理する。
+- dictionary viewerはすでにworkspaceに存在しないため、再追加しない。`package.json` を変更し、存在しない `dictionary/viewer/server.mjs` を直接参照する `dictionary-viewer` scriptを削除する。
 - `.gitignore` の `db/*.sqlite3`、`db/*.sqlite3-wal`、`db/*.sqlite3-shm` が既にGit管理から除外されていることを確認する。`.gitignore` は変更しない。
 - `internal/model/translation_reference.go` を追加する。`TranslationReference`、batch requestへ保存する候補snapshot、`translation_reference_snapshot` へ保存する候補snapshotを置く。`internal/store` と `internal/engine` がこの共有型を使う。
 - `internal/store/prebuilt_dictionary.go` のreaderに `ValidatePrebuiltDictionary` を置く。接続、schema、必要なtableとcolumn、全原語、訳語、品詞、意味、Skyrimのカテゴリの読取りを検証する。
