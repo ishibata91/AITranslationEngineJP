@@ -35,14 +35,16 @@ description: メインエージェントが designer と design_reviewer を fre
 `designer` の完了後に `design_reviewer` へ要求、三つの成果物、repository、語彙の正本、確定済みの事実と制約を渡す。
 
 workflowが直接起動する対象は表にある二つのfresh agentだけとする。
-fork、親文脈を継承するagent、下位agentを起動しない。
+fork、親文脈を継承するagentを起動しない。
 agentへメインエージェントの会話文脈を継承しない。
 agentが必要とする情報は入力と成果物だけで渡す。
 
+`designer` がコードベース探索のために起動した `codex-explorer` の識別子を受け取る。
+
 ## agentを維持する
 
-起動した二つのagentを閉じない。
-agentの識別子を保持する。
+起動した二つのagentと `designer` が起動した `codex-explorer` を閉じない。
+三つのagentの識別子を保持する。
 追加作業は新しいagentへ渡さず、同じagentを再開して依頼する。
 
 人間の指摘をメインエージェントが要約または言い換えてagentへ渡さない。
@@ -58,7 +60,7 @@ agentの識別子を保持する。
 
 - `plan.md`、`design.md`、`spec.md` のpath。
 - `design_reviewer` の判定と根拠。
-- 開いたまま維持しているagent。
+- 開いたまま維持している三つのagent。
 
 人間が成果物を変更した場合は、同じ `designer` を再開し、続けて同じ `design_reviewer` を再開する。
 再検証が通過した後に設計HITLへ戻る。
@@ -68,7 +70,7 @@ agentの識別子を保持する。
 ## 返す成果物
 
 - 三つの設計成果物のpath。
-- `designer` と `design_reviewer` の識別子。
+- `designer`、`codex-explorer`、`design_reviewer` の識別子。
 - 検証結果。
 - 設計HITLの承認状態。
 
