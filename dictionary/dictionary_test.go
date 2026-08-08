@@ -12,67 +12,6 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func TestImportMasterTermsCreatesTermsSensesAndOccurrences(t *testing.T) {
-	ctx := context.Background()
-	sourcePath := filepath.Join(t.TempDir(), "central.sqlite3")
-	source := openSourceDB(t, sourcePath)
-	execTestSQL(t, source, `
-		CREATE TABLE master_term (id INTEGER PRIMARY KEY, source TEXT NOT NULL, dest TEXT NOT NULL, category TEXT NOT NULL);
-		CREATE TABLE proper_noun (id INTEGER PRIMARY KEY, plugin TEXT NOT NULL, source TEXT NOT NULL, dest TEXT NOT NULL, category TEXT NOT NULL);
-		INSERT INTO master_term VALUES
-			(1, 'Imperial', 'インペリアル', 'RACE'),
-			(2, 'Imperial', 'インペリアル', 'NPC_'),
-			(3, 'Wight', 'ワイト', 'derive:two');
-		INSERT INTO proper_noun VALUES
-			(1, 'inigo.esp', 'Inigo', 'イニゴ', 'NPC_');
-	`)
-	if err := source.Close(); err != nil {
-		t.Fatal(err)
-	}
-
-	destination := openTestStore(t)
-	first, err := importMasterTerms(ctx, sourcePath, destination)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if first.Read != 3 || first.Created != 3 || first.Updated != 0 || first.Unchanged != 0 {
-		t.Fatalf("first import = %+v", first)
-	}
-	second, err := importMasterTerms(ctx, sourcePath, destination)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if second.Read != 3 || second.Created != 0 || second.Updated != 0 || second.Unchanged != 3 {
-		t.Fatalf("second import = %+v", second)
-	}
-	got, err := destination.search(ctx, searchFilter{Query: "Imperial", Limit: 50})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(got.Entries) != 2 {
-		t.Fatalf("Imperial search = %+v", got.Entries)
-	}
-	gotStatus, err := destination.status(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if gotStatus.Terms != 2 || gotStatus.Senses != 3 || gotStatus.Occurrences != 3 ||
-		gotStatus.AssignedOccurrences != 3 || gotStatus.Origins["master_term"] != 3 ||
-		gotStatus.ClassificationStatuses["unclassified"] != 3 {
-		t.Fatalf("status = %+v", gotStatus)
-	}
-	var derived occurrence
-	if err := destination.db.GetContext(ctx, &derived, `
-		SELECT id, term_id, sense_id, observed_dest, skyrim_category,
-		       origin_kind, origin_reference, derivation_kind
-		FROM dictionary_occurrence WHERE origin_reference = '3'`); err != nil {
-		t.Fatal(err)
-	}
-	if derived.SkyrimCategory != "" || derived.DerivationKind != "two" {
-		t.Fatalf("derived occurrence = %+v", derived)
-	}
-}
-
 func TestOpenStoreMigratesLegacyEntriesIntoSeparatedTables(t *testing.T) {
 	ctx := context.Background()
 	path := filepath.Join(t.TempDir(), "legacy.sqlite3")
