@@ -1,12 +1,12 @@
 ---
 name: fix-workflow
-description: "修正フローの入口オーケストレーター。人間が確認した不具合、レビュー非通過、検証失敗の観測記録から、作業 branch と plan.md を固定し、観測ログ駆動の再現確認と原因究明を investigation.md に、どう直すかの修正方針を design.md に、修正後の確定仕様（要求ごとの仕様）を spec.md にまとめ、design-review（design_reviewer agent によるソース照合検証と記述検証）と人間修正レビューを通してから implementation-module へ渡す。TRIGGER when: 修正系 task（バグ修正・refactor）の入口。SKIP when: 仕様変更や機能追加が必要と判明した場合は本モジュールを停止し、feature-workflow へ迂回する。"
+description: "修正フローの入口オーケストレーター。人間が確認した不具合、レビュー非通過、検証失敗の観測記録から、作業 branch と plan.md を固定し、観測ログ駆動の再現確認と原因究明を investigation.md に、どう直すかの修正方針を design.md に、修正後の確定仕様（要求ごとの仕様）を spec.md にまとめ、design-review（design_reviewer agent によるソース照合検証と記述検証）と人間修正レビューを通してから implementation-workflow へ渡す。TRIGGER when: 修正系 task（バグ修正・refactor）の入口。SKIP when: 仕様変更や機能追加が必要と判明した場合は本モジュールを停止し、design-workflow へ迂回する。"
 ---
 # Fix Workflow
 
 ## 目的
 
-`fix-workflow` は、修正フローの入口オーケストレーターである。人間が確認した不具合、レビュー非通過、検証失敗の観測記録から、作業 branch と `plan.md` を固定する。再現確認と原因究明は `investigation.md`、どう直すかの修正方針は `design.md`、修正後の確定仕様は `spec.md` に分けて Codex 本体が固定し、`design-review` と人間修正レビューを通してから `implementation-module` へ渡す。
+`fix-workflow` は、修正フローの入口オーケストレーターである。人間が確認した不具合、レビュー非通過、検証失敗の観測記録から、作業 branch と `plan.md` を固定する。再現確認と原因究明は `investigation.md`、どう直すかの修正方針は `design.md`、修正後の確定仕様は `spec.md` に分けて Codex 本体が固定し、`design-review` と人間修正レビューを通してから `implementation-workflow` へ渡す。
 `design.md` は人間が読んで判断する説明を持ち、`spec.md` は下流が実装根拠にする仕様を持つ。`design.md` と `spec.md` は `plan.md` の要求ごとの節に分ける。両者が食い違う場合は `spec.md` を優先する。
 再現確認・原因究明（investigation）と、どう直すかの設計（design）は責務を分ける。investigation は「何が起きてなぜか」を確定し、design は「どう直すか」だけを扱う。
 修正は fail-test ベースで進める前提で、先に不具合を検出できるテスト観点も引き継ぎに含める。
@@ -15,9 +15,9 @@ description: "修正フローの入口オーケストレーター。人間が確
 
 - 呼び出し元: 人間、または上位 agent。
 - 返却先: 呼び出し元。
-- モジュールが呼ぶ下位 skill: `fix-decision`（Codex 本体が読んで適用。原因究明の判断基準）。`design-protocol`（Codex 本体が読んで適用。`design.md` と `spec.md` の書き方、`design-review` の検証規約）。`presentation`（参照のみ。人間修正レビュー材料と、現況とあるべき形の 2 図を作る）。
+- モジュールが呼ぶ下位 skill: `fix-decision`（原因究明の判断基準）。`design-protocol`（設計作成）。`specification-protocol`（仕様作成）。`design-review`（設計と仕様の検証）。`presentation`（人間修正レビュー材料と、現況とあるべき形の 2 図の作成）。
 - モジュールが呼ぶ下位 agent: `design_reviewer`（`fresh`）。人間修正レビューの前に `design.md` と `spec.md` を実ソースと照合して検証する。調査、設計、仕様の本文は Codex 本体が task 文脈を持ったまま書く。
-- 下流の段: `implementation-module`、`finalization-module`。
+- 下流の段: `implementation-workflow`、`finalization-module`。
 
 ## 入口条件
 
@@ -37,7 +37,7 @@ description: "修正フローの入口オーケストレーター。人間が確
 - `spec.md` の各要求の節に仕様が記録され、各仕様に前提条件と確かめ方が書かれている。
 - `design-review` が通過済み。
 - `人間修正レビュー` 承認済み。
-- 仕様変更または仕様追加が必要と判断された場合は停止して呼び出し元へ戻す（`feature-workflow` への迂回が必要か、人間判断を仰ぐ）。
+- 仕様変更または仕様追加が必要と判断された場合は停止して呼び出し元へ戻す（`design-workflow` への迂回が必要か、人間判断を仰ぐ）。
 
 ## 担当成果物
 
@@ -91,17 +91,23 @@ description: "修正フローの入口オーケストレーター。人間が確
 
 ### 設計と仕様
 
-- 書き方は `design-protocol` skill に従う。Codex 本体が Skill ツールで読み、フロー種別として修正フローを渡して適用する。
+- `design.md` は `design-protocol` skill に従って作る。
+- `spec.md` は `specification-protocol` skill に従って作る。
+- Codex 本体が両 skill を読み、`plan.md` の要求、対象 repository、`investigation.md` の確定原因、`docs/vocabulary.md`、各出力先を渡して適用する。
+- `design.md` は `docs/exec-plans/templates/task-folder/design.md` を雛形にする。
+- `spec.md` は `docs/exec-plans/templates/task-folder/spec.md` を雛形にする。
 - `design.md`: どう直すかの修正方針と、検討が必要なこと。`investigation.md` の確定原因を根拠にする。
 - `spec.md`: 修正後に成立させる仕様。
 - 仕様は、`実装への引き継ぎ` の追加する fail-test の観点と同じ文にする。修正前に fail し、修正後に pass する対象がこの文で一意に決まるようにする。
-- 本モジュールが固定するのは書く順序と承認順序とし、両 file の書き方は `design-protocol` skill が持つ。
+- 本モジュールは書く順序と承認順序を固定する。
+- 設計の書き方は `design-protocol` skill が持つ。
+- 仕様の書き方は `specification-protocol` skill が持つ。
 
 ### design-review
 
 - `design-review` は、人間修正レビューの前に、実現可能でない案と誤読の余地がある記述を否決する AI 検証である。`design_reviewer` agent（`fresh`、読み取り専用）が担う。
-- 検証内容、判断範囲、出力、否決時の扱いは `design-protocol` skill の `design-review` 節に従う。修正フローでは、修正方針が `investigation.md` の確定原因に対応しているかの検証を含める。
-- 起動入力: `design.md` のパス、`spec.md` のパス、`task-id`、対象 repo のルート、フロー種別（修正フロー）。
+- 検証内容、判断範囲、出力は `design-review` skill に従う。
+- 起動入力: `plan.md` の要求、`design.md`、`spec.md`、対象 repository、`docs/vocabulary.md`、`investigation.md` の確定原因。
 - 戻し先: 本モジュール。
 - 完了: `design.md` の全ての現況の理解と全ての変更点、および `spec.md` の全ての仕様に判定が付いている。
 
@@ -113,7 +119,7 @@ description: "修正フローの入口オーケストレーター。人間が確
 
 ### 実装への引き継ぎ
 
-- Codex 本体が固定する。`implementation-module` へ渡すものを返す成果物としてまとめる。
+- Codex 本体が固定する。`implementation-workflow` へ渡すものを返す成果物としてまとめる。
     - 確定原因（`investigation.md` から）。
     - 承認済み修正方針（`design.md` の直し方）。
     - 影響ファイル候補（観測事実に基づく候補）。
@@ -135,7 +141,8 @@ description: "修正フローの入口オーケストレーター。人間が確
 
 ### 設計と仕様の必須観点
 
-- `design.md` と `spec.md` の必須観点は `design-protocol` skill が持つ。
+- `design.md` の必須観点は `design-protocol` skill が持つ。
+- `spec.md` の必須観点は `specification-protocol` skill が持つ。
 - 修正フロー固有の拘束は次の 2 つとする。
     - 修正方針: `investigation.md` の確定原因に対応する直し方だけを固定する。仕様が不足していない場合だけ恒久修正を固定する。
     - fail-test との一致: 仕様の文と、追加する fail-test の観点を同じ文にする。
@@ -158,7 +165,7 @@ description: "修正フローの入口オーケストレーター。人間が確
 
 ### 仕様不足の停止
 
-- 修正方針が仕様変更・機能追加・受け入れ条件の新規判断を必要とすると Codex 本体が判断した場合は、本モジュールを停止する。停止時は呼び出し元へ「`feature-workflow` 経由の仕様変更が必要」と戻す。
+- 修正方針が仕様変更・機能追加・受け入れ条件の新規判断を必要とすると Codex 本体が判断した場合は、本モジュールを停止する。停止時は呼び出し元へ「`design-workflow` 経由の仕様変更が必要」と戻す。
 
 ## 返す成果物
 
@@ -171,7 +178,7 @@ description: "修正フローの入口オーケストレーター。人間が確
 - 採用する修正方針: 恒久修正として採用する直し方。
 - 影響ファイル候補: 観測事実に基づく候補。
 - `design-review` の判定結果、否決理由、漏れ候補。
-- 実装への引き継ぎ: `implementation-module` へ渡すもの（確定原因、承認済み修正方針、確定仕様、影響ファイル候補、再現手順と期待状態、追加する fail-test の観点）。
+- 実装への引き継ぎ: `implementation-workflow` へ渡すもの（確定原因、承認済み修正方針、確定仕様、影響ファイル候補、再現手順と期待状態、追加する fail-test の観点）。
 - 停止判定: 停止理由、不足項目、戻し先。
 
 ## 作業を止める条件

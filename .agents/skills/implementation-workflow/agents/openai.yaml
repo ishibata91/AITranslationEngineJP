@@ -1,0 +1,4 @@
+interface:
+  display_name: "Implementation Workflow"
+  short_description: "Run fresh implementation agents and pause at implementation HITL"
+  default_prompt: "Use $implementation-workflow to implement and review approved design artifacts with fresh agents."

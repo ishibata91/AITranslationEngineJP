@@ -1,0 +1,4 @@
+interface:
+  display_name: "Specification Protocol"
+  short_description: "Create observable and verifiable product specifications"
+  default_prompt: "Use $specification-protocol to turn requirements into observable and verifiable specifications."

@@ -1,6 +1,6 @@
 ---
 name: fix-decision
-description: "Codex 本体が読む修正方針判断プロトコル。観測記録から仮説、観測ログ検証、確定原因、採用する修正方針、禁止する修正を固定する判断基準。TRIGGER when: 不具合、レビュー非通過、検証失敗の観測記録から修正方針を固定する時。SKIP when: 仕様変更や機能追加が必要な場合は feature-workflow へ。"
+description: "Codex 本体が読む修正方針判断プロトコル。観測記録から仮説、観測ログ検証、確定原因、採用する修正方針、禁止する修正を固定する判断基準。TRIGGER when: 不具合、レビュー非通過、検証失敗の観測記録から修正方針を固定する時。SKIP when: 仕様変更や機能追加が必要な場合は design-workflow へ。"
 ---
 # Fix Decision
 

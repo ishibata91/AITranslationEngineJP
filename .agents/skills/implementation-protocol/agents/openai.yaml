@@ -1,0 +1,4 @@
+interface:
+  display_name: "Implementation Protocol"
+  short_description: "Implement approved designs and verify every specification"
+  default_prompt: "Use $implementation-protocol to implement an approved design and verify its specifications."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Design Review"
+  short_description: "Validate design feasibility and specification traceability"
+  default_prompt: "Use $design-review to validate a design and its specifications against requirements and source evidence."

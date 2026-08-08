@@ -1,12 +1,12 @@
 ---
 name: finalization-module
-description: "正本化判断、正本反映、作業 commit、local merge、merge 後検証、completed 移動、merge 結果 commit を固定する出口モジュール。正本反映対象は docs/architecture.md に限定。TRIGGER when: 実装モジュールの最終検証が通過し、正本化判断と作業 branch の統合先 branch への取り込みを固定する必要がある。SKIP when: 最終検証通過前、または作業 branch が固定されていない。"
+description: "正本化判断、正本反映、作業 commit、local merge、merge 後検証、completed 移動、merge 結果 commit を固定する出口モジュール。正本反映対象は docs/architecture.md に限定。TRIGGER when: implementation-workflowの実装HITLが承認され、正本化判断と作業 branch の統合先 branch への取り込みを固定する必要がある。SKIP when: 実装HITL承認前、または作業 branch が固定されていない。"
 ---
 # Finalization Module
 
 ## 目的
 
-`finalization-module` は、実装モジュールの最終検証通過後に、正本化判断と正本反映、作業 commit、作業 branch の統合先 branch への local merge、completed 移動、merge 結果 commit を固定するモジュール skill である。
+`finalization-module` は、`implementation-workflow` の実装HITL承認後に、正本化判断と正本反映、作業 commit、作業 branch の統合先 branch への local merge、completed 移動、merge 結果 commit を固定するモジュール skill である。
 人間承認済みの恒久仕様だけを正本へ反映し、remote repository の変更は行わない。
 conflict 発生時だけ `conflict_resolver` agent を起動して conflict 解消を任せる。
 
@@ -27,8 +27,8 @@ conflict 発生時だけ `conflict_resolver` agent を起動して conflict 解�
 
 ## 入口条件
 
-- 実装モジュールの `最終検証` が通過している、または成立条件不成立で停止理由が固定されている。
-- `docs/architecture.md` への反映が要るかは、`feature-workflow` の `design.md` の実装方針・変更内容、または `fix-workflow` の `design.md` の修正方針から判断する。「人間承認済みの恒久仕様がある」は `正本化判断` 後に確定する。
+- `implementation-workflow` の実装HITLが承認済みである。
+- `docs/architecture.md` への反映が要るかは、`design-workflow` の `design.md` の実装方針・変更内容、または `fix-workflow` の `design.md` の修正方針から判断する。「人間承認済みの恒久仕様がある」は `正本化判断` 後に確定する。
 - 作業 branch が `codex/<task-id>` として存在する。
 
 ## 出口条件

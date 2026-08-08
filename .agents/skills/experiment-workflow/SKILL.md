@@ -1,6 +1,6 @@
 ---
 name: experiment-workflow
-description: "ループ前提の実験フローの入口オーケストレーター。準備の段とループの段に分かれる。準備の段は人間が 1 回だけ走らせ、作業 branch と実験計画を plan.md に、達成条件と診断の値と標本の分け方を criteria.md に固定し、達成したいことを覆う範囲の広い言い方へ書き直してから researcher agent の外部調査で自作の前に既存の手法を洗い、測る道具と変える前の測定（同じ条件で 2 度測って揺れの底を出す）と予備の回（対象を 1 つ変えて動き幅を実測し、それを根拠に達成の線を置く）を揃えてから criteria_reviewer agent の検証を通過するまで繰り返し、通過後に目的への貢献だけの人間承認を 1 回取る。達成の線の値と数え方は Codex 本体が決め、人間の承認対象にしない。ループの段は /loop で繰り返し起動され、1 起動で 1 回分だけ進めて loop-log.md と measurements.csv へ追記し、達成の線を満たしたら metric_gaming_reviewer agent の検査を通して人間採否へ渡してループを止める。実験の判断基準と 3 agent の検証規約は research-protocol skill が持つ。実装方針の設計と確定仕様は扱わない。TRIGGER when: 達成の判定が数値で決まっておらず、変更と測定を繰り返して探る task の入口、および /loop でその実験の次の回を進める時。SKIP when: 達成の形が既に決まっている実装系 task は feature-workflow へ、原因が 1 つ実在する不具合は fix-workflow へ。"
+description: "ループ前提の実験フローの入口オーケストレーター。準備の段とループの段に分かれる。準備の段は人間が 1 回だけ走らせ、作業 branch と実験計画を plan.md に、達成条件と診断の値と標本の分け方を criteria.md に固定し、達成したいことを覆う範囲の広い言い方へ書き直してから researcher agent の外部調査で自作の前に既存の手法を洗い、測る道具と変える前の測定（同じ条件で 2 度測って揺れの底を出す）と予備の回（対象を 1 つ変えて動き幅を実測し、それを根拠に達成の線を置く）を揃えてから criteria_reviewer agent の検証を通過するまで繰り返し、通過後に目的への貢献だけの人間承認を 1 回取る。達成の線の値と数え方は Codex 本体が決め、人間の承認対象にしない。ループの段は /loop で繰り返し起動され、1 起動で 1 回分だけ進めて loop-log.md と measurements.csv へ追記し、達成の線を満たしたら metric_gaming_reviewer agent の検査を通して人間採否へ渡してループを止める。実験の判断基準と 3 agent の検証規約は research-protocol skill が持つ。実装方針の設計と確定仕様は扱わない。TRIGGER when: 達成の判定が数値で決まっておらず、変更と測定を繰り返して探る task の入口、および /loop でその実験の次の回を進める時。SKIP when: 達成の形が既に決まっている実装系 task は design-workflow へ、原因が 1 つ実在する不具合は fix-workflow へ。"
 ---
 # Experiment Workflow
 
