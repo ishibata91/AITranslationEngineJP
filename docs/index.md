@@ -15,10 +15,6 @@ backend は `greenfield-reset` task（2026-06-06）で削減済み。新 archite
 6. [`architecture.md`](./architecture.md)
 7. [`er.md`](./er.md)
 8. [`tech-selection.md`](./tech-selection.md)
-9. [`coding-guidelines.md`](./coding-guidelines.md)
-10. 変更対象に対応する実装規約: [`coding-guidelines-frontend.md`](./coding-guidelines-frontend.md), [`coding-guidelines-backend.md`](./coding-guidelines-backend.md), [`coding-guidelines-tests.md`](./coding-guidelines-tests.md)（統合テストは [`integration-test-guidelines.md`](./integration-test-guidelines.md)）
-11. 観測ログを変更する場合: [`observability-logging.md`](./observability-logging.md)
-12. [`UX-standard.md`](./UX-standard.md)
 13. [`lint-policy.md`](./lint-policy.md)
 14. Relevant file under [`exec-plans/`](./exec-plans/)
 15. Relevant file under [`references/`](./references/)

@@ -1,0 +1,19 @@
+{
+  "description": "編集対象に対応する protocols の指示を Codex に渡す。",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^(apply_patch|Edit|Write)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/inject_protocols.py\"",
+            "timeout": 5,
+            "statusMessage": "Loading directory protocols",
+            "additionalContextLimit": 3000
+          }
+        ]
+      }
+    ]
+  }
+}

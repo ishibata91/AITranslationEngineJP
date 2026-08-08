@@ -1,143 +1,49 @@
 ---
 name: coding-protocol
-description: "implementation-module 内で`fresh`が読む実装作業プロトコル。backend、frontend ロジック、統合境界、テスト、観測ログ追加を同じ `fresh` が担当する判断基準。TRIGGER when: implementation-module で実装フェーズに入る時。SKIP when: storybook-module 担当（svelte 表示コンポーネント、props、style、story、fixture）、または finalization-module 担当（docs 正本反映、commit、merge）。"
+description: 実装時に使うスキル。TRIGGER WHEN 実装時　メインエージェント使用禁止。
 ---
 # Coding Protocol
 
-## 目的
+# 実行に必要な情報
 
-`implementation-module` 内で実装フェーズに入った `fresh` が読む作業プロトコル。
-`fresh` は、委譲時に渡された実装方針、仕様、調査結果を根拠に、backend、frontend ロジック、統合境界、テスト、観測ログを担当する。
+- 実装計画
+	- ない場合は差し戻す
 
-## 適用範囲
+### 作業前に読み込む資料
 
-| 対象 | 扱う | 扱わない |
-| --- | --- | --- |
-| backend（layer は新 architecture 確定後に固定） | 〇 | - |
-| frontend ロジック（state、副作用、gateway 呼び出し、画面 controller） | 〇 | - |
-| 統合境界（Wails Bind、gateway、DTO 写像） | 〇 | - |
-| 単体テスト（守備範囲は下記） | 〇 | - |
-| シナリオテスト（E2E）の追加・変更 | 〇 | - |
-| 観測ログの追加・削除 | 〇 | - |
-| svelte 表示コンポーネント（template、props、表示用 script、style） | - | 〇 |
-| story file、表示用 fixture | - | 〇 |
-| docs 正本反映、commit、merge、completed 移動 | - | 〇 |
+```
+.agents/skills/references/coding-guidelines-backend.md
+.agents/skills/references/coding-guidelines-frontend.md
+.agents/skills/references/observability-logging.md
+.agents/skills/references/coding-guidelines-tests.md
+.agents/skills/references/coding-guidelines.md
+```
 
-「扱わない」列の変更が必要な場合は `storybook-module` または `finalization-module` へ戻す。
-
-## 作業前に読む正本
-
-- アーキテクチャ規約: `docs/architecture.md`
-- コーディング規約 入口: `docs/coding-guidelines.md`
-- backend 規約: `docs/coding-guidelines-backend.md`
-- frontend 規約: `docs/coding-guidelines-frontend.md`
-- テスト規約: `docs/coding-guidelines-tests.md`
-- lint 規約: `docs/lint-policy.md`
-- 観測ログ規約: `docs/observability-logging.md`（観測ログ追加時）
-- 業務要件: `docs/requirements.md`
-- システム要件: `docs/system_requirements.md`
-
-新 architecture 未確定の現状では、`docs/architecture.md` は骨格のみで、具体的 layer 名、path、依存方向は次 task で固定する。
-
-## 共通の判断基準
-
-- `fresh` は、委譲時に渡された実装方針、仕様、調査結果を確認してから実装する。実装、テスト、観測ログは同じ `fresh` が担当する。
-- `docs/architecture.md` の依存方向、強い制約、Wails 境界を守る。違反が要る場合は停止し人間判断へ戻す。
-- Bootstrap 以外の層で concrete 実装を new しない（手動 DI）。
-- 公開境界（DTO、API、Wails Bind、Repository Port、UseCase Port）を勝手に拡張しない。範囲外の境界変更は停止理由。
+---
 
 ## 実装
 
-### 共通
+読み込んだ規約とフォルダのAGENTS.mdに従って実装を進める。
 
-- `fresh` は、委譲時に渡された実装対象を根拠に、backend、frontend、統合境界を変更する。
-- 各層の具体的 path、名前、責務は `docs/architecture.md` と `docs/coding-guidelines-*.md` を入口に決める。
-- 表示範囲（svelte 表示コンポーネント、props、style、story、fixture）に触る必要が出た場合は `storybook-module` へ戻す。
+## テスト
 
-### 影響範囲の確定
-
-既存のシンボルへ手を入れる前に、変更が波及する箇所を確定する。
-
-- 関数、method の signature 変更、名前変更、削除では、定義と呼び出し元をコード検索で洗い出す。
-- interface の method 変更では、interface 名、method 名、実装を示す構文をコード検索で洗い出す。
-- 依存の向きの変更と層をまたぐ移動では、import、生成箇所、呼び出し元をコード検索で洗い出す。
-- `.ts` 側の公開関数を変える時は、`.svelte` 側の呼び出しもコード検索の対象に含める。
-- コード検索は同名の別シンボルを含み、名前が直接現れない関係を取りこぼす可能性がある。コンパイラ、型検査、対象層のテストで不足を検出する。
-- コード検索だけを根拠に影響範囲の全件を保証しない。全件を保証できない場合は、確認した範囲と残る可能性を報告する。
-
-### モジュール内検証
-
-- backend を触ったときだけ `npm run test:backend` を実行する。
-- frontend を触ったときだけ `npm run test:frontend` を実行する。
-- backend / frontend 両側を触ったときは両方走らせる。
-
-## テスト書き
-
-### 単体テスト（書く対象）
-
-- AI サービスの key 保存系（OS keychain 連携、平文漏洩防止）
-- プロンプト構築 logic（LLM 出力品質に直結、E2E では原因切り分け不能）
-- 独立した純粋 class 系（副作用なし、入出力で完結、境界条件）
-- ビジネスロジック層（usecase の下の domain layer、状態遷移 / 計算 / 判定。DB / LLM を mock で切り離した pure な部分）
-- 過去バグの再発防止（fail-test ベース、修正系 task）
-
-### 単体テスト（書かない対象、E2E に任せる）
-
-- state derive、Wails bridge 周辺、画面ロジック、フォーム validation
-- DB アクセス / LLM 呼び出し込みの統合経路
-
-### シナリオテスト（E2E）
-
-- UI 起点の業務シナリオを扱う。
-- 修正系 task では fail-test ベース（修正前に追加して fail を確認、修正後に pass を確認）で進める。
-- E2E 規約と scenario test 仕様は新 architecture 確定後に固定する。
-
-### 注意
-
-- `fresh` は、実装した振る舞いを確かめるテストを書く。
-
-## 観測ログ追加
-
-### 判断
-
-- 実行時にしか確定しない値、または原因分離が要る分岐がある時に追加する。
-- `docs/observability-logging.md` の出力先、payload、禁止事項に従う。
-- secret、API key、credential 参照実値、provider raw payload はログに出さない。
-- frontend logger は `frontend/src/application/diagnostic/` の logger を経由（greenfield 後の正本）。
-- backend logger は新 architecture 確定後に固定する。
-
-### 一時ログの扱い
-
-- デバッグのために追加した一時ログは `最終検証` の前に削除する。
-- 残す観測ログは「将来も再現困難な原因切り分けに要る」基準で選ぶ。
+AGENTS.mdがテストを要求する場合み実装する。
 
 ## 最終検証
 
-- 触った範囲だけ動かす。
-    - backend を触ったら `npm run test:backend`
-    - frontend を触ったら `npm run test:frontend`
-    - 修正系 task で全体検証が要る場合だけ `npm run test:backend && npm run test:frontend`
-- 通過結果または停止理由を作業結果として返す。判断履歴は `plan.md` に残さない。
-- 失敗時は `fresh` が原因を特定し、承認済み実装方針の範囲で修正する。承認済み実装方針外の変更が要る場合は停止して人間判断へ戻す。
+- backend 実装後 `npm run test:backend` を実行する。
+- frontend 実装後 `npm run test:frontend` を実行する。
+- テスト失敗，lint失敗を残さない。別タスクであろうと，特別な判断なき見逃しは許さない。
 
-## 不変条件
-
-- 実装、テスト、観測ログ、最終検証は、同じ `fresh` が担当する。
-- 公開境界（DTO、API、Wails Bind、Repository Port、UseCase Port）を勝手に拡張しない。
-- svelte 表示コンポーネント、props、style、story、fixture を本 skill では変更しない。
-- secret、trust boundary、API / DTO / DB / schema の意味拡張が必要になる場合は停止する。
-- docs 正本（`docs/architecture.md`、`docs/requirements.md`、`docs/system_requirements.md` など）を本 skill では変更しない。`finalization-module` で扱う。
+---
 
 ## 作業を完了できる条件
 
-- 承認済み実装方針または修正フローの実装への引き継ぎに対応するプロダクトコード、テスト、観測ログが返却されている。
-- `最終検証` を返した。
-- 検証、未実行項目、残留リスクが整理されている。
+- テストを実行した
+- lintを実行した
+- 赤が残っていない
 
-## 作業を止める条件
+## エスカレーション
 
-- 入口の依存（`design.md` の実装方針、または修正フローの実装への引き継ぎ、`合意済み frontend 保護?`）が固定されていない。
-- 表示範囲の変更が要るのに、`storybook-module` 再実行または人間返却も固定できない。
-- `architecture.md` の境界違反が要る、または公開境界の意味拡張が要るのに、承認を得られない。
-- `最終検証` が失敗し、承認済み実装方針外の修正が要る。
-- 停止時は不足項目、衝突箇所、戻し先を返す。
+- 実装計画と実コードが食い違っている
+- ３回以上の試行で解決できない問題が発生した

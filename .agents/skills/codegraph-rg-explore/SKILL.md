@@ -1,12 +1,12 @@
 ---
 name: codegraph-rg-explore
-description: Codegraphを用いたコードベース探索用のスキル。TRIGGER WHEN　コードベースの探索時。SKIP WHEN　コードベース以外の探索・探索以外のタスク。
+description: Codegraphを用いたコードベース探索用のスキル。TRIGGER WHEN　コードベースの探索時。SKIP WHEN　コードベース以外の探索・探索以外のタスク。メインエージェント使用禁止。
 ---
 ## 動作に必要な情報
 
 - 調査対象: 人間が依頼した機能、処理経路、責務、または依存関係。
-- 調査対象フォルダの`.codegraph`
 
+---
 # ステップ1
 #### `rg`で入口となるコメント・クラス・シンボルを検索する。
 
@@ -27,7 +27,8 @@ rg -n -i -B 1 -A 3 \
 ## ステップ2
 #### codegraphで実在シンボルを検索する
 - codegraph CLIを用いる
-- `{REPO_ROOT}/internal/`,`{REPO_ROOT}/frontend/`でindexが別々に構築されている。プロジェクトを指定する
+- `{REPO_ROOT}/internal/`,`{REPO_ROOT}/frontend/`, `{REPO_ROOT}/tools` でindexが別々に構築されている。プロジェクトを指定する
+- 指定されたフォルダがcodegraphプロジェクトでない場合に限り`rg` など別ツールでの探索を許可する。
 - ステップ1で抽出したシンボルで検索を行う
 - 検索結果から依頼に関係のあるものだけを選別する
 - 最大呼び出し３回まで。
@@ -44,5 +45,8 @@ rg -n -i -B 1 -A 3 \
 - `codegraph status {PROJECT_PATH}`：インデックスの状態を確認する。検索結果が古い疑いがある場合に使う。
 
 ## ステップ3
+
 - 選別した検索結果から結論を出す。
 - codegraphの検索結果で足りなければ，検索結果のシンボル・ファイルで限定して`rg`でさらに詳しく探索する。
+
+
