@@ -1,4 +1,0 @@
-interface:
-  display_name: "CodeGraph MOOSE検索"
-  short_description: "Sembleのアンカーから名前検索と機能検索を照合する"
-  default_prompt: "Use $codegraph-moose-search to find local semantic anchors, then compare independent CodeGraph name and behavior searches."
