@@ -1,0 +1,4 @@
+interface:
+  display_name: "CodeGraph + rg 探索"
+  short_description: "rgで入口を特定しCodeGraphで呼び出し経路を少数回追跡"
+  default_prompt: "$codegraph-rg-exploreを使い、rgで入口を特定してCodeGraphで処理経路を調べる。"

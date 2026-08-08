@@ -1,0 +1,4 @@
+interface:
+  display_name: "CodeGraph Ataraxis探索"
+  short_description: "Sembleでアンカーを探し一括CodeGraph queryで探索する"
+  default_prompt: "Use $codegraph-ataraxis-explore to find local semantic anchors in the relevant scope and answer with one grouped CodeGraph query."
