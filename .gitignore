@@ -25,6 +25,10 @@ dictionary/*.sqlite3
 dictionary/*.sqlite3-shm
 dictionary/*.sqlite3-wal
 dictionary/dictionary-mcp
+dictionary/reference/*.db
+dictionary/reference/*.db-shm
+dictionary/reference/*.db-wal
+dictionary/reference/*.gz
 
 # C# 抽出ツール（Mutagen）のビルド成果物
 tools/**/bin

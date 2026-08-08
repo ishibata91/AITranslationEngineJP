@@ -41,6 +41,10 @@ components:
     in: internal/model
   migrations:
     in: db
+  # dictionary-mcp は事前作成辞書の生成と MCP 操作を担う独立した command。
+  # 製品本体の internal package は import しない。
+  dictionary-mcp:
+    in: dictionary
 
   # core/* は副作用のない決定的な計算ロジック（functional core）。engine 等が一方向に import する。
   # 純粋ルールは os・provider・store・engine を import しない（IO は engine 側へ寄せる）。
