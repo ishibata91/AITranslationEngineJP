@@ -1,6 +1,6 @@
 ---
 name: coding-protocol
-description: メインエージェント使用禁止。実装時に使うスキル。
+description: Codex 本体が読む、変更対象の言語規約とフォルダ規約に従って実装と検証を行うスキル。implementation-protocol で product code と test を変更する時に使う。
 ---
 # Coding Protocol
 

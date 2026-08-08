@@ -1,4 +1,4 @@
 interface:
   display_name: "Design Workflow"
-  short_description: "Run fresh design agents and pause at design HITL"
-  default_prompt: "Use $design-workflow to create and review design artifacts with fresh agents."
+  short_description: "Create design artifacts and pause at design HITL"
+  default_prompt: "Use $design-workflow to create and review design artifacts."

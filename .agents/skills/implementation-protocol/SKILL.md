@@ -1,6 +1,6 @@
 ---
 name: implementation-protocol
-description: implementer サブエージェントが読む、承認済み設計と仕様を実装して検証するスキル。product code、test、実装結果を作成または更新する時に使う。
+description: Codex 本体が読む、承認済み設計と仕様を実装して検証するスキル。product code、test、実装結果を作成または更新する時に使う。
 ---
 
 # Implementation Protocol
@@ -11,6 +11,7 @@ description: implementer サブエージェントが読む、承認済み設計�
 - 対象 repository。
 - 調査結果と追加制約がある場合は該当成果物。
 - `implementation.md` の出力先。
+- 画面の見た目が変わる場合は、`storybook-module` で承認された story、fixture、表示コンポーネント。
 
 ## 実装する
 
@@ -23,6 +24,9 @@ description: implementer サブエージェントが読む、承認済み設計�
 
 product code、test、fixture、story、観測ログのうち、承認済み設計に必要な成果物を変更する。
 一時観測ログは最終検証前に削除する。
+
+`storybook-module` で固定した見た目がある場合は、承認された story、fixture、表示構造、style、表示用 props を保つ。
+ロジックとの接続に固定した見た目の変更が必要な場合は実装を止める。
 
 ## 検証する
 

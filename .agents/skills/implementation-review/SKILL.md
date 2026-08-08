@@ -30,6 +30,7 @@ description: implementation_reviewer サブエージェントが読む、実装�
 - 必須検証の実行結果と失敗の有無を確認する。
 - `implementation.md` と実差分が一致するかを確認する。
 - 一時観測ログと未完了のplaceholderが残っていないかを確認する。
+- protocols/以下のパッケージ規約が適用されているか確認する。
 
 根拠を確認できない項目は通過させない。
 
