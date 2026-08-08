@@ -2,6 +2,9 @@
 
 frontend の実装は `frontend/src/` 配下に置く。
 
-- `ui/` は画面（View）、表示コンポーネント、Store、Storybook story、fixture を担当する。
-- `gateway/` は Wails bindings の wrapper を担当する。
-- `application/diagnostic/` は generic logger を保持する。
+- `App.svelte` は画面遷移と画面 container の選択を担当する。
+- `main.ts` は frontend の起動点を担当する。
+- `ui/` は画面、表示部品、画面状態、Storybook story、fixture を持つ。
+- `gateway/` は Wails generated bindings を frontend の型へ変換する。
+- `application/diagnostic/` は frontend の観測 logger を持つ。
+- `test/` は frontend test の共通 harness を持つ。

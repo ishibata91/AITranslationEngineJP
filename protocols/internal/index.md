@@ -1,17 +1,13 @@
-# backend
+# internal
 
-Go backend の実装は `internal/` 配下に置く。
+Go backend の実装を置く。
 
-- `bootstrap/` は composition root とする。
-- `api/` は Wails Bind で公開する面とする。
-- `engine/` は翻訳手続きの pipeline を orchestration する。
-- `engine/` は純粋ルールを `internal/core/*` から import して束ねる。
-- `core/` は副作用のない純粋不変ルールを集積する functional core とする。
-- `core/` は 1 ルール 1 package とする。
-- `core/` の対象 package は `dictionary`、`prompt`、`termderive`、`termusage`、`rolespeech`、`linefeatures`、`personatone`、`tone`、`batchplan` とする。
-- `core/` は `os`、`provider`、`store`、`engine` を import しない。
-- `store/` は SQLite へのアクセスを担当し、`sqlx` を使用する。
-- keyring secret store は `store/secret/` に置く。
-- `provider/` は AI クライアントの port と実装を担当する。
-- `provider/` の多態 port は同期 `Translator` と非同期 `BatchTranslator` の 2 つとする。
-- `model/` は概念的なデータモデルを持つ。
+- `bootstrap/` は production の依存を組み立てる。
+- `api/` は Wails Bind の公開面を持つ。
+- `engine/` は翻訳手続きを進行する。
+- `core/` は副作用のない決定規則を持つ。
+- `store/` は SQLite と keyring へ接続する。
+- `provider/` は AI provider の port と実装を持つ。
+- `model/` は backend 内で共有するデータ構造を持つ。
+- `lexicon/` は外部辞書を読む adapter を持つ。
+- `harness/` は翻訳手続きの決定的な統合検証を組み立てる。

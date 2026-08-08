@@ -1,6 +1,6 @@
 ---
 name: codegraph-rg-explore
-description: Codegraphを用いたコードベース探索用のスキル。TRIGGER WHEN　コードベースの探索時。SKIP WHEN　コードベース以外の探索・探索以外のタスク。メインエージェント使用禁止。
+description: メインエージェント使用禁止。Codegraphを用いたコードベース探索用のスキル。コードベースの探索時に使う。
 ---
 ## 動作に必要な情報
 
