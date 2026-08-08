@@ -1,6 +1,6 @@
 ---
 name: implementation-module
-description: "実装、テスト、観測ログ追加、最終検証を実行する実装モジュール。作業本体は`fork`（親の文脈とモデルを継承）へ委譲し、本体セッションの文脈を実装詳細で汚さない。`fresh` への分割はしない。TRIGGER when: 承認済み実装方針（または修正フローの実装への引き継ぎ）から実装、テスト、観測のいずれかを進める必要がある。SKIP when: 表示変更だけで完結する task は storybook-module で扱う。"
+description: "実装、テスト、観測ログ追加、最終検証を実行する実装モジュール。作業本体は `fresh` へ委譲する。`fresh` には実装方針、仕様、調査結果を渡し、実装から最終検証までを担当させる。TRIGGER when: 承認済み実装方針（または修正フローの実装への引き継ぎ）から実装、テスト、観測のいずれかを進める必要がある。SKIP when: 表示変更だけで完結する task は storybook-module で扱う。"
 ---
 # Implementation Module
 
@@ -8,7 +8,7 @@ description: "実装、テスト、観測ログ追加、最終検証を実行す
 
 `implementation-module` は、承認済み `design.md` の実装方針（または修正フローの実装への引き継ぎ）から、実装、テスト、観測ログ追加、最終検証を実行するモジュール skill である。
 
-作業本体は`fork`へ委譲する。`fork`は親の文脈とモデルを継承し、本体セッションの文脈を実装詳細で汚さない。backend / frontend / 統合境界 / テスト / 観測を、`fresh` へ分割しない。
+作業本体は `fresh` へ委譲する。Codex 本体は `fresh` へ実装方針、仕様、調査結果、対象ファイルを渡す。`fresh` は backend、frontend、統合境界、テスト、観測ログ、最終検証を担当する。
 
 ## 扱う範囲と扱わない範囲
 
@@ -30,8 +30,8 @@ description: "実装、テスト、観測ログ追加、最終検証を実行す
 
 - 呼び出し元: 人間、または上位モジュール skill。
 - 返却先: 呼び出し元。
-- モジュールが呼ぶ skill: `coding-protocol`（`fork`が Skill ツールで読んで適用する）。
-- モジュールが呼ぶ agent: `fork`（親の文脈とモデルを継承）。実装、テスト、観測ログ追加、最終検証の作業本体を`fork`へ委譲する。
+- モジュールが呼ぶ skill: `coding-protocol`（`fresh` が読んで適用する）。
+- モジュールが呼ぶ agent: `fresh`。Codex 本体は実装、テスト、観測ログ追加、最終検証の作業本体を `fresh` へ委譲する。
 
 ## 入口条件
 
@@ -52,18 +52,18 @@ description: "実装、テスト、観測ログ追加、最終検証を実行す
 
 | 成果物ID | 担当 | 依存対象 |
 | --- | --- | --- |
-| `実装` | `fork` | 入口条件 |
-| `テスト` | `fork` | `実装` の対応部分 |
-| `観測ログ追加` | `fork` | `実装` の対応部分 |
-| `最終検証` | `fork` | 完了済み実装・テスト・観測成果物 |
+| `実装` | `fresh` | 入口条件 |
+| `テスト` | `fresh` | `実装` の対応部分 |
+| `観測ログ追加` | `fresh` | `実装` の対応部分 |
+| `最終検証` | `fresh` | 完了済み実装・テスト・観測成果物 |
 
 ## 実装フロー
 
-`coding-protocol` skill を Skill ツールで読み、`coding-protocol` の手順に従って`fork`が親の文脈とモデルを継承して実装する。
+Codex 本体は `fresh` に実装方針、仕様、調査結果、対象ファイルを渡す。`fresh` は `coding-protocol` skill を読み、その判断基準に従って実装する。
 
 1. `coding-protocol` skill を読む（現フェーズが実装であることを明示）
-2. 実装対象（backend、frontend ロジック、統合境界）を 1 文脈で順に書く。`fresh` には渡さない
-3. テストは実装と同じ文脈で書く。書く対象は下記の単体テスト守備範囲に限定
+2. 実装対象（backend、frontend ロジック、統合境界）を順に書く
+3. テストを書く。書く対象は下記の単体テスト守備範囲に限定
 4. 観測ログは `coding-protocol` skill の観測ログ section に従って追加
 5. 最終検証を実行
 
@@ -71,13 +71,12 @@ description: "実装、テスト、観測ログ追加、最終検証を実行す
 
 ### 実装
 
-- `fork`が `coding-protocol` skill を読み、対象に応じて backend section / frontend section / 統合境界 section を順に適用する。
-- 同一 task の文脈を持ったまま縦通しで書く。
+- `fresh` が `coding-protocol` skill を読み、対象に応じて backend section / frontend section / 統合境界 section を順に適用する。
 - 表示範囲（svelte 表示コンポーネント、props、style、story、fixture）を触る必要が出た場合は、`storybook-module` の再実行または人間返却を固定する。
 
 ### テスト
 
-- `fork`が `coding-protocol` skill のテスト section に従って書く。
+- `fresh` が `coding-protocol` skill のテスト section に従って書く。
 - `spec.md` の仕様の文を、対応する test case の名前としてそのまま使う。人間が実行結果の一覧を読んだだけで、どの仕様が確かめられたか分かる状態にする。
 - 単体テストの守備範囲は次に限定:
     - AI サービスの key 保存系
@@ -90,7 +89,7 @@ description: "実装、テスト、観測ログ追加、最終検証を実行す
 
 ### 観測ログ追加
 
-- `fork`が `coding-protocol` skill の観測ログ section に従って追加。
+- `fresh` が `coding-protocol` skill の観測ログ section に従って追加。
 - 実行時にしか確定しない値、または原因分離が要る分岐があるときに追加する。
 - 一時的なデバッグログは `最終検証` 前に削除する。
 
@@ -104,7 +103,7 @@ description: "実装、テスト、観測ログ追加、最終検証を実行す
 - `spec.md` の仕様と実テストを照合する。仕様 1 行ごとに、対応するテストの file と test case 名を `spec.md` の「対応する実テスト」列へ書き、作業結果としても返す。
 - 対応する実テストを置けなかった仕様は、実装が仕様に届いていない可能性を示すため、停止理由または残課題として人間へ上げる。
 - 実装した範囲が `spec.md` の仕様より狭い、または広いと分かった場合は、`spec.md` を正とし、差分を人間へ上げる。
-- 失敗時は`fork`が同じ文脈で原因を特定し、修正する。`fresh` に渡さない。
+- 失敗時は `fresh` が原因を特定し、承認済み実装方針の範囲で修正する。
 - 通過結果または停止理由を作業結果として返す。判断履歴は `plan.md` に残さない。
 
 ## 不変条件
@@ -115,11 +114,10 @@ description: "実装、テスト、観測ログ追加、最終検証を実行す
 - 画面の表示変更がある場合、`合意済み frontend 保護` の固定なしに実装を始めない。
 - 実装中に表示範囲の変更が必要になった場合は、`storybook-module` の再実行入力または人間への返却を固定する。
 
-### `fork`委譲ゲート
+### `fresh` 委譲ゲート
 
-- 実装、テスト、観測ログの作業本体は`fork`（親の文脈とモデルを継承）へ委譲する。`fork`は文脈を分散しない。
-- `fresh` へ backend、frontend ロジック、統合境界、テスト、観測を切り出さない。
-- 例外として、コードベースの広範な調査（複数 file の grep など）に `Explore` agent を使うのは構わない。
+- Codex 本体は、実装方針、仕様、調査結果、対象ファイルを `fresh` に渡してから、実装、テスト、観測ログ、最終検証を委譲する。
+- `fresh` は、委譲時に渡された入力と `coding-protocol` を根拠に、実装、テスト、観測ログ、最終検証を担当する。
 
 ### 検証順序ゲート
 
@@ -128,7 +126,7 @@ description: "実装、テスト、観測ログ追加、最終検証を実行す
 
 ### 安全境界
 
-- 本モジュール skill と`fork`は、人間承認なしの docs 正本を直接変更しない（`docs/architecture.md` などの正本反映は `finalization-module` で扱う）。
+- 本モジュール skill と `fresh` は、人間承認なしの docs 正本を直接変更しない（`docs/architecture.md` などの正本反映は `finalization-module` で扱う）。
 
 ## 返す成果物
 

@@ -1,13 +1,13 @@
 ---
 name: coding-protocol
-description: "implementation-module 内で`fork`が読む実装作業プロトコル。backend、frontend ロジック、統合境界、テスト、観測ログ追加を 1 文脈で縦通しで進める判断基準。TRIGGER when: implementation-module で実装フェーズに入る時。SKIP when: storybook-module 担当（svelte 表示コンポーネント、props、style、story、fixture）、または finalization-module 担当（docs 正本反映、commit、merge）。"
+description: "implementation-module 内で`fresh`が読む実装作業プロトコル。backend、frontend ロジック、統合境界、テスト、観測ログ追加を同じ `fresh` が担当する判断基準。TRIGGER when: implementation-module で実装フェーズに入る時。SKIP when: storybook-module 担当（svelte 表示コンポーネント、props、style、story、fixture）、または finalization-module 担当（docs 正本反映、commit、merge）。"
 ---
 # Coding Protocol
 
 ## 目的
 
-`implementation-module` 内で実装フェーズに入った`fork`が読む作業プロトコル。
-backend、frontend ロジック、統合境界、テスト、観測ログを、task 全体の文脈を持ったまま 1 文脈で書く。`fork`は親の文脈とモデルを継承する。
+`implementation-module` 内で実装フェーズに入った `fresh` が読む作業プロトコル。
+`fresh` は、委譲時に渡された実装方針、仕様、調査結果を根拠に、backend、frontend ロジック、統合境界、テスト、観測ログを担当する。
 
 ## 適用範囲
 
@@ -41,7 +41,7 @@ backend、frontend ロジック、統合境界、テスト、観測ログを、t
 
 ## 共通の判断基準
 
-- 同一 task の文脈を`fork`が保つ。実装、テスト、観測を、`fresh` に渡さない。広範な探索だけ `Explore` agent に渡してよい。ただし後述の影響範囲の確定は `Explore` agent に渡さない。`fresh` は型解決を伴う参照解決の手段を持たないので、文字列一致で代替した不正確な一覧が返る。
+- `fresh` は、委譲時に渡された実装方針、仕様、調査結果を確認してから実装する。実装、テスト、観測ログは同じ `fresh` が担当する。
 - `docs/architecture.md` の依存方向、強い制約、Wails 境界を守る。違反が要る場合は停止し人間判断へ戻す。
 - Bootstrap 以外の層で concrete 実装を new しない（手動 DI）。
 - 公開境界（DTO、API、Wails Bind、Repository Port、UseCase Port）を勝手に拡張しない。範囲外の境界変更は停止理由。
@@ -50,7 +50,7 @@ backend、frontend ロジック、統合境界、テスト、観測ログを、t
 
 ### 共通
 
-- 触る範囲は`fork`が 1 文脈で書く。backend、frontend、統合境界を同じ文脈に置く。
+- `fresh` は、委譲時に渡された実装対象を根拠に、backend、frontend、統合境界を変更する。
 - 各層の具体的 path、名前、責務は `docs/architecture.md` と `docs/coding-guidelines-*.md` を入口に決める。
 - 表示範囲（svelte 表示コンポーネント、props、style、story、fixture）に触る必要が出た場合は `storybook-module` へ戻す。
 
@@ -58,19 +58,12 @@ backend、frontend ロジック、統合境界、テスト、観測ログを、t
 
 既存のシンボルへ手を入れる前に、変更が波及する箇所を確定する。
 
-| 変更の種類 | 確定すべきこと | 使う operation |
-| --- | --- | --- |
-| 関数、method の signature 変更、リネーム、削除 | 壊れる呼び出し元の全件 | `findReferences`、`incomingCalls` |
-| interface への method 追加、既存 method の変更 | 追従が要る実装型の全件 | `goToImplementation` |
-| 依存の向きの変更、層をまたぐ移動 | その対象が依存している先の全件 | `outgoingCalls` |
-
-確定の手段は LSP tool とし、文字列一致の検索で代替しない。文字列一致は同名の別シンボル、コメント、テスト内の文字列まで拾い、逆に interface の実装型のように名前が現れない関係を取りこぼすので、全件を主張する根拠にならない。文字列一致で足りる場面の切り分けは `AGENTS.md` の「コード調査の手段」節に従う。
-
-上の operation 名は LSP protocol の標準で、言語には依存しない。ただし対象 file の言語の language server が無い場合は使えない。対応状況は `AGENTS.md` の「コード調査の手段」節に従う。使えない場合は文字列一致の検索へ落とし、影響範囲の一覧が全件である保証は無いと明示する。
-
-frontend では特に注意が要る。`.svelte` を解釈する language server が無いため、`.ts` の関数に対する参照解決の結果へ `.svelte` 側の呼び出しが現れない。gateway、store など `.ts` 側の公開関数を変える時は、`.svelte` 側の呼び出しを文字列一致の検索で補ってから影響範囲を確定する。
-
-書き換え自体は LSP tool では行えない（編集系の operation を持たない）。全件の一覧を確定してから、その一覧を根拠に自分で書き換える。
+- 関数、method の signature 変更、名前変更、削除では、定義と呼び出し元をコード検索で洗い出す。
+- interface の method 変更では、interface 名、method 名、実装を示す構文をコード検索で洗い出す。
+- 依存の向きの変更と層をまたぐ移動では、import、生成箇所、呼び出し元をコード検索で洗い出す。
+- `.ts` 側の公開関数を変える時は、`.svelte` 側の呼び出しもコード検索の対象に含める。
+- コード検索は同名の別シンボルを含み、名前が直接現れない関係を取りこぼす可能性がある。コンパイラ、型検査、対象層のテストで不足を検出する。
+- コード検索だけを根拠に影響範囲の全件を保証しない。全件を保証できない場合は、確認した範囲と残る可能性を報告する。
 
 ### モジュール内検証
 
@@ -101,7 +94,7 @@ frontend では特に注意が要る。`.svelte` を解釈する language server
 
 ### 注意
 
-- テストは実装と同じ文脈で`fork`が書く。
+- `fresh` は、実装した振る舞いを確かめるテストを書く。
 
 ## 観測ログ追加
 
@@ -125,11 +118,11 @@ frontend では特に注意が要る。`.svelte` を解釈する language server
     - frontend を触ったら `npm run test:frontend`
     - 修正系 task で全体検証が要る場合だけ `npm run test:backend && npm run test:frontend`
 - 通過結果または停止理由を作業結果として返す。判断履歴は `plan.md` に残さない。
-- 失敗時は`fork`が同じ文脈で原因を特定・修正する。承認済み実装方針外の変更が要るなら停止して人間判断へ戻す。
+- 失敗時は `fresh` が原因を特定し、承認済み実装方針の範囲で修正する。承認済み実装方針外の変更が要る場合は停止して人間判断へ戻す。
 
 ## 不変条件
 
-- `fresh` への分割で文脈を分散させない。実装本体の判断と書き換えは`fork`が親の文脈とモデルを継承して行う。
+- 実装、テスト、観測ログ、最終検証は、同じ `fresh` が担当する。
 - 公開境界（DTO、API、Wails Bind、Repository Port、UseCase Port）を勝手に拡張しない。
 - svelte 表示コンポーネント、props、style、story、fixture を本 skill では変更しない。
 - secret、trust boundary、API / DTO / DB / schema の意味拡張が必要になる場合は停止する。
