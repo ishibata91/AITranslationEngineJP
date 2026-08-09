@@ -80,3 +80,21 @@ func (d *Dictionary) Apply(source string) (string, []Term) {
 	})
 	return replaced, used
 }
+
+// Extract はApplyと同じ照合規則で原文に含まれる原語を抽出する。
+// 本文を置換せず、出現順で同じ原語を一意に返す。
+func (d *Dictionary) Extract(source string) []Term {
+	if d.re == nil {
+		return nil
+	}
+	seen := make(map[string]bool)
+	used := make([]Term, 0)
+	for _, match := range d.re.FindAllString(source, -1) {
+		if seen[match] {
+			continue
+		}
+		seen[match] = true
+		used = append(used, Term{Source: match, Dest: d.bySource[match]})
+	}
+	return used
+}

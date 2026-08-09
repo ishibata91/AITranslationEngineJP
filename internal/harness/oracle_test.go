@@ -49,17 +49,21 @@ var goOracles = map[string]func(t *testing.T, p probe){
 		}
 	},
 
-	// 固有名一貫: 同じ固有名（Aventus Aretino）が叙述文と台詞の両方に出て、同一訳で本文へ入る。
+	// 固有名一貫: 同じ固有名（Aventus Aretino）が叙述文と台詞の両方に出て、同一の参考語としてpromptへ入る。
 	"proper-noun-consistent": func(t *testing.T, p probe) {
 		var dest string
 		if err := p.db.Get(&dest, `SELECT dest FROM proper_noun WHERE source='Aventus Aretino'`); err != nil {
 			t.Fatalf("固有名 Aventus Aretino の訳が無い: %v", err)
 		}
-		// 叙述文（WEAP:DESC）と台詞（0x520）の両プロンプトで、原文が同一の確定訳へ置換されている。
+		// 叙述文（WEAP:DESC）と台詞（0x520）の両promptで、本文は英語のまま、同一の確定訳を参考語として持つ。
 		narr := promptContainingUser(t, p, "once held by")
 		line := promptContainingUser(t, p, "Have you seen")
-		if !strings.Contains(narr.User, dest) || !strings.Contains(line.User, dest) {
-			t.Fatalf("固有名の訳が叙述文と台詞で一致しない: dest=%q\n  叙述文=%q\n  台詞=%q", dest, narr.User, line.User)
+		if !strings.Contains(narr.User, "Aventus Aretino") || !strings.Contains(line.User, "Aventus Aretino") {
+			t.Fatalf("本文が英語のまま送られていない: 叙述文=%q 台詞=%q", narr.User, line.User)
+		}
+		wantReference := "Aventus Aretino -> " + dest
+		if !strings.Contains(narr.System, wantReference) || !strings.Contains(line.System, wantReference) {
+			t.Fatalf("固有名の参考語が叙述文と台詞で一致しない: want=%q\n  叙述文=%q\n  台詞=%q", wantReference, narr.System, line.System)
 		}
 	},
 
@@ -134,28 +138,24 @@ var goOracles = map[string]func(t *testing.T, p probe){
 		}
 	},
 
-	// 既存訳の横断供給: 翻訳対象が日本語 Strings を持たない plugin でも、同じ Data フォルダの別 plugin の
-	// 英日対から既存訳と固有名の訳が組まれ、対象 plugin の本文へその訳が当たる。
+	// 既存訳の横断供給: 翻訳対象が日本語Stringsを持たないpluginでも、同じDataフォルダの別pluginの
+	// 英日対はreference_translationへ入り、完全一致本文の既訳再利用に使える。本文機械置換用のmaster_termへは昇格しない。
 	// 合成 fixture の Synthetic.esm は日本語を持たず、既訳はすべて別 plugin 由来（References）で供給する。
 	"reference-supply-cross-plugin": func(t *testing.T, p probe) {
-		// 別 plugin の英日対から横断辞書へ固有名の完全形が入る。
-		var dest string
-		if err := p.db.Get(&dest,
-			`SELECT dest FROM master_term WHERE source='Aventus Aretino'`); err != nil {
-			t.Fatalf("別 plugin 由来の固有名が横断辞書に無い: %v", err)
+		var count int
+		if err := p.db.Get(&count, `SELECT count(*) FROM reference_translation WHERE source='Well met, traveler.' AND dest='ようこそ、旅の方。'`); err != nil {
+			t.Fatalf("別pluginの既訳確認: %v", err)
 		}
-		if dest != "アベンタス・アレティノ" {
-			t.Fatalf("別 plugin 由来の訳語 = %q, want アベンタス・アレティノ", dest)
+		if count != 1 {
+			t.Fatalf("別pluginの既訳がreference_translationへ入っていない: count=%d", count)
 		}
-		// 対象 plugin の本文へ、その訳が機械置換で当たる。
-		narr := promptContainingUser(t, p, "once held by")
-		if !strings.Contains(narr.User, dest) {
-			t.Fatalf("別 plugin 由来の訳が本文へ当たっていない:\n%s", narr.User)
+		if countRows(t, p.db, `SELECT count(*) FROM master_term WHERE source='Aventus Aretino'`) != 0 {
+			t.Fatal("別plugin由来の語が本文置換用master_termへ昇格した")
 		}
 	},
 
-	// 実行内で確定した氏名からの部分形（姓名分割）: 既存訳を持たない mod NPC の氏名は AI 訳で確定する。
-	// その確定訳から名だけ・苗字だけの訳を作り、本文の該当語へ当てる。
+	// 実行内で確定した氏名からの部分形（姓名分割）: 既存訳を持たないmod NPCの氏名はAI訳で確定する。
+	// その確定訳から名だけ・苗字だけの訳を作り、本文promptの参考語へ載せる。
 	"run-name-part-derived": func(t *testing.T, p probe) {
 		var full string
 		if err := p.db.Get(&full, `SELECT dest FROM proper_noun WHERE source='Sorine Trueblade'`); err != nil {
@@ -166,23 +166,26 @@ var goOracles = map[string]func(t *testing.T, p probe){
 			t.Fatalf("氏名の確定訳が中黒区切りでない: %q", full)
 		}
 		pr := promptContainingUser(t, p, "guards the gate")
-		if strings.Contains(pr.User, "Sorine") || !strings.Contains(pr.User, given) {
-			t.Fatalf("名だけの人名が訳語へ置き換わっていない（want %q）:\n%s", given, pr.User)
+		if !strings.Contains(pr.User, "Sorine") || !strings.Contains(pr.User, "Trueblade") {
+			t.Fatalf("本文が英語のまま送られていない: %s", pr.User)
 		}
-		if strings.Contains(pr.User, "Trueblade") || !strings.Contains(pr.User, family) {
-			t.Fatalf("苗字だけの人名が訳語へ置き換わっていない（want %q）:\n%s", family, pr.User)
+		if !strings.Contains(pr.System, "Sorine -> "+given) || !strings.Contains(pr.System, "Trueblade -> "+family) {
+			t.Fatalf("姓名の部分形が参考語へ載っていない: %s", pr.System)
 		}
 	},
 
-	// 実行内で確定した氏名からの部分形（二つ名）: 二つ名を除いた名だけが本文へ出た時も訳語へ置き換わる。
+	// 実行内で確定した氏名からの部分形（二つ名）: 二つ名を除いた名だけが本文へ出た時も参考語として載る。
 	"run-byname-part-derived": func(t *testing.T, p probe) {
 		var full string
 		if err := p.db.Get(&full, `SELECT dest FROM proper_noun WHERE source='Ulfarr the Grim'`); err != nil {
 			t.Fatalf("二つ名を持つ mod NPC の氏名が確定していない: %v", err)
 		}
 		pr := promptContainingUser(t, p, "old shrine")
-		if strings.Contains(pr.User, "Ulfarr") {
-			t.Fatalf("二つ名を除いた名が原文のまま残った（確定訳 %q）:\n%s", full, pr.User)
+		if !strings.Contains(pr.User, "Ulfarr") {
+			t.Fatalf("本文が英語のまま送られていない: %s", pr.User)
+		}
+		if !strings.Contains(pr.System, "Ulfarr ->") {
+			t.Fatalf("二つ名を除いた名が参考語へ載っていない（確定訳 %q）:\n%s", full, pr.System)
 		}
 	},
 

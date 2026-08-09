@@ -39,4 +39,7 @@ type BatchRequest struct {
 	CustomID        string `db:"custom_id"`
 	Kind            string `db:"kind"`
 	RowID           int64  `db:"row_id"`
+	ReferencesJSON  string `db:"references_json"`
+	PromptHash      string `db:"prompt_hash"`
+	SendState       string `db:"send_state"`
 }

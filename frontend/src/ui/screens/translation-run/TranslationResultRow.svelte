@@ -4,6 +4,7 @@
   // 展開で原文/訳文・置換した固有名・実プロンプト（送信全文）を見せる。口調指示は実プロンプトの system で確かめる。
   // details/summary の開閉は利用者操作で、state は持たない。defaultOpen は story 表示用。
   import StatusBadge from "@ui/components/StatusBadge.svelte"
+  import { SvelteMap } from "svelte/reactivity"
   import {
     DECISION_PATH_HINT,
     DECISION_PATH_LABEL,
@@ -20,7 +21,16 @@
   let { row, defaultOpen = false }: Props = $props()
 
   let hasPersona = $derived(!!row.directive)
-  let termCount = $derived(row.terms?.length ?? 0)
+  let referenceGroups = $derived.by(() => {
+    const groups = new SvelteMap<string, NonNullable<typeof row.terms>>()
+    for (const term of row.terms ?? []) {
+      const terms = groups.get(term.source) ?? []
+      terms.push(term)
+      groups.set(term.source, terms)
+    }
+    return [...groups.entries()].map(([source, terms]) => ({ source, terms }))
+  })
+  let referenceSourceCount = $derived(referenceGroups.length)
   let hasPrompt = $derived(!!row.prompt)
   // 話者の属性キャプション（性別 ・ 年齢 ・ 声質）。空の属性は区切りごと省く。
   let speakerAttrs = $derived(
@@ -74,12 +84,12 @@
     {:else}
       <span class="u-mono text-[0.65rem] text-base-content/30 shrink-0">口調なし</span>
     {/if}
-    {#if termCount > 0}
+    {#if referenceSourceCount > 0}
       <span
         class="badge badge-sm badge-outline border-secondary/40 text-secondary/80 shrink-0 u-mono"
-        title="本文で辞書から確定訳語へ置換した固有名の件数"
+        title="本文翻訳の指示へ載せた参考語の原語数"
       >
-        固有名 {termCount}
+        参考語 {referenceSourceCount}
       </span>
     {/if}
     <span class="min-w-0 flex-1 truncate text-sm text-base-content/65">
@@ -151,17 +161,33 @@
         </p>
       </div>
     {/if}
-    {#if termCount > 0}
+    {#if referenceSourceCount > 0}
       <div class="mt-4 rounded-box border border-secondary/25 bg-secondary/5 p-3">
         <span class="u-mono text-[0.65rem] uppercase tracking-widest text-secondary/70">
-          置換した固有名
+          本文の参考語
         </span>
-        <ul class="mt-2 flex flex-col gap-1">
-          {#each row.terms ?? [] as term (term.source)}
-            <li class="text-sm text-base-content/80">
-              <span class="u-mono text-xs text-base-content/85">{term.source}</span>
-              <span class="text-base-content/30">→</span>
-              <span class="text-base-content">{term.dest}</span>
+        <p class="mt-1 text-xs leading-relaxed text-base-content/55">
+          翻訳時に本文を置換せず、原語ごとの候補を翻訳指示へ載せた記録です。
+        </p>
+        <ul class="mt-3 flex flex-col gap-3">
+          {#each referenceGroups as group (group.source)}
+            <li class="rounded-box bg-base-100/40 p-2.5">
+              <span class="u-mono text-xs font-semibold text-base-content/85">{group.source}</span>
+              <ul class="mt-2 flex flex-col gap-2">
+                {#each group.terms as term (`${term.dest}-${term.partOfSpeech}-${term.skyrimCategory}-${term.origin}`)}
+                  <li class="border-l-2 border-secondary/30 pl-2 text-sm text-base-content/80">
+                    <span class="font-medium text-base-content">{term.dest}</span>
+                    <span class="ml-2 u-mono text-[0.65rem] text-base-content/45">{term.origin}</span>
+                    {#if term.partOfSpeech || term.skyrimCategory}
+                      <p class="mt-0.5 text-xs leading-relaxed text-base-content/60">
+                        {[term.partOfSpeech, term.skyrimCategory]
+                          .filter(Boolean)
+                          .join(" ・ ")}
+                      </p>
+                    {/if}
+                  </li>
+                {/each}
+              </ul>
             </li>
           {/each}
         </ul>

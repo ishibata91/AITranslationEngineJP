@@ -90,7 +90,7 @@ flowchart TB
 - `api`: Wails Bind の公開面。辞書・ルール・設定の CRUD を `store` へ素通しし、翻訳ジョブを `engine` の goroutine として起動し、進捗を runtime events で push する。
 - `engine`: 翻訳手続きの本体（orchestration）。中心データを読み、取込段で抽出生テーブルを種別ごとに箱別テーブル（叙述文・固有名・定型句・台詞）へ振り分け（重複排除を含む）、辞書解決・ペルソナ生成のうえ、固有名を本文より先に訳す固有名フェーズ→叙述文・定型句・台詞の本文フェーズの順に AI 翻訳し、配置へ書き戻し、xTranslator XML を出力する純 Go の手続き。GUI から切り離して単体テストでき、CLI からも起動できる。翻訳プロンプトの組み立て・固有名派生・役割語照合などの純粋不変ルールは `core` が持ち、`engine` は store・provider・os の IO を伴ってそれらを束ねる。完成プロンプトを `provider` へ渡す。
 - `core`: 副作用のない決定的な計算ロジック（functional core）の集積。`internal/core/<name>` に純粋不変ルールを 1 つずつ別 package で持つ（辞書置換 `dictionary`、プロンプト組立 `prompt`、固有名派生 `termderive`・用法集計 `termusage`、役割語 `rolespeech`、行特徴抽出 `linefeatures`、口調指示組立 `personatone`、基底口調分類 `tone`、batch 管理の決定規則 `batchplan`）。os・provider・store・engine を import せず、`engine`・`api` 等が一方向に import する。不変ルールはユニットテスト 100% カバレッジを基準にする。
-- `store`: SQLite への薄いデータアクセス。sqlx を使い、entity ごとの repository interface は作らず関数で持つ。プロンプトテンプレート（base 指示・口調指示の雛形）の CRUD を含む。残存の keyring secret store を secret 子に置く。
+- `store`: 中心SQLiteへの薄いデータアクセスと、`db/dictionary.sqlite3` の事前作成済み翻訳辞書readerを持つ。翻訳辞書readerは読み取り専用で開き、本文翻訳の参考語を返す。sqlx を使い、entity ごとの repository interface は作らず関数で持つ。プロンプトテンプレート（base 指示・口調指示の雛形）の CRUD を含む。残存の keyring secret store を secret 子に置く。
 - `provider`: AI クライアントの port と実装。多態 port を 2 つ持つ。同期の `Translator`（完成プロンプトを 1 件ずつ送り即時に訳文を受ける。OpenAI 互換・LM Studio 実装）と、非同期の `BatchTranslator`（大量リクエストを batch で送り、後から状態確認と結果取得を行う。xAI・OpenAI batch 実装）。どちらも `engine` が組んだ完成プロンプトを受け取って送るだけで、プロンプトの文面構築はしない。
 - `model`: [`concept-model.md`](./concept-model.md) の箱に対応するデータ構造。`engine` と `store` が参照する。
 - `bootstrap`: composition root。`store` と `provider` を生成し、`engine` と `api` へ注入する唯一の場所。
@@ -175,4 +175,3 @@ flowchart TB
 
 - `tools/extractor/`: C#/.NET Mutagen 抽出（SQLite writer を追加）
 - `tools/extractor.Tests/`: 抽出検証（`ModelInvariantTests` / `ExtractedFieldSqliteWriterTests` / `OracleExtractionTests` ほか）
-

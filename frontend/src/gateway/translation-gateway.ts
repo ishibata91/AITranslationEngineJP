@@ -36,6 +36,9 @@ export type BatchProvider = "openai" | "xai"
 export interface TermRow {
   source: string
   dest: string
+  partOfSpeech: string
+  skyrimCategory: string
+  origin: string
 }
 
 // 結果行の口調メタデータ。判定された基底口調（cell・trait）と根拠（段階・印・経路・性別）。口調が付いた台詞だけ持つ。
@@ -291,7 +294,13 @@ function toResultRow(view: api.ResultView): ResultRow {
     directive: view.directive,
     personaLabel: view.personaLabel,
     persona: view.persona ? toPersonaRow(view.persona) : undefined,
-    terms: view.terms?.map((t) => ({ source: t.source, dest: t.dest })),
+    terms: view.terms?.map((t) => ({
+      source: t.source,
+      dest: t.dest,
+      partOfSpeech: t.partOfSpeech,
+      skyrimCategory: t.skyrimCategory,
+      origin: t.origin
+    })),
     prompt: view.prompt
   }
 }

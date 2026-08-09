@@ -6,4 +6,4 @@ script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repository_dir=$(dirname -- "$script_dir")
 
 cd "$repository_dir"
-exec "$repository_dir/scripts/go/run.sh" run ./dictionary mcp --db "$script_dir/dictionary.sqlite3"
+exec "$repository_dir/scripts/go/run.sh" run ./dictionary mcp --db "$repository_dir/db/dictionary.sqlite3"

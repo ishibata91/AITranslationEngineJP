@@ -90,6 +90,24 @@ func TestComposeWithFilledDirective(t *testing.T) {
 	}
 }
 
+// ComposeBodyPrompt は本文を英語のまま user へ置き、辞書候補の表示に meaning を混ぜない。
+func TestComposeBodyPromptKeepsSourceAndOmitsMeaning(t *testing.T) {
+	p := ComposeBodyPrompt("base", "directive", "The Riften guard waited.", []BodyReference{{
+		Source: "Riften", Dest: "リフテン", PartOfSpeech: "noun", SkyrimCategory: "city", Origin: "事前作成済み翻訳辞書",
+	}})
+	if p.User != "The Riften guard waited." {
+		t.Fatalf("本文が変わった: %q", p.User)
+	}
+	for _, want := range []string{"Riften -> リフテン", "品詞: noun", "Skyrimカテゴリ: city", "出どころ: 事前作成済み翻訳辞書"} {
+		if !strings.Contains(p.System, want) {
+			t.Errorf("system に %q が無い: %q", want, p.System)
+		}
+	}
+	if strings.Contains(p.System, "城塞を守る都市") {
+		t.Errorf("meaning が system に出た: %q", p.System)
+	}
+}
+
 // RenderPrompt は完成プロンプトを役割見出し付きの 1 文字列へ描き、system と user の両方を全文含めること。
 func TestRenderPrompt(t *testing.T) {
 	got := RenderPrompt(ComposePrompt("base 指示", "口調指示", "原文"))

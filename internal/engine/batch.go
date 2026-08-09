@@ -2,18 +2,26 @@ package engine
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
 
 	"aitranslationenginejp/internal/core/batchplan"
-	"aitranslationenginejp/internal/core/dictionary"
 	"aitranslationenginejp/internal/core/prompt"
 	"aitranslationenginejp/internal/core/runtimetag"
 	"aitranslationenginejp/internal/model"
 	"aitranslationenginejp/internal/provider"
 )
+
+func marshalReferences(references []model.TranslationReference) string {
+	encoded, err := json.Marshal(references)
+	if err != nil {
+		panic(fmt.Sprintf("本文参考語のJSON化: %v", err))
+	}
+	return string(encoded)
+}
 
 // errNoBatchProvider は batch provider が未配線のときに送信・反映が返すエラー。
 var errNoBatchProvider = errors.New("batch provider が未配線")
@@ -31,8 +39,10 @@ type BatchStore interface {
 	InsertBatchRequests(ctx context.Context, rows []model.BatchRequest) (int, error)
 	ListBatchRequests(ctx context.Context, externalBatchID string) ([]model.BatchRequest, error)
 	ListBatchRequestsByStage(ctx context.Context, batchID int64, stage string) ([]model.BatchRequest, error)
+	UpdateBatchRequestSendState(ctx context.Context, batchID int64, customIDs []string, state, externalID string) error
 	IsSyncRetryReady(ctx context.Context, plugin string) (bool, error)
 	MarkSyncRetryReady(ctx context.Context, plugin string) error
+	UpsertTranslationReferenceSnapshot(ctx context.Context, row model.TranslationReferenceSnapshot) error
 }
 
 const maxBatchRequestCount = 1000
@@ -100,9 +110,17 @@ func (r *BatchRunner) SubmitBatch(ctx context.Context, providerName string, conn
 	if err := r.ensureNoActiveProgression(ctx, plugin); err != nil {
 		return BatchSubmitOutcome{}, err
 	}
+	if err := r.e.ValidatePrebuiltDictionary(ctx); err != nil {
+		return BatchSubmitOutcome{}, err
+	}
 	reusePrepared, err := r.store.IsSyncRetryReady(ctx, plugin)
 	if err != nil {
 		return BatchSubmitOutcome{}, fmt.Errorf("同期再実行準備状態の取得: %w", err)
+	}
+	if prog, ok, err := r.store.GetBatchProgression(ctx, plugin); err != nil {
+		return BatchSubmitOutcome{}, fmt.Errorf("batch進行の取得: %w", err)
+	} else if ok && prog.Stage != model.BatchStageDone {
+		return r.resumeUnsentStage(ctx, batch, conn, modelName, plugin, prog, reusePrepared)
 	}
 	batchID, err := r.store.StartBatchProgression(ctx, plugin, providerName, modelName)
 	if err != nil {
@@ -122,6 +140,28 @@ func (r *BatchRunner) SubmitBatch(ctx context.Context, providerName string, conn
 	return BatchSubmitOutcome{}, nil
 }
 
+// resumeUnsentStage は外部送信前に残った仮状態または送信失敗状態を同じ進行で再送する。
+func (r *BatchRunner) resumeUnsentStage(ctx context.Context, batch provider.BatchTranslator, conn provider.Connection, modelName, plugin string, prog model.BatchTranslation, reusePrepared bool) (BatchSubmitOutcome, error) {
+	switch prog.Stage {
+	case model.BatchStageProperNoun:
+		planned, err := r.planProperRequests(ctx, plugin)
+		if err != nil {
+			return BatchSubmitOutcome{}, err
+		}
+		if len(planned) != 0 {
+			if _, err := r.sendStage(ctx, batch, conn, modelName, prog.ID, model.BatchStageProperNoun, planned); err != nil {
+				return BatchSubmitOutcome{}, err
+			}
+			return BatchSubmitOutcome{}, nil
+		}
+		return r.submitBodyBatch(ctx, batch, conn, modelName, plugin, prog.ID, reusePrepared)
+	case model.BatchStageBody:
+		return r.submitBodyBatch(ctx, batch, conn, modelName, plugin, prog.ID, reusePrepared)
+	default:
+		return BatchSubmitOutcome{}, fmt.Errorf("再送できないbatch進行段: %s", prog.Stage)
+	}
+}
+
 // ensureNoActiveProgression は外部へ送信済みで待機中の batch がある plugin への再送信を拒否する。
 // 拒否は「現段の外部 batch ID が非空」の進行に限る（反映で回収・前進できるため）。
 // 現段の外部 ID が空の半端な進行（送信 HTTP 失敗などで途中で終わった進行）は、再送信で reset して作り直せるよう拒否しない。
@@ -136,15 +176,12 @@ func (r *BatchRunner) ensureNoActiveProgression(ctx context.Context, plugin stri
 	return nil
 }
 
-// planProperRequests は未訳固有名を供給源で選別する。既訳ありは即確定し、既訳なしを送信計画へ積んで返す。
+// planProperRequests は未訳固有名を送信計画へ積んで返す。
+// 本文参考語に使う固有名と同じく、中心DBのmaster_termを権威訳として使わない。
 func (r *BatchRunner) planProperRequests(ctx context.Context, plugin string) ([]batchplan.PlannedRequest, error) {
 	propers, err := r.e.store.ListUntranslatedProperNouns(ctx, plugin)
 	if err != nil {
 		return nil, fmt.Errorf("未訳固有名の取得: %w", err)
-	}
-	authoritative, err := r.e.authoritativeTerms(ctx)
-	if err != nil {
-		return nil, err
 	}
 	tmpl, err := r.e.store.GetPromptTemplate(ctx)
 	if err != nil {
@@ -158,14 +195,6 @@ func (r *BatchRunner) planProperRequests(ctx context.Context, plugin string) ([]
 
 	var planned []batchplan.PlannedRequest
 	for _, pn := range propers {
-		sup := SelectSupply(pn.Source, authoritative)
-		if sup.Kind == SupplyAuthoritative {
-			// 既訳流用。AI を呼ばず権威訳を proper_noun へ確定として書く（同期と同じ）。
-			if err := r.e.store.UpdateProperNounDest(ctx, pn.ID, sup.Dest, statusTranslated); err != nil {
-				return nil, fmt.Errorf("固有名（既訳流用）の書き戻し: %w", err)
-			}
-			continue
-		}
 		planned = append(planned, batchplan.PlannedRequest{
 			Kind:   model.BatchKindProper,
 			RowID:  pn.ID,
@@ -175,7 +204,7 @@ func (r *BatchRunner) planProperRequests(ctx context.Context, plugin string) ([]
 	return planned, nil
 }
 
-// submitBodyBatch は確定した固有名で本文の機械置換辞書を組み、未訳の叙述文・台詞を本文 batch として送る。
+// submitBodyBatch は確定した固有名を参考語へ加え、未訳の叙述文・台詞を本文 batch として送る。
 // 既存訳と完全一致する本文は AI を呼ばず即確定し、batch へ載せない（同期の本文フェーズと同じ）。
 // 本文の未訳が無い場合は本文 batch を挟まず進行を完了にする。送信後は進行段を本文へ進める。
 func (r *BatchRunner) submitBodyBatch(ctx context.Context, batch provider.BatchTranslator, conn provider.Connection, modelName, plugin string, batchID int64, reusePrepared bool) (BatchSubmitOutcome, error) {
@@ -195,24 +224,24 @@ func (r *BatchRunner) submitBodyBatch(ctx context.Context, batch provider.BatchT
 		}
 		return BatchSubmitOutcome{CompletedWithoutExternalBatch: true}, nil
 	}
-	if _, err := r.sendStage(ctx, batch, conn, modelName, batchID, model.BatchStageBody, planned); err != nil {
-		return BatchSubmitOutcome{}, err
-	}
+	// 本文送信が失敗しても、再送対象を本文段として残す。
 	if err := r.store.AdvanceBatchStage(ctx, batchID, model.BatchStageBody); err != nil {
 		return BatchSubmitOutcome{}, fmt.Errorf("進行段の更新（本文）: %w", err)
+	}
+	if _, err := r.sendStage(ctx, batch, conn, modelName, batchID, model.BatchStageBody, planned); err != nil {
+		return BatchSubmitOutcome{}, err
 	}
 	return BatchSubmitOutcome{}, nil
 }
 
 // planBodyRequests は確定固有名で辞書を組み、未訳の叙述文・台詞を送信計画へ積んで返す。既存訳一致は即確定し載せない。
 func (r *BatchRunner) planBodyRequests(ctx context.Context, plugin string, reusePrepared bool) ([]batchplan.PlannedRequest, error) {
-	// 確定した NPC 名から人名の部分形を派生し、対象 plugin の proper_noun へ足す（同期 Run と同じ位置＝辞書を組む前）。
-	// 固有名 batch を反映した後に本文を組むこの経路でも、部分形が機械置換辞書へ載るようにする。
+	// 確定したNPC名から人名の部分形を派生し、対象pluginのproper_nounへ足す。
+	// 固有名batchを反映した後の本文送信でも、部分形を本文参考語として使う。
 	if _, err := r.e.deriveRunProperNouns(ctx, plugin); err != nil {
 		return nil, err
 	}
-	// 確定した固有名で本文の機械置換辞書を組む（master_term ∪ proper_noun）。固有名反映後に呼ぶ。
-	dict, err := r.e.LoadDictionary(ctx)
+	references, err := r.e.bodyReferences(ctx, plugin)
 	if err != nil {
 		return nil, err
 	}
@@ -251,11 +280,11 @@ func (r *BatchRunner) planBodyRequests(ctx context.Context, plugin string, reuse
 		return nil, err
 	}
 
-	nPlanned, err := r.planNarrations(ctx, narrations, refIndex, dict, tmpl.BaseDirective, instructionByKey, keyByRF)
+	nPlanned, err := r.planNarrations(ctx, narrations, refIndex, references, tmpl.BaseDirective, instructionByKey, keyByRF)
 	if err != nil {
 		return nil, err
 	}
-	lPlanned, err := r.planLines(ctx, lines, refIndex, dict, tmpl.BaseDirective, personas)
+	lPlanned, err := r.planLines(ctx, lines, refIndex, references, tmpl.BaseDirective, personas)
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +293,7 @@ func (r *BatchRunner) planBodyRequests(ctx context.Context, plugin string, reuse
 
 // planNarrations は未訳叙述文を送信計画へ積む。既存訳一致は AI を呼ばず即確定し、載せない（同期と同じ）。
 func (r *BatchRunner) planNarrations(ctx context.Context, narrations []model.Narration, refIndex map[referenceKey]string,
-	dict *dictionary.Dictionary, base string, instructionByKey map[string]string, keyByRF map[RecordKey]string) ([]batchplan.PlannedRequest, error) {
+	references []model.TranslationReference, base string, instructionByKey map[string]string, keyByRF map[RecordKey]string) ([]batchplan.PlannedRequest, error) {
 	var planned []batchplan.PlannedRequest
 	for _, n := range narrations {
 		if dest, ok := refIndex[referenceKey{Rec: n.Rec, Field: n.Field, Source: n.Source}]; ok {
@@ -274,15 +303,16 @@ func (r *BatchRunner) planNarrations(ctx context.Context, narrations []model.Nar
 			continue
 		}
 		instruction := instructionByKey[keyByRF[RecordKey{Rec: n.Rec, Field: n.Field}]]
-		p, _ := r.e.composeBodyPrompt(base, instruction, n.Source, dict)
-		planned = append(planned, batchplan.PlannedRequest{Kind: model.BatchKindNarration, RowID: n.ID, Prompt: p})
+		p, _, used := r.e.composeBodyPrompt(base, instruction, n.Source, references)
+		snapshot := snapshotFor("", model.BatchKindNarration, n.ID, used, p)
+		planned = append(planned, batchplan.PlannedRequest{Kind: model.BatchKindNarration, RowID: n.ID, Prompt: p, ReferencesJSON: marshalReferences(used), PromptHash: snapshot.PromptHash})
 	}
 	return planned, nil
 }
 
 // planLines は未訳台詞を送信計画へ積む。既存訳一致は AI を呼ばず即確定し、載せない（同期と同じ）。
 func (r *BatchRunner) planLines(ctx context.Context, lines []model.Line, refIndex map[referenceKey]string,
-	dict *dictionary.Dictionary, base string, personas map[int64]Persona) ([]batchplan.PlannedRequest, error) {
+	references []model.TranslationReference, base string, personas map[int64]Persona) ([]batchplan.PlannedRequest, error) {
 	var planned []batchplan.PlannedRequest
 	for _, l := range lines {
 		if dest, ok := refIndex[referenceKey{Rec: l.Rec, Field: l.Field, Source: l.Source}]; ok {
@@ -291,8 +321,9 @@ func (r *BatchRunner) planLines(ctx context.Context, lines []model.Line, refInde
 			}
 			continue
 		}
-		p, _ := r.e.composeBodyPrompt(base, personas[l.ID].Directive, l.Source, dict)
-		planned = append(planned, batchplan.PlannedRequest{Kind: model.BatchKindLine, RowID: l.ID, Prompt: p})
+		p, _, used := r.e.composeBodyPrompt(base, personas[l.ID].Directive, l.Source, references)
+		snapshot := snapshotFor("", model.BatchKindLine, l.ID, used, p)
+		planned = append(planned, batchplan.PlannedRequest{Kind: model.BatchKindLine, RowID: l.ID, Prompt: p, ReferencesJSON: marshalReferences(used), PromptHash: snapshot.PromptHash})
 	}
 	return planned, nil
 }
@@ -307,14 +338,22 @@ func (r *BatchRunner) sendStage(ctx context.Context, batch provider.BatchTransla
 	if len(next) == 0 {
 		return false, nil
 	}
+	if err := r.persistRequests(ctx, batchID, next); err != nil {
+		return false, err
+	}
+	customIDs := make([]string, len(next))
+	for i, request := range next {
+		customIDs[i] = batchplan.EncodeCustomID(request.Kind, request.RowID)
+	}
 	externalID, err := batch.SubmitBatch(ctx, conn, modelName, batchplan.BuildBatchRequests(next))
 	if err != nil {
+		_ = r.store.UpdateBatchRequestSendState(ctx, batchID, customIDs, "failed", "")
 		return false, fmt.Errorf("%s batch の送信: %w", stage, err)
 	}
 	if err := r.store.RecordBatchExternalID(ctx, batchID, stage, externalID); err != nil {
 		return false, fmt.Errorf("外部 batch ID の記録: %w", err)
 	}
-	if err := r.persistRequests(ctx, batchID, externalID, next); err != nil {
+	if err := r.store.UpdateBatchRequestSendState(ctx, batchID, customIDs, "submitted", externalID); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -327,13 +366,24 @@ func (r *BatchRunner) nextStageRequests(ctx context.Context, batchID int64, stag
 		return nil, fmt.Errorf("送信済み batch 要求の取得: %w", err)
 	}
 	sentIDs := make(map[string]struct{}, len(sent))
+	storedByID := make(map[string]model.BatchRequest, len(sent))
 	for _, row := range sent {
+		storedByID[row.CustomID] = row
+		if row.SendState != "submitted" {
+			continue
+		}
 		sentIDs[row.CustomID] = struct{}{}
 	}
 	next := make([]batchplan.PlannedRequest, 0, min(len(planned), maxBatchRequestCount))
 	for _, request := range planned {
-		if _, ok := sentIDs[batchplan.EncodeCustomID(request.Kind, request.RowID)]; ok {
+		customID := batchplan.EncodeCustomID(request.Kind, request.RowID)
+		if _, ok := sentIDs[customID]; ok {
 			continue
+		}
+		// 仮状態・失敗状態を再送する際は、初回保存時の本文参考語とprompt hashが同じであることを確かめる。
+		// 再計算結果が変わった状態で同じcustom_idを送ると、結果画面が送信時の候補を証明できなくなる。
+		if previous, ok := storedByID[customID]; ok && (previous.ReferencesJSON != request.ReferencesJSON || previous.PromptHash != request.PromptHash) {
+			return nil, fmt.Errorf("再送するbatch参考語が初回保存時と一致しない: custom_id=%s", customID)
 		}
 		next = append(next, request)
 		if len(next) == maxBatchRequestCount {
@@ -471,6 +521,14 @@ func (r *BatchRunner) applyResults(ctx context.Context, batch provider.BatchTran
 	if err != nil {
 		return err
 	}
+	requests, err := r.store.ListBatchRequests(ctx, externalID)
+	if err != nil {
+		return fmt.Errorf("batch requestの取得: %w", err)
+	}
+	requestByID := make(map[string]model.BatchRequest, len(requests))
+	for _, request := range requests {
+		requestByID[request.CustomID] = request
+	}
 
 	var skipped, bad int
 	for _, res := range results {
@@ -485,6 +543,20 @@ func (r *BatchRunner) applyResults(ctx context.Context, batch provider.BatchTran
 		}
 		if !applied {
 			skipped++
+			continue
+		}
+		request, ok := requestByID[res.CustomID]
+		if !ok || (kind != model.BatchKindNarration && kind != model.BatchKindLine) {
+			continue
+		}
+		var references []model.TranslationReference
+		if err := json.Unmarshal([]byte(request.ReferencesJSON), &references); err != nil {
+			return fmt.Errorf("batch参考語snapshotのJSON解析: %w", err)
+		}
+		if err := r.store.UpsertTranslationReferenceSnapshot(ctx, model.TranslationReferenceSnapshot{
+			Plugin: plugin, Kind: kind, RowID: id, References: references, PromptHash: request.PromptHash,
+		}); err != nil {
+			return fmt.Errorf("batch参考語snapshotの保存: %w", err)
 		}
 	}
 	logBatchApply(ctx, externalID, len(results), skipped, bad)
@@ -578,15 +650,18 @@ func (r *BatchRunner) applyOne(res provider.BatchResult, source string, update f
 }
 
 // persistRequests は送信した計画を送信行対応（custom_id ↔ 行）として永続する。反映時の照合に使う。
-func (r *BatchRunner) persistRequests(ctx context.Context, batchID int64, externalID string, planned []batchplan.PlannedRequest) error {
+func (r *BatchRunner) persistRequests(ctx context.Context, batchID int64, planned []batchplan.PlannedRequest) error {
 	rows := make([]model.BatchRequest, len(planned))
 	for i, p := range planned {
 		rows[i] = model.BatchRequest{
 			BatchID:         batchID,
-			ExternalBatchID: externalID,
+			ExternalBatchID: "",
 			CustomID:        batchplan.EncodeCustomID(p.Kind, p.RowID),
 			Kind:            p.Kind,
 			RowID:           p.RowID,
+			ReferencesJSON:  p.ReferencesJSON,
+			PromptHash:      p.PromptHash,
+			SendState:       "pending",
 		}
 	}
 	if _, err := r.store.InsertBatchRequests(ctx, rows); err != nil {

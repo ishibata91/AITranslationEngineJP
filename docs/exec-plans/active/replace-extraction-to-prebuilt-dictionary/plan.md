@@ -18,6 +18,7 @@
 - 追加の人間指示: dictionary viewerを退役し、MCPだけを `db/dictionary.sqlite3` へ移植する。
 - 追加の人間指示: `dictionary/` にはMCPの実行に必要なファイルだけを残し、事前作成済み翻訳辞書SQLiteは `db/dictionary.sqlite3` だけを残す。
 - 追加の人間指示: modの固有名を先に翻訳し、本文翻訳の参考語へ事前作成済み翻訳辞書DBの候補と翻訳済みの固有名を載せる。
+- 追加の人間指示: `dictionary_sense.meaning` は本文翻訳のpromptと翻訳結果UIの参考語から除外する。
 
 追加の人間指示により、R-1の翻訳前機械置換は本文を変更せず参考語を翻訳指示へ渡す動作へ置き換える。
 

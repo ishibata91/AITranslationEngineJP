@@ -18,7 +18,8 @@ import (
 
 // dev 既定のパス。wails dev は repo root を作業ディレクトリにするため相対パスで足りる。
 const (
-	devDBPath = "db/aitranslation.dev.sqlite3"
+	devDBPath              = "db/aitranslation.dev.sqlite3"
+	prebuiltDictionaryPath = "db/dictionary.sqlite3"
 	// extractorDLL は起動前に publish 済みの抽出子 DLL。dev 起動 script（scripts/dev/run-wails.sh）が
 	// wails dev 起動の前に dotnet publish で生成する。抽出のたびに dotnet run で MSBuild を評価しない。
 	extractorDLL  = "tools/extractor/bin/publish/extractor.dll"
@@ -37,11 +38,31 @@ const (
 )
 
 // NewApp は中心 DB を開き、全層を配線して api.App を返す。Close 用に store も返す。
-func NewApp() (*api.App, *store.Store, error) {
+type AppCloser struct {
+	store    *store.Store
+	prebuilt *store.PrebuiltDictionary
+}
+
+func (c *AppCloser) Close() error {
+	if err := c.prebuilt.Close(); err != nil {
+		_ = c.store.Close()
+		return err
+	}
+	return c.store.Close()
+}
+
+// NewApp は中心DBと事前作成済み辞書readerを開き、全層を配線してapi.Appを返す。
+func NewApp() (*api.App, *AppCloser, error) {
 	s, err := store.Open(devDBPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("中心 DB を開けない: %w", err)
 	}
+	prebuilt, err := store.OpenPrebuiltDictionary(prebuiltDictionaryPath)
+	if err != nil {
+		_ = s.Close()
+		return nil, nil, err
+	}
+	closer := &AppCloser{store: s, prebuilt: prebuilt}
 
 	// 翻訳は本文が長く時間がかかるため、HTTP の per-request timeout を長めに取る。
 	client := &http.Client{Timeout: 10 * time.Minute}
@@ -50,7 +71,7 @@ func NewApp() (*api.App, *store.Store, error) {
 	// 口調生成の感情辞書を読む。差し替え可能な境界（engine.EmotionLexicon）の concrete 実装。
 	lex, err := lexicon.LoadVADER(vaderDictPath)
 	if err != nil {
-		_ = s.Close()
+		_ = closer.Close()
 		return nil, nil, fmt.Errorf("感情辞書の読み込み: %w", err)
 	}
 
@@ -58,20 +79,20 @@ func NewApp() (*api.App, *store.Store, error) {
 	// asset のファイル open は composition root の責務。純粋な解析は core/rolespeech が行う。
 	rolesFile, err := os.Open(roleSpeechPath)
 	if err != nil {
-		_ = s.Close()
+		_ = closer.Close()
 		return nil, nil, fmt.Errorf("役割語テンプレートを開けない (%s): %w", roleSpeechPath, err)
 	}
 	defer rolesFile.Close() //nolint:errcheck // 読み取り後の後始末。
 	roles, err := rolespeech.ParseRoleSpeech(rolesFile)
 	if err != nil {
-		_ = s.Close()
+		_ = closer.Close()
 		return nil, nil, fmt.Errorf("役割語テンプレートの読み込み: %w", err)
 	}
 
 	// 6列の口調例文を読み、役割語とは独立した4キーの行集合として同じ Table へ束ねる。
 	exampleFile, err := os.Open(roleSpeechExamplePath)
 	if err != nil {
-		_ = s.Close()
+		_ = closer.Close()
 		return nil, nil, fmt.Errorf("口調例文テンプレートを開けない (%s): %w", roleSpeechExamplePath, err)
 	}
 	defer exampleFile.Close() //nolint:errcheck // 読み取り後の後始末。
@@ -94,7 +115,7 @@ func NewApp() (*api.App, *store.Store, error) {
 		return nil, nil, fmt.Errorf("一般語 stoplist の読み込み: %w", err)
 	}
 
-	eng := engine.New(s, p, lex, roles, stop)
+	eng := engine.New(s, p, lex, roles, stop, prebuilt)
 	// OpenAI と xAI の batch クライアントを提供元に対応付け、送信・反映のオーケストレーションへ配線する。
 	// batch は同じ長め timeout の HTTP client を使う（file upload・結果取得も時間がかかりうる）。
 	openAIBatch := provider.NewOpenAIBatch(client)
@@ -111,5 +132,5 @@ func NewApp() (*api.App, *store.Store, error) {
 	// 抽出子は本番の dotnet 子プロセス起動。composition root が concrete を生成して注入する唯一の場所。
 	// 抽出に要するパスは DotnetExtractor が保持する。
 	app := api.New(s, eng, batchRunner, p, api.NewDotnetExtractor(ext))
-	return app, s, nil
+	return app, closer, nil
 }

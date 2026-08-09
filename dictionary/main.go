@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-const defaultDictionaryPath = "dictionary/dictionary.sqlite3"
+const defaultDictionaryPath = "db/dictionary.sqlite3"
 const defaultWordNetPath = "dictionary/reference/wnjpn.db"
 
 func main() {

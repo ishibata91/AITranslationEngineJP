@@ -3,6 +3,8 @@ package api
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -12,9 +14,7 @@ import (
 	"strconv"
 	"strings"
 
-	"aitranslationenginejp/internal/core/dictionary"
 	"aitranslationenginejp/internal/core/prompt"
-	"aitranslationenginejp/internal/core/runtimetag"
 	"aitranslationenginejp/internal/engine"
 	"aitranslationenginejp/internal/model"
 	"aitranslationenginejp/internal/provider"
@@ -49,6 +49,7 @@ type Store interface {
 	CountUntranslated(ctx context.Context, plugin string) (int, error)
 	IsSyncRetryReady(ctx context.Context, plugin string) (bool, error)
 	MarkSyncRetryReady(ctx context.Context, plugin string) error
+	GetTranslationReferenceSnapshot(ctx context.Context, plugin, kind string, rowID int64) (model.TranslationReferenceSnapshot, bool, error)
 }
 
 // ExtractorConfig は抽出子プロセス（C#）の起動設定。dotnet 起動に要するパスだけを持つ。
@@ -204,8 +205,11 @@ type BatchSubmitResult struct {
 // TermView は結果行の機械置換内訳 1 件（原語 → 確定訳語）。
 // 結果取得時に各行の原文へ辞書を当て直して再構成する（保存はしない）。
 type TermView struct {
-	Source string `json:"source"`
-	Dest   string `json:"dest"`
+	Source         string `json:"source"`
+	Dest           string `json:"dest"`
+	PartOfSpeech   string `json:"partOfSpeech"`
+	SkyrimCategory string `json:"skyrimCategory"`
+	Origin         string `json:"origin"`
 }
 
 // PersonaView は結果行の口調メタデータ。口調が付いた台詞の判定結果と根拠。
@@ -255,6 +259,7 @@ type ResultView struct {
 	Persona      *PersonaView    `json:"persona,omitempty"`
 	Terms        []TermView      `json:"terms,omitempty"`
 	Prompt       string          `json:"prompt,omitempty"`
+	PromptHash   string          `json:"promptHash,omitempty"`
 }
 
 // RunResult は実行結果の要約。結果一覧は数万件になりうるためここでは返さず、
@@ -559,25 +564,16 @@ func (a *App) prepareForTranslation(ctx context.Context, pluginPath string) erro
 		return fmt.Errorf("抽出に失敗: %w", err)
 	}
 
-	// 抽出後、既訳の英日対から固有名の確定訳語（FULL 完全形）を書き、続けて人名の部分形
-	// （名のみ・短名）を派生して master_term へ追記する。DB を作り直しても単独名（例 Aventus→アベンタス）が
-	// 機械置換へ載るようにする。冪等。
-	a.emitProgress(ProgressEvent{Stage: "extract", Step: "derive"})
-	derivedCount, err := a.engine.DeriveMasterTerms(ctx)
-	if err != nil {
-		return fmt.Errorf("固有名の派生に失敗: %w", err)
-	}
 	referenceCount, err := a.engine.CountReferenceTranslations(ctx)
 	if err != nil {
 		return fmt.Errorf("既存訳の件数取得に失敗: %w", err)
 	}
 	// 供給の集約件数を残す（英日対が無い時に確定訳語・参照訳が 0 のまま進む状態を切り分ける）。
 	// dataFolder は走査した範囲。どのフォルダを供給源にしたかで 0 件の原因を切り分ける。
-	slog.InfoContext(ctx, "Data フォルダの英日対から既存訳と確定訳語を組んだ",
+	slog.InfoContext(ctx, "Data フォルダの英日対を既訳再利用用に収集した",
 		slog.String("event", "reference_supply_built"),
 		slog.String("where", "api.prepareForTranslation"),
 		slog.String("dataFolder", dataFolder),
-		slog.Int("masterTerms", derivedCount),
 		slog.Int("references", referenceCount),
 	)
 
@@ -802,31 +798,18 @@ func (a *App) buildResultsPage(ctx context.Context, plugin, cursor string, limit
 		return ResultPage{}, fmt.Errorf("話者識別の一括取得: %w", err)
 	}
 
-	// 機械置換辞書をページ単位で 1 度だけ組み、各行の原文へ当て直して内訳を再構成する（master_term ∪ proper_noun）。
-	dict, err := a.engine.LoadDictionary(ctx)
-	if err != nil {
-		return ResultPage{}, fmt.Errorf("機械置換辞書の構築: %w", err)
-	}
-
 	views := make([]ResultView, 0, len(narrations)+len(lines)+len(propers))
 	for _, n := range narrations {
 		view := narrationResultView(n)
 		view.RecordType = recordTypeView(boxByRF, n.Rec, n.Field)
-		// 送信経路と同じ順（タグ退避 → 辞書機械置換 → 生タグへ復元）で組み直し、置換内訳（terms）と実プロンプトを再構成する。
-		masked, tags := runtimetag.Mask(n.Source)
-		replaced, used := dict.Apply(masked)
-		source := runtimetag.Restore(replaced, tags)
-		view.Terms = termViews(used)
-		// 叙述文・定型句は、その REC:FIELD の文体・定型句 directive を base へ合成した実プロンプトを再構成する。
 		instruction := instructionByKey[directiveByRF[RecordKey{Rec: n.Rec, Field: n.Field}]]
-		view.Prompt = prompt.RenderPrompt(prompt.ComposePrompt(tmpl.BaseDirective, instruction, source))
+		if err := setResultSnapshot(ctx, a.store, n.Plugin, model.BatchKindNarration, n.ID, tmpl.BaseDirective, instruction, n.Source, &view); err != nil {
+			return ResultPage{}, err
+		}
 		views = append(views, view)
 	}
 	for _, l := range lines {
 		p, hasPersona := personas[l.ID]
-		masked, tags := runtimetag.Mask(l.Source)
-		replaced, used := dict.Apply(masked)
-		lineSource := runtimetag.Restore(replaced, tags)
 		view := ResultView{
 			EDID:         l.EDID,
 			Source:       l.Source,
@@ -835,9 +818,9 @@ func (a *App) buildResultsPage(ctx context.Context, plugin, cursor string, limit
 			RecordType:   recordTypeView(boxByRF, l.Rec, l.Field),
 			Directive:    p.Directive,
 			PersonaLabel: p.Label,
-			Terms:        termViews(used),
-			// 台詞は話者の口調指示を合成した実プロンプトを再構成する（口調指示の合成を目視で確かめる）。
-			Prompt: prompt.RenderPrompt(prompt.ComposePrompt(tmpl.BaseDirective, p.Directive, lineSource)),
+		}
+		if err := setResultSnapshot(ctx, a.store, l.Plugin, model.BatchKindLine, l.ID, tmpl.BaseDirective, p.Directive, l.Source, &view); err != nil {
+			return ResultPage{}, err
 		}
 		// 話者を解決できた台詞は、誰の台詞かと属性（性別・年齢・声型）を付ける。
 		if sp, ok := speakers[l.ID]; ok {
@@ -911,15 +894,40 @@ func recordTypeView(boxByRF map[RecordKey]string, rec, field string) *RecordType
 }
 
 // termViews は辞書の置換内訳（dictionary.Term）を結果行の表示 DTO へ写す。置換が無ければ nil を返す。
-func termViews(used []dictionary.Term) []TermView {
+func termViews(used []model.TranslationReference) []TermView {
 	if len(used) == 0 {
 		return nil
 	}
 	out := make([]TermView, len(used))
 	for i, t := range used {
-		out[i] = TermView{Source: t.Source, Dest: t.Dest}
+		out[i] = TermView{Source: t.Source, Dest: t.Dest, PartOfSpeech: t.PartOfSpeech, SkyrimCategory: t.SkyrimCategory, Origin: t.Origin}
 	}
 	return out
+}
+
+// setResultSnapshot は送信時の候補だけを結果行へ写し、保存hashとの一致を検証する。
+func setResultSnapshot(ctx context.Context, s Store, plugin, kind string, rowID int64, base, directive, source string, view *ResultView) error {
+	snapshot, ok, err := s.GetTranslationReferenceSnapshot(ctx, plugin, kind, rowID)
+	if err != nil {
+		return fmt.Errorf("参考語snapshotの取得: %w", err)
+	}
+	if !ok {
+		return nil
+	}
+	references := make([]prompt.BodyReference, len(snapshot.References))
+	for i, r := range snapshot.References {
+		references[i] = prompt.BodyReference{Source: r.Source, Dest: r.Dest, PartOfSpeech: r.PartOfSpeech, SkyrimCategory: r.SkyrimCategory, Origin: r.Origin}
+	}
+	p := prompt.ComposeBodyPrompt(base, directive, source, references)
+	hash := sha256.Sum256([]byte(prompt.RenderPrompt(p)))
+	actual := hex.EncodeToString(hash[:])
+	if actual != snapshot.PromptHash {
+		return fmt.Errorf("参考語snapshotのprompt hashが一致しない: plugin=%s kind=%s row_id=%d", plugin, kind, rowID)
+	}
+	view.Terms = termViews(snapshot.References)
+	view.Prompt = prompt.RenderPrompt(p)
+	view.PromptHash = snapshot.PromptHash
+	return nil
 }
 
 // pageRows は keyset cursor から当該ページの叙述文・台詞・固有名、総件数、次 cursor、続きの有無を決める。
