@@ -29,7 +29,7 @@ description: メインエージェントが必要なコードベース探索を 
 | --- | --- | --- | --- | --- |
 | 1 | `codebase-explorer` | fresh | 実装に必要な探索情報が不足する場合だけ、変更対象、呼び出し元、依存先、関連testを探索 | sourceの場所と探索結果 |
 | 2 | メインエージェント | 現在のtask | `implementation-protocol` に従って実装、テスト、最終検証 | product code、test、`spec.md`、`implementation.md` |
-| 3 | `implementation_reviewer` | fresh | 承認済み設計と実装結果の照合 | 検証結果 |
+| 3 | `implementation_reviewer` | fresh | `plan.md` と変更差分だけから実装の充足と重大な不具合を検証 | 検証結果 |
 
 `pending.md` が空でない場合は実装を開始しない。
 
@@ -43,9 +43,8 @@ description: メインエージェントが必要なコードベース探索を 
 
 メインエージェントは `docs/exec-plans/templates/task-folder/implementation.md` を雛形として使う。
 
-実装完了後に `implementation_reviewer` へ承認済み成果物、repository、変更差分、テスト結果、`implementation.md` を渡す。
-`codebase-explorer` を起動した場合は探索結果も渡す。
-画面の見た目が変わる場合は、設計側で承認された story と画面状態も渡す。
+実装完了後に `implementation_reviewer` へ承認済みの `plan.md` と変更差分だけを渡す。
+repository、変更前後のsource、test結果、`implementation.md`、探索結果、設計成果物、Storybook成果物を渡さない。
 メインエージェントの会話文脈を `implementation_reviewer` へ渡さない。
 
 コードベース探索は `codebase-explorer` へ委譲する。
@@ -57,6 +56,7 @@ description: メインエージェントが必要なコードベース探索を 
 起動した `implementation_reviewer` を閉じない。
 `implementation_reviewer` の識別子を保持する。
 再検証は同じ `implementation_reviewer` を再開して依頼する。
+初回を含めて検証は最大3回とする。
 
 `codebase-explorer` を起動した場合は閉じず、識別子を保持する。
 追加のコードベース探索は同じ `codebase-explorer` を再開して依頼する。
@@ -79,7 +79,7 @@ description: メインエージェントが必要なコードベース探索を 
 - 起動した場合は、開いたまま維持している `codebase-explorer`。
 - 画面の見た目が変わる場合は、承認された story と画面状態。
 
-人間が成果物を変更した場合は、最初に `pending.md` が空であることを確かめる。空でない場合は、実装、実装HITL、`implementation_reviewer` の再開をせずに停止する。空の場合は、メインエージェントが `implementation-protocol` に従って必要な作業を続け、同じ `implementation_reviewer` を再開する。
+人間が成果物を変更した場合は、最初に `pending.md` が空であることを確かめる。空でない場合は、実装、実装HITL、`implementation_reviewer` の再開をせずに停止する。空の場合は、メインエージェントが `implementation-protocol` に従って必要な作業を続け、同じ `implementation_reviewer` を再開する。3回目が否決の場合は停止する。
 固定した見た目を変える必要がある場合は、実装を止めて `design-workflow` の Storybook 人間レビューへ戻す。
 再検証が通過した後に実装HITLへ戻る。
 
@@ -105,6 +105,7 @@ description: メインエージェントが必要なコードベース探索を 
 - 必要なコードベース探索を `codebase-explorer` で完了できない。
 - `implementation_reviewer` をfreshで起動できない。
 - 同じ `implementation_reviewer` を再開できない。
+- 3回目の `implementation_reviewer` が否決する。
 - 検証の否決を承認済み設計の範囲で解消できない。
 
 停止時は不足項目、agentの状態、未解決の検証結果を返す。
