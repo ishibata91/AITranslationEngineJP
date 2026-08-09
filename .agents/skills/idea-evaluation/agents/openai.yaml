@@ -1,0 +1,4 @@
+interface:
+  display_name: "アイデア評価"
+  short_description: "砂場でアイデアを最小実装し、変更前と一度比較する"
+  default_prompt: "$idea-evaluation を使って、このアイデアを砂場で比較評価してください。"

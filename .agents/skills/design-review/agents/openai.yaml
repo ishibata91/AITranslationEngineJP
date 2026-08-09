@@ -1,4 +1,4 @@
 interface:
-  display_name: "Design Review"
-  short_description: "Validate design feasibility and specification traceability"
-  default_prompt: "Use $design-review to validate a design and its specifications against requirements and source evidence."
+  display_name: "設計レビュー"
+  short_description: "要求目的と設計実現方法の適合を最大3回で検証する技能"
+  default_prompt: "$design-review を使って、要求目的を設計と仕様が実現できるか検証してください。"

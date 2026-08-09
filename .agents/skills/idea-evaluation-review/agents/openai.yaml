@@ -1,0 +1,4 @@
+interface:
+  display_name: "アイデア評価レビュー"
+  short_description: "解決目的と実現方法の適合だけを最大3往復で独立検証する技能"
+  default_prompt: "$idea-evaluation-review を使って、アイデアの目的と実現方法の適合をレビューしてください。"

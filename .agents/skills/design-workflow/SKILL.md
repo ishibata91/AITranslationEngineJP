@@ -1,6 +1,6 @@
 ---
 name: design-workflow
-description: メインエージェントが設計を作成し、codebase-explorer と design_reviewer を fresh で起動して設計HITLまで進めるオーケストレーター。プロダクト変更の設計を作成して人間が承認する時に使う。
+description: メインエージェントが設計を作成し、画面変更時は Storybook 人間レビューを設計HITLで行い、design_reviewer を fresh で起動して設計承認まで進めるオーケストレーター。プロダクト変更の設計を作成して人間が承認する時に使う。
 ---
 
 # Design Workflow
@@ -13,6 +13,7 @@ description: メインエージェントが設計を作成し、codebase-explore
 設計判断はメインエージェントが `design-protocol` に従って行う。
 仕様作成はメインエージェントが `specification-protocol` に従って行う。
 人間向けの説明が必要な場合はメインエージェントが `presentation` に従う。
+画面の見た目が変わる場合は、メインエージェントが `storybook-module` に従い、設計HITLで見た目を固定する。
 `design-protocol` をagentとして起動しない。
 
 ## 入力
@@ -37,6 +38,7 @@ description: メインエージェントが設計を作成し、codebase-explore
 | 1 | `codebase-explorer` | fresh | 要求に関係する実装、呼び出し元、依存先、testの探索 | sourceの場所と探索結果 |
 | 2 | メインエージェント | 現在のtask | 要求の整理、設計、仕様 | 作業branch、`plan.md`、`design.md`、`spec.md` |
 | 3 | `design_reviewer` | fresh | 要求、設計、仕様、実ソースの照合 | 検証結果 |
+| 4 | メインエージェント | 現在のtask | 画面の見た目が変わる場合だけ `storybook-module` に従って表示を固定し、人間が確認できる story を作る | story、fixture、表示コンポーネント |
 
 `codebase-explorer` へ要求、repository、確定済みの事実と制約、探索対象を渡す。
 メインエージェントの会話文脈と設計案を `codebase-explorer` へ渡さない。
@@ -50,12 +52,20 @@ description: メインエージェントが設計を作成し、codebase-explore
 workflowが起動するagentは `codebase-explorer` と `design_reviewer` だけとする。
 forkまたは親文脈を継承するagentを起動しない。
 
+画面変更の有無は `plan.md`、`design.md`、`spec.md` から判定する。
+`design_reviewer` が通過した後に画面変更がある場合だけ `storybook-module` を読む。
+`storybook-module` が固定した story、fixture、表示コンポーネントは、承認済み設計の一部として `implementation-workflow` へ渡す。
+
 ## agentを維持する
 
 起動した二つのagentを閉じない。
 二つのagentの識別子を保持する。
 追加の探索は同じ `codebase-explorer` を再開して依頼する。
 再検証は同じ `design_reviewer` を再開して依頼する。
+
+設計レビューは最初の検証を含めて最大3回とする。各回の入力、判定、否決理由、設計または仕様を直した内容を `docs/exec-plans/active/<task-id>/design-review.md` へ追記する。
+
+3回目は新しい論点を追加しない。3回目で否決が残る場合は、残る否決理由と承認へ進めない理由を記録して停止する。
 
 人間の指摘をメインエージェントが要約または言い換えてagentへ渡さない。
 人間は `plan.md`、`design.md`、`spec.md` の該当箇所を直接変更する。
@@ -64,16 +74,22 @@ forkまたは親文脈を継承するagentを起動しない。
 
 ## HITL
 
-`design_reviewer` が通過を返した直後に設計HITLを置く。
+`design_reviewer` が通過を返した後に設計HITLを置く。
+
+画面の見た目が変わる場合は、設計HITLの前に `storybook-module` が定める Storybook 人間レビューを完了する。
+
+Storybook 人間レビューで設計または仕様の変更が必要になった場合は、メインエージェントが `design.md` または `spec.md` を直し、同じ `design_reviewer` を再開する。表示範囲だけの指摘は `storybook-module` の範囲で直す。
 
 人間へ次を示して停止する。
 
 - `plan.md`、`design.md`、`spec.md` のpath。
 - `design_reviewer` の判定と根拠。
 - 開いたまま維持している二つのagent。
+- 画面の見た目が変わる場合は、承認された story と画面状態。
 
 人間が成果物を変更した場合は、メインエージェントが必要な作業を続け、同じ `design_reviewer` を再開する。
 追加の探索が必要な場合だけ同じ `codebase-explorer` を再開する。
+固定した見た目が変わる場合は、`storybook-module` の Storybook 人間レビューへ戻る。
 再検証が通過した後に設計HITLへ戻る。
 
 人間が明示的に承認した時だけ完了する。
@@ -83,6 +99,7 @@ forkまたは親文脈を継承するagentを起動しない。
 - 三つの設計成果物のpath。
 - `codebase-explorer` と `design_reviewer` の識別子。
 - 検証結果。
+- 画面の見た目が変わる場合は、承認された story、fixture、表示コンポーネント、Storybook 人間レビューの承認状態。
 - 設計HITLの承認状態。
 
 ## 停止条件
@@ -91,5 +108,7 @@ forkまたは親文脈を継承するagentを起動しない。
 - agentをfreshで起動できない。
 - 同じagentを再開できない。
 - `design_reviewer` の否決を成果物の変更で解消できない。
+- 3回の設計レビュー後も `design_reviewer` が否決を返す。
+- 画面変更があるが、`storybook-module` の完了条件を満たせない。
 
 停止時は不足項目、agentの状態、未解決の検証結果を返す。

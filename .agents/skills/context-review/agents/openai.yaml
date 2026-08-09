@@ -1,0 +1,4 @@
+interface:
+  display_name: "Context Review"
+  short_description: "文書コンテキストの必要十分性、整合性、正本性を検証する"
+  default_prompt: "$context-review を使い、文書の必要十分性、整合性、正本性を検証する。"
