@@ -6,8 +6,8 @@ description: "修正フローの入口オーケストレーター。人間が確
 
 ## 目的
 
-`fix-workflow` は、修正フローの入口オーケストレーターである。人間が確認した不具合、レビュー非通過、検証失敗の観測記録から、作業 branch と `plan.md` を固定する。再現確認と原因究明は `investigation.md`、どう直すかの修正方針は `design.md`、修正後の確定仕様は `spec.md` に分けて Codex 本体が固定し、`design-review` と人間修正レビューを通してから `implementation-workflow` へ渡す。
-`design.md` は人間が読んで判断する説明を持ち、`spec.md` は下流が実装根拠にする仕様を持つ。`design.md` と `spec.md` は `plan.md` の要求ごとの節に分ける。両者が食い違う場合は `spec.md` を優先する。
+`fix-workflow` は、修正フローの入口オーケストレーターである。人間が確認した不具合、レビュー非通過、検証失敗の観測記録から、作業 branch と `plan.md` を固定する。再現確認と原因究明は `investigation.md`、as-is と to-be の方針は `design.md`、修正後の確定仕様は `spec.md`、未決定事項とブロッカーは `pending.md`、参照は `references.md` に分けて Codex 本体が固定する。
+`pending.md` が空の場合だけ、`design-review` と人間修正レビューを通して `implementation-workflow` へ渡す。`design.md` と `spec.md` は `plan.md` の要求ごとの節に分ける。両者が食い違う場合は `spec.md` を優先する。
 再現確認・原因究明（investigation）と、どう直すかの設計（design）は責務を分ける。investigation は「何が起きてなぜか」を確定し、design は「どう直すか」だけを扱う。
 修正は fail-test ベースで進める前提で、先に不具合を検出できるテスト観点も引き継ぎに含める。
 
@@ -31,10 +31,12 @@ description: "修正フローの入口オーケストレーター。人間が確
 
 - 作業 branch が `codex/<task-id>` として local に存在する。
 - 作業計画フォルダ `docs/exec-plans/active/<task-id>/` が存在する。
-- `plan.md` に branch 情報と対象 task でやること・扱わないことの要点が記録されている。
+- `plan.md` に対象 task の合意済み要求が記録されている。
 - `investigation.md` に観測済み問題、画面再現確認、原因仮説、観測ログ検証、確定原因が記録されている。
-- `design.md` の各要求の節に現況の理解、あるべき形、変更点が記録され、末尾に検討が必要なことが記録されている。
+- `design.md` の各要求の節に as-is と to-be の方針が記録されている。
 - `spec.md` の各要求の節に仕様が記録され、各仕様に前提条件と確かめ方が書かれている。
+- `pending.md` が空である。
+- `references.md` に source と外部資料の所在が記録されている。
 - `design-review` が通過済み。
 - `人間修正レビュー` 承認済み。
 - 仕様変更または仕様追加が必要と判断された場合は停止して呼び出し元へ戻す（`design-workflow` への迂回が必要か、人間判断を仰ぐ）。
@@ -60,11 +62,9 @@ description: "修正フローの入口オーケストレーター。人間が確
 
 ## plan.md
 
-`plan.md` は次の 3 つだけを持つ。設計判断、判断履歴、検証結果、修正結果は書かない。
+`plan.md` は合意済み要求だけを持つ。設計判断、未決定事項、参照、判断履歴、検証結果、修正結果は書かない。
 
-- branch 情報: 作業 branch 名、統合先 branch 名、分岐元 commit。
 - やることの要点: この修正で何をするかを、人間の依頼内容をそのまま要約して書く。後から `plan.md` 単体で何の task か分かる粒度にする。原因仮説は `investigation.md`、修正方針は `design.md` が持つ。
-- やらないことの要点: この修正で扱わない範囲を大まかに書く。
 
 判断履歴は `plan.md` に残さず、恒久的に残す判断は `docs/changelog.md` に書く。
 
@@ -93,11 +93,13 @@ description: "修正フローの入口オーケストレーター。人間が確
 
 - `design.md` は `design-protocol` skill に従って作る。
 - `spec.md` は `specification-protocol` skill に従って作る。
-- Codex 本体が両 skill を読み、`plan.md` の要求、対象 repository、`investigation.md` の確定原因、`docs/vocabulary.md`、各出力先を渡して適用する。
+- Codex 本体が両 skill を読み、`plan.md` の要求、`references.md`、対象 repository、`investigation.md` の確定原因、`docs/vocabulary.md`、各出力先を渡して適用する。
 - `design.md` は `docs/exec-plans/templates/task-folder/design.md` を雛形にする。
 - `spec.md` は `docs/exec-plans/templates/task-folder/spec.md` を雛形にする。
-- `design.md`: どう直すかの修正方針と、検討が必要なこと。`investigation.md` の確定原因を根拠にする。
+- `design.md`: as-is と to-be の方針。`investigation.md` の確定原因を根拠にする。
 - `spec.md`: 修正後に成立させる仕様。
+- `pending.md`: 未決定事項とブロッカー。解決した項目は結論を正本へ反映してから削除する。
+- `references.md`: source と外部資料の所在。設計と仕様からは参照 ID だけを使う。
 - 仕様は、`実装への引き継ぎ` の追加する fail-test の観点と同じ文にする。修正前に fail し、修正後に pass する対象がこの文で一意に決まるようにする。
 - 本モジュールは書く順序と承認順序を固定する。
 - 設計の書き方は `design-protocol` skill が持つ。
@@ -107,11 +109,10 @@ description: "修正フローの入口オーケストレーター。人間が確
 
 - `design-review` は、人間修正レビューの前に、実現可能でない案と誤読の余地がある記述を否決する AI 検証である。`design_reviewer` agent（`fresh`、読み取り専用）が担う。
 - 検証内容、判断範囲、出力は `design-review` skill に従う。
-- 起動入力: `plan.md` の要求、`design.md`、`spec.md`、対象 repository、`docs/vocabulary.md`、`investigation.md` の確定原因。
+- 起動入力: `plan.md` の要求、`design.md`、`spec.md`、`pending.md`、`references.md`、対象 repository、`docs/vocabulary.md`、`investigation.md` の確定原因。`log.jsonl` は渡さない。
 - 戻し先: 本モジュール。
-- 完了: `design.md` の全ての現況の理解と全ての変更点、および `spec.md` の全ての仕様に判定が付いている。
-- 最初の検証を含めて最大3回まで、同じ `design_reviewer` を再開してレビューする。各回の入力、判定、否決理由、書き直した内容を `docs/exec-plans/active/<task-id>/design-review.md` へ追記する。
-- 3回目は新しい論点を追加しない。3回目で否決が残る場合は、残る否決理由と人間修正レビューへ進めない理由を記録して停止する。
+- 完了: `design.md` の全ての as-is と to-be、および `spec.md` の全ての仕様に判定が付いている。
+- 回数と3回目の扱いは `design-review` に従う。各回の判定と更新した正本を指す event を `log.jsonl` へ追記する。
 
 ### 人間修正レビュー
 
@@ -152,6 +153,7 @@ description: "修正フローの入口オーケストレーター。人間が確
 ### レビュー順序ゲート
 
 - `design-review` 通過なしで `人間修正レビュー` を依頼しない。
+- `pending.md` が空でない場合は `design-review` と `人間修正レビュー` を依頼しない。
 
 ### 責務境界
 
@@ -168,11 +170,12 @@ description: "修正フローの入口オーケストレーター。人間が確
 ### 仕様不足の停止
 
 - 修正方針が仕様変更・機能追加・受け入れ条件の新規判断を必要とすると Codex 本体が判断した場合は、本モジュールを停止する。停止時は呼び出し元へ「`design-workflow` 経由の仕様変更が必要」と戻す。
+- 修正方針が画面の見た目を変える場合は、本モジュールを停止する。停止時は呼び出し元へ、`design-workflow` で Storybook 人間レビューを完了し、承認された story、fixture、表示コンポーネントを `implementation-workflow` へ渡す必要があると返す。
 
 ## 返す成果物
 
 - 作業 branch 名、統合先 branch、分岐元 commit。
-- 作業計画フォルダのパス、`plan.md` のパス、`investigation.md` のパス、`design.md` のパス、`spec.md` のパス。
+- 作業計画フォルダのパス、`plan.md` のパス、`investigation.md` のパス、`design.md` のパス、`spec.md` のパス、`pending.md` のパス、`references.md` のパス。
 - 確定仕様の要約: `spec.md` の要求ごとの仕様。
 - 観測済み問題: 根拠から確認できる問題。
 - 画面再現確認: 再現手順、操作結果、画面状態、証跡参照。
@@ -194,8 +197,10 @@ description: "修正フローの入口オーケストレーター。人間が確
 - 追加した一時観測ログを削除できない。
 - 原因が仮説に留まり、採用する修正方針を固定できない。
 - 仕様が `plan.md` のどの要求の節にも置けない。
+- `pending.md` が空でない。
 - `design-review` の否決理由を `design.md` または `spec.md` の書き直しで解消できない。
-- 3回の設計レビュー後も `design_reviewer` が否決を返す。
+- `design-review` が定める回数の上限後も `design_reviewer` が `目的未固定` または否決を返す。
+- 修正方針が画面の見た目を変える。
 - 修正方針が仕様変更・機能追加・受け入れ条件の新規判断を必要とすると判断した。
 - `人間修正レビュー` 承認が得られない、または差し戻しを解消できない。
 - 停止時は不足項目、固定できない判断、戻し先を返す。

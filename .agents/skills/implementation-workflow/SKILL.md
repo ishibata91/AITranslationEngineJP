@@ -16,7 +16,7 @@ description: メインエージェントが必要なコードベース探索を 
 
 ## 入力
 
-- 人間が承認済みの `plan.md`、`design.md`、`spec.md`。
+- 人間が承認済みの `plan.md`、`design.md`、`spec.md`、`pending.md`、`references.md`。
 - 対象 repository。
 - 調査結果または追加制約がある場合は該当成果物。
 - `implementation.md` の出力先。
@@ -31,8 +31,10 @@ description: メインエージェントが必要なコードベース探索を 
 | 2 | メインエージェント | 現在のtask | `implementation-protocol` に従って実装、テスト、最終検証 | product code、test、`spec.md`、`implementation.md` |
 | 3 | `implementation_reviewer` | fresh | 承認済み設計と実装結果の照合 | 検証結果 |
 
+`pending.md` が空でない場合は実装を開始しない。
+
 承認済み成果物と既存の探索結果だけで変更対象、呼び出し元、依存先、関連testを特定できない場合は、実装前に `codebase-explorer` を起動する。
-`codebase-explorer` へ承認済み成果物、repository、追加制約、探索で明らかにする問いを渡す。
+`codebase-explorer` へ承認済み成果物、`references.md`、repository、追加制約、探索で明らかにする問いを渡す。`log.jsonl` は渡さない。
 メインエージェントの会話文脈を `codebase-explorer` へ渡さない。
 メインエージェントは探索結果を受け取ってから実装を続ける。
 
@@ -77,7 +79,7 @@ description: メインエージェントが必要なコードベース探索を 
 - 起動した場合は、開いたまま維持している `codebase-explorer`。
 - 画面の見た目が変わる場合は、承認された story と画面状態。
 
-人間が成果物を変更した場合は、メインエージェントが `implementation-protocol` に従って必要な作業を続け、同じ `implementation_reviewer` を再開する。
+人間が成果物を変更した場合は、最初に `pending.md` が空であることを確かめる。空でない場合は、実装、実装HITL、`implementation_reviewer` の再開をせずに停止する。空の場合は、メインエージェントが `implementation-protocol` に従って必要な作業を続け、同じ `implementation_reviewer` を再開する。
 固定した見た目を変える必要がある場合は、実装を止めて `design-workflow` の Storybook 人間レビューへ戻す。
 再検証が通過した後に実装HITLへ戻る。
 
@@ -97,6 +99,7 @@ description: メインエージェントが必要なコードベース探索を 
 
 - 設計成果物に対する人間承認がない。
 - 必須成果物が不足する。
+- `pending.md` が空でない。
 - 画面変更があるが、設計側で承認された story、fixture、表示コンポーネントがない。
 - `implementation-protocol` が設計変更の必要を返す。
 - 必要なコードベース探索を `codebase-explorer` で完了できない。
