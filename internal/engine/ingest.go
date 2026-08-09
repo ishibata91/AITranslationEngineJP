@@ -131,11 +131,5 @@ func (e *Engine) Ingest(ctx context.Context) (IngestCounts, error) {
 	if err = e.store.LinkLineEmotionsFromStaging(ctx); err != nil {
 		return IngestCounts{}, fmt.Errorf("台詞の感情の解決: %w", err)
 	}
-	// 言及段: 本文中の既知固有名の言及（e4/e5）と叙述文の説明対象（e3）を新規テーブルへ記録する。
-	// 既存テーブルへは読みだけで、翻訳出力（dest・status・プロンプト）に影響しない。
-	mentions, err := e.recordMentions(ctx)
-	if err != nil {
-		return IngestCounts{}, fmt.Errorf("言及の記録: %w", err)
-	}
-	return IngestCounts{Narrations: nr, ProperNouns: pn, Lines: ln, Skipped: d.Skipped, Mentions: mentions}, nil
+	return IngestCounts{Narrations: nr, ProperNouns: pn, Lines: ln, Skipped: d.Skipped}, nil
 }

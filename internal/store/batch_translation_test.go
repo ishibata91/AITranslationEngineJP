@@ -239,6 +239,12 @@ func TestDeleteTargetPluginRemovesBatch(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("送信行対応の挿入: %v", err)
 	}
+	if err = s.UpsertTranslationReferenceSnapshot(ctx, model.TranslationReferenceSnapshot{Plugin: "A.esp", Kind: model.BatchKindNarration, RowID: 1, PromptHash: "hash"}); err != nil {
+		t.Fatalf("Aのsnapshot追加: %v", err)
+	}
+	if err = s.UpsertTranslationReferenceSnapshot(ctx, model.TranslationReferenceSnapshot{Plugin: "B.esp", Kind: model.BatchKindNarration, RowID: 2, PromptHash: "hash"}); err != nil {
+		t.Fatalf("Bのsnapshot追加: %v", err)
+	}
 
 	if err = s.DeleteTargetPlugin(ctx, "A.esp"); err != nil {
 		t.Fatalf("DeleteTargetPlugin: %v", err)
@@ -250,10 +256,16 @@ func TestDeleteTargetPluginRemovesBatch(t *testing.T) {
 	if n := countRows(t, dbPath, `SELECT COUNT(*) FROM batch_request WHERE batch_id = `+itoa(idA)); n != 0 {
 		t.Errorf("A の batch_request が残った（%d 件）", n)
 	}
+	if n := countRows(t, dbPath, `SELECT COUNT(*) FROM translation_reference_snapshot WHERE plugin = 'A.esp'`); n != 0 {
+		t.Errorf("A の translation_reference_snapshot が残った（%d 件）", n)
+	}
 	if n := countRows(t, dbPath, `SELECT COUNT(*) FROM batch_translation WHERE plugin = 'B.esp'`); n != 1 {
 		t.Errorf("B の batch_translation が消えた（%d 件、want 1）", n)
 	}
 	if n := countRows(t, dbPath, `SELECT COUNT(*) FROM batch_request WHERE batch_id = `+itoa(idB)); n != 1 {
 		t.Errorf("B の batch_request が消えた（%d 件、want 1）", n)
+	}
+	if n := countRows(t, dbPath, `SELECT COUNT(*) FROM translation_reference_snapshot WHERE plugin = 'B.esp'`); n != 1 {
+		t.Errorf("B の translation_reference_snapshot が消えた（%d 件、want 1）", n)
 	}
 }

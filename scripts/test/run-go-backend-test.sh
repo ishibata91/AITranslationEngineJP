@@ -7,4 +7,4 @@ cd "$repo_root"
 
 go_cmd="$repo_root/scripts/go/run.sh"
 
-"$go_cmd" test ./ ./internal/...
+"$go_cmd" test ./ ./internal/... ./dictionary

@@ -4,6 +4,8 @@ package engine
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"sort"
@@ -103,6 +105,13 @@ type DirectiveStore interface {
 // ProperNounDictStore は engine が本文機械置換辞書へ固有名（proper_noun）の訳を合流させるための読み出し。
 type ProperNounDictStore interface {
 	ListProperNouns(ctx context.Context) ([]model.ProperNoun, error)
+	ListTranslatedProperNouns(ctx context.Context, plugin string) ([]model.ProperNoun, error)
+}
+
+// PrebuiltDictionaryStore は本文用参考語の読取り境界である。
+type PrebuiltDictionaryStore interface {
+	ValidatePrebuiltDictionary(ctx context.Context) error
+	References(ctx context.Context) ([]model.PrebuiltDictionaryReference, error)
 }
 
 // Store は engine が必要とする中心データアクセスをまとめる。concrete は internal/store が 1 つ実装する。
@@ -119,6 +128,8 @@ type Store interface {
 	DirectiveStore
 	ExportStore
 	ReferenceStore
+	UpsertTranslationReferenceSnapshot(ctx context.Context, row model.TranslationReferenceSnapshot) error
+	GetTranslationReferenceSnapshot(ctx context.Context, plugin, kind string, rowID int64) (model.TranslationReferenceSnapshot, bool, error)
 }
 
 // Engine は翻訳手続きを実行する。
@@ -129,14 +140,19 @@ type Engine struct {
 	roleSpeech *rolespeech.Table
 	stoplist   *dictionary.Stoplist
 	classifier *tone.Classifier
+	prebuilt   PrebuiltDictionaryStore
 }
 
 // New は engine を生成する。provider は AI 翻訳の port、lexicon は口調生成の感情辞書（差し替え可能な境界）、
 // roleSpeech は注入時に引く一人称・語尾テンプレート（差し替え可能な参照データ。nil なら役割語を付けない）。
 // stoplist は機械置換辞書・言及語彙の供給から一般語を除く選別規則（nil なら選別しない）。
 // classifier は口調分類の不変ルール。汎用台詞・PC 発話の感情段階を本文 1 行から出すのに使う。
-func New(store Store, p provider.Translator, lexicon linefeatures.EmotionLexicon, roleSpeech *rolespeech.Table, stoplist *dictionary.Stoplist) *Engine {
-	return &Engine{store: store, provider: p, lexicon: lexicon, roleSpeech: roleSpeech, stoplist: stoplist, classifier: tone.NewClassifier()}
+func New(store Store, p provider.Translator, lexicon linefeatures.EmotionLexicon, roleSpeech *rolespeech.Table, stoplist *dictionary.Stoplist, prebuilt ...PrebuiltDictionaryStore) *Engine {
+	var reader PrebuiltDictionaryStore
+	if len(prebuilt) != 0 {
+		reader = prebuilt[0]
+	}
+	return &Engine{store: store, provider: p, lexicon: lexicon, roleSpeech: roleSpeech, stoplist: stoplist, classifier: tone.NewClassifier(), prebuilt: reader}
 }
 
 // GeneratePersonas は台詞を持つ全話者の基底口調を一括生成し persona_character へ保存する。保存した話者数を返す。
@@ -162,6 +178,9 @@ func (e *Engine) Run(ctx context.Context, conn provider.Connection, model string
 // TranslateUntranslated は保存済みの辞書と口調を使い、対象 plugin の未訳だけを翻訳する。
 // 口調の一括生成は行わないため、初回経路は GeneratePersonas の完了後に呼ぶ。
 func (e *Engine) TranslateUntranslated(ctx context.Context, conn provider.Connection, model string, plugin string, onProgress func(done, total int)) (int, error) {
+	if err := e.ValidatePrebuiltDictionary(ctx); err != nil {
+		return 0, err
+	}
 	propers, err := e.store.ListUntranslatedProperNouns(ctx, plugin)
 	if err != nil {
 		return 0, fmt.Errorf("未訳固有名の取得: %w", err)
@@ -185,12 +204,6 @@ func (e *Engine) TranslateUntranslated(ctx context.Context, conn provider.Connec
 		return 0, err
 	}
 
-	// 既訳辞書（master_term の source→dest）を固有名フェーズの供給源選別に使う。
-	authoritative, err := e.authoritativeTerms(ctx)
-	if err != nil {
-		return 0, err
-	}
-
 	// 台詞ごとの口調指示をループ前に 1 度だけ一括で組む。口調 directive の指示文（{traits} を含む）へ性質を差し込む。
 	// 話者なし台詞（汎用・PC）は prompt_template 由来の自由記述口調へ感情と性別を重ねる。
 	personas, err := e.LinePersonas(ctx, lines, instructionByKey[directiveTone], ToneDefaults{
@@ -206,7 +219,7 @@ func (e *Engine) TranslateUntranslated(ctx context.Context, conn provider.Connec
 	p.notify()
 
 	// 固有名フェーズ: 本文より先に固有名を確定する。既訳ありは権威訳、既訳なしは固有名 directive で AI 訳。
-	if err = e.translateProperNouns(ctx, conn, model, propers, authoritative,
+	if err = e.translateProperNouns(ctx, conn, model, propers, nil,
 		tmpl.BaseDirective, instructionByKey[directiveProperNoun], p.step); err != nil {
 		return p.done, err
 	}
@@ -217,8 +230,8 @@ func (e *Engine) TranslateUntranslated(ctx context.Context, conn provider.Connec
 		return p.done, err
 	}
 
-	// 本文フェーズの機械置換辞書は固有名フェーズ後に組む（master_term ∪ 確定した proper_noun）。
-	dict, err := e.LoadDictionary(ctx)
+	// 本文参考語は事前作成済み辞書と対象pluginの翻訳済み固有名から組む。
+	references, err := e.bodyReferences(ctx, plugin)
 	if err != nil {
 		return p.done, err
 	}
@@ -230,11 +243,11 @@ func (e *Engine) TranslateUntranslated(ctx context.Context, conn provider.Connec
 	}
 
 	// 叙述文・定型句フェーズ。
-	if err = e.translateNarrations(ctx, conn, model, narrations, dict, refIndex, tmpl, instructionByKey, keyByRF, p); err != nil {
+	if err = e.translateNarrations(ctx, conn, model, plugin, narrations, references, refIndex, tmpl, instructionByKey, keyByRF, p); err != nil {
 		return p.done, err
 	}
 	// 台詞フェーズ。
-	if err = e.translateLines(ctx, conn, model, lines, dict, refIndex, tmpl, personas, p); err != nil {
+	if err = e.translateLines(ctx, conn, model, plugin, lines, references, refIndex, tmpl, personas, p); err != nil {
 		return p.done, err
 	}
 	return p.done, nil
@@ -264,7 +277,7 @@ func (p *runProgress) notify() {
 // 原文が既存訳（参照訳）と完全一致する行は AI を呼ばず既訳を確定訳（statusTranslated）で流用する。
 // それ以外は実行時タグを機械置換の間だけ退避して生タグへ戻し、AI 翻訳して仮訳（statusProvisional）で書き戻す。
 // AI 出力にタグが原形で残らなかった行は未訳のまま残す。各行は REC:FIELD の文体・定型句 directive を base へ合成して訳す。
-func (e *Engine) translateNarrations(ctx context.Context, conn provider.Connection, modelName string, narrations []model.Narration, dict *dictionary.Dictionary, refIndex map[referenceKey]string, tmpl model.PromptTemplate, instructionByKey map[string]string, keyByRF map[RecordKey]string, p *runProgress) error {
+func (e *Engine) translateNarrations(ctx context.Context, conn provider.Connection, modelName, plugin string, narrations []model.Narration, references []model.TranslationReference, refIndex map[referenceKey]string, tmpl model.PromptTemplate, instructionByKey map[string]string, keyByRF map[RecordKey]string, p *runProgress) error {
 	lostTags := 0
 	var skips lineSkips
 	for _, row := range narrations {
@@ -277,7 +290,10 @@ func (e *Engine) translateNarrations(ctx context.Context, conn provider.Connecti
 			continue
 		}
 		instruction := instructionByKey[keyByRF[RecordKey{Rec: row.Rec, Field: row.Field}]]
-		bodyPrompt, tags := e.composeBodyPrompt(tmpl.BaseDirective, instruction, row.Source, dict)
+		bodyPrompt, tags, used := e.composeBodyPrompt(tmpl.BaseDirective, instruction, row.Source, references)
+		if err := e.store.UpsertTranslationReferenceSnapshot(ctx, snapshotFor(plugin, model.BatchKindNarration, row.ID, used, bodyPrompt)); err != nil {
+			return fmt.Errorf("叙述文の参考語snapshot保存: %w", err)
+		}
 		dest, err := e.provider.Translate(ctx, conn, modelName, bodyPrompt)
 		// 結果適用の判断は batch 反映と共有する純粋規則（DecideApply）を通す。
 		// 成功・タグ欠落・skippable 失敗は同期でも batch でも同じ扱い。非 skippable（Fatal）だけ同期は run を止める。
@@ -307,25 +323,113 @@ func (e *Engine) translateNarrations(ctx context.Context, conn provider.Connecti
 
 // prepareSource は AI へ送る原文を組む。実行時タグを機械置換の間だけ退避し、置換後に生タグへ戻す。
 // タグ内部の語を辞書機械置換が書き換えるのを防ぎつつ、AI には意味の分かる生タグを見せる。退避したタグ列も返す（欠落照合用）。
-func (e *Engine) prepareSource(rawSource string, dict *dictionary.Dictionary) (source string, tags []string) {
+func (e *Engine) prepareSource(rawSource string) (source string, tags []string) {
 	masked, tags := runtimetag.Mask(rawSource)
-	replaced, _ := dict.Apply(masked)
-	return runtimetag.Restore(replaced, tags), tags
+	return runtimetag.Restore(masked, tags), tags
 }
 
 // composeBodyPrompt は本文 1 件の送信プロンプトを組む（同期の本文フェーズと batch 送信が共有する文面構築）。
 // 実行時タグを機械置換の間だけ退避して生タグへ戻し、base 指示＋directive（文体または口調）＋機械置換済み原文を合成する。
 // 退避したタグ列も返す（AI 出力のタグ欠落照合に使う）。同期と batch が同じ文面を組むための 1 箇所。
-func (e *Engine) composeBodyPrompt(base, directive, rawSource string, dict *dictionary.Dictionary) (provider.Prompt, []string) {
-	source, tags := e.prepareSource(rawSource, dict)
-	return prompt.ComposePrompt(base, directive, source), tags
+func (e *Engine) composeBodyPrompt(base, directive, rawSource string, references []model.TranslationReference) (provider.Prompt, []string, []model.TranslationReference) {
+	source, tags := e.prepareSource(rawSource)
+	used := referencesForSource(source, references)
+	bodyReferences := make([]prompt.BodyReference, len(used))
+	for i, r := range used {
+		bodyReferences[i] = prompt.BodyReference{Source: r.Source, Dest: r.Dest, PartOfSpeech: r.PartOfSpeech, SkyrimCategory: r.SkyrimCategory, Origin: r.Origin}
+	}
+	return prompt.ComposeBodyPrompt(base, directive, source, bodyReferences), tags, used
+}
+
+// ValidatePrebuiltDictionary は本文または固有名のAI送信を始める前に辞書readerを検証する。
+func (e *Engine) ValidatePrebuiltDictionary(ctx context.Context) error {
+	if e.prebuilt == nil {
+		return nil // 単体テストの既存fakeはreaderを持たない。productionはbootstrapで必ずreaderを渡す。
+	}
+	if err := e.prebuilt.ValidatePrebuiltDictionary(ctx); err != nil {
+		return fmt.Errorf("事前作成済み辞書の検証: %w", err)
+	}
+	return nil
+}
+
+// bodyReferences は本文の候補を辞書readerと対象pluginの翻訳済み固有名から合流する。
+func (e *Engine) bodyReferences(ctx context.Context, plugin string) ([]model.TranslationReference, error) {
+	if e.prebuilt == nil {
+		terms, propers, err := e.translationVocabulary(ctx)
+		if err != nil {
+			return nil, err
+		}
+		out := make([]model.TranslationReference, 0, len(terms)+len(propers))
+		for _, term := range terms {
+			out = append(out, model.TranslationReference{Source: term.Source, Dest: term.Dest, Origin: "旧辞書"})
+		}
+		for _, proper := range propers {
+			out = append(out, model.TranslationReference{Source: proper.Source, Dest: proper.Dest, Origin: "翻訳済みmod固有名"})
+		}
+		return out, nil
+	}
+	prebuilt, err := e.prebuilt.References(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("事前作成済み辞書の参考語取得: %w", err)
+	}
+	propers, err := e.store.ListTranslatedProperNouns(ctx, plugin)
+	if err != nil {
+		return nil, fmt.Errorf("対象pluginの翻訳済み固有名取得: %w", err)
+	}
+	return toTranslationReferences(prebuilt, propers), nil
+}
+
+// toTranslationReferences はreader内部候補を本文用候補へ変換して重複を除く。
+func toTranslationReferences(prebuilt []model.PrebuiltDictionaryReference, propers []model.ProperNoun) []model.TranslationReference {
+	out := make([]model.TranslationReference, 0, len(prebuilt)+len(propers))
+	seen := make(map[string]struct{}, len(prebuilt)+len(propers))
+	appendUnique := func(r model.TranslationReference) {
+		key := r.Source + "\x00" + r.Dest + "\x00" + r.PartOfSpeech + "\x00" + r.SkyrimCategory + "\x00" + r.Origin
+		if _, ok := seen[key]; ok {
+			return
+		}
+		seen[key] = struct{}{}
+		out = append(out, r)
+	}
+	for _, r := range prebuilt {
+		appendUnique(model.TranslationReference{Source: r.Source, Dest: r.Dest, PartOfSpeech: r.PartOfSpeech, SkyrimCategory: r.SkyrimCategory, Origin: "事前作成済み辞書"})
+	}
+	for _, pn := range propers {
+		appendUnique(model.TranslationReference{Source: pn.Source, Dest: pn.Dest, Origin: "翻訳済みmod固有名"})
+	}
+	return out
+}
+
+// referencesForSource は既存辞書と同じ最長一致規則で本文に含まれる候補を返す。
+func referencesForSource(source string, references []model.TranslationReference) []model.TranslationReference {
+	terms := make([]dictionary.Term, 0, len(references))
+	for _, r := range references {
+		terms = append(terms, dictionary.Term{Source: r.Source, Dest: r.Dest})
+	}
+	matched := dictionary.NewDictionary(terms).Extract(source)
+	matchedSources := make(map[string]struct{}, len(matched))
+	for _, term := range matched {
+		matchedSources[term.Source] = struct{}{}
+	}
+	out := make([]model.TranslationReference, 0, len(references))
+	for _, r := range references {
+		if _, ok := matchedSources[r.Source]; ok {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+func snapshotFor(plugin, kind string, rowID int64, refs []model.TranslationReference, p provider.Prompt) model.TranslationReferenceSnapshot {
+	hash := sha256.Sum256([]byte(prompt.RenderPrompt(p)))
+	return model.TranslationReferenceSnapshot{Plugin: plugin, Kind: kind, RowID: rowID, References: refs, PromptHash: hex.EncodeToString(hash[:])}
 }
 
 // translateLines は台詞を翻訳し、書き戻す。1 件ごとに進捗を 1 歩進める。
 // 原文が既存訳（参照訳）と完全一致する台詞は AI を呼ばず既訳を確定訳（statusTranslated）で流用する（叙述文と同じ）。
 // それ以外は実行時タグを機械置換の間だけ退避して生タグへ戻し、口調指示つきで AI 翻訳して仮訳で書き戻す。
 // AI 出力にタグが原形で残らなかった台詞は未訳のまま残す。話者なしなら口調指示は空。
-func (e *Engine) translateLines(ctx context.Context, conn provider.Connection, modelName string, lines []model.Line, dict *dictionary.Dictionary, refIndex map[referenceKey]string, tmpl model.PromptTemplate, personas map[int64]Persona, p *runProgress) error {
+func (e *Engine) translateLines(ctx context.Context, conn provider.Connection, modelName, plugin string, lines []model.Line, references []model.TranslationReference, refIndex map[referenceKey]string, tmpl model.PromptTemplate, personas map[int64]Persona, p *runProgress) error {
 	lostTags := 0
 	var skips lineSkips
 	for _, row := range lines {
@@ -337,7 +441,10 @@ func (e *Engine) translateLines(ctx context.Context, conn provider.Connection, m
 			p.step()
 			continue
 		}
-		bodyPrompt, tags := e.composeBodyPrompt(tmpl.BaseDirective, personas[row.ID].Directive, row.Source, dict)
+		bodyPrompt, tags, used := e.composeBodyPrompt(tmpl.BaseDirective, personas[row.ID].Directive, row.Source, references)
+		if err := e.store.UpsertTranslationReferenceSnapshot(ctx, snapshotFor(plugin, model.BatchKindLine, row.ID, used, bodyPrompt)); err != nil {
+			return fmt.Errorf("台詞の参考語snapshot保存: %w", err)
+		}
 		dest, err := e.provider.Translate(ctx, conn, modelName, bodyPrompt)
 		// 結果適用の判断は batch 反映と共有する純粋規則（DecideApply）を通す（叙述文と同じ）。
 		missing := runtimetag.CountMissing(dest, tags)

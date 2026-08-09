@@ -62,6 +62,24 @@ type fakeStore struct {
 	syncRetryReady bool
 }
 
+type fakePrebuiltDictionary struct {
+	references []model.PrebuiltDictionaryReference
+	err        error
+}
+
+func (f fakePrebuiltDictionary) ValidatePrebuiltDictionary(_ context.Context) error { return f.err }
+func (f fakePrebuiltDictionary) References(_ context.Context) ([]model.PrebuiltDictionaryReference, error) {
+	return f.references, f.err
+}
+
+func (f *fakeStore) UpsertTranslationReferenceSnapshot(_ context.Context, _ model.TranslationReferenceSnapshot) error {
+	return nil
+}
+
+func (f *fakeStore) GetTranslationReferenceSnapshot(_ context.Context, _ string, _ string, _ int64) (model.TranslationReferenceSnapshot, bool, error) {
+	return model.TranslationReferenceSnapshot{}, false, nil
+}
+
 // directivesOrDefault はテスト用の指示文集合を返す。未設定なら口調・固有名の最小集合を既定にする。
 func (f *fakeStore) directivesOrDefault() []model.Directive {
 	if f.directives != nil {
@@ -151,6 +169,16 @@ func (f *fakeStore) LinkNarrationDescribed(_ context.Context) (int, error) {
 
 func (f *fakeStore) ListProperNouns(_ context.Context) ([]model.ProperNoun, error) {
 	return f.proper, nil
+}
+
+func (f *fakeStore) ListTranslatedProperNouns(_ context.Context, plugin string) ([]model.ProperNoun, error) {
+	var out []model.ProperNoun
+	for _, row := range f.proper {
+		if row.Plugin == plugin && row.Status != 0 && row.Dest != "" {
+			out = append(out, row)
+		}
+	}
+	return out, nil
 }
 
 func (f *fakeStore) ListUntranslatedProperNouns(_ context.Context, plugin string) ([]model.ProperNoun, error) {
@@ -405,21 +433,64 @@ func TestRunReplacesTermsBeforeTranslate(t *testing.T) {
 		terms:        []model.MasterTerm{{Source: "Riften", Dest: "リフテン"}},
 	}
 	tr := &fakeTranslator{out: map[string]string{
-		"The リフテン guard waited.": "リフテンの衛兵が待っていた。",
+		"The Riften guard waited.": "リフテンの衛兵が待っていた。",
 	}}
 	eng := New(store, tr, fakeLexicon{}, nil, nil)
 
 	if _, err := eng.Run(context.Background(), provider.Connection{}, "m", "", nil); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	// AI へ渡した user メッセージ（原文）は固有名が置換済みであること（置換前の原文では渡らない）。
-	if _, ok := tr.gotPrompts["The リフテン guard waited."]; !ok {
-		t.Errorf("置換後の原文が AI へ渡っていない。gotPrompts=%v", tr.gotPrompts)
+	// AI へ渡した user メッセージは英語原文のままで、参考語だけをsystemへ追加すること。
+	if got, ok := tr.gotPrompts["The Riften guard waited."]; !ok || !strings.Contains(got.System, "Riften -> リフテン") {
+		t.Errorf("英語原文または参考語が AI へ渡っていない。gotPrompts=%v", tr.gotPrompts)
 	}
 	// 書き戻した訳文は置換済み原文に対する訳であること。
 	want := []update{{1, "リフテンの衛兵が待っていた。", 3}}
 	if len(store.updates) != 1 || store.updates[0] != want[0] {
 		t.Errorf("updates = %v, want %v", store.updates, want)
+	}
+}
+
+// readerを注入した本番経路ではmaster_termを本文参考語へ流さず、対象pluginの訳済み固有名だけを併記する。
+func TestBodyReferencesUsesPrebuiltAndTargetPluginProperNouns(t *testing.T) {
+	store := &fakeStore{
+		terms: []model.MasterTerm{{Source: "Legacy", Dest: "旧辞書訳"}},
+		proper: []model.ProperNoun{
+			{Plugin: "A.esp", Source: "Inigo", Dest: "イニゴ", Status: statusTranslated},
+			{Plugin: "B.esp", Source: "Lucien", Dest: "ルシエン", Status: statusTranslated},
+		},
+	}
+	reader := fakePrebuiltDictionary{references: []model.PrebuiltDictionaryReference{{Source: "Riften", Dest: "リフテン", PartOfSpeech: "noun", Meaning: "城塞を守る都市", SkyrimCategory: "city"}}}
+	refs, err := New(store, &fakeTranslator{}, fakeLexicon{}, nil, nil, reader).bodyReferences(context.Background(), "A.esp")
+	if err != nil {
+		t.Fatalf("bodyReferences: %v", err)
+	}
+	if len(refs) != 2 {
+		t.Fatalf("参考語 = %+v", refs)
+	}
+	joined := fmt.Sprint(refs)
+	for _, want := range []string{"Riften", "リフテン", "Inigo", "イニゴ"} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("参考語に%qが無い: %s", want, joined)
+		}
+	}
+	for _, forbidden := range []string{"Legacy", "Lucien", "城塞を守る都市"} {
+		if strings.Contains(joined, forbidden) {
+			t.Errorf("本文参考語に%qが混入した: %s", forbidden, joined)
+		}
+	}
+}
+
+// reader検証が失敗した場合は同期翻訳で固有名・本文のprovider送信を開始しない。
+func TestRunStopsBeforeProviderWhenPrebuiltValidationFails(t *testing.T) {
+	store := &fakeStore{untranslated: []model.Narration{{ID: 1, Source: "See Riften."}}, proper: []model.ProperNoun{{ID: 2, Source: "Riften"}}}
+	translator := &fakeTranslator{out: map[string]string{"Riften": "リフテン", "See Riften.": "リフテンを見よ。"}}
+	eng := New(store, translator, fakeLexicon{}, nil, nil, fakePrebuiltDictionary{err: errors.New("dictionary unavailable")})
+	if _, err := eng.Run(context.Background(), provider.Connection{}, "m", "A.esp", nil); err == nil {
+		t.Fatal("reader検証失敗を返さなかった")
+	}
+	if len(translator.gotPrompts) != 0 || len(store.updates) != 0 || len(store.properUpdates) != 0 {
+		t.Fatalf("reader失敗後に送信または保存を開始した: prompts=%v narr=%v proper=%v", translator.gotPrompts, store.updates, store.properUpdates)
 	}
 }
 

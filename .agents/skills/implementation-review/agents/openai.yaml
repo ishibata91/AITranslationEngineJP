@@ -1,0 +1,4 @@
+interface:
+  display_name: "Implementation Review"
+  short_description: "Review implementation evidence against approved specifications"
+  default_prompt: "Use $implementation-review to validate implementation and test evidence against approved artifacts."

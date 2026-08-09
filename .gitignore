@@ -20,6 +20,16 @@ db/*.sqlite3
 db/*.sqlite3-shm
 db/*.sqlite3-wal
 
+# Codex が操作する事前作成辞書の実体。schema と実装だけを追跡する。
+dictionary/*.sqlite3
+dictionary/*.sqlite3-shm
+dictionary/*.sqlite3-wal
+dictionary/dictionary-mcp
+dictionary/reference/*.db
+dictionary/reference/*.db-shm
+dictionary/reference/*.db-wal
+dictionary/reference/*.gz
+
 # C# 抽出ツール（Mutagen）のビルド成果物
 tools/**/bin
 tools/**/obj

@@ -50,8 +50,9 @@ scan_rule "wails-runtime" "github.com/wailsapp/wails" "internal/api/ internal/bo
 
 # SQLite driver は store・secret 子・migrations が持つ（§6 の SQLite 契約）。製品の上位層
 # （engine・api・provider・model・lexicon）へ driver 固有 import を漏らさない。
-# harness（テスト基盤）・cmd（ツール・PoC）・scripts は独自に DB を開いてよいので許可に含める。
-scan_rule "sqlite-driver" "modernc.org/sqlite" "internal/store/ db/ internal/harness/ cmd/ scripts/"
+# harness（テスト基盤）・cmd（ツール・PoC）・scripts・dictionary（事前作成辞書の独立 command）は
+# 独自に DB を開いてよいので許可に含める。
+scan_rule "sqlite-driver" "modernc.org/sqlite" "internal/store/ db/ internal/harness/ cmd/ scripts/ dictionary/"
 
 if [ "$status" -ne 0 ]; then
   printf 'boundary-scan: 境界違反を検出した:\n'

@@ -1,6 +1,6 @@
 ---
 name: fix-decision
-description: "Codex 本体が読む修正方針判断プロトコル。観測記録から仮説、観測ログ検証、確定原因、採用する修正方針、禁止する修正を固定する判断基準。TRIGGER when: 不具合、レビュー非通過、検証失敗の観測記録から修正方針を固定する時。SKIP when: 仕様変更や機能追加が必要な場合は feature-workflow へ。"
+description: "Codex 本体が読む修正方針判断プロトコル。観測記録から仮説、観測ログ検証、確定原因、採用する修正方針、禁止する修正を固定する判断基準。TRIGGER when: 不具合、レビュー非通過、検証失敗の観測記録から修正方針を固定する時。SKIP when: 仕様変更や機能追加が必要な場合は design-workflow へ。"
 ---
 # Fix Decision
 
@@ -26,7 +26,7 @@ Codex 本体が複数の原因仮説、観測ログによる仮説検証、確�
 - 修正モジュールの進行境界は [fix-workflow](.agents/skills/fix-workflow/SKILL.md) に従う。
 - 修正方針判断の報告形式は [fix-decision-report-template.md](.agents/skills/fix-decision/fix-decision-report-template.md) に従う。
 - 画面の正本は Storybook（story と svelte コンポーネント）に従う。実装済みコンポーネントの `data-testid` を含む。
-- 観測ログ仕様は [observability-logging.md](docs/observability-logging.md) に従う。
+- 観測ログは、観測対象のフォルダに対応する `protocols/` の規約に従う。
 - ブラウザ操作は `chrome-devtools` MCP ツール群（`mcp__plugin_chrome-devtools-mcp_chrome-devtools__*`）を MCP ツールとして実行する。
 - 外部成果物が不足または衝突する場合は停止し、衝突箇所を返す。
 

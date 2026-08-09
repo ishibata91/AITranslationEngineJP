@@ -9,11 +9,12 @@ go_cmd="$repo_root/scripts/go/run.sh"
 
 backend_packages() {
   printf './internal/...\n'
+  printf './dictionary\n'
 }
 
 case "${1:-}" in
   format-check)
-    gofmt_output=$(gofmt -l internal)
+    gofmt_output=$(gofmt -l internal dictionary)
     if [ -n "$gofmt_output" ]; then
       printf '%s\n' "$gofmt_output"
       exit 1

@@ -1,0 +1,5 @@
+name = "codebase-explorer"
+description = "TRIGGER WHEN　コードベースの探索時。SKIP WHEN　コードベース以外の探索・探索以外のタスク"
+sandbox_mode = "workspace-write"
+developer_instructions = "codegraph-rg-exploreを読み込むこと。読み取り専用。"
+model="gpt-5.6-luna"

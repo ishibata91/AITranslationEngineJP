@@ -40,9 +40,11 @@ func DecodeCustomID(s string) (kind string, id int64, err error) {
 // PlannedRequest は送信 1 件の計画。行種別・行 id と、engine が組んだ完成プロンプト。
 // custom_id の割り当ては BuildBatchRequests が行う（種別と id から一意化する）。
 type PlannedRequest struct {
-	Kind   string
-	RowID  int64
-	Prompt provider.Prompt
+	Kind           string
+	RowID          int64
+	Prompt         provider.Prompt
+	ReferencesJSON string
+	PromptHash     string
 }
 
 // BuildBatchRequests は計画群を provider への送信要求（custom_id 付き）へ写す純粋関数。

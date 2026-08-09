@@ -33,6 +33,17 @@ func (s *Store) ListProperNouns(ctx context.Context) ([]model.ProperNoun, error)
 	return rows, nil
 }
 
+// ListTranslatedProperNouns は本文参考語に使う対象pluginの翻訳済み固有名だけを返す。
+func (s *Store) ListTranslatedProperNouns(ctx context.Context, plugin string) ([]model.ProperNoun, error) {
+	var rows []model.ProperNoun
+	if err := s.db.SelectContext(ctx, &rows,
+		`SELECT `+properNounColumns+` FROM proper_noun
+		 WHERE plugin = ? AND dest <> '' AND status != 0 ORDER BY id`, plugin); err != nil {
+		return nil, fmt.Errorf("翻訳済み proper_noun の取得: %w", err)
+	}
+	return rows, nil
+}
+
 // ListUntranslatedProperNouns は未訳（status=0）の固有名を id 昇順で返す。固有名フェーズが訳す対象。
 // plugin が空でなければその対象 plugin の行だけに絞る（空なら全 plugin）。
 // 機械派生した人名の部分形は翻訳対象でないため返さない。

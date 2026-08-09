@@ -84,6 +84,21 @@ func (f *fakeStore) ListBatchRequestsByStage(_ context.Context, batchID int64, s
 	return out, nil
 }
 
+func (f *fakeStore) UpdateBatchRequestSendState(_ context.Context, batchID int64, customIDs []string, state, externalID string) error {
+	for i := range f.batchReqs {
+		if f.batchReqs[i].BatchID != batchID {
+			continue
+		}
+		for _, customID := range customIDs {
+			if f.batchReqs[i].CustomID == customID {
+				f.batchReqs[i].SendState = state
+				f.batchReqs[i].ExternalBatchID = externalID
+			}
+		}
+	}
+	return nil
+}
+
 func (f *fakeStore) MarkSyncRetryReady(_ context.Context, _ string) error {
 	f.syncRetryReady = true
 	return nil
@@ -105,12 +120,18 @@ type fakeBatchProvider struct {
 	polls        int
 	fetches      int
 	failSubmitsN int // 先頭から何回の SubmitBatch を失敗させるか（送信 HTTP 失敗の再現。0 なら常に成功）
+	failAtSubmit int // 指定回のSubmitBatchだけを失敗させる。本文段だけの失敗再開を再現する。
+	attempts     int
 	pollErr      error
 }
 
 func (f *fakeBatchProvider) SubmitBatch(_ context.Context, _ provider.Connection, _ string, requests []provider.BatchRequest) (string, error) {
 	if f.batches == nil {
 		f.batches = map[string][]provider.BatchRequest{}
+	}
+	f.attempts++
+	if f.failAtSubmit == f.attempts {
+		return "", fmt.Errorf("fake 送信失敗（HTTP 失敗の再現）")
 	}
 	if f.failSubmitsN > 0 {
 		f.failSubmitsN--
@@ -419,12 +440,12 @@ func seedFor(plugin string) *fakeStore {
 }
 
 // translationOut は同期・batch 共有の訳（user メッセージ→訳文）。
-// "See Riften." は固有名 Riften→リフテン の機械置換後の原文に対して引く。
+// "See Riften." は英語本文へ参考語を付けた本文promptに対して引く。
 func translationOut() map[string]string {
 	return map[string]string{
-		"Riften":    "リフテン",
-		"See リフテン.": "リフテンを見よ。",
-		"Hello.":    "こんにちは。",
+		"Riften":      "リフテン",
+		"See Riften.": "リフテンを見よ。",
+		"Hello.":      "こんにちは。",
 	}
 }
 
@@ -600,6 +621,60 @@ func TestBatchResubmitRecoversFromSubmitFailure(t *testing.T) {
 	}
 	if updatesByID(batchStore.updates)[1] != (update{1, "リフテンを見よ。", 3}) {
 		t.Errorf("回復後の叙述文 = %v", batchStore.updates)
+	}
+}
+
+// 本文段の外部送信が失敗しても、進行を本文段に残し、同じcustom_idで再送できることを確かめる。
+func TestBatchResubmitsFailedBodyStage(t *testing.T) {
+	ctx := context.Background()
+	conn := provider.Connection{Endpoint: "http://x", APIKey: "k"}
+	const plugin = "body-failed.esp"
+	store := seedFor(plugin)
+	fb := &fakeBatchProvider{out: translationOut(), failAtSubmit: 2}
+	reader := fakePrebuiltDictionary{references: []model.PrebuiltDictionaryReference{{Source: "Riften", Dest: "リフテン", PartOfSpeech: "noun", Meaning: "城塞を守る都市", SkyrimCategory: "city"}}}
+	runner := NewBatchRunner(New(store, &fakeTranslator{out: translationOut()}, fakeLexicon{}, nil, nil, reader), map[string]provider.BatchTranslator{provider.BatchProviderXAI: fb}, store)
+
+	if _, err := runner.SubmitBatch(ctx, provider.BatchProviderXAI, conn, "grok", plugin); err != nil {
+		t.Fatalf("固有名段の送信: %v", err)
+	}
+	if err := runner.RefreshPlugin(ctx, provider.BatchProviderXAI, conn, plugin); err == nil {
+		t.Fatal("本文段の送信失敗を返さなかった")
+	}
+	if store.batchProg.Stage != model.BatchStageBody || store.batchProg.BodyBatchID != "" {
+		t.Fatalf("本文送信失敗後の進行 = %+v", store.batchProg)
+	}
+	if len(store.batchReqs) < 2 || store.batchReqs[len(store.batchReqs)-1].SendState != "failed" {
+		t.Fatalf("本文requestがfailed状態でない: %+v", store.batchReqs)
+	}
+	customID := store.batchReqs[len(store.batchReqs)-1].CustomID
+	referencesJSON := store.batchReqs[len(store.batchReqs)-1].ReferencesJSON
+	promptHash := store.batchReqs[len(store.batchReqs)-1].PromptHash
+	// 再起動相当のrunner再生成後も、仮状態を同じ進行から再送する。
+	runner = NewBatchRunner(New(store, &fakeTranslator{out: translationOut()}, fakeLexicon{}, nil, nil, reader), map[string]provider.BatchTranslator{provider.BatchProviderXAI: fb}, store)
+	if _, err := runner.SubmitBatch(ctx, provider.BatchProviderXAI, conn, "grok", plugin); err != nil {
+		t.Fatalf("本文段の再送: %v", err)
+	}
+	if store.batchProg.Stage != model.BatchStageBody || store.batchProg.BodyBatchID == "" {
+		t.Fatalf("本文段の再送後の進行 = %+v", store.batchProg)
+	}
+	if store.batchReqs[len(store.batchReqs)-1].CustomID != customID || store.batchReqs[len(store.batchReqs)-1].SendState != "submitted" {
+		t.Fatalf("本文段の再送requestが変わった: %+v", store.batchReqs)
+	}
+	if store.batchReqs[len(store.batchReqs)-1].ReferencesJSON != referencesJSON || store.batchReqs[len(store.batchReqs)-1].PromptHash != promptHash {
+		t.Fatalf("本文段の参考語snapshotまたはhashが変わった: %+v", store.batchReqs)
+	}
+}
+
+func TestBatchStopsBeforeProviderWhenPrebuiltValidationFails(t *testing.T) {
+	ctx := context.Background()
+	store := seedFor("invalid-reader.esp")
+	fb := &fakeBatchProvider{out: translationOut()}
+	runner := NewBatchRunner(New(store, &fakeTranslator{out: translationOut()}, fakeLexicon{}, nil, nil, fakePrebuiltDictionary{err: errors.New("dictionary unavailable")}), map[string]provider.BatchTranslator{provider.BatchProviderXAI: fb}, store)
+	if _, err := runner.SubmitBatch(ctx, provider.BatchProviderXAI, provider.Connection{APIKey: "k"}, "grok", "invalid-reader.esp"); err == nil {
+		t.Fatal("reader検証失敗を返さなかった")
+	}
+	if fb.submits != 0 || store.batchProg != nil || len(store.batchReqs) != 0 {
+		t.Fatalf("reader失敗後にbatch送信または保存を開始した: submits=%d progression=%+v requests=%+v", fb.submits, store.batchProg, store.batchReqs)
 	}
 }
 

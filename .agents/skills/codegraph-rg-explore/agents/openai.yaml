@@ -1,0 +1,4 @@
+interface:
+  display_name: "CodeGraph探索"
+  short_description: "Codegraphを用いたコードベース探索用のスキル。TRIGGER WHEN　コードベースの探索時。SKIP WHEN　コードベース以外の探索・探索以外のタスク。"
+  allow_implicit_invocation: false

@@ -3,7 +3,7 @@
 `plan.md` は branch 情報と、人間が見た事象、そこから起こした要求を持つ。
 設計は `design.md`、確定仕様は `spec.md`、恒久的に残す判断は `docs/changelog.md` が持つ。
 
-実装フロー（`feature-workflow`）と修正フロー（`fix-workflow`）は要求の節を持つ。
+設計フロー（`design-workflow`）と修正フロー（`fix-workflow`）は要求の節を持つ。
 実験フロー（`experiment-workflow`）は要求の節を持たず、対象・砂場・接続先の節を持つ。何をどこまで達成するかは `criteria.md` の達成条件の表が持つ。
 
 ## 事象
@@ -14,7 +14,7 @@
 
 ## 要求
 
-実装フローと修正フローだけが持つ。事象から起こした、何をどうするかを書く。人間の合意を得るまで空のままにし、空の状態で `design.md` と `spec.md` へ進まない。
+設計フローと修正フローだけが持つ。事象から起こした、何をどうするかを書く。人間の合意を得るまで空のままにし、空の状態で `design.md` と `spec.md` へ進まない。
 
 `design.md` と `spec.md` は、ここに書いた番号ごとに節を分ける。
 
@@ -44,7 +44,7 @@
 
 ## branch 情報
 
-- `execution_branch`: `claude/<task-id>`
+- `execution_branch`: `codex/<task-id>`
 - `target_branch`: `master`
 - `source_commit`: <分岐元 commit hash>
 

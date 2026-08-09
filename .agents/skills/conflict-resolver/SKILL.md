@@ -24,7 +24,7 @@ local merge 実行、merge 後検証、completed 移動、merge 結果 commit �
 - source branch: 作業 branch 名（既定 `codex/<task-id>`）。
 - target branch: 統合先 branch 名（既定 `master`）。
 - conflict file 一覧: `local merge` で conflict と判定された file の path。
-- 根拠参照: `design.md` の設計記録（新規実装フローは実装方針・人間設計レビュー記録、修正フローは確定原因・採用する修正方針・人間修正レビュー記録）、作業計画内の成果物、`docs/changelog.md`。
+- 根拠参照: `design.md` の設計記録（設計フローは実装方針・設計HITL記録、修正フローは確定原因・採用する修正方針・人間修正レビュー記録）、作業計画内の成果物、`docs/changelog.md`。
 
 ## 作業前に読む正本
 

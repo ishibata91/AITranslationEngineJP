@@ -19,7 +19,7 @@ type Story = StoryObj<typeof meta>
 const BASE = `[system]
 あなたは Skyrim Mod の翻訳者です。与えられた英語の本文を、原文の意味と語調を保った自然な日本語へ翻訳してください。訳文だけを出力し、説明や注釈は加えないでください。`
 
-// 本文経路の台詞（Inigo、Khajiit、物腰やわ）。口調メタ＋種族訛り＋置換固有名＋実プロンプトが並ぶ。
+// 本文経路の台詞（Inigo、Khajiit、物腰やわ）。口調メタ＋複数候補の参考語＋実プロンプトが並ぶ。
 const DIALOGUE_ROW: NarrationResultRow = {
   edid: "Inigo",
   recordType: { box: "台詞", recField: "INFO:NAM1" },
@@ -38,7 +38,29 @@ const DIALOGUE_ROW: NarrationResultRow = {
   },
   directive:
     "この台詞の話者の人物像:\n- 口調: 柔らかく丁寧な口調。相手を立てて穏やかに述べる。\n- 種族訛り: カジートの訛り。三人称で自称する（「この者は」など）。\nこの人物像に合う口調と人称で訳すこと。",
-  terms: [{ source: "Riften", dest: "リフテン" }],
+  terms: [
+    {
+      source: "Riften",
+      dest: "リフテン",
+      partOfSpeech: "固有名詞",
+      skyrimCategory: "場所",
+      origin: "事前作成済み辞書"
+    },
+    {
+      source: "Riften",
+      dest: "リフテン市",
+      partOfSpeech: "固有名詞",
+      skyrimCategory: "場所",
+      origin: "事前作成済み辞書"
+    },
+    {
+      source: "Inigo",
+      dest: "イニゴ",
+      partOfSpeech: "",
+      skyrimCategory: "",
+      origin: "翻訳済み mod 固有名"
+    }
+  ],
   prompt: `${BASE}
 
 この台詞の話者の人物像:
@@ -47,7 +69,7 @@ const DIALOGUE_ROW: NarrationResultRow = {
 この人物像に合う口調と人称で訳すこと。
 
 [user]
-This one knows リフテン well, my friend.`
+This one knows Riften well, my friend.`
 }
 
 // 声質経路の台詞（Nazeem、台詞少で声質の横柄を prior にした）。決定経路が「声質」、印が少ない（4）。
@@ -137,11 +159,19 @@ const NARRATION_ROW: NarrationResultRow = {
     "I have walked these halls for centuries, and still the cold of Castle Volkihar finds me.",
   dest: "私は何世紀もこの広間を歩いてきたが、それでもヴォルキハル城の冷気は私を捉えて離さない。",
   statusLabel: "仮訳",
-  terms: [{ source: "Castle Volkihar", dest: "ヴォルキハル城" }],
+  terms: [
+    {
+      source: "Castle Volkihar",
+      dest: "ヴォルキハル城",
+      partOfSpeech: "固有名詞",
+      skyrimCategory: "場所",
+      origin: "事前作成済み辞書"
+    }
+  ],
   prompt: `${BASE}
 
 [user]
-I have walked these halls for centuries, and still the cold of ヴォルキハル城 finds me.`
+I have walked these halls for centuries, and still the cold of Castle Volkihar finds me.`
 }
 
 // 定型句（起動動作）。話者は無く、種別バッジで定型句と分かる。
@@ -160,7 +190,15 @@ const WEAPON_DESC_ROW: NarrationResultRow = {
   source: "A blade forged to slay dragons, humming with stored lightning.",
   dest: "竜を討つために鍛えられた刃。蓄えた雷の力で唸りを上げる。",
   statusLabel: "仮訳",
-  terms: [{ source: "Dragonbane", dest: "竜の災い" }]
+  terms: [
+    {
+      source: "Dragonbane",
+      dest: "竜の災い",
+      partOfSpeech: "固有名詞",
+      skyrimCategory: "武器",
+      origin: "事前作成済み辞書"
+    }
+  ]
 }
 
 // 固有名（武器名）の AI 訳。本文より先に確定し proper_noun へ入った訳。話者・口調は無い。
@@ -172,7 +210,7 @@ const PROPER_NOUN_ROW: NarrationResultRow = {
   statusLabel: "訳済"
 }
 
-// 畳んだ台詞。口調チップ（基底口調セル）と「固有名 N」チップで、一覧のまま口調差と置換を観測する。
+// 畳んだ台詞。口調チップと「参考語 N」チップで、一覧のまま口調差と参考語の有無を観測する。
 export const CollapsedDialogue: Story = {
   name: "畳む（口調あり台詞）",
   args: { row: DIALOGUE_ROW, defaultOpen: false }
@@ -180,7 +218,7 @@ export const CollapsedDialogue: Story = {
 
 // 本文経路の台詞を展開。口調メタ（物腰やわ＋性質文を強調、根拠は小さく）＋置換固有名＋実プロンプトが並ぶ。
 export const ExpandedDialoguePersona: Story = {
-  name: "展開（本文・口調メタ）",
+  name: "展開（本文・複数参考語）",
   args: { row: DIALOGUE_ROW, defaultOpen: true }
 }
 

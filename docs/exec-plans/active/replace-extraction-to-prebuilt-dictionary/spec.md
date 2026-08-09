@@ -1,0 +1,80 @@
+# Spec: replace-extraction-to-prebuilt-dictionary
+
+`spec.md` はこのtaskの確定仕様として、要求ごとの仕様を持つ。要求は `plan.md`、設計理由と変更手順は `design.md` が持つ。
+
+---
+
+## R-1 事前作成済み翻訳辞書へ置き換える
+
+- R-1-1（正常系）: 本文で一致した各原語について、事前作成済み翻訳辞書DBに保存された全ての訳語、品詞、Skyrimのカテゴリと、対象pluginで翻訳済みのmod固有名を、同期翻訳とbatch翻訳の翻訳指示へ参考語として載せ、`meaning`を載せないこと
+    - 前提条件: 移動後の `db/dictionary.sqlite3` に保存された原語、訳語、品詞、意味、Skyrimのカテゴリがある。対象pluginの本文に一致する原語と翻訳済みのmod固有名がある。
+    - 確かめ方: 同じ入力を同期翻訳とbatch翻訳で処理し、AIへ送る本文が元の英語のままであり、本文に一致した原語の全候補に訳語、品詞、Skyrimのカテゴリが付いていること、`meaning`が載らないことを確認する。対象pluginの翻訳済みmod固有名が原語、訳語、mod固有名である出どころとともに翻訳指示の参考語に載ることを確認する。別pluginの翻訳済みmod固有名が参考語に載らないことを確認する。
+    - 対応する実テスト: `internal/engine/engine_test.go:TestRunReplacesTermsBeforeTranslate`、`internal/core/prompt/prompt_test.go:TestComposeBodyPromptKeepsSourceAndOmitsMeaning`
+- R-1-2（対象に入る側の境界）: 原語、訳語、品詞、Skyrimのカテゴリが全て同じDB項目が複数あっても、翻訳指示と翻訳結果の参考語を一意に保つこと
+    - 前提条件: 事前作成済み翻訳辞書に、原語、訳語、品詞、Skyrimのカテゴリが同じで、`meaning`だけが異なるDB項目を含む複数項目がある。
+    - 確かめ方: 翻訳指示と翻訳結果に記録する参考語を確認し、原語、訳語、品詞、Skyrimのカテゴリが全て同じ参考語が重複して載らず、`meaning`が載らないことを確認する。
+    - 対応する実テスト: `internal/store/prebuilt_dictionary_test.go:TestPrebuiltDictionaryReferencesAreReadOnlyAndIncludeAllSenses`
+- R-1-3（対象に入らない側の境界）: `inclusion_decision` または `review_stage` が異なるDB項目を、翻訳指示の参考語から除外しないこと
+    - 前提条件: 同じ原語と訳語を持ち、`inclusion_decision` または `review_stage` が異なるDB項目がある。
+    - 確かめ方: AIへ送る翻訳指示と翻訳結果に記録する参考語を確認し、メタデータの状態にかかわらず同じ原語と訳語が参考語に載ることを確認する。
+    - 対応する実テスト: `internal/store/prebuilt_dictionary_test.go:TestPrebuiltDictionaryReferencesAreReadOnlyAndIncludeAllSenses`
+- R-1-4（複数の訳語を参考語として載せること）: 同じ原語に異なる訳語を持つDB項目が複数ある場合に、全ての訳語、品詞、Skyrimのカテゴリを同じ原語の参考語として翻訳指示へ載せること
+    - 前提条件: 本文に一致し、異なる訳語を持つ同じ原語のDB項目が複数ある。
+    - 確かめ方: AIへ送る翻訳指示を確認し、同じ原語の全ての訳語候補に品詞とSkyrimのカテゴリが付いており、`meaning`が載らないことを確認する。
+    - 対応する実テスト: `internal/store/prebuilt_dictionary_test.go:TestPrebuiltDictionaryReferencesAreReadOnlyAndIncludeAllSenses`
+- R-1-5（最長一致の境界）: 重なり合う原語が本文にある場合に、文字長貪欲マッチで最も長い原語だけを翻訳指示の参考語として載せること
+    - 前提条件: 一方の原語が他方の原語を含み、本文に長い原語がある。
+    - 確かめ方: AIへ送る翻訳指示を確認し、長い原語の全参考語が載り、含まれる短い原語の参考語が載らないことを確認する。
+    - 対応する実テスト: `internal/core/dictionary/dictionary_test.go:TestDictionaryExtract`
+- R-1-6（既存訳の再利用を保つこと）: 既存辞書抽出処理の変更後も、`reference_translation` に保存した本文と完全一致する翻訳対象へ既訳を再利用すること
+    - 前提条件: 対象pluginとは異なるpluginから保存済みの `reference_translation` と完全一致する翻訳対象がある。
+    - 確かめ方: 翻訳実行後の翻訳結果とAIへの送信記録を確認し、完全一致する本文が既訳を使い、AIへ送られないことを確認する。
+    - 対応する実テスト: `internal/engine/engine_test.go:TestRunReusesExistingTranslationWithoutCallingAI`、`internal/harness/oracle_test.go:TestGoOracles/existing-translation-reused`
+- R-1-7（翻訳済みのmod固有名を参考語へ載せること）: mod固有名の翻訳後に、中心DBの `master_term` を使わず、対象pluginの翻訳済み `proper_noun` だけを本文翻訳の参考語へ載せること
+    - 前提条件: 対象pluginに未訳のmod固有名と、そのmod固有名を含む本文がある。別pluginに翻訳済みの同名または別名のmod固有名がある。
+    - 確かめ方: 固有名のAI翻訳と本文のAI翻訳の送信順を確認する。本文翻訳の指示に対象pluginの翻訳済みmod固有名が原語、訳語、mod固有名である出どころとともに載り、別pluginのmod固有名と中心DBの `master_term` だけにある語が参考語に載らないことを確認する。
+    - 対応する実テスト: `internal/engine/engine_test.go:TestBodyReferencesUsesPrebuiltAndTargetPluginProperNouns`
+- R-1-8（送信時の参考語を結果へ表示すること）: 同期翻訳とbatch翻訳が、AIへ送る前に本文で一致した原語ごとの事前作成済み翻訳辞書DBの全参考語と翻訳済みmod固有名の参考語、prompt hashを中心DBへ保存し、翻訳結果の本文を辞書訳へ置換せず、保存した全参考語を原語、訳語、品詞、Skyrimのカテゴリ、出どころとともに候補ごとに表示し、`meaning`を表示しないこと
+    - 前提条件: 本文に一致する原語があり、同じ原語に複数の参考語がある同期翻訳結果またはbatch翻訳結果がある。
+    - 確かめ方: 同期翻訳とbatch翻訳を別々に実行する。AIへ送った翻訳指示、中心DBに保存した事前作成済み翻訳辞書DBの参考語、翻訳済みmod固有名の参考語、prompt hash、翻訳結果API、翻訳結果の本文、翻訳結果の参考語表示を確認し、本文が辞書訳へ置換されず、送信時と同じ全参考語が候補ごとに表示され、候補snapshotと翻訳結果APIとUIに`meaning`がないことを確認する。送信後に辞書DBを変更しても、保存した参考語とprompt hashが表示に使われることを確認する。
+    - 対応する実テスト: `internal/store/translation_reference_snapshot_test.go:TestTranslationReferenceSnapshotRoundTripOmitsMeaning`、`internal/api/app_test.go:TestSetResultSnapshotUsesStoredReferencesAndRejectsHashMismatch`
+- R-1-9（辞書DBを変更しないこと）: 翻訳実行が事前作成済み翻訳辞書の収録判断、レビュー、辞書項目を変更しないこと
+    - 前提条件: 事前作成済み翻訳辞書の状態を記録してから翻訳実行を開始する。
+    - 確かめ方: 翻訳実行の前後で事前作成済み翻訳辞書の `dictionary_term`、`dictionary_sense`、`dictionary_review`、`dictionary_change` の内容と件数を確認し、変化がないことを確認する。
+    - 対応する実テスト: `internal/store/prebuilt_dictionary_test.go:TestPrebuiltDictionaryReferencesAreReadOnlyAndIncludeAllSenses`
+- R-1-10（辞書DBを開けない場合の境界）: アプリ起動時に開発時の `db/dictionary.sqlite3` を開けない、またはDBから `PRAGMA schema_version` を読めない場合に、Wailsを起動せず、辞書DBのpathと起動時の読取り失敗をログへ出力すること
+    - 前提条件: 開発時の `db/dictionary.sqlite3` がない、SQLite接続を作れない、または `PRAGMA schema_version` の読取りに失敗する。
+    - 確かめ方: DBがない場合、SQLite接続を拒否する場合、`PRAGMA schema_version` を失敗させる場合を別々に起動し、終了状態とログを確認する。Wailsの画面、翻訳処理、AIへの送信が開始されず、辞書DBのpathと起動時の読取り失敗が確認できることを確認する。
+    - 対応する実テスト: `internal/store/prebuilt_dictionary_test.go:TestPrebuiltDictionaryReferencesAreReadOnlyAndIncludeAllSenses`
+- R-1-11（翻訳時の読取り失敗の境界）: 同期翻訳とbatch翻訳が、固有名を含む任意のAI送信より前に事前作成済み翻訳辞書のschema、table、column、全原語、訳語、品詞、意味、Skyrimのカテゴリの読取りを検証し、失敗時にAI送信と翻訳結果の保存を開始せず読取り失敗を翻訳画面へ表示すること
+    - 前提条件: アプリ起動後に事前作成済み翻訳辞書のschema、table、column、全原語、訳語、品詞、意味、またはSkyrimのカテゴリの読取りが失敗し、同期翻訳またはbatch翻訳を開始する。
+    - 確かめ方: 同期翻訳とbatch翻訳を別々に開始し、固有名のAI送信、本文のAI送信、batch送信、翻訳結果の保存が始まる前に翻訳画面へ読取り失敗が表示されることを確認する。
+    - 対応する実テスト: `internal/store/prebuilt_dictionary_test.go:TestPrebuiltDictionaryReferencesAreReadOnlyAndIncludeAllSenses`
+- R-1-12（送信時の参考語を確認できない境界）: 保存した参考語から再構成したprompt hashが送信時のprompt hashと一致しない場合に、参考語を伴う翻訳結果を表示せず、不一致を翻訳画面へ表示すること
+    - 前提条件: 同期翻訳結果またはbatch翻訳結果について、保存した参考語または本文を変更してprompt hashが送信時の値と一致しない。
+    - 確かめ方: 同期翻訳とbatch翻訳を別々に用意し、保存済みの参考語または本文を変えてから結果を取得する。参考語を伴う翻訳結果が表示されず、prompt hashの不一致が翻訳画面へ表示されることを確認する。
+    - 対応する実テスト: `internal/api/app_test.go:TestSetResultSnapshotUsesStoredReferencesAndRejectsHashMismatch`
+- R-1-13（本文batch送信前の参考語を固定すること）: 本文batch翻訳が外部batch送信より前に、本文kindの `custom_id` ごとの参考語とprompt hashを仮状態のbatch requestへ保存し、外部batch送信の成功後にexternal batch IDと送信済み状態を保存すること
+    - 前提条件: 本文に一致する原語があるbatch翻訳を開始する。
+    - 確かめ方: 外部batch送信の前後で本文kindと固有名kindのbatch requestを確認し、本文kindだけが送信前に `custom_id`、参考語、prompt hash、仮状態を持ち、送信成功後に同じbatch requestへexternal batch IDと送信済み状態が保存されることを確認する。固有名kindが参考語とprompt hashを持たないことを確認する。
+    - 対応する実テスト: `internal/engine/batch_integration_test.go:TestBatchResubmitsFailedBodyStage`
+- R-1-14（batch送信失敗時の境界）: 外部batch送信が失敗した場合に、仮状態のbatch requestを送信失敗状態へ変更し、進行済みのproper段を作り直さず、同じ `custom_id`で失敗したproper段または本文段から再送し、本文段では参考語とprompt hashも同じ値で再送できること
+    - 前提条件: 参考語とprompt hashを持たないproper kindのbatch request、または参考語とprompt hashを持つ本文kindのbatch requestについて、外部batch送信が失敗する。
+    - 確かめ方: proper段の失敗と本文段の失敗を別々に起こす。外部batch送信を失敗させた後にbatch requestを確認し、external batch IDがなく送信失敗状態であることを確認する。再送後のAIへの送信内容とbatch requestを確認し、proper段の失敗ではproper段から同じ `custom_id` で、本文段の失敗では本文段から同じ `custom_id`、参考語、prompt hashで再開し、送信済み状態へ変わることを確認する。
+    - 対応する実テスト: `internal/engine/batch_integration_test.go:TestBatchResubmitRecoversFromSubmitFailure`、`internal/engine/batch_integration_test.go:TestBatchResubmitsFailedBodyStage`
+- R-1-15（仮状態からのbatch再開の境界）: 外部batch送信前にアプリが終了して仮状態のbatch requestが残る場合に、新規batch進行を開始せず、同じ `custom_id`で仮状態のproper段または本文段から再開すること
+    - 前提条件: external batch IDがなく、仮状態のproper kindまたは本文kindのbatch requestを持つ進行中batchがある。
+    - 確かめ方: proper kindの仮状態と、proper kindが0件の本文kindの仮状態を別々に用意してアプリを再起動する。`batch_request` が削除されず、proper kindの仮状態ではproper段から、本文kindの仮状態では本文段から、同じ `custom_id`で外部batch送信が再開することを確認する。
+    - 対応する実テスト: `internal/engine/batch_integration_test.go:TestBatchResubmitsFailedBodyStage`
+- R-1-16（参考語がない結果の境界）: 既訳再利用、migration前から翻訳済み、または固有名の結果が参考語snapshotを持たない場合に、翻訳結果を表示し、参考語を表示しないこと
+    - 前提条件: 本文の完全一致による既訳再利用、migration前から翻訳済みの本文、または固有名の結果がある。
+    - 確かめ方: 三種類の結果をそれぞれ取得し、翻訳結果が表示され、参考語の配列が空であり、prompt hashの不一致として扱われないことを確認する。
+    - 対応する実テスト: `internal/api/app_test.go:TestSetResultSnapshotUsesStoredReferencesAndRejectsHashMismatch`
+- R-1-17（対象plugin削除時の参考語を削除すること）: 対象pluginを削除する場合に、対象pluginの `translation_reference_snapshot` をbatch requestとbatch translationより前に削除すること
+    - 前提条件: 参考語snapshot、batch request、batch translationを持つ対象pluginがある。
+    - 確かめ方: 対象pluginを削除した後に中心DBを確認し、対象pluginのreference snapshot、batch request、batch translationが残らないことを確認する。
+    - 対応する実テスト: `internal/store/batch_translation_test.go:TestDeleteTargetPluginRemovesBatch`
+- R-1-18（辞書DBをdbへ置きMCPだけを残すこと）: 現在の `dictionary/dictionary.sqlite3` にある事前作成済み翻訳辞書DBを `db/dictionary.sqlite3` へ移動すること。翻訳実行が移動後のpathを読み取り専用で開くこと。dictionary MCPが今後の辞書DBメンテナンスに移動後のpathを使うこと。`dictionary/` にはMCP実行に必要なファイルだけを残すこと。dictionary viewer、`dictionary-viewer` script、MCPから呼ばれないimport commandを残さないこと
+    - 前提条件: `dictionary/dictionary.sqlite3` に事前作成済み翻訳辞書DBがある。migrationを適用する中心DBの `db/aitranslation.dev.sqlite3` は存在しないか、起動時に既存migrationから生成できる。
+    - 確かめ方: DB移動前に `dictionary/dictionary.sqlite3` が存在することを確認する。移動後に `db/dictionary.sqlite3` が存在し、事前作成済み翻訳辞書SQLiteである `dictionary/dictionary.sqlite3` と `dictionary/dictionary.pre-r4.sqlite3` が存在しないことを確認する。中心DBの `db/aitranslation.dev.sqlite3` が移動対象ではなく、既存migrationから生成されることを確認する。`PRAGMA integrity_check` が `ok` を返すことを確認する。`dictionary/main.go` によるMCP起動、`dictionary/run-mcp.sh`、翻訳実行をそれぞれ開始し、既定の接続先またはログが `db/dictionary.sqlite3` であることを確認する。`dictionary/viewer/`、`package.json` の `dictionary-viewer` script、`dictionary/import.go`、`dictionary/dictionary-mcp`、`dictionary/reference/wnjpn.db.gz`、`main.go` のstandalone import/classify command dispatch、`runImport`、`runClassify` が存在しないことを確認する。MCPのsearch、get、classify、review、history、status toolが起動時に登録されることを確認する。MCP分類用のWordNet SQLiteである `dictionary/reference/wnjpn.db`、LICENSE、READMEが残り、`wnjpn.db` のSQLite整合性確認が成功し、READMEに削除済みgzipの取得、展開、checksum、保持方針が残らず、保持する `wnjpn.db` の用途、path、上流出どころ、整合性確認、保持方針が記録されていることを確認する。`dictionary_classify` は登録確認だけに留め、実行しない。dictionary MCPでは`meaning`を含む辞書項目の検索だけを実行し、接続先が移動後のDBであることを確認する。MCPの辞書項目、review、history、classifyを含む書込みtoolは呼ばず、実行前後のDB内容と件数が変わらないことを確認する。classifyの書込み動作の確認は、DB backupまたはrollbackを明示した将来の辞書メンテナンスで扱う。
+    - 対応する実テスト: `internal/store/prebuilt_dictionary_test.go:TestPrebuiltDictionaryReferencesAreReadOnlyAndIncludeAllSenses`

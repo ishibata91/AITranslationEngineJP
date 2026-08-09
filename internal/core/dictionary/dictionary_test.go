@@ -103,6 +103,15 @@ func TestDictionaryFirstWinsOnDuplicateSource(t *testing.T) {
 	}
 }
 
+// Extract は Apply と同じ最長一致・語境界規則で一致語だけを返し、本文を変更しない本文参考語抽出用の入口である。
+func TestDictionaryExtract(t *testing.T) {
+	d := NewDictionary([]Term{{"Iron", "鉄"}, {"Iron Sword", "鉄の剣"}, {"Sword", "剣"}})
+	got := d.Extract("An Iron Sword and a Swordsman.")
+	if !sameSources(got, []string{"Iron Sword"}) {
+		t.Errorf("Extract = %v, want [Iron Sword]", sources(got))
+	}
+}
+
 func sources(terms []Term) []string {
 	out := make([]string, len(terms))
 	for i, t := range terms {

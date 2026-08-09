@@ -30,11 +30,11 @@ func main() {
 		webviewDataPath = filepath.Join(dir, "webview2")
 	}
 
-	app, st, err := bootstrap.NewApp()
+	app, closer, err := bootstrap.NewApp()
 	if err != nil {
 		log.Fatalf("bootstrap 失敗: %v", err)
 	}
-	defer func() { _ = st.Close() }()
+	defer func() { _ = closer.Close() }()
 
 	if err := wails.Run(&options.App{
 		Title:  "AITranslationEngineJp",

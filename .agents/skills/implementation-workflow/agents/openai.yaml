@@ -1,0 +1,4 @@
+interface:
+  display_name: "Implementation Workflow"
+  short_description: "Implement approved designs and pause at implementation HITL"
+  default_prompt: "Use $implementation-workflow to implement and review approved design artifacts."

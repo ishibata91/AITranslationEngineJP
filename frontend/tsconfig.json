@@ -10,7 +10,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "allowUnreachableCode": false,
-    "types": ["vite/client", "node", "vitest/globals", "vitest/jsdom"],
+    "types": ["vite/client", "node", "vitest/globals", "vitest/jsdom", "react-syntax-highlighter"],
     "allowJs": false,
     "paths": {
       "@ui/*": ["src/ui/*"],

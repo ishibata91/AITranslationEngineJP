@@ -2,11 +2,14 @@ package api
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"strconv"
 	"strings"
 	"testing"
 
+	"aitranslationenginejp/internal/core/prompt"
 	"aitranslationenginejp/internal/engine"
 	"aitranslationenginejp/internal/model"
 	"aitranslationenginejp/internal/provider"
@@ -59,6 +62,33 @@ func TestNarrationResultView(t *testing.T) {
 	}
 }
 
+func TestSetResultSnapshotUsesStoredReferencesAndRejectsHashMismatch(t *testing.T) {
+	ctx := context.Background()
+	legacy := ResultView{Source: "legacy"}
+	if err := setResultSnapshot(ctx, &fakePageStore{}, "A.esp", model.BatchKindNarration, 1, "base", "directive", "legacy", &legacy); err != nil {
+		t.Fatalf("snapshotなしの結果表示: %v", err)
+	}
+	if legacy.Prompt != "" || len(legacy.Terms) != 0 {
+		t.Fatalf("snapshotなしの結果へ参考語を付けた: %+v", legacy)
+	}
+	refs := []model.TranslationReference{{Source: "Riften", Dest: "リフテン", PartOfSpeech: "noun", SkyrimCategory: "city", Origin: "事前作成済み翻訳辞書"}}
+	p := prompt.ComposeBodyPrompt("base", "directive", "The Riften guard.", []prompt.BodyReference{{Source: "Riften", Dest: "リフテン", PartOfSpeech: "noun", SkyrimCategory: "city", Origin: "事前作成済み翻訳辞書"}})
+	hash := sha256.Sum256([]byte(prompt.RenderPrompt(p)))
+	key := "A.esp:n:1"
+	store := &fakePageStore{snapshots: map[string]model.TranslationReferenceSnapshot{key: {Plugin: "A.esp", Kind: model.BatchKindNarration, RowID: 1, References: refs, PromptHash: hex.EncodeToString(hash[:])}}}
+	view := ResultView{}
+	if err := setResultSnapshot(ctx, store, "A.esp", model.BatchKindNarration, 1, "base", "directive", "The Riften guard.", &view); err != nil {
+		t.Fatalf("setResultSnapshot: %v", err)
+	}
+	if len(view.Terms) != 1 || view.Terms[0].Dest != "リフテン" || strings.Contains(view.Prompt, "meaning") {
+		t.Errorf("表示用snapshot = %+v", view)
+	}
+	store.snapshots[key] = model.TranslationReferenceSnapshot{Plugin: "A.esp", Kind: model.BatchKindNarration, RowID: 1, References: refs, PromptHash: "mismatch"}
+	if err := setResultSnapshot(ctx, store, "A.esp", model.BatchKindNarration, 1, "base", "directive", "The Riften guard.", &ResultView{}); err == nil {
+		t.Error("prompt hash不一致を拒否しなかった")
+	}
+}
+
 // extractor 子プロセスの引数を組み立てること（publish 済み DLL を dotnet で直接実行する）。
 // dotnet run（run --project）で毎回 MSBuild を評価するのを避けるため、先頭は DLL パスで
 // run・--project を含まないことを固定する。
@@ -93,6 +123,12 @@ type fakePageStore struct {
 	untranslatedCalls  int
 	syncRetryReady     bool
 	countNarrationsErr error
+	snapshots          map[string]model.TranslationReferenceSnapshot
+}
+
+func (s *fakePageStore) GetTranslationReferenceSnapshot(_ context.Context, plugin, kind string, rowID int64) (model.TranslationReferenceSnapshot, bool, error) {
+	row, ok := s.snapshots[plugin+":"+kind+":"+strconv.FormatInt(rowID, 10)]
+	return row, ok, nil
 }
 
 // plugin フィルタは pageRows の cursor 境界ロジック確認には使わないため無視する（呼び出しは "" を渡す）。
