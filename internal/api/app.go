@@ -115,7 +115,9 @@ func (d *DotnetExtractor) run(ctx context.Context, args []string) error {
 		return fmt.Errorf("抽出子が未ビルド（%s）。dev 起動 script が publish していない可能性がある: %w", d.ext.DLLPath, err)
 	}
 	// dotnet は固定コマンド、引数は内部生成のパスのみ。利用者が選んだ plugin を抽出するための意図的な子プロセス起動。
-	out, err := exec.CommandContext(ctx, "dotnet", args...).CombinedOutput() //nolint:gosec // 固定コマンド dotnet・内部生成引数
+	cmd := exec.CommandContext(ctx, "dotnet", args...) //nolint:gosec // 固定コマンド dotnet・内部生成引数
+	hideChildProcessWindow(cmd)
+	out, err := cmd.CombinedOutput()
 	if err != nil {
 		// 元実装と同じく dotnet の stdout/stderr をエラーへ含める。接頭は付けず、呼び出し側（RunExtractAndTranslate）が
 		// "抽出に失敗" を付ける。最終メッセージは "抽出に失敗: <exec error>: <出力>" でリファクタ前と一致する。
