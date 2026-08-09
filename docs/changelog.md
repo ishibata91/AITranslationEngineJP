@@ -4,6 +4,22 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-08-09 事前作成済み翻訳辞書を本文翻訳の参考語へ置換（replace-extraction-to-prebuilt-dictionary）
+
+### 変更
+
+- 本文翻訳は中心 DB から横断辞書を派生して本文を機械置換する経路を廃止し、`db/dictionary.sqlite3` を読み取り専用で開いて取得する事前作成済み翻訳辞書を AI への参考語として送る。
+- 同期翻訳と batch 翻訳は、送信した参考語とプロンプト hash を実行単位で保存する。結果一覧は送信時 snapshot だけを使って参考語とプロンプトを表示する。
+- batch の本文送信前には仮送信状態と snapshot を保存する。送信失敗後の再送信は同じ本文 snapshot を再利用する。
+- `meaning` は辞書の検証と管理用途に残し、本文翻訳プロンプト、送信 snapshot、結果 API、翻訳実行画面の表示対象から除外する。
+
+### 判断
+
+- `docs/architecture.md` へ、事前作成済み翻訳辞書 reader の責務を反映した。人間が恒久仕様として承認した。
+- 自動抽出で作る `master_term` は本文翻訳の権威参照として使わない。対象 plugin 内で AI が確定した固有名だけは本文翻訳の参考語として使う。
+- 統合後に `npm run test:backend` と `npm run test:frontend` を実行した。backend と frontend の両方が通過した。frontend build は Wails 生成型と依存済み node_modules を参照して実行した。
+- 根拠となる作業計画: `docs/exec-plans/completed/replace-extraction-to-prebuilt-dictionary/`。
+
 ## 2026-08-02 screen の画面仕様を Storybook と単体テストで対応付け（storybook-screen-spec-harness）
 
 ### 変更
