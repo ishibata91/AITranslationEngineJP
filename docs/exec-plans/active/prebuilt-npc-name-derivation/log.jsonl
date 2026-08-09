@@ -1,0 +1,7 @@
+{"at":"2026-08-09T23:22:38+09:00","actor":"agent:design_reviewer","type":"design_review_rejected","documents":["plan.md","design.md","spec.md","pending.md","references.md"]}
+{"at":"2026-08-09T23:26:18+09:00","actor":"agent:design_reviewer","type":"design_review_rejected","documents":["plan.md","design.md","spec.md","pending.md","references.md"]}
+{"at":"2026-08-09T23:28:24+09:00","actor":"agent:design_reviewer","type":"design_review_rejected","documents":["plan.md","design.md","spec.md","pending.md","references.md"]}
+{"at":"2026-08-09T23:39:30+09:00","actor":"codex","type":"implementation_review_passed","documents":["spec.md","references.md","implementation.md"]}
+{"at":"2026-08-09T23:53:30+09:00","actor":"codex","type":"implementation_review_rejected","documents":["spec.md","references.md","implementation.md"]}
+{"at":"2026-08-09T23:53:30+09:00","actor":"codex","type":"implementation_review_passed","documents":["spec.md","references.md","implementation.md"]}
+{"at":"2026-08-09T23:54:34+09:00","actor":"human","type":"implementation_approved","documents":["implementation.md"]}
