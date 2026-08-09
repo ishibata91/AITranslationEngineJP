@@ -481,6 +481,99 @@ func TestBodyReferencesUsesPrebuiltAndTargetPluginProperNouns(t *testing.T) {
 	}
 }
 
+func TestBodyReferencesDerivesPrebuiltNPCNameParts(t *testing.T) {
+	ctx := context.Background()
+	const plugin = "target.esp"
+	npc := model.PrebuiltDictionaryReference{Source: "Grelod the Kind", Dest: "親切者のグレロッド", PartOfSpeech: "noun", SkyrimCategory: recNPC}
+
+	tests := []struct {
+		name      string
+		prebuilt  []model.PrebuiltDictionaryReference
+		proper    []model.ProperNoun
+		extracted []model.ExtractedField
+		want      []model.TranslationReference
+		forbidden []string
+	}{
+		{
+			name:     "NPCの二つ名から部分形を加える",
+			prebuilt: []model.PrebuiltDictionaryReference{npc},
+			want:     []model.TranslationReference{{Source: "Grelod", Dest: "グレロッド", PartOfSpeech: "noun", SkyrimCategory: recNPC, Origin: "事前作成済み辞書"}},
+		},
+		{
+			name: "同じ英日対にNPCがあれば一度だけ加える",
+			prebuilt: []model.PrebuiltDictionaryReference{
+				{Source: npc.Source, Dest: npc.Dest, PartOfSpeech: "noun", SkyrimCategory: "BOOK"}, npc,
+			},
+			want: []model.TranslationReference{{Source: "Grelod", Dest: "グレロッド", PartOfSpeech: "noun", SkyrimCategory: recNPC, Origin: "事前作成済み辞書"}},
+		},
+		{
+			name:      "NPCでない氏名と部分形にならない氏名を加えない",
+			prebuilt:  []model.PrebuiltDictionaryReference{{Source: npc.Source, Dest: npc.Dest, SkyrimCategory: "BOOK"}, {Source: "Inigo", Dest: "イニゴ", SkyrimCategory: recNPC}},
+			forbidden: []string{"Grelod", "Inigo"},
+		},
+		{
+			name:      "完全形または対象pluginの固有名の原語を優先する",
+			prebuilt:  []model.PrebuiltDictionaryReference{npc, {Source: "Grelod", Dest: "既存訳", SkyrimCategory: "NPC_"}},
+			proper:    []model.ProperNoun{{Plugin: plugin, Source: "Grelod", Dest: "短縮名訳", Status: statusTranslated}},
+			forbidden: []string{"グレロッド"},
+		},
+		{
+			name:     "他pluginの小文字用法を混ぜない",
+			prebuilt: []model.PrebuiltDictionaryReference{npc},
+			extracted: []model.ExtractedField{
+				{Plugin: "other.esp", Rec: recInfo, Field: fieldNam1, Source: "grelod grelod grelod"},
+			},
+			want: []model.TranslationReference{{Source: "Grelod", Dest: "グレロッド", PartOfSpeech: "noun", SkyrimCategory: recNPC, Origin: "事前作成済み辞書"}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := &fakeStore{proper: append([]model.ProperNoun(nil), tt.proper...), extracted: tt.extracted}
+			reader := fakePrebuiltDictionary{references: append([]model.PrebuiltDictionaryReference(nil), tt.prebuilt...)}
+			refs, err := New(store, &fakeTranslator{}, fakeLexicon{}, nil, nil, reader).bodyReferences(ctx, plugin)
+			if err != nil {
+				t.Fatalf("bodyReferences: %v", err)
+			}
+			for _, want := range tt.want {
+				count := 0
+				for _, got := range refs {
+					if got == want {
+						count++
+					}
+				}
+				if count != 1 {
+					t.Errorf("派生参考語 %v = %d件, refs=%+v", want, count, refs)
+				}
+			}
+			for _, source := range tt.forbidden {
+				for _, got := range refs {
+					if got.Source == source && got.Dest == "グレロッド" {
+						t.Errorf("対象外の派生参考語が残った: %+v", got)
+					}
+				}
+			}
+			if len(store.proper) != len(tt.proper) || len(store.terms) != 0 || len(store.derivedPropers) != 0 {
+				t.Errorf("本文参考語の作成が保存済み辞書を変更した: proper=%+v terms=%+v derived=%+v", store.proper, store.terms, store.derivedPropers)
+			}
+		})
+	}
+}
+
+func TestPlanBodyRequestsUsesPrebuiltNPCDerivedReferences(t *testing.T) {
+	ctx := context.Background()
+	store := &fakeStore{untranslated: []model.Narration{{ID: 1, Plugin: "A.esp", Source: "Grelod arrived."}}}
+	reader := fakePrebuiltDictionary{references: []model.PrebuiltDictionaryReference{{Source: "Grelod the Kind", Dest: "親切者のグレロッド", SkyrimCategory: recNPC}}}
+	runner := NewBatchRunner(New(store, &fakeTranslator{}, fakeLexicon{}, nil, nil, reader), nil, store)
+	planned, err := runner.planBodyRequests(ctx, "A.esp", false)
+	if err != nil {
+		t.Fatalf("planBodyRequests: %v", err)
+	}
+	if len(planned) != 1 || !strings.Contains(planned[0].ReferencesJSON, "グレロッド") {
+		t.Fatalf("batch本文の参考語に派生語がない: %+v", planned)
+	}
+}
+
 // reader検証が失敗した場合は同期翻訳で固有名・本文のprovider送信を開始しない。
 func TestRunStopsBeforeProviderWhenPrebuiltValidationFails(t *testing.T) {
 	store := &fakeStore{untranslated: []model.Narration{{ID: 1, Source: "See Riften."}}, proper: []model.ProperNoun{{ID: 2, Source: "Riften"}}}

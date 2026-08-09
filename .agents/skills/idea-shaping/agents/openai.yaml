@@ -1,0 +1,4 @@
+interface:
+  display_name: "アイデア形成"
+  short_description: "砂場で評価できる最小案へアイデアを明確に具体化する技能"
+  default_prompt: "$idea-shaping を使って、このアイデアを砂場で試せる最小案にしてください。"

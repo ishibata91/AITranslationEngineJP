@@ -1,4 +1,0 @@
-interface:
-  display_name: "アイデア評価ループ"
-  short_description: "アイデアの効果と副作用を比較し、支持・棄却・判断不能を判定する"
-  default_prompt: "$idea-evaluation-loop を使って、このアイデアが実際に効くか比較評価してください。"

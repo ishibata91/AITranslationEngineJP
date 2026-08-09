@@ -376,7 +376,11 @@ func (e *Engine) bodyReferences(ctx context.Context, plugin string) ([]model.Tra
 	if err != nil {
 		return nil, fmt.Errorf("対象pluginの翻訳済み固有名取得: %w", err)
 	}
-	return toTranslationReferences(prebuilt, propers), nil
+	usage, err := e.dialogueUsageForPlugin(ctx, plugin)
+	if err != nil {
+		return nil, err
+	}
+	return appendPrebuiltNPCDerivedReferences(prebuilt, propers, usage), nil
 }
 
 // toTranslationReferences はreader内部候補を本文用候補へ変換して重複を除く。
@@ -396,6 +400,72 @@ func toTranslationReferences(prebuilt []model.PrebuiltDictionaryReference, prope
 	}
 	for _, pn := range propers {
 		appendUnique(model.TranslationReference{Source: pn.Source, Dest: pn.Dest, Origin: "翻訳済みmod固有名"})
+	}
+	return out
+}
+
+// appendPrebuiltNPCDerivedReferences は事前作成辞書の NPC 氏名から本文実行中だけで使う部分形を加える。
+// reader は FULL と SHRT を区別しないため、二つ名と姓名分割だけを fullPairs として termderive へ渡す。
+// 派生結果は保存せず、完全形と対象 plugin の固有名にある原語を優先して除外する。
+func appendPrebuiltNPCDerivedReferences(prebuilt []model.PrebuiltDictionaryReference, propers []model.ProperNoun, usage termderive.Usage) []model.TranslationReference {
+	baseSources := make(map[string]bool, len(prebuilt)+len(propers))
+	pairs := make([]termderive.NamePair, 0, len(prebuilt))
+	pairReferences := make([]model.PrebuiltDictionaryReference, 0, len(prebuilt))
+	seenPairs := make(map[string]struct{}, len(prebuilt))
+	for _, r := range prebuilt {
+		baseSources[r.Source] = true
+		if r.SkyrimCategory != recNPC {
+			continue
+		}
+		key := r.Source + "\x00" + r.Dest
+		if _, ok := seenPairs[key]; ok {
+			continue
+		}
+		seenPairs[key] = struct{}{}
+		pairs = append(pairs, termderive.NamePair{Source: r.Source, Dest: r.Dest, Index: len(pairReferences)})
+		pairReferences = append(pairReferences, r)
+	}
+	for _, pn := range propers {
+		baseSources[pn.Source] = true
+	}
+
+	derived := termderive.DeriveTerms(pairs, nil, usage, baseSources, termderive.DefaultDeriveConfig())
+	refs := toTranslationReferences(prebuilt, propers)
+	if len(derived) == 0 {
+		return refs
+	}
+
+	// 同じ部分形の英日対は、termderive が選んだ最初の NPC の表示用メタデータを引き継ぐ。
+	derivedRefs := make([]model.TranslationReference, 0, len(derived))
+	seenDerived := make(map[string]struct{}, len(derived))
+	for _, d := range derived {
+		key := d.Source + "\x00" + d.Dest
+		if _, ok := seenDerived[key]; ok {
+			continue
+		}
+		if d.SourceIndex < 0 || d.SourceIndex >= len(pairReferences) {
+			continue
+		}
+		r := pairReferences[d.SourceIndex]
+		derivedRefs = append(derivedRefs, model.TranslationReference{
+			Source: d.Source, Dest: d.Dest, PartOfSpeech: r.PartOfSpeech,
+			SkyrimCategory: r.SkyrimCategory, Origin: "事前作成済み辞書",
+		})
+		seenDerived[key] = struct{}{}
+	}
+	return appendUniqueTranslationReferences(refs, derivedRefs)
+}
+
+func appendUniqueTranslationReferences(base, added []model.TranslationReference) []model.TranslationReference {
+	out := make([]model.TranslationReference, 0, len(base)+len(added))
+	seen := make(map[string]struct{}, len(base)+len(added))
+	for _, r := range append(base, added...) {
+		key := r.Source + "\x00" + r.Dest + "\x00" + r.PartOfSpeech + "\x00" + r.SkyrimCategory + "\x00" + r.Origin
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, r)
 	}
 	return out
 }
@@ -705,13 +775,18 @@ func npcNamePairs(refs []model.ReferenceTranslation) (fullPairs, shrtPairs []ter
 // 材料は既訳の有無に依らないため extracted_field（翻訳対象の原文）から取る。
 // 部分形の派生（DeriveMasterTerms と deriveRunProperNouns）が一般語との衝突を落とすのに使う。
 func (e *Engine) dialogueUsage(ctx context.Context) (termderive.Usage, error) {
+	return e.dialogueUsageForPlugin(ctx, "")
+}
+
+// dialogueUsageForPlugin は指定 plugin の台詞だけから用法分布を作る。plugin が空なら全 plugin を集計する。
+func (e *Engine) dialogueUsageForPlugin(ctx context.Context, plugin string) (termderive.Usage, error) {
 	fields, err := e.store.ListExtractedFields(ctx)
 	if err != nil {
 		return termderive.Usage{}, fmt.Errorf("用法分布の材料（extracted_field）の取得: %w", err)
 	}
 	dialogues := make([]string, 0, len(fields))
 	for _, f := range fields {
-		if f.Rec == recInfo && f.Field == fieldNam1 && strings.TrimSpace(f.Source) != "" {
+		if (plugin == "" || f.Plugin == plugin) && f.Rec == recInfo && f.Field == fieldNam1 && strings.TrimSpace(f.Source) != "" {
 			dialogues = append(dialogues, f.Source)
 		}
 	}

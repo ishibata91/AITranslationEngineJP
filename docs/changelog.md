@@ -4,6 +4,21 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-08-09 事前作成辞書の NPC 氏名から本文参考語を派生（prebuilt-npc-name-derivation）
+
+### 変更
+
+- 事前作成辞書に `NPC_` としてある二つ名と姓名から、安全規則を通った部分形の訳を本文翻訳の参考語へ実行中だけ追加する。
+- 本文参考語の派生は対象 plugin の会話文だけを用法集計に使う。
+- 派生元 NPC のメタデータは、派生規則が返す入力位置を使って選ぶ。
+
+### 判断
+
+- `docs/architecture.md` は反映しない。既存の engine と純粋規則の責務内で本文参考語を拡張しており、層構成、依存方向、強い制約、Wails 境界は変わらないためである。
+- 人間は実装HITLで承認した。派生結果は事前作成辞書、横断辞書、対象 plugin の固有名へ保存しない。
+- backend 全検証と `git diff --check` は通過した。
+- 根拠となる作業計画: `docs/exec-plans/completed/prebuilt-npc-name-derivation/`。
+
 ## 2026-08-09 事前作成済み翻訳辞書を本文翻訳の参考語へ置換（replace-extraction-to-prebuilt-dictionary）
 
 ### 変更

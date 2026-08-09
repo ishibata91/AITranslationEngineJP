@@ -31,6 +31,7 @@ const (
 type NamePair struct {
 	Source string
 	Dest   string
+	Index  int // 入力列内の位置。派生元のメタデータを呼び出し側で復元する。
 }
 
 // Usage は本文中の各英単語の用法分布。語は小文字化して数える。
@@ -42,9 +43,10 @@ type Usage struct {
 
 // DerivedTerm は派生で得た「原語（部分形）→ 確定訳語」と由来種別。
 type DerivedTerm struct {
-	Source string
-	Dest   string
-	Kind   string
+	Source      string
+	Dest        string
+	Kind        string
+	SourceIndex int // 派生元 NamePair の Index。
 }
 
 // DeriveConfig は派生規則のしきい値と除外集合。実データ検証で決めた既定は DefaultDeriveConfig が返す。
@@ -86,12 +88,12 @@ func wordSet(s string) map[string]bool {
 func DeriveTerms(fullPairs, shrtPairs []NamePair, usage Usage, baseSources map[string]bool, cfg DeriveConfig) []DerivedTerm {
 	out := []DerivedTerm{}
 	seen := map[string]bool{}
-	add := func(source, dest, kind string) {
+	add := func(source, dest, kind string, sourceIndex int) {
 		if baseSources[source] || seen[source] {
 			return
 		}
 		seen[source] = true
-		out = append(out, DerivedTerm{Source: source, Dest: dest, Kind: kind})
+		out = append(out, DerivedTerm{Source: source, Dest: dest, Kind: kind, SourceIndex: sourceIndex})
 	}
 
 	// 派生規則ごとに helper を呼ぶ。同一原語は最初に採れた由来を保つため shrt → byname → two の順で適用する。
@@ -102,17 +104,17 @@ func DeriveTerms(fullPairs, shrtPairs []NamePair, usage Usage, baseSources map[s
 }
 
 // deriveShrt は shrt 由来（作者記述の短縮別名）の安全な対を add へ渡す。
-func deriveShrt(shrtPairs []NamePair, usage Usage, cfg DeriveConfig, add func(source, dest, kind string)) {
+func deriveShrt(shrtPairs []NamePair, usage Usage, cfg DeriveConfig, add func(source, dest, kind string, sourceIndex int)) {
 	for _, p := range shrtPairs {
 		if safePair(p.Source, p.Dest, usage, cfg) {
-			add(p.Source, p.Dest, KindShrt)
+			add(p.Source, p.Dest, KindShrt, p.Index)
 		}
 	}
 }
 
 // deriveByname は byname 由来の安全な対を add へ渡す。
 // " the " を含む名の前部（英）と、Dest 末尾のカタカナ連（日）を対にする。
-func deriveByname(fullPairs []NamePair, usage Usage, cfg DeriveConfig, add func(source, dest, kind string)) {
+func deriveByname(fullPairs []NamePair, usage Usage, cfg DeriveConfig, add func(source, dest, kind string, sourceIndex int)) {
 	for _, p := range fullPairs {
 		if !hasByname(p.Source) {
 			continue
@@ -123,7 +125,7 @@ func deriveByname(fullPairs []NamePair, usage Usage, cfg DeriveConfig, add func(
 			continue
 		}
 		if safePair(en, ja, usage, cfg) {
-			add(en, ja, KindByname)
+			add(en, ja, KindByname, p.Index)
 		}
 	}
 }
@@ -131,7 +133,7 @@ func deriveByname(fullPairs []NamePair, usage Usage, cfg DeriveConfig, add func(
 // deriveTwo は two 由来（姓名分割）の安全な対を add へ渡す。
 // 空白 2 語の姓名を、漢字を含まない中黒区切りの Dest と同数で整列する。語数一致・中黒区切り・漢字なしが
 // 対応ずれの防御になるため、供給元（base ゲームか mod か、人間の既訳か AI 訳か）では絞らない。
-func deriveTwo(fullPairs []NamePair, usage Usage, cfg DeriveConfig, add func(source, dest, kind string)) {
+func deriveTwo(fullPairs []NamePair, usage Usage, cfg DeriveConfig, add func(source, dest, kind string, sourceIndex int)) {
 	for _, p := range fullPairs {
 		if hasByname(p.Source) {
 			continue
@@ -145,7 +147,7 @@ func deriveTwo(fullPairs []NamePair, usage Usage, cfg DeriveConfig, add func(sou
 			en := strings.TrimSpace(toks[i])
 			ja := strings.TrimSpace(parts[i])
 			if safePair(en, ja, usage, cfg) {
-				add(en, ja, KindTwo)
+				add(en, ja, KindTwo, p.Index)
 			}
 		}
 	}

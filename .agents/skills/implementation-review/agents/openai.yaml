@@ -1,4 +1,4 @@
 interface:
   display_name: "Implementation Review"
-  short_description: "Review implementation evidence against approved specifications"
-  default_prompt: "Use $implementation-review to validate implementation and test evidence against approved artifacts."
+  short_description: "plan と変更差分だけから実装と重大な不具合を検証する"
+  default_prompt: "$implementation-review を使い、plan.md と変更差分だけから実装の充足と重大な不具合を検証する。"
