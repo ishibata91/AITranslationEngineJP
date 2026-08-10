@@ -4,6 +4,21 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-08-10 ハイフンを含む NPC 氏名の部分形を本文参考語へ追加（hyphenated-npc-name-derivation）
+
+### 変更
+
+- 事前作成辞書と翻訳対象 mod の NPC 氏名について、英語のハイフンを含む姓と日本語の中黒区切りを対応付け、部分形の訳を本文参考語へ加える。
+- 横断辞書を作る既存の人名派生は、ハイフンを含む姓の新しい対応付けを使わない。
+- 非Windowsでは、抽出子プロセスのウィンドウ設定を変更しない。
+
+### 判断
+
+- `docs/architecture.md` は反映しない。人名派生規則と API の既存責務内の振る舞いを拡張しており、層構成、依存方向、強い制約、Wails 境界は変わらないためである。
+- 人間は実装HITLで承認した。
+- backend 全検証と `git diff --check` は通過した。
+- 根拠となる作業計画: `docs/exec-plans/completed/hyphenated-npc-name-derivation/`。
+
 ## 2026-08-09 事前作成辞書の NPC 氏名から本文参考語を派生（prebuilt-npc-name-derivation）
 
 ### 変更

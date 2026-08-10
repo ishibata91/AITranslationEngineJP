@@ -138,6 +138,55 @@ func TestDeriveTerms(t *testing.T) {
 	}
 }
 
+func TestDeriveTermsHyphenatedNameParts(t *testing.T) {
+	empty := Usage{LC: map[string]int{}, UC: map[string]int{}}
+	enabled := DefaultDeriveConfig()
+	enabled.HyphenatedNameParts = true
+
+	tests := []struct {
+		name string
+		pair NamePair
+		cfg  DeriveConfig
+		want []string
+	}{
+		{
+			name: "ハイフンを含む姓へ連続する中黒部分を対応付ける",
+			pair: NamePair{Source: "Hoge Black-Briar", Dest: "ホゲ・ブラック・ブライア"},
+			cfg:  enabled,
+			want: []string{"Hoge=>ホゲ:two", "Black-Briar=>ブラック・ブライア:two"},
+		},
+		{
+			name: "複数のハイフンを含む姓へ連続する中黒部分を対応付ける",
+			pair: NamePair{Source: "Hoge Black-Gray-Briar", Dest: "ホゲ・ブラック・グレイ・ブライア"},
+			cfg:  enabled,
+			want: []string{"Hoge=>ホゲ:two", "Black-Gray-Briar=>ブラック・グレイ・ブライア:two"},
+		},
+		{
+			name: "中黒部分の数が一致しなければ捨てる",
+			pair: NamePair{Source: "Hoge Black-Briar", Dest: "ホゲ・ブラック"},
+			cfg:  enabled,
+		},
+		{
+			name: "中黒部分が多すぎれば捨てる",
+			pair: NamePair{Source: "Hoge Black-Briar", Dest: "ホゲ・ブラック・ブライア・ジュニア"},
+			cfg:  enabled,
+		},
+		{
+			name: "有効化しなければ従来の語数不一致として捨てる",
+			pair: NamePair{Source: "Hoge Black-Briar", Dest: "ホゲ・ブラック・ブライア"},
+			cfg:  DefaultDeriveConfig(),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := DeriveTerms([]NamePair{tt.pair}, nil, empty, map[string]bool{}, tt.cfg)
+			if !sameKeys(got, tt.want) {
+				t.Errorf("DeriveTerms = %v, want %v", derivedKeys(got), tt.want)
+			}
+		})
+	}
+}
+
 // 安全フィルタ safePair の各棄却条件と採用条件を 1 つずつ突く。
 func TestSafePair(t *testing.T) {
 	cfg := DefaultDeriveConfig()

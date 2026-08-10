@@ -500,6 +500,14 @@ func TestBodyReferencesDerivesPrebuiltNPCNameParts(t *testing.T) {
 			want:     []model.TranslationReference{{Source: "Grelod", Dest: "グレロッド", PartOfSpeech: "noun", SkyrimCategory: recNPC, Origin: "事前作成済み辞書"}},
 		},
 		{
+			name:     "NPCのハイフンを含む姓から部分形を加える",
+			prebuilt: []model.PrebuiltDictionaryReference{{Source: "Hoge Black-Briar", Dest: "ホゲ・ブラック・ブライア", PartOfSpeech: "noun", SkyrimCategory: recNPC}},
+			want: []model.TranslationReference{
+				{Source: "Hoge", Dest: "ホゲ", PartOfSpeech: "noun", SkyrimCategory: recNPC, Origin: "事前作成済み辞書"},
+				{Source: "Black-Briar", Dest: "ブラック・ブライア", PartOfSpeech: "noun", SkyrimCategory: recNPC, Origin: "事前作成済み辞書"},
+			},
+		},
+		{
 			name: "同じ英日対にNPCがあれば一度だけ加える",
 			prebuilt: []model.PrebuiltDictionaryReference{
 				{Source: npc.Source, Dest: npc.Dest, PartOfSpeech: "noun", SkyrimCategory: "BOOK"}, npc,
@@ -562,15 +570,30 @@ func TestBodyReferencesDerivesPrebuiltNPCNameParts(t *testing.T) {
 
 func TestPlanBodyRequestsUsesPrebuiltNPCDerivedReferences(t *testing.T) {
 	ctx := context.Background()
-	store := &fakeStore{untranslated: []model.Narration{{ID: 1, Plugin: "A.esp", Source: "Grelod arrived."}}}
-	reader := fakePrebuiltDictionary{references: []model.PrebuiltDictionaryReference{{Source: "Grelod the Kind", Dest: "親切者のグレロッド", SkyrimCategory: recNPC}}}
+	store := &fakeStore{untranslated: []model.Narration{{ID: 1, Plugin: "A.esp", Source: "Hoge met Black-Briar."}}}
+	reader := fakePrebuiltDictionary{references: []model.PrebuiltDictionaryReference{{Source: "Hoge Black-Briar", Dest: "ホゲ・ブラック・ブライア", SkyrimCategory: recNPC}}}
 	runner := NewBatchRunner(New(store, &fakeTranslator{}, fakeLexicon{}, nil, nil, reader), nil, store)
 	planned, err := runner.planBodyRequests(ctx, "A.esp", false)
 	if err != nil {
 		t.Fatalf("planBodyRequests: %v", err)
 	}
-	if len(planned) != 1 || !strings.Contains(planned[0].ReferencesJSON, "グレロッド") {
+	if len(planned) != 1 || !strings.Contains(planned[0].ReferencesJSON, "ホゲ") || !strings.Contains(planned[0].ReferencesJSON, "ブラック・ブライア") {
 		t.Fatalf("batch本文の参考語に派生語がない: %+v", planned)
+	}
+}
+
+func TestDeriveMasterTermsKeepsHyphenatedNamePartsDisabled(t *testing.T) {
+	store := &fakeStore{
+		recordTypes: []model.RecordType{{Rec: recNPC, Field: fieldFull, Box: boxProperNoun}},
+		refs:        []model.ReferenceTranslation{{Rec: recNPC, Field: fieldFull, Source: "Hoge Black-Briar", Dest: "ホゲ・ブラック・ブライア"}},
+	}
+	if _, err := New(store, nil, nil, nil, nil).DeriveMasterTerms(context.Background()); err != nil {
+		t.Fatalf("DeriveMasterTerms: %v", err)
+	}
+	for _, term := range store.insertedTerms {
+		if term.Source == "Hoge" || term.Source == "Black-Briar" {
+			t.Errorf("横断辞書がハイフン姓の部分形を派生した: %+v", store.insertedTerms)
+		}
 	}
 }
 
