@@ -56,3 +56,9 @@ C# 抽出子（`tools/extractor`、Mutagen）は dev 経路でしか動かない
 - 現状の抽出は dotnet SDK ＋ C# ソース前提（`run-wails.sh` が起動前に `dotnet publish` する dev 経路のみ）。配布 app には SDK もソースも無いため成り立たない。
 - 配布で要ること: 抽出子の self-contained publish（.NET ランタイム ＋ Mutagen を対象 OS の RID ごとに同梱）、publish 成果物の `wails build` 成果（.app / 配布ディレクトリ）への同梱、packaged 実行時のパス解決（dev は repo 相対、packaged は app リソース配下）。
 - 前提: `wails build`・release フロー自体が未整備で、それを立てるところから要る。規模が大きいため `feature-workflow` の別 task で扱う。
+
+
+### 7. 既存DBに存在する固有名の置き換えが機能してないか，プリビルドDBがデータを持ってない
+xtranslatorで開いて上書きしない，で運用回避は可能だが・・
+
+### 8. 女性NPCの口調をもっと女性っぽくする
