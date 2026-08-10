@@ -429,7 +429,9 @@ func appendPrebuiltNPCDerivedReferences(prebuilt []model.PrebuiltDictionaryRefer
 		baseSources[pn.Source] = true
 	}
 
-	derived := termderive.DeriveTerms(pairs, nil, usage, baseSources, termderive.DefaultDeriveConfig())
+	config := termderive.DefaultDeriveConfig()
+	config.HyphenatedNameParts = true
+	derived := termderive.DeriveTerms(pairs, nil, usage, baseSources, config)
 	refs := toTranslationReferences(prebuilt, propers)
 	if len(derived) == 0 {
 		return refs

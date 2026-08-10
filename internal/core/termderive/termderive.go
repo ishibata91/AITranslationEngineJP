@@ -51,11 +51,12 @@ type DerivedTerm struct {
 
 // DeriveConfig は派生規則のしきい値と除外集合。実データ検証で決めた既定は DefaultDeriveConfig が返す。
 type DeriveConfig struct {
-	Contractions  map[string]bool // 縮約素体（aren など）。「't」分割で誤当たりする語を捨てる。
-	Titles        map[string]bool // 称号（master, lord など）。役割語を名と誤認しない。
-	Factions      map[string]bool // 種族・ハウス語（dunmer, nord など）。
-	MinSourceLen  int             // 原語の最小長（大文字始まりの短い一般語を弾く）。
-	LandmineLCMin int             // 一般語判定の小文字出現の下限（lc>=本値 かつ lc>=uc で一般語）。
+	Contractions        map[string]bool // 縮約素体（aren など）。「't」分割で誤当たりする語を捨てる。
+	Titles              map[string]bool // 称号（master, lord など）。役割語を名と誤認しない。
+	Factions            map[string]bool // 種族・ハウス語（dunmer, nord など）。
+	MinSourceLen        int             // 原語の最小長（大文字始まりの短い一般語を弾く）。
+	LandmineLCMin       int             // 一般語判定の小文字出現の下限（lc>=本値 かつ lc>=uc で一般語）。
+	HyphenatedNameParts bool            // ハイフンを含む姓を中黒で区切る部分と対応付けるか。
 }
 
 // bynameSepRe は二つ名の区切り（前後に空白を伴う the）。前部の名を取り出す分割に使う。
@@ -140,17 +141,47 @@ func deriveTwo(fullPairs []NamePair, usage Usage, cfg DeriveConfig, add func(sou
 		}
 		toks := strings.Fields(p.Source)
 		parts := strings.Split(p.Dest, "・")
-		if len(toks) != len(parts) || len(toks) < 2 || hasKanji(p.Dest) {
+		partCounts, ok := namePartCounts(toks, cfg.HyphenatedNameParts)
+		if !ok || len(toks) < 2 || sum(partCounts) != len(parts) || hasKanji(p.Dest) {
 			continue
 		}
+		partOffset := 0
 		for i := range toks {
 			en := strings.TrimSpace(toks[i])
-			ja := strings.TrimSpace(parts[i])
+			partEnd := partOffset + partCounts[i]
+			ja := strings.TrimSpace(strings.Join(parts[partOffset:partEnd], "・"))
+			partOffset = partEnd
 			if safePair(en, ja, usage, cfg) {
 				add(en, ja, KindTwo, p.Index)
 			}
 		}
 	}
+}
+
+func namePartCounts(tokens []string, allowHyphenated bool) ([]int, bool) {
+	counts := make([]int, len(tokens))
+	for i, token := range tokens {
+		counts[i] = 1
+		if !allowHyphenated || !strings.Contains(token, "-") {
+			continue
+		}
+		segments := strings.Split(token, "-")
+		for _, segment := range segments {
+			if strings.TrimSpace(segment) == "" {
+				return nil, false
+			}
+		}
+		counts[i] = len(segments)
+	}
+	return counts, true
+}
+
+func sum(values []int) int {
+	total := 0
+	for _, value := range values {
+		total += value
+	}
+	return total
 }
 
 // safePair は派生候補（英原語 source、日訳 dest）を採るかを判定する。観測した失敗の手書き除外でなく、

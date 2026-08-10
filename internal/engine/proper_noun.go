@@ -97,7 +97,9 @@ func (e *Engine) deriveRunProperNouns(ctx context.Context, plugin string) (int, 
 	if err != nil {
 		return 0, err
 	}
-	derived := termderive.DeriveTerms(fullPairs, shrtPairs, usage, baseSources, termderive.DefaultDeriveConfig())
+	config := termderive.DefaultDeriveConfig()
+	config.HyphenatedNameParts = true
+	derived := termderive.DeriveTerms(fullPairs, shrtPairs, usage, baseSources, config)
 	rows := make([]model.ProperNoun, len(derived))
 	for i, d := range derived {
 		// origin で翻訳対象と分ける。category は空にする。派生行は原文 record を持たないので rec の値が無い。

@@ -136,6 +136,29 @@ func TestDeriveRunProperNounsSkipsExistingSources(t *testing.T) {
 	}
 }
 
+func TestDeriveRunProperNounsDerivesHyphenatedNameParts(t *testing.T) {
+	const plugin = "Mod.esp"
+	store := &fakeStore{
+		proper: []model.ProperNoun{{
+			ID: 1, Plugin: plugin, Source: "Hoge Black-Briar", Category: recNPC,
+			Dest: "ホゲ・ブラック・ブライア", Status: statusProvisional,
+		}},
+		extracted: []model.ExtractedField{{Plugin: plugin, Rec: recNPC, Field: fieldFull, Source: "Hoge Black-Briar"}},
+	}
+	if _, err := New(store, nil, nil, nil, nil).deriveRunProperNouns(context.Background(), plugin); err != nil {
+		t.Fatalf("deriveRunProperNouns: %v", err)
+	}
+	want := map[string]string{"Hoge": "ホゲ", "Black-Briar": "ブラック・ブライア"}
+	for _, row := range store.derivedPropers {
+		if got, ok := want[row.Source]; ok && row.Dest == got && row.Plugin == plugin && row.Origin == model.OriginDerived {
+			delete(want, row.Source)
+		}
+	}
+	if len(want) != 0 {
+		t.Errorf("ハイフンを含む姓の部分形 = %+v, missing=%v", store.derivedPropers, want)
+	}
+}
+
 // 仕様: 固有名 1 件の翻訳が構造化出力の空で終わったとき、その固有名を未訳のまま残し、
 // 残りの固有名と叙述文と台詞を訳し切ること。
 // 実 LLM（7B）の空応答 1 件で実行全体が止まった不具合の再発防止（empty-translation-halts-run）。
