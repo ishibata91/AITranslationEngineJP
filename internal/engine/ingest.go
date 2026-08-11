@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"aitranslationenginejp/internal/core/japanesetext"
 	"aitranslationenginejp/internal/model"
 )
 
@@ -45,17 +46,29 @@ func Dispatch(fields []model.ExtractedField, master map[RecordKey]model.RecordTy
 		switch rt.Box {
 		case boxProperNoun:
 			// Plugin を保持して固有名を plugin スコープへ閉じる（横断共有をやめる）。Category は種別＝rec。
-			d.ProperNouns = append(d.ProperNouns, model.ProperNoun{Plugin: f.Plugin, Source: f.Source, Category: f.Rec})
+			row := model.ProperNoun{Plugin: f.Plugin, Source: f.Source, Category: f.Rec}
+			if japanesetext.Contains(f.Source) {
+				row.Dest, row.Status = f.Source, statusTranslated
+			}
+			d.ProperNouns = append(d.ProperNouns, row)
 		case boxNarration, boxSetPhrase:
-			d.Narrations = append(d.Narrations, model.Narration{
+			row := model.Narration{
 				Source: f.Source, Style: rt.Directive,
 				Plugin: f.Plugin, FormID: f.FormID, EDID: f.EDID, Rec: f.Rec, Field: f.Field, Ordinal: f.Ordinal,
-			})
+			}
+			if japanesetext.Contains(f.Source) {
+				row.Dest, row.Status = f.Source, statusTranslated
+			}
+			d.Narrations = append(d.Narrations, row)
 		case boxLine:
-			d.Lines = append(d.Lines, model.Line{
+			row := model.Line{
 				Source: f.Source, ResponseOrder: f.Ordinal,
 				Plugin: f.Plugin, FormID: f.FormID, EDID: f.EDID, Rec: f.Rec, Field: f.Field, Ordinal: f.Ordinal,
-			})
+			}
+			if japanesetext.Contains(f.Source) {
+				row.Dest, row.Status = f.Source, statusTranslated
+			}
+			d.Lines = append(d.Lines, row)
 		default:
 			d.Skipped++
 		}

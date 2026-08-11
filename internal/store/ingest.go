@@ -28,9 +28,9 @@ func (s *Store) ListExtractedFields(ctx context.Context) ([]model.ExtractedField
 func (s *Store) IngestNarrations(ctx context.Context, rows []model.Narration) (int, error) {
 	return batchInsert(ctx, s, rows, func(tx *sqlx.Tx, r model.Narration) (int64, error) {
 		res, err := tx.ExecContext(ctx,
-			`INSERT OR IGNORE INTO narration (source, style, plugin, form_id, edid, rec, field, ordinal)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-			r.Source, r.Style, r.Plugin, r.FormID, r.EDID, r.Rec, r.Field, r.Ordinal)
+			`INSERT OR IGNORE INTO narration (source, dest, status, style, plugin, form_id, edid, rec, field, ordinal)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			r.Source, r.Dest, r.Status, r.Style, r.Plugin, r.FormID, r.EDID, r.Rec, r.Field, r.Ordinal)
 		if err != nil {
 			return 0, fmt.Errorf("narration 行の投入: %w", err)
 		}
@@ -44,8 +44,8 @@ func (s *Store) IngestNarrations(ctx context.Context, rows []model.Narration) (i
 func (s *Store) IngestProperNouns(ctx context.Context, rows []model.ProperNoun) (int, error) {
 	return batchInsert(ctx, s, rows, func(tx *sqlx.Tx, r model.ProperNoun) (int64, error) {
 		res, err := tx.ExecContext(ctx,
-			`INSERT OR IGNORE INTO proper_noun (plugin, source, category) VALUES (?, ?, ?)`,
-			r.Plugin, r.Source, r.Category)
+			`INSERT OR IGNORE INTO proper_noun (plugin, source, category, dest, status) VALUES (?, ?, ?, ?, ?)`,
+			r.Plugin, r.Source, r.Category, r.Dest, r.Status)
 		if err != nil {
 			return 0, fmt.Errorf("proper_noun 行の投入: %w", err)
 		}
@@ -58,9 +58,9 @@ func (s *Store) IngestProperNouns(ctx context.Context, rows []model.ProperNoun) 
 func (s *Store) IngestLines(ctx context.Context, rows []model.Line) (int, error) {
 	return batchInsert(ctx, s, rows, func(tx *sqlx.Tx, r model.Line) (int64, error) {
 		res, err := tx.ExecContext(ctx,
-			`INSERT OR IGNORE INTO line (source, response_order, plugin, form_id, edid, rec, field, ordinal)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-			r.Source, r.ResponseOrder, r.Plugin, r.FormID, r.EDID, r.Rec, r.Field, r.Ordinal)
+			`INSERT OR IGNORE INTO line (source, dest, status, response_order, plugin, form_id, edid, rec, field, ordinal)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			r.Source, r.Dest, r.Status, r.ResponseOrder, r.Plugin, r.FormID, r.EDID, r.Rec, r.Field, r.Ordinal)
 		if err != nil {
 			return 0, fmt.Errorf("line 行の投入: %w", err)
 		}

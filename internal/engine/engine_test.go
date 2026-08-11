@@ -913,6 +913,36 @@ func TestTranslateUntranslatedReportsAllPendingRows(t *testing.T) {
 	}
 }
 
+func TestTranslateUntranslatedCompletesJapaneseRowsWithoutProviderCall(t *testing.T) {
+	store := &fakeStore{
+		proper:       []model.ProperNoun{{ID: 1, Plugin: "A.esp", Source: "剣"}},
+		untranslated: []model.Narration{{ID: 2, Plugin: "A.esp", Source: "本"}},
+		lines:        []model.Line{{ID: 3, Plugin: "A.esp", Source: "話す"}},
+	}
+	translator := &fakeTranslator{}
+	eng := New(store, translator, fakeLexicon{}, nil, nil)
+
+	count, err := eng.TranslateUntranslated(context.Background(), provider.Connection{}, "m", "A.esp", nil)
+	if err != nil {
+		t.Fatalf("TranslateUntranslated: %v", err)
+	}
+	if count != 3 {
+		t.Errorf("処理件数 = %d, want 3", count)
+	}
+	if len(translator.gotPrompts) != 0 {
+		t.Errorf("翻訳providerを呼んだ: %+v", translator.gotPrompts)
+	}
+	if got := store.properUpdates; len(got) != 1 || got[0].dest != "剣" || got[0].status != statusTranslated {
+		t.Errorf("固有名の更新 = %+v", got)
+	}
+	if got := store.updates; len(got) != 1 || got[0].dest != "本" || got[0].status != statusTranslated {
+		t.Errorf("叙述文の更新 = %+v", got)
+	}
+	if got := store.lineUpdates; len(got) != 1 || got[0].dest != "話す" || got[0].status != statusTranslated {
+		t.Errorf("台詞の更新 = %+v", got)
+	}
+}
+
 // LinePersonas は生成済みペルソナを持つ台詞の口調指示と短い要約を map で返し、無い台詞は map に現れないこと。
 func TestLinePersonas(t *testing.T) {
 	store := &fakeStore{
