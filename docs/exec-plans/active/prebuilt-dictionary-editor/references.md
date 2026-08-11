@@ -8,9 +8,12 @@
 | REF-4 | source | `dictionary/mcp.go`: `newMCPServer` |
 | REF-5 | source | `frontend/src/App.svelte`: `NAV_ITEMS`、画面分岐 |
 | REF-6 | source | `dictionary/search.go`: `searchFilter`、`Search` |
-| REF-7 | source | `frontend/src/ui/components/translation-run/ResultsPager.svelte`: `ResultsPager` |
+| REF-7 | source | `frontend/src/ui/screens/translation-run/ResultsPager.svelte`: `ResultsPager` |
 | REF-8 | source | `frontend/src/ui/components/Field.svelte`: `Field` |
 | REF-9 | source | `internal/bootstrap/bootstrap.go`: `NewApp`、`AppCloser` |
 | REF-10 | source | `internal/api/app.go`: `App`、`New` |
 | REF-11 | source | `main.go`: Wails `Bind` |
 | REF-12 | source | `frontend/src/ui/screens/prebuilt-dictionary-editor/PrebuiltDictionaryEditorScreen.svelte`: `PrebuiltDictionaryEditorScreen` |
+| REF-13 | source | `frontend/src/ui/screens/prebuilt-dictionary-editor/PrebuiltDictionaryEditorContainer.svelte`: `PrebuiltDictionaryEditorContainer` |
+| REF-14 | source | `frontend/src/ui/screens/prebuilt-dictionary-editor/PrebuiltDictionaryEditorScreen.spec.test.ts` |
+| REF-15 | source | `internal/store/term_dictionary_editor_test.go` |

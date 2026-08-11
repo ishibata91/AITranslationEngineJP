@@ -43,3 +43,17 @@ export const prebuiltDictionaryRows: PrebuiltDictionaryRow[] = [
     categories: ["QUST"]
   }
 ]
+
+export const prebuiltDictionaryPageRows: PrebuiltDictionaryRow[] = Array.from(
+  { length: PREBUILT_DICTIONARY_PAGE_SIZE },
+  (_, index) => {
+    const sample = prebuiltDictionaryRows[index % prebuiltDictionaryRows.length]
+    return {
+      ...sample,
+      id: `page-${index + 1}`,
+      source: `${sample.source} ${index + 1}`,
+      destination: `${sample.destination} ${index + 1}`,
+      categories: [...sample.categories]
+    }
+  }
+)

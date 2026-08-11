@@ -39,11 +39,17 @@ const (
 
 // NewApp は中心 DB を開き、全層を配線して api.App を返す。Close 用に store も返す。
 type AppCloser struct {
-	store    *store.Store
-	prebuilt *store.PrebuiltDictionary
+	store                *store.Store
+	prebuilt             *store.PrebuiltDictionary
+	termDictionaryEditor *store.TermDictionaryEditor
 }
 
 func (c *AppCloser) Close() error {
+	if err := c.termDictionaryEditor.Close(); err != nil {
+		_ = c.prebuilt.Close()
+		_ = c.store.Close()
+		return err
+	}
 	if err := c.prebuilt.Close(); err != nil {
 		_ = c.store.Close()
 		return err
@@ -62,7 +68,13 @@ func NewApp() (*api.App, *AppCloser, error) {
 		_ = s.Close()
 		return nil, nil, err
 	}
-	closer := &AppCloser{store: s, prebuilt: prebuilt}
+	termDictionaryEditor, err := store.OpenTermDictionaryEditor(prebuiltDictionaryPath)
+	if err != nil {
+		_ = prebuilt.Close()
+		_ = s.Close()
+		return nil, nil, err
+	}
+	closer := &AppCloser{store: s, prebuilt: prebuilt, termDictionaryEditor: termDictionaryEditor}
 
 	// 翻訳は本文が長く時間がかかるため、HTTP の per-request timeout を長めに取る。
 	client := &http.Client{Timeout: 10 * time.Minute}
@@ -131,6 +143,6 @@ func NewApp() (*api.App, *AppCloser, error) {
 	}
 	// 抽出子は本番の dotnet 子プロセス起動。composition root が concrete を生成して注入する唯一の場所。
 	// 抽出に要するパスは DotnetExtractor が保持する。
-	app := api.New(s, eng, batchRunner, p, api.NewDotnetExtractor(ext))
+	app := api.New(s, eng, batchRunner, p, api.NewDotnetExtractor(ext), termDictionaryEditor)
 	return app, closer, nil
 }

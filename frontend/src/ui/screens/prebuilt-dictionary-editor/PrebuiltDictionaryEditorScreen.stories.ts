@@ -3,6 +3,7 @@ import { themes } from "storybook/theming"
 import { ScreenDocsPage } from "../screen-docs"
 import { screenStateDescription } from "../screen-spec"
 import PrebuiltDictionaryEditorScreen from "./PrebuiltDictionaryEditorScreen.svelte"
+import PrebuiltDictionaryEditorPreview from "./PrebuiltDictionaryEditorPreview.svelte"
 import { prebuiltDictionaryEditorScreenStates } from "./prebuilt-dictionary-editor-screen-specs"
 
 const meta = {
@@ -15,8 +16,12 @@ const meta = {
   },
   args: {
     onFilterInput: () => {},
+    onSearch: () => {},
     onCreate: () => {},
     onDelete: () => {},
+    onStartEdit: () => {},
+    onCancelRow: () => {},
+    onRowInput: () => {},
     onToggleCategories: () => {},
     onConfirmChanges: () => {},
     onCancelChanges: () => {},
@@ -28,7 +33,7 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-const { list, edit, empty } = prebuiltDictionaryEditorScreenStates
+const { list, edit, empty, longText } = prebuiltDictionaryEditorScreenStates
 
 export const List: Story = {
   name: list.storyName,
@@ -42,8 +47,19 @@ export const Edit: Story = {
   parameters: { docs: { description: { story: screenStateDescription(edit) } } }
 }
 
+export const Interactive: Story = {
+  name: "操作確認",
+  render: () => ({ Component: PrebuiltDictionaryEditorPreview })
+}
+
 export const Empty: Story = {
   name: empty.storyName,
   args: empty.args,
   parameters: { docs: { description: { story: screenStateDescription(empty) } } }
+}
+
+export const LongText: Story = {
+  name: longText.storyName,
+  args: longText.args,
+  parameters: { docs: { description: { story: screenStateDescription(longText) } } }
 }

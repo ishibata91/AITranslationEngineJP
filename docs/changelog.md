@@ -4,6 +4,23 @@
 「なぜ変えたか」「何を落としたか」などの判断履歴は本ファイルに残し、正本へ混ぜない。
 新しい entry を上に追加する。1 entry は date 見出しで区切る。
 
+## 2026-08-11 用語辞書を独立した書込経路で編集可能にする（prebuilt-dictionary-editor）
+
+### 変更
+
+- 用語辞書をテーブル画面から検索、作成、原語・訳語・品詞の更新、削除できるようにした。
+- 1ページは50件であり、原語、訳語、品詞、Skyrimカテゴリを個別に絞り込める。
+- 行の変更と削除は確定前に保留し、行単位または全件を取り消せる。
+- 翻訳用の事前作成済み辞書readerは読み取り専用のまま維持し、用語辞書の編集は別接続とWails APIで処理する。
+- 長い原語、訳語、カテゴリは省略表示し、テーブルは横スクロールを増やさない。
+
+### 判断
+
+- `docs/architecture.md` へ、翻訳用readerと用語辞書writerの分離を反映した。人間の `finalize` 指示を恒久仕様の承認として扱った。
+- 行の変更は楽観ロックを用い、確定時は変更された項目だけをPATCHする。
+- backend と frontend の全検証、Storybook build、`git diff --check` を統合前後に実行する。
+- 根拠となる作業計画: `docs/exec-plans/completed/prebuilt-dictionary-editor/`。
+
 ## 2026-08-09 事前作成辞書の NPC 氏名から本文参考語を派生（prebuilt-npc-name-derivation）
 
 ### 変更

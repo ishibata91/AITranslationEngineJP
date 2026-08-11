@@ -128,24 +128,36 @@ func (d *DotnetExtractor) run(ctx context.Context, args []string) error {
 
 // App は Wails へ Bind する公開面。
 type App struct {
-	store     Store
-	engine    *engine.Engine
-	batch     BatchEngine // OpenAI / xAI batch 翻訳の送信・反映。batch を使わない配線では nil。
-	provider  provider.Translator
-	extractor Extractor
-	ctx       context.Context
+	store                Store
+	engine               *engine.Engine
+	batch                BatchEngine // OpenAI / xAI batch 翻訳の送信・反映。batch を使わない配線では nil。
+	provider             provider.Translator
+	extractor            Extractor
+	termDictionaryEditor TermDictionaryEditorStore
+	ctx                  context.Context
+}
+
+type TermDictionaryEditorStore interface {
+	List(context.Context, model.TermDictionaryFilter, int) (model.TermDictionaryPage, error)
+	Create(context.Context, model.TermDictionaryCreate) (model.TermDictionaryEntry, error)
+	Patch(context.Context, model.TermDictionaryPatch) (model.TermDictionaryEntry, error)
+	Delete(context.Context, int64, int64) error
 }
 
 // New は App を生成する。extractor は抽出子の注入点（本番は DotnetExtractor。抽出に要するパスは extractor が保持する）。
 // batch は OpenAI / xAI batch 翻訳のオーケストレーション。batch を使わない配線（テスト用 harness など）では nil を渡してよい。
-func New(store Store, eng *engine.Engine, batch BatchEngine, p provider.Translator, extractor Extractor) *App {
+func New(store Store, eng *engine.Engine, batch BatchEngine, p provider.Translator, extractor Extractor, editors ...TermDictionaryEditorStore) *App {
 	if extractor == nil {
 		// 抽出子は必須の注入物。nil interface（リテラル nil や未設定の interface 変数）を渡す配線ミスを起動時に弾く。
 		// なお typed-nil（nil の concrete ポインタを interface に入れた値）は Go の制約で検出できないが、
 		// composition root は concrete を直接 new して渡すため該当しない。
 		panic("api.New: extractor は nil にできない")
 	}
-	return &App{store: store, engine: eng, batch: batch, provider: p, extractor: extractor}
+	app := &App{store: store, engine: eng, batch: batch, provider: p, extractor: extractor}
+	if len(editors) > 0 {
+		app.termDictionaryEditor = editors[0]
+	}
+	return app
 }
 
 // Startup は Wails 起動時に runtime context を受け取る。ファイルダイアログと進捗 event の push に使う。

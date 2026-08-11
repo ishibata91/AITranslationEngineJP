@@ -4,7 +4,8 @@ export interface PrebuiltDictionaryRow {
   destination: string
   partOfSpeech: string
   categories: string[]
-  pending?: "edited" | "deleted"
+  pending?: "created" | "edited"
+  deletePending?: boolean
 }
 
 export interface PrebuiltDictionaryFilters {
