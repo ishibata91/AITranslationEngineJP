@@ -7,10 +7,12 @@
   import TargetPluginsContainer from "./ui/screens/target-plugins/TargetPluginsContainer.svelte"
   import TranslationRunContainer from "./ui/screens/translation-run/TranslationRunContainer.svelte"
   import TemplateEditorContainer from "./ui/screens/template-editor/TemplateEditorContainer.svelte"
+  import PrebuiltDictionaryEditorContainer from "./ui/screens/prebuilt-dictionary-editor/PrebuiltDictionaryEditorContainer.svelte"
 
   const NAV_ITEMS: NavItem[] = [
     { route: "plugins", label: "翻訳対象プラグイン" },
-    { route: "template", label: "プロンプトテンプレート" }
+    { route: "template", label: "プロンプトテンプレート" },
+    { route: "termDictionary", label: "用語辞書" }
   ]
 
   let active = $state<AppRoute>("plugins")
@@ -33,7 +35,9 @@
     <TargetPluginsContainer onOpen={openRun} />
   {:else if active === "translation"}
     <TranslationRunContainer pluginPath={selectedPluginPath} />
-  {:else}
+  {:else if active === "template"}
     <TemplateEditorContainer />
+  {:else}
+    <PrebuiltDictionaryEditorContainer />
   {/if}
 </AppShell>

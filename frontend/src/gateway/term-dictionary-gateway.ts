@@ -1,0 +1,10 @@
+import { CreateTermDictionary, DeleteTermDictionary, ListTermDictionary, PatchTermDictionary } from "../../wailsjs/go/api/App"
+import { api } from "../../wailsjs/go/models"
+
+export interface TermDictionaryFilters { source: string; destination: string; partOfSpeech: string; category: string }
+export interface TermDictionaryEntry { id: string; source: string; destination: string; partOfSpeech: string; revision: number; categories: string[] }
+export interface TermDictionaryPage { entries: TermDictionaryEntry[]; totalCount: number; pageNumber: number }
+export async function listTermDictionary(filters: TermDictionaryFilters, pageNumber: number): Promise<TermDictionaryPage> { const page=await ListTermDictionary(api.TermDictionaryFilterView.createFrom(filters),pageNumber);return {entries:(page.entries??[]).map(entry=>({id:String(entry.id),source:entry.source,destination:entry.destination,partOfSpeech:entry.partOfSpeech,revision:entry.revision,categories:entry.categories??[]})),totalCount:page.totalCount,pageNumber:page.pageNumber} }
+export async function createTermDictionary(entry: Omit<TermDictionaryEntry,"id"|"revision"|"categories">): Promise<TermDictionaryEntry> { const value=await CreateTermDictionary(api.TermDictionaryCreateRequest.createFrom(entry));return {id:String(value.id),source:value.source,destination:value.destination,partOfSpeech:value.partOfSpeech,revision:value.revision,categories:value.categories??[]} }
+export async function patchTermDictionary(id:string,revision:number,changes:Partial<Pick<TermDictionaryEntry,"source"|"destination"|"partOfSpeech">>):Promise<TermDictionaryEntry>{const value=await PatchTermDictionary(api.TermDictionaryPatchRequest.createFrom({id:Number(id),revision,...changes}));return {id:String(value.id),source:value.source,destination:value.destination,partOfSpeech:value.partOfSpeech,revision:value.revision,categories:value.categories??[]}}
+export async function deleteTermDictionary(id:string,revision:number):Promise<void>{await DeleteTermDictionary(api.TermDictionaryDeleteRequest.createFrom({id:Number(id),revision}))}
