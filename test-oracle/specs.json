@@ -116,6 +116,30 @@
       "spec": "性別条件から実効性別を導き、否定形は極性を畳んで反転する（話者解決の有無に依らず定める）"
     },
     {
+      "id": "condition-sex-male-only",
+      "stage": "extraction",
+      "attribute": "ペルソナ",
+      "category": "境界",
+      "given": "台詞（INFO）が男性だけを示す性別条件（GetIsSex）を持つ",
+      "spec": "男性だけが現れる性別条件から男性を定める"
+    },
+    {
+      "id": "condition-sex-both-generic",
+      "stage": "extraction",
+      "attribute": "ペルソナ",
+      "category": "正常",
+      "given": "台詞（INFO）が男性と女性の両方を示す性別条件（GetIsSex）を持つ",
+      "spec": "男性と女性の両方が現れる性別条件から性別を定めない"
+    },
+    {
+      "id": "condition-sex-absent",
+      "stage": "extraction",
+      "attribute": "ペルソナ",
+      "category": "境界",
+      "given": "台詞（INFO）が性別条件（GetIsSex）を持たない",
+      "spec": "性別条件が無い場合は性別を定めない"
+    },
+    {
       "id": "condition-sex-voicelist-mixed",
       "stage": "extraction",
       "attribute": "ペルソナ",
