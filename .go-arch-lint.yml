@@ -58,6 +58,8 @@ components:
     in: internal/core/mention
   prompt:
     in: internal/core/prompt
+  japanesetext:
+    in: internal/core/japanesetext
   termderive:
     in: internal/core/termderive
   termusage:
@@ -119,6 +121,7 @@ deps:
       - dictionary
       - mention
       - prompt
+      - japanesetext
       - termxml
       - termderive
       - termusage
