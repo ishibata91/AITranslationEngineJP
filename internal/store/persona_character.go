@@ -186,3 +186,44 @@ func (s *Store) LoadLineSpeakers(ctx context.Context, lineIDs []int64) (map[int6
 	}
 	return out, nil
 }
+
+// LoadLineSpeakerSexSets は台詞ごとの全話者の性別集合を一括で読む。
+// Sex は全話者が同じ既知の性別の場合だけ返し、男女混在または性別不明なら空にする。
+func (s *Store) LoadLineSpeakerSexSets(ctx context.Context, lineIDs []int64) (map[int64]model.LineSpeakerSexSet, error) {
+	out := make(map[int64]model.LineSpeakerSexSet, len(lineIDs))
+	if len(lineIDs) == 0 {
+		return out, nil
+	}
+	for _, chunk := range chunkInt64(lineIDs, speakerChunkSize) {
+		marks, args := placeholders(chunk)
+		var rows []struct {
+			LineID int64 `db:"line_id"`
+			Count  int   `db:"speaker_count"`
+			Male   int   `db:"male_count"`
+			Female int   `db:"female_count"`
+		}
+		query := `
+			SELECT ls.line_id AS line_id,
+			       COUNT(*) AS speaker_count,
+			       SUM(CASE WHEN s.sex = 'Male' THEN 1 ELSE 0 END) AS male_count,
+			       SUM(CASE WHEN s.sex = 'Female' THEN 1 ELSE 0 END) AS female_count
+			FROM line_speaker ls
+			JOIN speaker s ON s.id = ls.speaker_id
+			WHERE ls.line_id IN (` + marks + `)
+			GROUP BY ls.line_id`
+		if err := s.db.SelectContext(ctx, &rows, query, args...); err != nil {
+			return nil, fmt.Errorf("台詞ごとの話者性別集合の取得: %w", err)
+		}
+		for _, row := range rows {
+			set := model.LineSpeakerSexSet{Count: row.Count}
+			switch {
+			case row.Male == row.Count:
+				set.Sex = "Male"
+			case row.Female == row.Count:
+				set.Sex = "Female"
+			}
+			out[row.LineID] = set
+		}
+	}
+	return out, nil
+}

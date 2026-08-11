@@ -45,6 +45,7 @@ type fakeStore struct {
 	condLinkCalled     bool               // LinkLineConditionsFromStaging が呼ばれたか
 	emoLinkCalled      bool               // LinkLineEmotionsFromStaging が呼ばれたか
 	lineConditions     map[int64]string   // LoadLineConditions が返す条件由来の性別（lineID→sex）
+	lineSpeakerSexSets map[int64]model.LineSpeakerSexSet
 	// 言及段の観測。allNarrations / allLines は ListNarrations / ListLines が返す全行（nil なら空）。
 	allNarrations     []model.Narration
 	allLines          []model.Line
@@ -344,6 +345,16 @@ func (f *fakeStore) LoadLineConditions(_ context.Context, lineIDs []int64) (map[
 	for _, id := range lineIDs {
 		if sex, ok := f.lineConditions[id]; ok {
 			out[id] = sex
+		}
+	}
+	return out, nil
+}
+
+func (f *fakeStore) LoadLineSpeakerSexSets(_ context.Context, lineIDs []int64) (map[int64]model.LineSpeakerSexSet, error) {
+	out := make(map[int64]model.LineSpeakerSexSet)
+	for _, id := range lineIDs {
+		if set, ok := f.lineSpeakerSexSets[id]; ok {
+			out[id] = set
 		}
 	}
 	return out, nil
@@ -1011,6 +1022,83 @@ func TestLinePersonasGenericAndPC(t *testing.T) {
 	}
 	if !strings.Contains(r.Directive, "PCの選択肢") {
 		t.Errorf("INFO:RNAM（話者あり）の directive が PC 既定でない: %q", r.Directive)
+	}
+}
+
+func TestLinePersonasUsesMultiSpeakerSexForGenericNam1(t *testing.T) {
+	roles, err := rolespeech.ParseRoleSpeech(strings.NewReader(
+		"adult\tfemale\t*\tわたし\t女性らしく。\n" +
+			"adult\tmale\t*\tおれ\t男性らしく。\n"))
+	if err != nil {
+		t.Fatalf("ParseRoleSpeech: %v", err)
+	}
+	eng := New(&fakeStore{}, &fakeTranslator{}, fakeLexicon{}, roles, nil)
+	defaults := ToneDefaults{Generic: "汎用台詞。", PC: "PCの選択肢。", PcSex: "Female"}
+
+	for _, tc := range []struct {
+		name      string
+		line      model.Line
+		condition string
+		set       model.LineSpeakerSexSet
+		wantPath  string
+		wantSex   string
+	}{
+		{
+			name:     "全男性のNAM1は汎用男性口調",
+			line:     model.Line{ID: 10, Source: "Halt.", Rec: recInfo, Field: fieldNam1},
+			set:      model.LineSpeakerSexSet{Count: 2, Sex: "Male"},
+			wantPath: tone.PathGeneric,
+			wantSex:  "Male",
+		},
+		{
+			name:     "全女性のNAM1は汎用女性口調",
+			line:     model.Line{ID: 10, Source: "Halt.", Rec: recInfo, Field: fieldNam1},
+			set:      model.LineSpeakerSexSet{Count: 2, Sex: "Female"},
+			wantPath: tone.PathGeneric,
+			wantSex:  "Female",
+		},
+		{
+			name:     "男女混在のNAM1は性別を指定しない",
+			line:     model.Line{ID: 10, Source: "Halt.", Rec: recInfo, Field: fieldNam1},
+			set:      model.LineSpeakerSexSet{Count: 2},
+			wantPath: tone.PathGeneric,
+			wantSex:  "",
+		},
+		{
+			name:      "条件性別は話者集合より優先する",
+			line:      model.Line{ID: 10, Source: "Halt.", Rec: recInfo, Field: fieldNam1},
+			condition: "Female",
+			set:       model.LineSpeakerSexSet{Count: 2, Sex: "Male"},
+			wantPath:  tone.PathGeneric,
+			wantSex:   "Female",
+		},
+		{
+			name:     "RNAMは複数話者でもPC経路",
+			line:     model.Line{ID: 10, Source: "Halt.", Rec: recInfo, Field: fieldRnam},
+			set:      model.LineSpeakerSexSet{Count: 2, Sex: "Male"},
+			wantPath: tone.PathPC,
+			wantSex:  "Female",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			store := &fakeStore{
+				linePersonas:       map[int64]model.LinePersonaInput{10: {AttitudeBand: 1, EmotionBand: 1}},
+				lineConditions:     map[int64]string{10: tc.condition},
+				lineSpeakerSexSets: map[int64]model.LineSpeakerSexSet{10: tc.set},
+			}
+			eng.store = store
+			personas, err := eng.LinePersonas(context.Background(), []model.Line{tc.line}, testPersonaTemplate, defaults)
+			if err != nil {
+				t.Fatalf("LinePersonas: %v", err)
+			}
+			got, ok := personas[10]
+			if !ok {
+				t.Fatal("persona map に台詞が無い")
+			}
+			if got.DecisionPath != tc.wantPath || got.Sex != tc.wantSex {
+				t.Errorf("path=%q sex=%q, want path=%q sex=%q", got.DecisionPath, got.Sex, tc.wantPath, tc.wantSex)
+			}
+		})
 	}
 }
 

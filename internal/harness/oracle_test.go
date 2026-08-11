@@ -75,19 +75,15 @@ var goOracles = map[string]func(t *testing.T, p probe){
 		}
 	},
 
-	// 話者結線: 話者が結ばれた台詞のプロンプトへ、その話者の人物像・口調が乗る（話者→ペルソナ→プロンプト）。
-	// 人物像には役割語（一人称）と口調の例文も含む。役割語は3キー、例文は4キーで別々に引き、
-	// 1つの口調指示へ束ねる。ここは合成表で配線だけを守る。
+	// 複数話者の INFO:NAM1 は，先頭話者の人物像でなく汎用口調へ入る。
+	// 合成入力は男女混在なので，性別別の役割語と例文を入れない。
 	"speaker-tone-injected": func(t *testing.T, p probe) {
 		pr := promptContainingUser(t, p, "trouble in town")
-		if !strings.Contains(pr.System, "人物像") {
-			t.Fatalf("話者の人物像がプロンプトへ乗っていない:\n%s", pr.System)
+		if !strings.Contains(pr.System, "話者を特定できない汎用的な台詞") {
+			t.Fatalf("複数話者の汎用口調がプロンプトへ乗っていない:\n%s", pr.System)
 		}
-		if !strings.Contains(pr.System, "一人称は「わたし」") {
-			t.Fatalf("役割語の一人称がプロンプトへ乗っていない:\n%s", pr.System)
-		}
-		if !strings.Contains(pr.System, "- 例: I will go. → わたしが行きます。") {
-			t.Fatalf("口調の例文がプロンプトへ乗っていない:\n%s", pr.System)
+		if strings.Contains(pr.System, "- 例:") {
+			t.Fatalf("男女混在の複数話者へ性別別例文が乗った:\n%s", pr.System)
 		}
 	},
 

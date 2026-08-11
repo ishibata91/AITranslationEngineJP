@@ -192,8 +192,8 @@
       "stage": "integration",
       "attribute": "話者",
       "category": "正常",
-      "given": "台詞に話者が結ばれている",
-      "spec": "解決した話者の口調・人物像が、その台詞のプロンプトへ乗る（話者→ペルソナ→プロンプトの合流）"
+      "given": "台詞（INFO:NAM1）に男女混在の複数話者が結ばれている",
+      "spec": "複数話者の台詞は先頭話者の人物像でなく、性別を指定しない汎用口調をプロンプトへ乗せる"
     },
     {
       "id": "narration-directive-injected",
