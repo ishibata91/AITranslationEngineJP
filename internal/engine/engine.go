@@ -66,6 +66,7 @@ type PersonaStore interface {
 	UpsertPersonaCharacter(ctx context.Context, pc model.PersonaCharacter) error
 	LoadLinePersonas(ctx context.Context, lineIDs []int64) (map[int64]model.LinePersonaInput, error)
 	LoadLineConditions(ctx context.Context, lineIDs []int64) (map[int64]string, error)
+	LoadLineSpeakerSexSets(ctx context.Context, lineIDs []int64) (map[int64]model.LineSpeakerSexSet, error)
 }
 
 // Persona は台詞 1 件へ与える口調指示文（全文）と、UI 表示用の口調メタデータ。口調が付いた台詞だけ持つ。
@@ -817,15 +818,19 @@ func (e *Engine) LinePersonas(ctx context.Context, lines []model.Line, personaTe
 	if err != nil {
 		return nil, fmt.Errorf("条件由来の性別の一括取得: %w", err)
 	}
+	speakerSexSets, err := e.store.LoadLineSpeakerSexSets(ctx, ids)
+	if err != nil {
+		return nil, fmt.Errorf("話者性別集合の一括取得: %w", err)
+	}
 	// 話者を解決できない台詞（汎用・PC）の本文特徴をまとめて確保する（line_analysis に本文ハッシュでキャッシュ）。
-	features, err := e.ensureFeatures(ctx, pendingLines(lines, resolved))
+	features, err := e.ensureFeatures(ctx, pendingLines(lines, resolved, speakerSexSets))
 	if err != nil {
 		return nil, err
 	}
 
 	out := make(map[int64]Persona, len(lines))
 	for _, l := range lines {
-		if p, ok := e.personaForLine(l, resolved, conds, features, personaTemplate, defaults); ok {
+		if p, ok := e.personaForLine(l, resolved, conds, speakerSexSets, features, personaTemplate, defaults); ok {
 			out[l.ID] = p
 		}
 	}
@@ -835,10 +840,14 @@ func (e *Engine) LinePersonas(ctx context.Context, lines []model.Line, personaTe
 // pendingLines は自由記述の口調へ回す台詞（本文特徴が要る行）を抜き出す。
 // PC 発話（選択肢）は INFO 由来で NPC 話者が結ばれ得るが、話者を無視して PC 経路へ回すため常に含める。
 // それ以外は話者を解決できない台詞（汎用経路）だけ含める。
-func pendingLines(lines []model.Line, resolved map[int64]model.LinePersonaInput) []model.Line {
+func pendingLines(lines []model.Line, resolved map[int64]model.LinePersonaInput, speakerSexSets map[int64]model.LineSpeakerSexSet) []model.Line {
 	var pending []model.Line
 	for _, l := range lines {
 		if isPCRecord(l.Rec, l.Field) {
+			pending = append(pending, l)
+			continue
+		}
+		if isGenericMultiSpeakerLine(l, speakerSexSets) {
 			pending = append(pending, l)
 			continue
 		}
@@ -853,9 +862,10 @@ func pendingLines(lines []model.Line, resolved map[int64]model.LinePersonaInput)
 // PC 発話（選択肢）は NPC 話者が結ばれていても PC 既定の口調を優先する（③、話者を無視）。
 // それ以外は ①名指し話者なら集計済みペルソナ、②話者なし汎用台詞なら本文特徴から自由記述の口調を組む。
 // 口調が付かないなら ok=false。
-func (e *Engine) personaForLine(l model.Line, resolved map[int64]model.LinePersonaInput, conds map[int64]string, features map[string]tone.Features, personaTemplate string, defaults ToneDefaults) (Persona, bool) {
+
+func (e *Engine) personaForLine(l model.Line, resolved map[int64]model.LinePersonaInput, conds map[int64]string, speakerSexSets map[int64]model.LineSpeakerSexSet, features map[string]tone.Features, personaTemplate string, defaults ToneDefaults) (Persona, bool) {
 	if !isPCRecord(l.Rec, l.Field) {
-		if in, ok := resolved[l.ID]; ok {
+		if in, ok := resolved[l.ID]; ok && !isGenericMultiSpeakerLine(l, speakerSexSets) {
 			in.EmotionType = l.EmotionType // 台詞の TRDT 感情を注入入力へ重ねる（ペルソナ基底は不変）。
 			return e.namedPersona(in, personaTemplate)
 		}
@@ -864,7 +874,15 @@ func (e *Engine) personaForLine(l model.Line, resolved map[int64]model.LinePerso
 	if !ok {
 		return Persona{}, false // 本文が空などで特徴が無い → 口調なし。
 	}
-	return e.freeTonePersona(l, f, conds[l.ID], personaTemplate, defaults)
+	sex := conds[l.ID]
+	if sex == "" && isGenericMultiSpeakerLine(l, speakerSexSets) {
+		sex = speakerSexSets[l.ID].Sex
+	}
+	return e.freeTonePersona(l, f, sex, personaTemplate, defaults)
+}
+
+func isGenericMultiSpeakerLine(l model.Line, speakerSexSets map[int64]model.LineSpeakerSexSet) bool {
+	return l.Rec == recInfo && l.Field == fieldNam1 && speakerSexSets[l.ID].Count > 1
 }
 
 // namedPersona は名指し話者（経路①）の口調指示と要約を組む。段階が範囲外で性質文が空なら built=false。

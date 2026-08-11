@@ -47,6 +47,14 @@ type LineSpeaker struct {
 	VoiceEDID string `db:"voice_edid"` // 声型 EditorID（例 FemaleOldGrumpy）
 }
 
+// LineSpeakerSexSet は台詞に結ばれた全話者の性別集合である。
+// Sex は全話者が Male または Female で揃う場合だけその値を持つ。
+// 性別不明または男女混在では空である。
+type LineSpeakerSexSet struct {
+	Count int
+	Sex   string
+}
+
 // LinePersonaInput は注入の入力 1 件。台詞 1 行へ与える話者の生成済み基底口調と、役割語マーカー用の性別・種族 EditorID。
 // persona_character を持つ話者の台詞だけが現れる。Sex・RaceEDID は一人称・語尾テンプレートと種族訛りの引きに使う。
 type LinePersonaInput struct {
