@@ -185,6 +185,48 @@ public static class SyntheticEsmBuilder
         });
         sexTopic.Responses.Add(sexInfo);
 
+        // 男性条件だけの会話: 男性だけなら性別を定める。
+        var maleSexTopic = mod.DialogTopics.AddNew();
+        maleSexTopic.EditorID = "ConditionSexMaleTopic";
+        var maleSexInfo = new DialogResponses(mod);
+        maleSexInfo.EditorID = "ConditionSexMale";
+        maleSexInfo.Conditions.Add(GetIsSexCond(MaleFemaleGender.Male, asserts: true));
+        maleSexInfo.Responses.Add(new DialogResponse
+        {
+            ResponseNumber = 1,
+            Text = "A man calls out from the road.",
+            Emotion = Emotion.Neutral,
+        });
+        maleSexTopic.Responses.Add(maleSexInfo);
+
+        // 男女の性別条件を同じ INFO に持つ会話: 両方が現れるため性別を定めない。
+        var bothSexTopic = mod.DialogTopics.AddNew();
+        bothSexTopic.EditorID = "ConditionSexBothTopic";
+        var bothSexInfo = new DialogResponses(mod);
+        bothSexInfo.EditorID = "ConditionSexBoth";
+        bothSexInfo.Conditions.Add(GetIsSexCond(MaleFemaleGender.Male, asserts: true));
+        bothSexInfo.Conditions.Add(GetIsSexCond(MaleFemaleGender.Female, asserts: true));
+        bothSexInfo.Responses.Add(new DialogResponse
+        {
+            ResponseNumber = 1,
+            Text = "Someone calls out from the road.",
+            Emotion = Emotion.Neutral,
+        });
+        bothSexTopic.Responses.Add(bothSexInfo);
+
+        // 性別条件が無い会話: 条件由来の性別を定めない。
+        var noSexTopic = mod.DialogTopics.AddNew();
+        noSexTopic.EditorID = "ConditionSexNoneTopic";
+        var noSexInfo = new DialogResponses(mod);
+        noSexInfo.EditorID = "ConditionSexNone";
+        noSexInfo.Responses.Add(new DialogResponse
+        {
+            ResponseNumber = 1,
+            Text = "A distant voice echoes nearby.",
+            Emotion = Emotion.Neutral,
+        });
+        noSexTopic.Responses.Add(noSexInfo);
+
         // 声型リストに異性が混在する会話: 混在なら性別を定めない（同性のみで揃うリストだけ性別を採る）。
         var mixTopic = mod.DialogTopics.AddNew();
         mixTopic.EditorID = "ConditionSexMixedTopic";

@@ -51,7 +51,8 @@ public static class InfoConditionSqliteWriter
     // GetIsSex を最優先（極性を畳む）。無ければ声型（単一 VTYP の接頭 / 同性のみ FLST）から取る。
     private static string SexOf(PluginEnvironment env, IDialogResponsesGetter info)
     {
-        string? fromSex = null;
+        var hasMaleSexCondition = false;
+        var hasFemaleSexCondition = false;
         string? fromVoice = null;
         foreach (var cond in info.Conditions)
         {
@@ -61,14 +62,19 @@ public static class InfoConditionSqliteWriter
                 case IGetIsSexConditionDataGetter d:
                     // GetIsSex Male == 1 は男、== 0 は「男でない」= 女。極性を畳む。
                     var queried = d.MaleFemaleGender.ToString();
-                    fromSex = asserts ? queried : (queried == "Male" ? "Female" : "Male");
+                    var sex = asserts ? queried : (queried == "Male" ? "Female" : "Male");
+                    hasMaleSexCondition |= sex == "Male";
+                    hasFemaleSexCondition |= sex == "Female";
                     break;
                 case IGetIsVoiceTypeConditionDataGetter d when asserts && fromVoice == null:
                     fromVoice = VoiceSex(env, d.VoiceTypeOrList.Link.FormKey);
                     break;
             }
         }
-        return fromSex ?? fromVoice ?? "";
+        if (hasMaleSexCondition && hasFemaleSexCondition) return "";
+        if (hasMaleSexCondition) return "Male";
+        if (hasFemaleSexCondition) return "Female";
+        return fromVoice ?? "";
     }
 
     // VoiceSex は声型条件（単一 VTYP かリスト FLST）から性別を取る。単一は EDID の Male/Female 接頭、

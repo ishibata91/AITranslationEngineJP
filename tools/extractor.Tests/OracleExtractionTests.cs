@@ -161,6 +161,48 @@ public class OracleExtractionTests
     }
 
     [Fact]
+    [Oracle("condition-sex-male-only")]
+    public void 性別条件が男性だけなら男性を記録する()
+    {
+        // Arrange
+        using var env = OracleInput.LoadEnv();
+        var result = PluginExtractor.Extract(env);
+        using var db = OracleInput.NewDb();
+        // Act
+        InfoConditionSqliteWriter.Write(db.Path, OracleInput.MigrationsDir, env, result.TargetPlugin);
+        // Assert
+        Assert.Equal("Male", db.Sex(OracleInput.InfoFormId(result, "ConditionSexMale")));
+    }
+
+    [Fact]
+    [Oracle("condition-sex-both-generic")]
+    public void 性別条件に男女がある場合は性別を記録しない()
+    {
+        // Arrange
+        using var env = OracleInput.LoadEnv();
+        var result = PluginExtractor.Extract(env);
+        using var db = OracleInput.NewDb();
+        // Act
+        InfoConditionSqliteWriter.Write(db.Path, OracleInput.MigrationsDir, env, result.TargetPlugin);
+        // Assert
+        Assert.Null(db.Sex(OracleInput.InfoFormId(result, "ConditionSexBoth")));
+    }
+
+    [Fact]
+    [Oracle("condition-sex-absent")]
+    public void 性別条件が無い場合は性別を記録しない()
+    {
+        // Arrange
+        using var env = OracleInput.LoadEnv();
+        var result = PluginExtractor.Extract(env);
+        using var db = OracleInput.NewDb();
+        // Act
+        InfoConditionSqliteWriter.Write(db.Path, OracleInput.MigrationsDir, env, result.TargetPlugin);
+        // Assert
+        Assert.Null(db.Sex(OracleInput.InfoFormId(result, "ConditionSexNone")));
+    }
+
+    [Fact]
     [Oracle("condition-sex-voicelist-mixed")]
     public void 男女混在の声型リストは性別を定めない()
     {
