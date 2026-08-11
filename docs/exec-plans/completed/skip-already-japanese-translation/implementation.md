@@ -24,10 +24,10 @@
 
 - `GOCACHE=/private/tmp/aitranslationenginejp-go-cache go test ./internal/engine ./internal/store ./internal/core/japanesetext`: 通過。
 - `GOCACHE=/private/tmp/aitranslationenginejp-go-cache npm run verify:backend`: 通過。
+- masterへのlocal merge後に `GOCACHE=/private/tmp/aitranslationenginejp-go-cache npm run test:backend`: 通過。
 
 ## 未確認事項と停止理由
 
 - なし。
 
 ## 人間の指摘
-
