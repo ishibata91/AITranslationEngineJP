@@ -63,6 +63,28 @@ func TestDispatchEmpty(t *testing.T) {
 	}
 }
 
+func TestDispatchMarksJapaneseSourceAsTranslated(t *testing.T) {
+	master := map[RecordKey]model.RecordType{
+		{Rec: "WEAP", Field: "FULL"}: {Box: boxProperNoun},
+		{Rec: "BOOK", Field: "DESC"}: {Box: boxNarration},
+		{Rec: "INFO", Field: "NAM1"}: {Box: boxLine},
+	}
+	d := Dispatch([]model.ExtractedField{
+		{Plugin: "P.esp", Rec: "WEAP", Field: "FULL", Source: "剣"},
+		{Plugin: "P.esp", Rec: "BOOK", Field: "DESC", Source: "書物"},
+		{Plugin: "P.esp", Rec: "INFO", Field: "NAM1", Source: "台詞"},
+	}, master)
+	if got := d.ProperNouns[0]; got.Dest != got.Source || got.Status != statusTranslated {
+		t.Errorf("固有名 = %+v, want source as translated dest", got)
+	}
+	if got := d.Narrations[0]; got.Dest != got.Source || got.Status != statusTranslated {
+		t.Errorf("叙述文 = %+v, want source as translated dest", got)
+	}
+	if got := d.Lines[0]; got.Dest != got.Source || got.Status != statusTranslated {
+		t.Errorf("台詞 = %+v, want source as translated dest", got)
+	}
+}
+
 // recordMasterMap は record_type_master の行群を (rec, field) の map に畳むこと。
 func TestRecordMasterMap(t *testing.T) {
 	rows := []model.RecordType{

@@ -194,6 +194,29 @@ func (e *Engine) TranslateUntranslated(ctx context.Context, conn provider.Connec
 	if err != nil {
 		return 0, fmt.Errorf("未訳台詞の取得: %w", err)
 	}
+	p := &runProgress{total: len(propers) + len(narrations) + len(lines), onProgress: onProgress}
+	p.notify()
+	propers, completed, err := e.completeJapaneseProperNouns(ctx, propers)
+	if err != nil {
+		return p.done, err
+	}
+	for range completed {
+		p.step()
+	}
+	narrations, completed, err = e.completeJapaneseNarrations(ctx, narrations)
+	if err != nil {
+		return p.done, err
+	}
+	for range completed {
+		p.step()
+	}
+	lines, completed, err = e.completeJapaneseLines(ctx, lines)
+	if err != nil {
+		return p.done, err
+	}
+	for range completed {
+		p.step()
+	}
 
 	// プロンプトテンプレート（base 指示）と指示文（directive）をループ前に 1 度だけ読む。
 	tmpl, err := e.store.GetPromptTemplate(ctx)
@@ -215,9 +238,6 @@ func (e *Engine) TranslateUntranslated(ctx context.Context, conn provider.Connec
 	if err != nil {
 		return 0, err
 	}
-
-	p := &runProgress{total: len(propers) + len(narrations) + len(lines), onProgress: onProgress}
-	p.notify()
 
 	// 固有名フェーズ: 本文より先に固有名を確定する。既訳ありは権威訳、既訳なしは固有名 directive で AI 訳。
 	if err = e.translateProperNouns(ctx, conn, model, propers, nil,

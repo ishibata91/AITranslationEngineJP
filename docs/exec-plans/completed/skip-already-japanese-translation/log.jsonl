@@ -1,0 +1,9 @@
+{"at":"2026-08-11T20:40:50+09:00","actor":"codex","type":"pending_added","pending_id":"P-1","documents":["pending.md"]}
+{"at":"2026-08-11T20:40:50+09:00","actor":"codex","type":"pending_added","pending_id":"P-2","documents":["pending.md"]}
+{"at":"2026-08-11T20:56:47+09:00","actor":"codex","type":"pending_resolved","pending_id":"P-1","documents":["design.md","spec.md","pending.md"]}
+{"at":"2026-08-11T20:56:47+09:00","actor":"codex","type":"pending_resolved","pending_id":"P-2","documents":["design.md","spec.md","pending.md"]}
+{"at":"2026-08-11T21:00:00+09:00","actor":"agent:design_reviewer","type":"design_review_rejected","documents":["design.md","spec.md","references.md"]}
+{"at":"2026-08-11T21:02:46+09:00","actor":"agent:design_reviewer","type":"design_review_passed","documents":["plan.md","design.md","spec.md","pending.md","references.md"]}
+{"at":"2026-08-11T23:26:47+09:00","actor":"human","type":"design_approved","documents":["plan.md","design.md","spec.md","pending.md","references.md"]}
+{"at":"2026-08-11T23:32:39+09:00","actor":"agent:implementation_reviewer","type":"implementation_review_passed","documents":["plan.md","spec.md","implementation.md"]}
+{"at":"2026-08-11T23:56:26+09:00","actor":"human","type":"implementation_approved","documents":["plan.md","spec.md","implementation.md"]}

@@ -154,6 +154,35 @@ func (f *fakeBatchProvider) PollBatch(_ context.Context, _ provider.Connection, 
 }
 
 // R-1-1, R-1-4: 1001件は1000件と1件へ分かれ、現在の外部 batch が完了するまで次を送らない。
+func TestBatchSkipsJapaneseRows(t *testing.T) {
+	ctx := context.Background()
+	const plugin = "japanese.esp"
+	store := &fakeStore{
+		proper:       []model.ProperNoun{{ID: 1, Plugin: plugin, Source: "剣"}},
+		untranslated: []model.Narration{{ID: 2, Plugin: plugin, Source: "本"}},
+		lines:        []model.Line{{ID: 3, Plugin: plugin, Source: "話す"}},
+	}
+	batch := &fakeBatchProvider{}
+	runner := NewBatchRunner(New(store, &fakeTranslator{}, fakeLexicon{}, nil, nil), map[string]provider.BatchTranslator{provider.BatchProviderXAI: batch}, store)
+
+	outcome, err := runner.SubmitBatch(ctx, provider.BatchProviderXAI, provider.Connection{}, "grok", plugin)
+	if err != nil {
+		t.Fatalf("SubmitBatch: %v", err)
+	}
+	if !outcome.CompletedWithoutExternalBatch || batch.submits != 0 {
+		t.Errorf("batch結果 = %+v, submits = %d", outcome, batch.submits)
+	}
+	if len(store.properUpdates) != 1 || store.properUpdates[0].dest != "剣" || store.properUpdates[0].status != statusTranslated {
+		t.Errorf("固有名の更新 = %+v", store.properUpdates)
+	}
+	if len(store.updates) != 1 || store.updates[0].dest != "本" || store.updates[0].status != statusTranslated {
+		t.Errorf("叙述文の更新 = %+v", store.updates)
+	}
+	if len(store.lineUpdates) != 1 || store.lineUpdates[0].dest != "話す" || store.lineUpdates[0].status != statusTranslated {
+		t.Errorf("台詞の更新 = %+v", store.lineUpdates)
+	}
+}
+
 func TestBatchは1001件を最大1000件ずつ順番に送る(t *testing.T) {
 	ctx := context.Background()
 	const plugin = "chunked.esp"

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"aitranslationenginejp/internal/core/batchplan"
+	"aitranslationenginejp/internal/core/japanesetext"
 	"aitranslationenginejp/internal/core/prompt"
 	"aitranslationenginejp/internal/core/runtimetag"
 	"aitranslationenginejp/internal/model"
@@ -195,6 +196,12 @@ func (r *BatchRunner) planProperRequests(ctx context.Context, plugin string) ([]
 
 	var planned []batchplan.PlannedRequest
 	for _, pn := range propers {
+		if japanesetext.Contains(pn.Source) {
+			if err := r.e.store.UpdateProperNounDest(ctx, pn.ID, pn.Source, statusTranslated); err != nil {
+				return nil, fmt.Errorf("日本語の固有名の書き戻し: %w", err)
+			}
+			continue
+		}
 		planned = append(planned, batchplan.PlannedRequest{
 			Kind:   model.BatchKindProper,
 			RowID:  pn.ID,
@@ -296,6 +303,12 @@ func (r *BatchRunner) planNarrations(ctx context.Context, narrations []model.Nar
 	references []model.TranslationReference, base string, instructionByKey map[string]string, keyByRF map[RecordKey]string) ([]batchplan.PlannedRequest, error) {
 	var planned []batchplan.PlannedRequest
 	for _, n := range narrations {
+		if japanesetext.Contains(n.Source) {
+			if err := r.e.store.UpdateNarrationDest(ctx, n.ID, n.Source, statusTranslated); err != nil {
+				return nil, fmt.Errorf("日本語の叙述文の書き戻し: %w", err)
+			}
+			continue
+		}
 		if dest, ok := refIndex[referenceKey{Rec: n.Rec, Field: n.Field, Source: n.Source}]; ok {
 			if err := r.e.store.UpdateNarrationDest(ctx, n.ID, dest, statusTranslated); err != nil {
 				return nil, fmt.Errorf("叙述文の既訳流用: %w", err)
@@ -315,6 +328,12 @@ func (r *BatchRunner) planLines(ctx context.Context, lines []model.Line, refInde
 	references []model.TranslationReference, base string, personas map[int64]Persona) ([]batchplan.PlannedRequest, error) {
 	var planned []batchplan.PlannedRequest
 	for _, l := range lines {
+		if japanesetext.Contains(l.Source) {
+			if err := r.e.store.UpdateLineDest(ctx, l.ID, l.Source, statusTranslated); err != nil {
+				return nil, fmt.Errorf("日本語の台詞の書き戻し: %w", err)
+			}
+			continue
+		}
 		if dest, ok := refIndex[referenceKey{Rec: l.Rec, Field: l.Field, Source: l.Source}]; ok {
 			if err := r.e.store.UpdateLineDest(ctx, l.ID, dest, statusTranslated); err != nil {
 				return nil, fmt.Errorf("台詞の既訳流用: %w", err)
